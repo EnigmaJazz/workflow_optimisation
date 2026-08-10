@@ -62,3 +62,13 @@ After every routed task — including probes — record one row in [ROUTER-LOG.m
 ## Prove-Out (R12)
 
 The runnable router stays deferred until the log shows **ten consecutive routed tasks across at least four task classes completing their flows without re-classification or gate escape** — with misclassifications logged to feed the encoding decision. At that point, encoding the router as a slash command, custom skill, or prompt section is triggered.
+
+## After Updates (run this)
+
+After updating opencode, Systematic, or gentle-ai, run the self-healing health check once:
+
+```bash
+bash verify-workflow.sh
+```
+
+It re-verifies and re-applies the three global pieces updates can touch: RDD mode (on), the skill symlinks (re-pointed to the active install if a package update moved it), and the routing section in the global opencode AGENTS.md (restored if sync removed it). Workspace files are safe — they live in this repo.
