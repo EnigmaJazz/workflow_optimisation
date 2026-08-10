@@ -1,0 +1,64 @@
+# WORKFLOW — Task Routing Recipe
+
+**Origin:** [docs/brainstorms/2026-08-10-workflow-routing-requirements.md](docs/brainstorms/2026-08-10-workflow-routing-requirements.md)
+**Plan:** [docs/plans/2026-08-10-001-feat-workflow-router-plan.md](docs/plans/2026-08-10-001-feat-workflow-router-plan.md)
+**Log:** [ROUTER-LOG.md](ROUTER-LOG.md)
+
+This recipe routes every incoming task to the right topology: Systematic for product thinking and discipline skills, gentle-ai SDD and receipt-driven review for durable execution and quality gates. **Classify every task by decision content, not file count.** If classification is ambiguous, ask the user and default to **substantial**.
+
+## Task Classes
+
+| Class | Signal | Route |
+|---|---|---|
+| **Tiny fix** | One-file mechanical change, no design decisions | Direct inline edit → structural readback (low-risk gate) → delivered with receipt |
+| **Small feature** | Multi-file change with clear behavior; well-bounded | Systematic plan → implementation → RDD review gate |
+| **Substantial feature** | Multi-file change with ambiguous behavior; new product territory | Requirements brainstorm → SDD (proposal → specs → design → tasks → apply → verify → archive) → RDD review gate → compound learning loop |
+| **Bug investigation** | Bug report or failing behavior | Reproduce → root cause → test-first fix → RDD review gate |
+| **Documentation** | Docs, guides, onboarding, review-facing material | Matching docs skill (e.g., cognitive-doc-design) → human review |
+
+```mermaid
+flowchart TB
+  Task[Incoming task] --> Classify{Task class}
+  Classify -->|tiny fix| Inline[Direct inline + structural readback] --> Gate
+  Classify -->|small feature| SPlan[Systematic plan] --> Impl[Implementation] --> Gate[RDD review gate]
+  Classify -->|substantial feature| Brain[Requirements brainstorm] --> SDD[SDD proposal/spec/design/tasks] --> Apply[Apply with registry skills] --> Gate
+  Classify -->|bug| Reproduce[Reproduce + root cause] --> TDD[Test-first fix] --> Gate
+  Classify -->|documentation| Docs[Docs skill] --> HRev[Human review]
+  Gate --> Deliver[Deliver with receipt]
+```
+
+## Classification Rules
+
+- **Decision content, not file count.** A multi-file *mechanical* change with no design decisions routes as a small feature, not a substantial one.
+- Multi-file + clear behavior → **small**. Multi-file + ambiguous → **substantial**.
+- Ambiguous classification → ask the user; default to **substantial**.
+- **Re-classification is allowed at any planning boundary.** If execution reveals the true class differs (a small feature grows into multi-file ambiguous scope, or a substantial-looking request collapses to one file), re-run classification with user confirmation before proceeding past the current gate.
+
+## Quality Gates
+
+- **Receipt-driven review is the single enforced review gate for code** — every code change, regardless of class, passes it before delivery. ce:review is not run as a second gate on RDD-covered code.
+- Tiny fixes pass the gate in its low-risk form: **silent structural readback** — no planning ceremony, still receipted.
+- ce:review remains available where RDD is disabled, or for non-code artifacts (designs, docs).
+- **Delivery strategy: ask-on-risk.** The chained-PR question fires only when the sdd-tasks review workload forecast exceeds **400 changed lines**; a change that crosses the threshold after the forecast still triggers the question before delivery.
+
+## Execution Skills (registry-injected)
+
+The substantial-feature flow's apply phase carries Systematic's execution skills through the skill registry, so the apply agent loads them before work:
+
+- `test-driven-development` — RED-GREEN-REFACTOR discipline for feature work
+- `frontend-design` — design quality for UI work
+- `reproduce-bug` — bug investigation discipline (used in the bug class)
+
+## Session Defaults
+
+- **SDD preflight:** quality-first posture — interactive approval at planning boundaries; per-session pace and artifact store stay user-owned.
+- **Coding model question** (local model vs opencode bridge): asked at coding start, user-owned.
+- **Substantial-feature learning loop:** after archive, route outcomes through Systematic's `compound` skill so learnings are recorded.
+
+## Logging
+
+After every routed task — including probes — record one row in [ROUTER-LOG.md](ROUTER-LOG.md): date, task, class chosen, reclassification, gate outcome, probe flag, evidence reference. Probe rows are excluded from the prove-out count.
+
+## Prove-Out (R12)
+
+The runnable router stays deferred until the log shows **ten consecutive routed tasks across at least four task classes completing their flows without re-classification or gate escape** — with misclassifications logged to feed the encoding decision. At that point, encoding the router as a slash command, custom skill, or prompt section is triggered.
