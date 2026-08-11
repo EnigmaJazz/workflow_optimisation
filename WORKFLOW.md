@@ -15,6 +15,7 @@ This recipe routes every incoming task to the right topology: Systematic for pro
 | **Substantial feature** | Multi-file change with ambiguous behavior; new product territory | Requirements brainstorm → SDD (proposal → specs → design → tasks → apply → verify → archive) → RDD review gate → compound learning loop |
 | **Bug investigation** | Bug report or failing behavior | Reproduce → root cause → test-first fix → RDD review gate |
 | **Documentation** | Docs, guides, onboarding, review-facing material | Matching docs skill (e.g., cognitive-doc-design) → human review |
+| **Global tooling change** | Config, plugins, skills, or any change deployed outside a git repo (`~/.config/opencode/`, `~/.config/gentle-ai/`) | Version the artifact source in this workspace first → RDD review gate on the in-repo source → mirror the reviewed artifact to the deploy target |
 
 ```mermaid
 flowchart TB
@@ -48,6 +49,15 @@ The substantial-feature flow's apply phase carries Systematic's execution skills
 - `test-driven-development` — RED-GREEN-REFACTOR discipline for feature work
 - `frontend-design` — design quality for UI work
 - `reproduce-bug` — bug investigation discipline (used in the bug class)
+
+## Global Tooling Changes
+
+Changes that deploy outside a git repo (opencode plugins, config, skills) fall outside the native RDD gate's repo scope, so they follow this rule instead:
+
+1. **Source lives in the repo first** — the reviewed artifact's source copy goes under `global-config/` in this workspace (e.g., `global-config/plugins/`).
+2. **The gate reviews the source** — the RDD review runs on the in-repo source copy; the receipt certifies the source.
+3. **Deployment is a mirror** — the external copy is a copy of the reviewed source, never edited in place. `verify-workflow.sh` re-mirrors it automatically if it drifts.
+4. **Log the task** — one row in ROUTER-LOG.md with the deploy target noted in the evidence reference.
 
 ## Session Defaults
 

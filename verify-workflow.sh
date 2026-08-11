@@ -100,6 +100,28 @@ if [ $? -ne 0 ]; then
   FAIL=1
 fi
 
+# --- 6. Global plugin mirror ---
+echo "--- 6. Global plugin mirror ---"
+PLUGIN_SOURCE="$WORKSPACE/global-config/plugins/workflow-health-check.ts"
+PLUGIN_DEPLOYED="/home/james/.config/opencode/plugins/workflow-health-check.ts"
+if [ -f "$PLUGIN_SOURCE" ]; then
+  if [ -f "$PLUGIN_DEPLOYED" ] && cmp -s "$PLUGIN_SOURCE" "$PLUGIN_DEPLOYED"; then
+    echo "   ok: workflow-health-check.ts mirror is current"
+  else
+    echo "   !! re-mirroring workflow-health-check.ts from reviewed source"
+    cp "$PLUGIN_SOURCE" "$PLUGIN_DEPLOYED"
+    if cmp -s "$PLUGIN_SOURCE" "$PLUGIN_DEPLOYED"; then
+      echo "      ok: mirror restored (restart opencode to load the updated plugin)"
+    else
+      echo "      !! could not re-mirror plugin"
+      FAIL=1
+    fi
+  fi
+else
+  echo "   !! plugin source missing from workspace — cannot verify mirror"
+  FAIL=1
+fi
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
   echo "== All checks passed — workflow setup intact =="
