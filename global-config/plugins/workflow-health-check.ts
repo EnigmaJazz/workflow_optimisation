@@ -29,6 +29,15 @@ const execFileAsync = promisify(execFile)
 const VERIFY_SCRIPT = "/home/james/ai-workspace/workflow_optimisation/verify-workflow.sh"
 const VERIFY_TIMEOUT_MS = 60_000
 
+// Pinned sha256 digest of the reviewed verify-workflow.sh. The plugin refuses
+// to execute a script that does not match this digest, so startup execution is
+// always the reviewed artifact: tampering with the repository script fails
+// closed (no execution, FAILED banner) instead of running arbitrary code as
+// the user. Updating the script is a reviewed-pipeline step: edit
+// verify-workflow.sh, recompute with `sha256sum verify-workflow.sh`, update
+// this pin, run the RDD review on the plugin source, then re-mirror.
+const VERIFY_SCRIPT_SHA256 = "dfd8b9987faee1df858327ea0a9a3e81812f75b8c6029a8a735a08a9cc69f2a7"
+
 interface HealthResult {
   ok: boolean
   tail: string
@@ -40,7 +49,24 @@ interface HealthResult {
 let health: HealthResult | null = null
 let checkStarted = false
 
+async function verifyScriptIntegrity(): Promise<boolean> {
+  try {
+    const { stdout } = await execFileAsync("sha256sum", [VERIFY_SCRIPT])
+    return stdout.trim().split(/\s+/)[0] === VERIFY_SCRIPT_SHA256
+  } catch {
+    return false
+  }
+}
+
 async function runHealthCheck(): Promise<void> {
+  if (!(await verifyScriptIntegrity())) {
+    health = {
+      ok: false,
+      tail: `verify-workflow.sh does not match the reviewed digest ${VERIFY_SCRIPT_SHA256}; refusing to execute.`,
+    }
+    console.error("[workflow-health-check] script digest mismatch — refusing to execute")
+    return
+  }
   try {
     const { stdout } = await execFileAsync("bash", [VERIFY_SCRIPT], {
       timeout: VERIFY_TIMEOUT_MS,
