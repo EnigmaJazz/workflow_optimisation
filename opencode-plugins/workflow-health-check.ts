@@ -1,0 +1,99 @@
+/**
+ * workflow-health-check
+ *
+ * Runs the workflow setup health check when OpenCode starts and surfaces a
+ * warning into the session system prompt when any global piece of the
+ * gentle-ai + Systematic workflow setup is broken or was auto-repaired:
+ *   - receipt-driven review mode (RDD) is off
+ *   - skill symlinks resolve to a stale/missing Systematic install
+ *   - the routing section in the global AGENTS.md was removed by a sync
+ *
+ * The check runs the self-healing script (verify-workflow.sh), which repairs
+ * symlinks and the AGENTS.md section automatically. This plugin's job is only
+ * to notice when the script could NOT repair something (or RDD is off) and to
+ * make sure the agent in every session knows about it.
+ *
+ * Persistence: this file is user-owned and auto-loaded from
+ * ~/.config/opencode/plugins/ (no opencode.json entry needed). gentle-ai
+ * updates only rewrite its own AGENTS.md markers and agent prompts; they never
+ * touch this directory, so the enforcement survives both opencode and
+ * gentle-ai updates.
+ */
+
+import type { Plugin } from "@opencode-ai/plugin"
+import { execFile } from "child_process"
+import { promisify } from "util"
+
+const execFileAsync = promisify(execFile)
+
+const VERIFY_SCRIPT = "/home/james/ai-workspace/workflow_optimisation/verify-workflow.sh"
+const VERIFY_TIMEOUT_MS = 60_000
+
+interface HealthResult {
+  ok: boolean
+  tail: string
+}
+
+// Module-level cache: check once per process, inject the result into every
+// session's system prompt so the warning is visible regardless of when the
+// check completes relative to session start.
+let health: HealthResult | null = null
+let checkStarted = false
+
+async function runHealthCheck(): Promise<void> {
+  try {
+    const { stdout } = await execFileAsync("bash", [VERIFY_SCRIPT], {
+      timeout: VERIFY_TIMEOUT_MS,
+    })
+    const output = stdout.trim()
+    const ok = output.includes("All checks passed")
+    health = { ok, tail: output.split("\n").slice(-12).join("\n") }
+    if (ok) {
+      console.log("[workflow-health-check] all checks passed")
+    } else {
+      console.warn("[workflow-health-check] issues found:\n" + output)
+    }
+  } catch (err) {
+    const e = err as { stdout?: string; stderr?: string; message?: string }
+    const detail = (e.stdout ?? "") + (e.stderr ?? "")
+    health = {
+      ok: false,
+      tail: (detail.trim() || e.message || String(err)).split("\n").slice(-12).join("\n"),
+    }
+    console.error("[workflow-health-check] check failed to complete:", e.message ?? err)
+  }
+}
+
+export const WorkflowHealthCheckPlugin: Plugin = async () => {
+  if (!checkStarted) {
+    checkStarted = true
+    // Don't await — keep OpenCode startup responsive. The script is cheap
+    // (cached registry refresh, no network).
+    runHealthCheck().catch((err) => {
+      console.error("[workflow-health-check] unexpected error:", err)
+    })
+  }
+
+  return {
+    "experimental.chat.system.transform": async (
+      _input: unknown,
+      output: { system?: string[] },
+    ) => {
+      if (!health || health.ok) return
+      if (!Array.isArray(output.system)) return
+      output.system.push(
+        [
+          "## Workflow health check FAILED",
+          "The global gentle-ai + Systematic workflow setup has a problem that the startup check could not fully repair. Run `bash " +
+            VERIFY_SCRIPT +
+            "` and offer the user the result; if RDD is off, re-enable it with `gentle-ai review mode enable --scope global`.",
+          "```",
+          health.tail,
+          "```",
+        ].join("\n"),
+      )
+    },
+  }
+}
+
+export default WorkflowHealthCheckPlugin
