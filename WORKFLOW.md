@@ -43,6 +43,20 @@ flowchart TB
 - ce:review remains available where RDD is disabled, or for non-code artifacts (designs, docs).
 - **Delivery strategy: ask-on-risk.** The chained-PR question fires only when the sdd-tasks review workload forecast exceeds **400 changed lines**; a change that crosses the threshold after the forecast still triggers the question before delivery.
 
+## Required Thinking Layers (MANDATORY)
+
+Systematic's thinking workflows are **required**, not optional, before durable execution — they are the quality floor. Each precondition is a hard gate: the next phase must not launch until the prior artifact exists.
+
+| Class | Required precondition before SDD/implementation | Enforced by |
+|---|---|---|
+| **Substantial feature** | `ce:brainstorm` requirements doc MUST exist before SDD proposal launches (proposal is scoped to approach/design, not re-derived requirements) | Orchestrator gatekeeper refuses SDD propose without the requirements artifact |
+| **Substantial feature (after archive)** | `ce:compound` MUST run after archive so learnings are recorded in `docs/solutions/` | Orchestrator gatekeeper refuses archive-close without the compound step |
+| **Small feature** | `ce:plan` MUST complete before implementation starts | Orchestrator gatekeeper refuses implementation without a plan artifact |
+| **Bug investigation** | `reproduce-bug` skill + test-first (`test-driven-development`) discipline REQUIRED in the fix | Apply prompt must carry the registry skill paths |
+| **SDD apply (any code class)** | Registry-injected Systematic execution skills (TDD, frontend-design, reproduce-bug) MUST be loaded in the apply prompt | AE4 contract; apply prompt carries the skill paths |
+
+**Gatekeeper rule:** if a phase tries to launch without its required Systematic precondition, STOP and produce the missing artifact first. Skipping the thinking layer is not an available optimization — output quality is the product.
+
 ## Execution Skills (registry-injected)
 
 The substantial-feature flow's apply phase carries Systematic's execution skills through the skill registry, so the apply agent loads them before work:
