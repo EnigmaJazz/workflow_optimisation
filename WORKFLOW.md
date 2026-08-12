@@ -70,6 +70,15 @@ Changes that deploy outside a git repo (opencode plugins, config, skills) fall o
 
 After every routed task — including probes — record one row in [ROUTER-LOG.md](ROUTER-LOG.md): date, task, class chosen, reclassification, gate outcome, probe flag, evidence reference. Probe rows are excluded from the prove-out count.
 
+## Visible Evidence in Target Repos
+
+The router must leave a trace **in the repo where the work happened**, not just in this workspace:
+
+1. **Repo-local pointer** — every repo that participates in routing carries a `ROUTER-LOG.md` (or a one-section pointer in its `AGENTS.md`) naming the canonical recipe and its own log. Sessions there classify per the recipe and log rows locally.
+2. **`ROUTED:` commit trailer** — commits produced by a routed task carry a trailer: `ROUTED: <class>@<gate-outcome> (router log row <date>)` — e.g. `ROUTED: small-feature@rdd-receipt (2026-08-12)`. Docs tasks use `ROUTED: documentation@human-review`.
+3. **Central log still authoritative** — the workspace `ROUTER-LOG.md` remains the prove-out ledger; repo-local rows are the visible evidence and feed the same task list.
+4. **Probes never leave trailers** — synthetic probe commits get no `ROUTED:` trailer; only real routed tasks do.
+
 ## Prove-Out (R12)
 
 The runnable router stays deferred until the log shows **ten consecutive routed tasks across at least four task classes completing their flows without re-classification or gate escape** — with misclassifications logged to feed the encoding decision. At that point, encoding the router as a slash command, custom skill, or prompt section is triggered.
