@@ -76,7 +76,7 @@ This routing recipe applies in **every repository** on this machine. It is user-
 
 **Canonical recipe:** `/home/james/ai-workspace/workflow_optimisation/WORKFLOW.md` — read it before starting task work. It is the single source of truth for task classification and routing.
 
-- Classify every incoming task by decision content, not file count: tiny fix, small feature, substantial feature, bug investigation, documentation.
+- Classify every incoming task by decision content, not file count: tiny fix, small feature, substantial feature, bug investigation, documentation, global tooling change.
 - If classification is ambiguous, ask the user; default to **substantial**.
 - Re-classification is allowed at any planning boundary with user confirmation.
 - Every code change passes the receipt-driven review gate before delivery (RDD is enabled globally). Tiny fixes pass via silent structural readback; docs pass via human review with no code gate.
@@ -93,12 +93,12 @@ EOF
   fi
 fi
 
-# --- 5. Skill registry refresh ---
+# --- 5. Skill registry ---
 echo "--- 5. Skill registry ---"
-gentle-ai skill-registry refresh --cwd "$WORKSPACE" 2>&1 | head -1
-if [ $? -ne 0 ]; then
+if ! REGISTRY_OUTPUT=$(gentle-ai skill-registry refresh --cwd "$WORKSPACE" 2>&1); then
   FAIL=1
 fi
+echo "$REGISTRY_OUTPUT" | head -1
 
 # --- 6. Global plugin mirror ---
 echo "--- 6. Global plugin mirror ---"

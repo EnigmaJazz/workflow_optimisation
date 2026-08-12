@@ -72,7 +72,7 @@ The cost of leaving that question open is real. Applying SDD everywhere taxes sm
 
 **[Routing by task class]**
 
-- R1. The workflow defines five task classes — tiny fix, small feature, substantial feature, bug investigation, documentation — classified by decision content, not file count: multi-file changes with clear behavior route as small, ambiguous ones as substantial, and an ambiguous classification defaults to substantial with user confirmation.
+- R1. The workflow defines six task classes — tiny fix, small feature, substantial feature, bug investigation, documentation, global tooling change — classified by decision content, not file count: multi-file changes with clear behavior route as small, ambiguous ones as substantial, and an ambiguous classification defaults to substantial with user confirmation.
 - R2. Tiny fixes route to direct inline implementation with no planning ceremony; the enforced gate runs in its low-risk form (silent structural readback) and the change ships with a receipt.
 - R3. Substantial features route through a requirements brainstorm, then through SDD planning (proposal, spec, design, tasks), apply, verify, and archive.
 - R4. Small features route through Systematic planning to direct implementation; SDD planning is skipped.

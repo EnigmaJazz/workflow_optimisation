@@ -25,6 +25,7 @@ flowchart TB
   Classify -->|substantial feature| Brain[Requirements brainstorm] --> SDD[SDD proposal/spec/design/tasks] --> Apply[Apply with registry skills] --> Gate
   Classify -->|bug| Reproduce[Reproduce + root cause] --> TDD[Test-first fix] --> Gate
   Classify -->|documentation| Docs[Docs skill] --> HRev[Human review]
+  Classify -->|global tooling| Ver[Version source in repo] --> Gate[RDD review gate]
   Gate --> Deliver[Deliver with receipt]
 ```
 

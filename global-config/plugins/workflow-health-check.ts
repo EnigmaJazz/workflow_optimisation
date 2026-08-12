@@ -36,7 +36,7 @@ const VERIFY_TIMEOUT_MS = 60_000
 // the user. Updating the script is a reviewed-pipeline step: edit
 // verify-workflow.sh, recompute with `sha256sum verify-workflow.sh`, update
 // this pin, run the RDD review on the plugin source, then re-mirror.
-const VERIFY_SCRIPT_SHA256 = "dfd8b9987faee1df858327ea0a9a3e81812f75b8c6029a8a735a08a9cc69f2a7"
+const VERIFY_SCRIPT_SHA256 = "07c40b971fd088f304826a0343242e760844137c22d0f11ac38933c845d751b3"
 
 interface HealthResult {
   ok: boolean
@@ -72,13 +72,11 @@ async function runHealthCheck(): Promise<void> {
       timeout: VERIFY_TIMEOUT_MS,
     })
     const output = stdout.trim()
-    const ok = output.includes("All checks passed")
-    health = { ok, tail: output.split("\n").slice(-12).join("\n") }
-    if (ok) {
-      console.log("[workflow-health-check] all checks passed")
-    } else {
-      console.warn("[workflow-health-check] issues found:\n" + output)
-    }
+    // execFileAsync resolves only when the script exits 0, and verify-workflow.sh
+    // exits 0 only when every check passed — so a resolved call is success, with
+    // no string coupling to the script's success echo.
+    health = { ok: true, tail: output.split("\n").slice(-12).join("\n") }
+    console.log("[workflow-health-check] all checks passed")
   } catch (err) {
     const e = err as { stdout?: string; stderr?: string; message?: string }
     const detail = (e.stdout ?? "") + (e.stderr ?? "")
