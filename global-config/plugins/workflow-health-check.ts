@@ -36,7 +36,7 @@ const VERIFY_TIMEOUT_MS = 60_000
 // the user. Updating the script is a reviewed-pipeline step: edit
 // verify-workflow.sh, recompute with `sha256sum verify-workflow.sh`, update
 // this pin, run the RDD review on the plugin source, then re-mirror.
-const VERIFY_SCRIPT_SHA256 = "9a9e52cfe2b4d610f759f439e168f7cd90a491ec0abb94ffcec79a117c495f82"
+const VERIFY_SCRIPT_SHA256 = "2c187be8977710a470076cf9e277bdcf3fd5d22b1d7609cc1a05b75667ca6bc9"
 
 interface HealthResult {
   ok: boolean
