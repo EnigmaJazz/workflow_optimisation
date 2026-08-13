@@ -16,6 +16,7 @@ This recipe routes every incoming task to the right topology: Systematic for pro
 | **Bug investigation** | Bug report or failing behavior | Reproduce → root cause → test-first fix → RDD review gate |
 | **Documentation** | Docs, guides, onboarding, review-facing material | Matching docs skill (e.g., cognitive-doc-design) → human review |
 | **Global tooling change** | Config, plugins, skills, or any change deployed outside a git repo (`~/.config/opencode/`, `~/.config/gentle-ai/`) | Version the artifact source in this workspace first → RDD review gate on the in-repo source → mirror the reviewed artifact to the deploy target |
+| **Frontend / UI task** | UI design, layout, components, visual verification | Frontend lane (below) — `frontend-dev` design/verify → `frontend-apply` implement → vision analysis; standalone or inside an SDD change (hybrid) |
 
 ```mermaid
 flowchart TB
@@ -56,6 +57,34 @@ Systematic's thinking workflows are **required**, not optional, before durable e
 | **SDD apply (any code class)** | Registry-injected Systematic execution skills (TDD, frontend-design, reproduce-bug) MUST be loaded in the apply prompt | AE4 contract; apply prompt carries the skill paths |
 
 **Gatekeeper rule:** if a phase tries to launch without its required Systematic precondition, STOP and produce the missing artifact first. Skipping the thinking layer is not an available optimization — output quality is the product.
+
+## Frontend / UI Lane (hybrid)
+
+Frontend-shaped work routes through the dedicated lane instead of the generic
+implementation path, regardless of task class:
+
+- **Standalone UI requests** (no SDD change): route to `frontend-dev`
+  directly. It produces the spec, delegates implementation to
+  `frontend-apply`, captures screenshots (playwright-cli), verifies visually,
+  and iterates (max 3 rounds).
+- **UI tasks inside an SDD change**: at `sdd-apply` launch the orchestrator
+  splits the bundle — UI tasks → `frontend-dev` lane, non-UI tasks →
+  `sdd-apply` — runs both in parallel (disjoint files) and merges results
+  into apply-progress; `sdd-verify` still validates the whole change.
+- **Vision stack (native-first)**: 1) the lane model's own native vision
+  (`frontend-dev` = openai/gpt-5.6-sol), 2) the read-only `vision` subagent
+  (openai/gpt-5.6-luna) for vision-less models, 3) the `describe_image`
+  bridge (qwen3.6-plus via the opencode-go proxy) as last resort. Vision-less
+  agents never attach images to messages (breaks fallback replays).
+- **Operational requirements**: `subagent_depth: 3` in opencode.json (the
+  chain orchestrator → dev → apply → vision needs it; default 1 blocks
+  subagent→subagent); NEVER `bash background: true` in subagent sessions
+  (hangs — start servers with foreground `nohup … &` + curl poll + pkill);
+  screenshots must be saved inside the workspace (MCP path boundary rejects
+  external paths).
+- **E2E suite**: `vision/VISION-E2E.md` in the vision repo covers the whole
+  stack (vision subagent, native-first, delegation, bridge, full design
+  cycle, SDD hybrid). Re-run after touching lane config.
 
 ## Execution Skills (registry-injected)
 
