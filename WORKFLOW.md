@@ -39,9 +39,10 @@ flowchart TB
 
 ## Quality Gates
 
-- **Receipt-driven review is the single enforced review gate for code** — every code change, regardless of class, passes it before delivery. ce:review is not run as a second gate on RDD-covered code.
+- **Receipt-driven review is the single *enforced* review gate for code** — every code change, regardless of class, passes it before delivery and ships with a receipt. RDD stays the gate that blocks delivery.
+- **ce:review is the required advisory quality layer BEFORE the RDD gate** for substantial and small features: it adds coverage RDD structurally lacks (performance, API contract/versioning, migrations/schema drift, repo AGENTS.md compliance, agent-native accessibility, plan-requirements verification against the required brainstorm/plan artifacts, past learnings from `docs/solutions/`, stack-specific expertise). Its findings drive fixes that then pass the RDD gate. It is advisory and pre-gate — never a parallel second authority, never a delivery blocker by itself.
 - Tiny fixes pass the gate in its low-risk form: **silent structural readback** — no planning ceremony, still receipted.
-- ce:review remains available where RDD is disabled, or for non-code artifacts (designs, docs).
+- ce:review also remains available where RDD is disabled, or for non-code artifacts (designs, docs).
 - **Delivery strategy: ask-on-risk.** The chained-PR question fires only when the sdd-tasks review workload forecast exceeds **400 changed lines**; a change that crosses the threshold after the forecast still triggers the question before delivery.
 
 ## Required Thinking Layers (MANDATORY)
@@ -55,6 +56,7 @@ Systematic's thinking workflows are **required**, not optional, before durable e
 | **Small feature** | `ce:plan` MUST complete before implementation starts | Orchestrator gatekeeper refuses implementation without a plan artifact |
 | **Bug investigation** | `reproduce-bug` skill + test-first (`test-driven-development`) discipline REQUIRED in the fix | Apply prompt must carry the registry skill paths |
 | **SDD apply (any code class)** | Registry-injected Systematic execution skills (TDD, frontend-design, reproduce-bug) MUST be loaded in the apply prompt | AE4 contract; apply prompt carries the skill paths |
+| **Substantial + small features (pre-gate)** | `ce:review` MUST run as the advisory quality layer before the RDD gate, with its findings resolved before the gate | Orchestrator runs ce:review after implementation and before RDD start; findings become fixes, then the receipt gate
 
 **Gatekeeper rule:** if a phase tries to launch without its required Systematic precondition, STOP and produce the missing artifact first. Skipping the thinking layer is not an available optimization — output quality is the product.
 

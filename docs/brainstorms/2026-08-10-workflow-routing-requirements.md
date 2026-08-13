@@ -82,7 +82,7 @@ The cost of leaving that question open is real. Applying SDD everywhere taxes sm
 
 **[Quality gates]**
 
-- R8. Receipt-driven review is the single enforced review gate for code; ce:review is not run as a second gate on RDD-covered code.
+- R8. Receipt-driven review is the single *enforced* review gate for code — every code change passes it before delivery and ships with a receipt. ce:review is never a second enforced gate on RDD-covered code, but it IS the required advisory quality layer before the RDD gate for substantial and small features: it adds coverage RDD structurally lacks (performance, API contract/versioning, migrations/schema drift, repo AGENTS.md compliance, agent-native accessibility, plan-requirements verification, past learnings, stack-specific expertise), and its findings are resolved into fixes that then pass the enforced gate.
 - R9. ce:review remains available where RDD is disabled or for non-code artifacts such as designs and docs.
 - R10. Delivery strategy defaults to ask-on-risk: the chained-PR question fires only when the sdd-tasks review workload forecast exceeds 400 changed lines; a change that crosses the threshold after the forecast still triggers the question before delivery.
 
