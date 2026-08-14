@@ -129,10 +129,11 @@ echo "--- 7. Recipe consistency ---"
 WORKFLOW="$WORKSPACE/WORKFLOW.md"
 REQS="$WORKSPACE/docs/brainstorms/2026-08-10-workflow-routing-requirements.md"
 
-# 7a. All six task classes present in the recipe
+# 7a. All six task classes present in the recipe (case-insensitive: the recipe
+# uses title-case class names but lowercase in some prose and the AGENTS heredoc)
 MISSING_CLASS=""
 for cls in "Tiny fix" "Small feature" "Substantial feature" "Bug investigation" "Documentation" "Global tooling change"; do
-  if ! grep -q -- "$cls" "$WORKFLOW"; then MISSING_CLASS="$MISSING_CLASS $cls"; fi
+  if ! grep -qi -- "$cls" "$WORKFLOW"; then MISSING_CLASS="$MISSING_CLASS $cls"; fi
 done
 if [ -z "$MISSING_CLASS" ]; then
   echo "   ok: all six task classes present"
@@ -165,10 +166,15 @@ else
   FAIL=1
 fi
 
-# 7d. AGENTS.md routing section in the repair heredoc matches the deployed section
+# 7d. AGENTS.md routing section in the repair heredoc matches the deployed section.
+# Guard against the empty==empty false pass: require BOTH extractions to be
+# non-empty before comparing, and fail loudly if either is empty.
 HEREDOC_SECTION=$(awk '/# --- 4\. Global AGENTS\.md routing section/,/^EOF$/' "$WORKSPACE/verify-workflow.sh" | sed -n '/<!-- user:workflow-routing -->/,/<!-- \/user:workflow-routing -->/p')
 DEPLOYED_SECTION=$(sed -n '/<!-- user:workflow-routing -->/,/<!-- \/user:workflow-routing -->/p' "$AGENTS_FILE")
-if [ "$HEREDOC_SECTION" = "$DEPLOYED_SECTION" ]; then
+if [ -z "$HEREDOC_SECTION" ] || [ -z "$DEPLOYED_SECTION" ]; then
+  echo "   !! could not extract routing sections (heredoc or deployed empty) — extraction failure, not a match"
+  FAIL=1
+elif [ "$HEREDOC_SECTION" = "$DEPLOYED_SECTION" ]; then
   echo "   ok: AGENTS.md repair heredoc matches deployed routing section"
 else
   echo "   !! AGENTS.md repair heredoc differs from deployed routing section"
