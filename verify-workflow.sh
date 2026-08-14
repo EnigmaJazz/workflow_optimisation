@@ -77,6 +77,8 @@ This routing recipe applies in **every repository** on this machine. It is user-
 **Canonical recipe:** `/home/james/ai-workspace/workflow_optimisation/WORKFLOW.md` — read it before starting task work. It is the single source of truth for task classification and routing.
 
 - Classify every incoming task by decision content, not file count: tiny fix, small feature, substantial feature, bug investigation, documentation, global tooling change.
+- Frontend/UI tasks (design, layout, components, visual verification) route to the `frontend-dev` subagent: it owns design and verification, delegates implementation to `frontend-apply` (cheap tier + vision bridge for screenshots), and iterates between the two.
+- Frontend lane ↔ SDD (hybrid): UI tasks INSIDE an SDD change ride the frontend lane — at `sdd-apply` launch, the orchestrator routes the UI task bundle to `frontend-dev` (its spec→apply→verify loop) and non-UI tasks to `sdd-apply`, merging results into apply-progress; `sdd-verify` still validates the whole change. Standalone UI requests (no SDD change) route directly to `frontend-dev`.
 - If classification is ambiguous, ask the user; default to **substantial**.
 - Re-classification is allowed at any planning boundary with user confirmation.
 - Every code change passes the receipt-driven review gate before delivery (RDD is enabled globally). Tiny fixes pass via silent structural readback; docs pass via human review with no code gate.
@@ -119,6 +121,57 @@ if [ -f "$PLUGIN_SOURCE" ]; then
   fi
 else
   echo "   !! plugin source missing from workspace — cannot verify mirror"
+  FAIL=1
+fi
+
+# --- 7. Recipe consistency ---
+echo "--- 7. Recipe consistency ---"
+WORKFLOW="$WORKSPACE/WORKFLOW.md"
+REQS="$WORKSPACE/docs/brainstorms/2026-08-10-workflow-routing-requirements.md"
+
+# 7a. All six task classes present in the recipe
+MISSING_CLASS=""
+for cls in "Tiny fix" "Small feature" "Substantial feature" "Bug investigation" "Documentation" "Global tooling change"; do
+  if ! grep -q -- "$cls" "$WORKFLOW"; then MISSING_CLASS="$MISSING_CLASS $cls"; fi
+done
+if [ -z "$MISSING_CLASS" ]; then
+  echo "   ok: all six task classes present"
+else
+  echo "   !! missing task classes:$MISSING_CLASS"
+  FAIL=1
+fi
+
+# 7b. Required-layer keywords present in the recipe
+MISSING_KW=""
+for kw in "ce:brainstorm" "ce:plan" "ce:work" "ce:review" "ce:compound" "RDD" "ROUTED:" "Required Thinking Layers"; do
+  if ! grep -q -- "$kw" "$WORKFLOW"; then MISSING_KW="$MISSING_KW $kw"; fi
+done
+if [ -z "$MISSING_KW" ]; then
+  echo "   ok: required-layer keywords present"
+else
+  echo "   !! missing keywords:$MISSING_KW"
+  FAIL=1
+fi
+
+# 7c. Requirements doc R1-R14 present
+MISSING_R=""
+for r in 1 2 3 4 5 6 7 8 9 10 11 12 13 14; do
+  if ! grep -q -- "- R$r\." "$REQS"; then MISSING_R="$MISSING_R R$r"; fi
+done
+if [ -z "$MISSING_R" ]; then
+  echo "   ok: requirements R1-R14 present"
+else
+  echo "   !! missing requirements:$MISSING_R"
+  FAIL=1
+fi
+
+# 7d. AGENTS.md routing section in the repair heredoc matches the deployed section
+HEREDOC_SECTION=$(awk '/# --- 4\. Global AGENTS\.md routing section/,/^EOF$/' "$WORKSPACE/verify-workflow.sh" | sed -n '/<!-- user:workflow-routing -->/,/<!-- \/user:workflow-routing -->/p')
+DEPLOYED_SECTION=$(sed -n '/<!-- user:workflow-routing -->/,/<!-- \/user:workflow-routing -->/p' "$AGENTS_FILE")
+if [ "$HEREDOC_SECTION" = "$DEPLOYED_SECTION" ]; then
+  echo "   ok: AGENTS.md repair heredoc matches deployed routing section"
+else
+  echo "   !! AGENTS.md repair heredoc differs from deployed routing section"
   FAIL=1
 fi
 
