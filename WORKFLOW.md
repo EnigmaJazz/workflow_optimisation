@@ -11,9 +11,9 @@ This recipe routes every incoming task to the right topology: Systematic for pro
 | Class | Signal | Route |
 |---|---|---|
 | **Tiny fix** | One-file mechanical change, no design decisions | Direct inline edit → structural readback (low-risk gate) → delivered with receipt |
-| **Small feature** | Multi-file change with clear behavior; well-bounded | Systematic plan → implementation → RDD review gate |
+| **Small feature** | Multi-file change with clear behavior; well-bounded | Systematic plan → **ce:work execution** (triage → task list → execution strategy → test-as-you-go → incremental commits) → ce:review (advisory, required) → RDD review gate |
 | **Substantial feature** | Multi-file change with ambiguous behavior; new product territory | Requirements brainstorm → SDD (proposal → specs → design → tasks → apply → verify → archive) → RDD review gate → compound learning loop |
-| **Bug investigation** | Bug report or failing behavior | Reproduce → root cause → test-first fix → RDD review gate |
+| **Bug investigation** | Bug report or failing behavior | Reproduce → root cause → **ce:work execution** (test-first, structured) → ce:review (advisory, required) → RDD review gate |
 | **Documentation** | Docs, guides, onboarding, review-facing material | Matching docs skill (e.g., cognitive-doc-design) → human review |
 | **Global tooling change** | Config, plugins, skills, or any change deployed outside a git repo (`~/.config/opencode/`, `~/.config/gentle-ai/`) | Version the artifact source in this workspace first → RDD review gate on the in-repo source → mirror the reviewed artifact to the deploy target |
 | **Frontend / UI task** | UI design, layout, components, visual verification | Frontend lane (below) — `frontend-dev` design/verify → `frontend-apply` implement → vision analysis; standalone or inside an SDD change (hybrid) |
@@ -22,9 +22,9 @@ This recipe routes every incoming task to the right topology: Systematic for pro
 flowchart TB
   Task[Incoming task] --> Classify{Task class}
   Classify -->|tiny fix| Inline[Direct inline + structural readback] --> Gate
-  Classify -->|small feature| SPlan[Systematic plan] --> Impl[Implementation] --> Gate[RDD review gate]
+  Classify -->|small feature| SPlan[Systematic plan] --> CEW[ce:work execution] --> CRev[ce:review advisory] --> Gate[RDD review gate]
   Classify -->|substantial feature| Brain[Requirements brainstorm] --> SDD[SDD proposal/spec/design/tasks] --> Apply[Apply with registry skills] --> Gate
-  Classify -->|bug| Reproduce[Reproduce + root cause] --> TDD[Test-first fix] --> Gate
+  Classify -->|bug| Reproduce[Reproduce + root cause] --> TDD[ce:work test-first] --> CRev2[ce:review advisory] --> Gate
   Classify -->|documentation| Docs[Docs skill] --> HRev[Human review]
   Classify -->|global tooling change| Ver[Version source in repo] --> Gate[RDD review gate]
   Gate --> Deliver[Deliver with receipt]
@@ -56,7 +56,8 @@ Systematic's thinking workflows are **required**, not optional, before durable e
 | **Small feature** | `ce:plan` MUST complete before implementation starts | Orchestrator gatekeeper refuses implementation without a plan artifact |
 | **Bug investigation** | `reproduce-bug` skill + test-first (`test-driven-development`) discipline REQUIRED in the fix | Apply prompt must carry the registry skill paths |
 | **SDD apply (any code class)** | Registry-injected Systematic execution skills (TDD, frontend-design, reproduce-bug) MUST be loaded in the apply prompt | AE4 contract; apply prompt carries the skill paths |
-| **Substantial + small features (pre-gate)** | `ce:review` MUST run as the advisory quality layer before the RDD gate, with its findings resolved before the gate | Orchestrator runs ce:review after implementation and before RDD start; findings become fixes, then the receipt gate
+| **Substantial + small features (pre-gate)** | `ce:review` MUST run as the advisory quality layer before the RDD gate, with its findings resolved before the gate | Orchestrator runs ce:review after implementation and before RDD start; findings become fixes, then the receipt gate |
+| **Small feature + bug investigation (execution)** | `ce:work` MUST run as the structured execution layer between planning and review: triage → task list → execution strategy (inline / serial subagents / parallel past the parallel-safety check) → test-as-you-go → incremental conventional commits. It stops at its quality-check phase — shipping is the gate's job, not ce:work's Phase 4 | Orchestrator runs ce:work with the plan/repro-notes as input; its incremental commits feed ce:review → RDD |
 
 **Gatekeeper rule:** if a phase tries to launch without its required Systematic precondition, STOP and produce the missing artifact first. Skipping the thinking layer is not an available optimization — output quality is the product.
 

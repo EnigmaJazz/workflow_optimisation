@@ -75,8 +75,8 @@ The cost of leaving that question open is real. Applying SDD everywhere taxes sm
 - R1. The workflow defines six task classes — tiny fix, small feature, substantial feature, bug investigation, documentation, global tooling change — classified by decision content, not file count: multi-file changes with clear behavior route as small, ambiguous ones as substantial, and an ambiguous classification defaults to substantial with user confirmation.
 - R2. Tiny fixes route to direct inline implementation with no planning ceremony; the enforced gate runs in its low-risk form (silent structural readback) and the change ships with a receipt.
 - R3. Substantial features route through a requirements brainstorm, then through SDD planning (proposal, spec, design, tasks), apply, verify, and archive.
-- R4. Small features route through Systematic planning to direct implementation; SDD planning is skipped.
-- R5. Bug investigations reproduce and root-cause the failure before any fix, and fixes are written test-first.
+- R4. Small features route through Systematic planning (ce:plan) then structured execution via ce:work — triage, task list, execution strategy (inline / serial subagents / parallel past the parallel-safety check), test-as-you-go, incremental conventional commits — then ce:review (advisory) and the enforced RDD gate; SDD planning is skipped.
+- R5. Bug investigations reproduce and root-cause the failure before any fix; fixes are written test-first and executed through ce:work (structured), then ce:review (advisory) and the enforced RDD gate.
 - R6. Every code change, regardless of class, passes the enforced review gate before delivery.
 - R7. Documentation work routes through the matching Systematic docs skill and human review, with no code review gate.
 
