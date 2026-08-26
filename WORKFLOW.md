@@ -151,3 +151,18 @@ bash verify-workflow.sh
 ```
 
 It re-verifies and re-applies the three global pieces updates can touch: RDD mode (on), the skill symlinks (re-pointed to the active install if a package update moved it), and the routing section in the global opencode AGENTS.md (restored if sync removed it). Workspace files are safe — they live in this repo.
+
+## Sandbox Integration Notes
+
+This machine runs the opencode sandbox stack (routing-guard + sandbox-tools
+plugins + broker) in every project. The orchestrator and all subagents follow
+the Sandbox Tool Contract (global AGENTS.md). Critical for orchestration:
+
+- A session's sandbox worker is SINGLE-LIFECYCLE. Inline implementation is
+  only possible while the session's worker is active (pre-apply). Once
+  sandbox_apply completes, the session cannot reactivate its worker - any
+  further implementation must be delegated to a fresh subagent session
+  (each subagent gets its own worker and its own apply approval).
+- Reads happen on the host BEFORE activation; the first mutation activates
+  the worker. After activation, all project reads/writes/execution use the
+  sandbox tools.
