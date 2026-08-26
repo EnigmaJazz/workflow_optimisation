@@ -91,11 +91,19 @@ implementation path, regardless of task class:
 
 ## Execution Skills (registry-injected)
 
-The substantial-feature flow's apply phase carries Systematic's execution skills through the skill registry, so the apply agent loads them before work:
+All Systematic skills required by the workflow must be registry-available via `~/.config/opencode/skills/` (symlinked from the Systematic package). `verify-workflow.sh` section 3 checks all of them and self-heals missing links:
 
-- `test-driven-development` — RED-GREEN-REFACTOR discipline for feature work
+**Workflow skills (orchestrator):**
+- `ce-brainstorm` — requirements elicitation for substantial features
+- `ce-plan` — planning for small features
+- `ce-work` — structured execution (triage -> tasks -> strategy -> TDD -> commits) for small/bug
+- `ce-review` — advisory pre-gate quality layer before RDD
+- `ce-compound` — learning capture after substantial archive
+
+**Execution skills (injected into apply/ce:work):**
+- `test-driven-development` — RED-GREEN-REFACTOR discipline
 - `frontend-design` — design quality for UI work
-- `reproduce-bug` — bug investigation discipline (used in the bug class)
+- `reproduce-bug` — bug investigation discipline
 
 ## Global Tooling Changes
 

@@ -11,7 +11,7 @@ SKILLS_DIR="/home/james/.config/opencode/skills"
 PACKAGES_DIR="/home/james/.cache/opencode/packages/@fro.bot"
 AGENTS_FILE="/home/james/.config/opencode/AGENTS.md"
 ROUTING_MARKER="<!-- user:workflow-routing -->"
-REQUIRED_SKILLS=("test-driven-development" "frontend-design" "reproduce-bug")
+REQUIRED_SKILLS=("test-driven-development" "frontend-design" "reproduce-bug" "ce-brainstorm" "ce-plan" "ce-work" "ce-review" "ce-compound")
 FAIL=0
 
 echo "== Workflow setup health check =="
