@@ -168,6 +168,19 @@ REQUIRED_SKILLS=(
 )
 
 FAIL=0
+# Colour is emitted only on an interactive terminal so captured runs (the
+# health-check plugin, CI, log files) stay plain text; NO_COLOR opts out.
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-}" != "dumb" ]; then
+  C_RED=$'\033[31m'
+  C_BOLD_RED=$'\033[1;31m'
+  C_RESET=$'\033[0m'
+else
+  C_RED=""
+  C_BOLD_RED=""
+  C_RESET=""
+fi
+# fail() messages, printed as a summary before exit 1.
+FAIL_MESSAGES=()
 AUTO_REPAIRED=0
 CAN_RUNTIME_PROBE=1
 STATIC_SYSTEMATIC_OK=1
@@ -178,7 +191,8 @@ ACTIVE_AGENTS=""
 SYSTEMATIC_NODE_MODULES=""
 
 fail() {
-  echo "   !! $*"
+  FAIL_MESSAGES+=("$*")
+  echo "   ${C_RED}!! $*${C_RESET}"
   FAIL=1
 }
 
@@ -4340,9 +4354,10 @@ else
       data-migrations-reviewer deployment-verification-agent feasibility-reviewer design-iterator
     )
     while IFS= read -r listed; do
-      if [[ "$listed" =~ ^([^[:space:]]+-astra)[[:space:]]+\((primary|subagent|all)\)$ ]]; then
-        alias_name="${BASH_REMATCH[1]}"
-        PROBE_NAMES+=("$alias_name" "${alias_name%-astra}")
+      # Probe every agent the runtime registers, so the probe set cannot drift
+      # from the agents the runtime checker reads via readDebug.
+      if [[ "$listed" =~ ^([^[:space:]]+)[[:space:]]+\((primary|subagent|all)\)$ ]]; then
+        PROBE_NAMES+=("${BASH_REMATCH[1]}")
       fi
     done < "$AGENT_LIST_OUT"
     while IFS= read -r md; do
@@ -4617,6 +4632,13 @@ if [ "$FAIL" -eq 0 ]; then
     echo "== All checks passed — workflow setup intact =="
   fi
 else
-  echo "== Some checks failed — see messages above =="
+  echo "${C_BOLD_RED}== Some checks failed — see the summary below ==${C_RESET}"
+  echo ""
+  echo "${C_BOLD_RED}Failed checks (${#FAIL_MESSAGES[@]}):${C_RESET}"
+  idx=0
+  for message in "${FAIL_MESSAGES[@]}"; do
+    idx=$((idx + 1))
+    printf '   %s. %s\n' "$idx" "$message"
+  done
   exit 1
 fi
