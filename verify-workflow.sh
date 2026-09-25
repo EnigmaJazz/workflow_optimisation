@@ -4382,6 +4382,26 @@ else
 
     MAX_PARALLEL=4
     RUNNING=0
+    # The embedded runtime checker reads agents by name. Literal readDebug(...)
+    # targets plus its agent-name arrays are extracted here and must all be in
+    # the probe set. Runtime-derived targets (astra aliases, Systematic
+    # inventory mutators) are covered because every registered agent is probed
+    # above. The guard fails closed if the extraction itself goes stale.
+    CHECKER_AGENT_REFS="$(
+      {
+        grep -oE 'readDebug\("[^"]+"\)' "$RUNTIME_AGENT_CHECKER" 2>/dev/null
+        grep -oE '(githubReaderNames|githubBlockedNames|gga)=\[[^]]*\]' "$RUNTIME_AGENT_CHECKER" 2>/dev/null
+      } | grep -oE '"[a-z][a-z0-9-]*"' | tr -d '"' | sort -u
+    )"
+    if [ -z "$CHECKER_AGENT_REFS" ]; then
+      fail "PROBE_LIST_AGENT_EXTRACTION_EMPTY: no checker agent references found in $RUNTIME_AGENT_CHECKER"
+    fi
+    while IFS= read -r checker_agent; do
+      [ -n "$checker_agent" ] || continue
+      if [ -z "${SEEN_PROBE[$checker_agent]+x}" ]; then
+        fail "PROBE_LIST_MISSING_CHECKER_AGENT: ${checker_agent} is read by the runtime checker but never probed"
+      fi
+    done <<< "$CHECKER_AGENT_REFS"
     for name in "${UNIQUE_PROBES[@]}"; do
       (
         cd "$AGENT_PROBE_CWD" || exit 1
