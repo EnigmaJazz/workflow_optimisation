@@ -3030,8 +3030,13 @@ for (const name of [...githubReaderNames,...githubBlockedNames]) {
   if (!dbg) continue
   const githubTools=Object.entries(dbg.tools??{}).filter(([id])=>id.startsWith("github_ro_"))
   if (githubReaderNames.includes(name)) {
-    if (githubCredentialInProbe && !githubTools.some(([id,enabled])=>id==="github_ro_get_file_contents" && enabled===true)) {
-      fail(`GITHUB_RO_RESEARCH_TOOL_MISSING: ${name}.github_ro_get_file_contents`)
+    // A one-shot opencode debug agent child does not establish the remote MCP
+    // connection, so the GitHub tool is normally absent in this neutral probe;
+    // absence is not a failure, but present-and-disabled is. The secure-service
+    // /mcp probe below owns the authoritative active-connection evidence.
+    const readerGithubTool=githubTools.find(([id])=>id==="github_ro_get_file_contents")
+    if (readerGithubTool && readerGithubTool[1]===false) {
+      fail(`GITHUB_RO_RESEARCH_TOOL_DISABLED: ${name}.github_ro_get_file_contents`)
     }
     for (const [id,enabled] of githubTools) {
       if (enabled===true && /^github_ro_(?:create|add|update|delete|remove|merge|push|fork|set|mark|lock|unlock|request|submit|dismiss|assign|unassign|cancel|rerun|trigger|enable|disable|replace|upsert|edit|close|reopen)(?:_|$)/.test(id)) {
@@ -3047,6 +3052,8 @@ for (const name of [...githubReaderNames,...githubBlockedNames]) {
 }
 if (!githubCredentialInProbe) {
   console.log("   info: isolated CLI probe has no GitHub credential; secure-service /mcp and /config probes own active GitHub verification")
+} else {
+  console.log("   info: neutral CLI debug probe does not materialize remote MCP tools; secure-service /mcp and /config probes own active GitHub verification")
 }
 for (const t of ["context7_query-docs","context7_resolve-library-id","codegraph_codegraph_explore"]) {
   if (gp[t]!=="allow") fail(`CUSTOM_MCP_PERMISSION_NOT_ALLOW: permission.${t}=${show(gp[t])}`)
