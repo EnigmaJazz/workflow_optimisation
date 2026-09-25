@@ -1,0 +1,196 @@
+// Systematic v3.18.4+ user-owned model, sandbox, and Magic Context overlays.
+// Bundled Systematic agent definitions remain plugin-owned: never duplicate them
+// in opencode.json. Mutation fails closed at category level; exact mutator
+// overlays enable sandbox work. Magic Context durable-memory mutation is allowed
+// for workflow/research/design and denied for review/document-review.
+// Astra escalation is intentionally not a Systematic profile. A reviewed local
+// OpenCode plugin creates hidden `-astra` aliases from the fully resolved agents
+// whose base model is Sol, preserving live Systematic prompts and permissions.
+// The aliases are selectable per project/session and never include code-writing
+// implementation routes.
+{
+  "$schema": "https://fro.bot/systematic/schemas/v3/systematic-config.schema.json",
+  "categories": {
+    "workflow": {
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "variant": "high",
+      "temperature": 0.1,
+      "steps": 40,
+      "permission": {
+        "grep": "deny",
+        "edit": "deny",
+        "write": "deny",
+        "sandbox_bash": "deny",
+        "sandbox_edit": "deny",
+        "sandbox_write": "deny",
+        "sandbox_apply_patch": "deny",
+        "sandbox_apply": "deny",
+        "sandbox_copy_in": "deny",
+        "sandbox_copy_out": "deny",
+        "sandbox_discard": "deny",
+        "sandbox_finish": "deny",
+        "ctx_memory": "allow"
+      }
+    },
+    "research": {
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "variant": "medium",
+      "temperature": 0.1,
+      "steps": 20,
+      "permission": {
+        "grep": "deny",
+        "edit": "deny",
+        "write": "deny",
+        "sandbox_bash": "deny",
+        "sandbox_edit": "deny",
+        "sandbox_write": "deny",
+        "sandbox_apply_patch": "deny",
+        "sandbox_apply": "deny",
+        "sandbox_copy_in": "deny",
+        "sandbox_copy_out": "deny",
+        "sandbox_discard": "deny",
+        "sandbox_finish": "deny",
+        "ctx_memory": "allow"
+      }
+    },
+    "review": {
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "variant": "medium",
+      "temperature": 0.1,
+      "steps": 12,
+      "permission": {
+        "grep": "deny",
+        "edit": "deny",
+        "write": "deny",
+        "sandbox_bash": "deny",
+        "sandbox_edit": "deny",
+        "sandbox_write": "deny",
+        "sandbox_apply_patch": "deny",
+        "sandbox_apply": "deny",
+        "sandbox_copy_in": "deny",
+        "sandbox_copy_out": "deny",
+        "sandbox_discard": "deny",
+        "sandbox_finish": "deny",
+        "ctx_memory": "deny"
+      }
+    },
+    "document-review": {
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "variant": "medium",
+      "temperature": 0.1,
+      "steps": 12,
+      "permission": {
+        "grep": "deny",
+        "edit": "deny",
+        "write": "deny",
+        "sandbox_bash": "deny",
+        "sandbox_edit": "deny",
+        "sandbox_write": "deny",
+        "sandbox_apply_patch": "deny",
+        "sandbox_apply": "deny",
+        "sandbox_copy_in": "deny",
+        "sandbox_copy_out": "deny",
+        "sandbox_discard": "deny",
+        "sandbox_finish": "deny",
+        "ctx_memory": "deny"
+      }
+    },
+    "design": {
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "temperature": 0.2,
+      "steps": 30,
+      "permission": {
+        "grep": "deny",
+        "edit": "deny",
+        "write": "deny",
+        "sandbox_bash": "deny",
+        "sandbox_edit": "deny",
+        "sandbox_write": "deny",
+        "sandbox_apply_patch": "deny",
+        "sandbox_apply": "deny",
+        "sandbox_copy_in": "deny",
+        "sandbox_copy_out": "deny",
+        "sandbox_discard": "deny",
+        "sandbox_finish": "deny",
+        "ctx_memory": "allow"
+      }
+    }
+  },
+  "agents": {
+    "systematic-implementer": {
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "variant": "xhigh",
+      "temperature": 0.1,
+      "steps": 50,
+      "permission": {
+        "edit": "deny", "write": "deny", "bash": "deny",
+        "sandbox_read": "allow", "sandbox_list": "allow", "sandbox_grep": "allow", "sandbox_diff": "allow",
+        "sandbox_bash": "allow", "sandbox_edit": "allow", "sandbox_write": "allow", "sandbox_apply_patch": "allow",
+        "sandbox_apply": "ask", "sandbox_copy_in": "ask", "sandbox_copy_out": "ask", "sandbox_discard": "ask", "sandbox_finish": "ask"
+      }
+    },
+    "bug-reproduction-validator": {
+      "model": "opencode-go/deepseek-v4.1-flash", "temperature": 0.1, "steps": 25,
+      "permission": {
+        "edit": "deny", "write": "deny", "bash": "deny",
+        "sandbox_read": "allow", "sandbox_list": "allow", "sandbox_grep": "allow", "sandbox_diff": "allow",
+        "sandbox_bash": "allow", "sandbox_edit": "allow", "sandbox_write": "allow", "sandbox_apply_patch": "allow",
+        "sandbox_apply": "ask", "sandbox_copy_in": "ask", "sandbox_copy_out": "ask", "sandbox_discard": "ask", "sandbox_finish": "ask"
+      }
+    },
+    "pr-comment-resolver": {
+      "model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 35,
+      "permission": {
+        "edit": "deny", "write": "deny", "bash": "deny",
+        "sandbox_read": "allow", "sandbox_list": "allow", "sandbox_grep": "allow", "sandbox_diff": "allow",
+        "sandbox_bash": "allow", "sandbox_edit": "allow", "sandbox_write": "allow", "sandbox_apply_patch": "allow",
+        "sandbox_apply": "ask", "sandbox_copy_in": "ask", "sandbox_copy_out": "ask", "sandbox_discard": "ask", "sandbox_finish": "ask"
+      }
+    },
+    "spec-flow-analyzer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 20},
+    "repo-research-analyst": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 30},
+    "git-history-analyzer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 25},
+    "best-practices-researcher": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 18},
+    "framework-docs-researcher": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 18},
+    "issue-intelligence-analyst": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 18},
+    "learnings-researcher": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "low", "temperature": 0.1, "steps": 10},
+    "slack-researcher": {"model": "openai/gpt-6-luna", "variant": "low", "temperature": 0.1, "steps": 15},
+    "correctness-reviewer": {"model": "opencode-go/qwen3.7-plus", "temperature": 0.1, "steps": 16},
+    "testing-reviewer": {"model": "openai/gpt-6-luna", "variant": "medium", "temperature": 0.1, "steps": 14},
+    "maintainability-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 10},
+    "project-standards-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "low", "temperature": 0.1, "steps": 10},
+    "agent-native-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 12},
+    "adversarial-reviewer": {"model": "openai/gpt-6-sol", "variant": "high", "temperature": 0.1, "steps": 25},
+    "security-reviewer": {"model": "openai/gpt-6-sol", "variant": "high", "temperature": 0.1, "steps": 25},
+    "api-contract-reviewer": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 18},
+    "architecture-strategist": {"model": "opencode-go/glm-5.3", "variant": "high", "temperature": 0.1, "steps": 22},
+    "reliability-reviewer": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 20},
+    "data-migrations-reviewer": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 20},
+    "deployment-verification-agent": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 20},
+    "performance-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "temperature": 0.1, "steps": 16},
+    "previous-comments-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "low", "temperature": 0.1, "steps": 10},
+    "cli-readiness-reviewer": {"model": "openai/gpt-6-luna", "variant": "medium", "temperature": 0.1, "steps": 12},
+    "code-simplicity-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "low", "temperature": 0.1, "steps": 10},
+    "pattern-recognition-specialist": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 12},
+    "kieran-typescript-reviewer": {"model": "openai/gpt-6-luna", "variant": "medium", "temperature": 0.1, "steps": 14},
+    "coherence-reviewer": {"model": "openai/gpt-6-luna", "variant": "medium", "temperature": 0.1, "steps": 12},
+    "feasibility-reviewer": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 18},
+    "scope-guardian-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "low", "temperature": 0.1, "steps": 12},
+    "design-lens-reviewer": {"model": "openai/gpt-6-luna", "variant": "medium", "temperature": 0.1, "steps": 14},
+    "product-lens-reviewer": {"model": "openai/gpt-6-luna", "variant": "medium", "temperature": 0.1, "steps": 16},
+    "security-lens-reviewer": {"model": "openai/gpt-6-sol", "variant": "high", "temperature": 0.1, "steps": 22},
+    "adversarial-document-reviewer": {"model": "openai/gpt-6-sol", "variant": "high", "temperature": 0.1, "steps": 22},
+    "design-iterator": {
+      "model": "opencode-go/glm-5.3-flash", "temperature": 0.2, "steps": 35,
+      "permission": {
+        "edit": "deny", "write": "deny", "bash": "deny",
+        "sandbox_read": "allow", "sandbox_list": "allow", "sandbox_grep": "allow", "sandbox_diff": "allow",
+        "sandbox_bash": "allow", "sandbox_edit": "allow", "sandbox_write": "allow", "sandbox_apply_patch": "allow",
+        "sandbox_apply": "ask", "sandbox_copy_in": "ask", "sandbox_copy_out": "ask", "sandbox_discard": "ask", "sandbox_finish": "ask"
+      }
+    }
+  },
+  "bootstrap": {"enabled": true},
+  "workflow_guard": {"mode": "observe", "debug": false},
+  "skills_as_commands": true
+}

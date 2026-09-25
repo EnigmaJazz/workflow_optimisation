@@ -1,0 +1,750 @@
+{
+  "enabled": true,
+  "startProviders": [
+    "openai",
+    "opencode-go",
+    "kinver"
+  ],
+  "agentFallbackModels": {
+    "frontend-apply": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "frontend-dev-premium": [
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "frontend-dev": [
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "vision": [
+      {
+        "providerID": "opencode-go",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "design-iterator": [
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ]
+  },
+  "agentRequiredCapabilities": {
+    "frontend-apply": [
+      "files",
+      "tools",
+      "vision"
+    ],
+    "frontend-dev-premium": [
+      "files",
+      "tools",
+      "vision"
+    ],
+    "frontend-dev": [
+      "files",
+      "tools",
+      "vision"
+    ],
+    "vision": [
+      "files",
+      "vision"
+    ],
+    "design-iterator": [
+      "tools",
+      "vision"
+    ]
+  },
+  "fallbackModels": {
+    "opencode-go/deepseek-v4.1-flash": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "opencode-go/glm-5.3": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-sol",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "opencode-go/glm-5.3-flash": [
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "opencode-go/kimi-k2.7-code": [
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "opencode-go/qwen3.7-plus": [
+      {
+        "providerID": "opencode-go",
+        "modelID": "glm-5.3-flash",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-sol",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "openai/gpt-6-astra": [
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-sol",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "openai/gpt-6-sol": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "openai/gpt-6-luna": [
+      {
+        "providerID": "opencode-go",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "kinver/professional": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ]
+  },
+  "providerFallbacks": {
+    "openai": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "opencode-go": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "kinver": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ]
+  },
+  "fallbackModel": [
+    {
+      "providerID": "deepseek",
+      "modelID": "deepseek-flash",
+      "variant": "max",
+      "capabilities": [
+        "files",
+        "tools",
+        "vision"
+      ]
+    },
+    {
+      "providerID": "openai",
+      "modelID": "gpt-6-luna",
+      "variant": "high",
+      "capabilities": [
+        "files",
+        "tools",
+        "vision"
+      ]
+    },
+    {
+      "providerID": "openrouter",
+      "modelID": "deepseek/deepseek-v4.1-flash",
+      "variant": "max",
+      "capabilities": [
+        "files",
+        "tools",
+        "vision"
+      ]
+    }
+  ],
+  "sameProviderFallbackMode": "model-specific",
+  "modelFailurePatterns": [
+    "model is unavailable",
+    "model unavailable"
+  ],
+  "providerFailurePatterns": [
+    "quota exhausted",
+    "credits exhausted",
+    "insufficient balance",
+    "all_keys_unavailable",
+    "no configured opencode go key produced a usable response",
+    "all configured opencode go keys are currently unavailable"
+  ],
+  "sourceGraceProviders": [
+    "opencode-go"
+  ],
+  "sourceGraceMs": 30000,
+  "replayWatchdogMs": 15000,
+  "eventDebounceMs": 1500,
+  "advanceGraceMs": 30000,
+  "revertToOriginalModel": true,
+  "patterns": [
+    "rate limit",
+    "usage limit",
+    "usage_limit",
+    "too many requests",
+    "quota exceeded",
+    "quota exhausted",
+    "insufficient quota",
+    "credits exhausted",
+    "insufficient balance",
+    "limit reached",
+    "capacity exceeded",
+    "all_keys_unavailable",
+    "usage is expired",
+    "usage expired",
+    "no configured opencode go key produced a usable response",
+    "all configured opencode go keys are currently unavailable",
+    "model is unavailable",
+    "model unavailable"
+  ],
+  "excludePatterns": [
+    "context length",
+    "context window",
+    "maximum context",
+    "too many tokens",
+    "input too long",
+    "invalid request",
+    "unsupported parameter",
+    "invalid model",
+    "model not found",
+    "authentication failed",
+    "authentication error",
+    "unauthorized",
+    "invalid api key",
+    "invalid_api_key",
+    "forbidden",
+    "access denied"
+  ],
+  "excludeAgents": [
+    "review-risk",
+    "review-resilience",
+    "review-readability",
+    "review-reliability",
+    "review-refuter",
+    "review-validator",
+    "asi-review-risk",
+    "asi-review-resilience",
+    "asi-review-readability",
+    "asi-review-reliability",
+    "asi-review-refuter",
+    "asi-review-validator"
+  ],
+  "logging": true
+}
