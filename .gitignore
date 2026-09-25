@@ -1,3 +1,5 @@
 # Local AI runtime state
 .atl/
 .sandbox-state/
+# Generated recovery snapshots written by verify-workflow.sh self-heal
+backups/
