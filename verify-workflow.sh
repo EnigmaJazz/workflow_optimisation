@@ -170,9 +170,10 @@ REQUIRED_SKILLS=(
 FAIL=0
 # Colour is emitted only on an interactive terminal so captured runs (the
 # health-check plugin, CI, log files) stay plain text; NO_COLOR opts out.
+# Fixed 256-colour red; the 16-colour palette slot can be re-themed by a terminal.
 if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-}" != "dumb" ]; then
-  C_RED=$'\033[31m'
-  C_BOLD_RED=$'\033[1;31m'
+  C_RED=$'\033[38;5;196m'
+  C_BOLD_RED=$'\033[1;38;5;196m'
   C_RESET=$'\033[0m'
 else
   C_RED=""
@@ -2539,8 +2540,8 @@ if (gp.sandbox_bash!=="ask") fail(`SANDBOX_BASH_DEFAULT_NOT_ASK: ${show(gp.sandb
 for (const t of ["sandbox_apply","sandbox_apply_patch","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_edit","sandbox_finish","sandbox_write"]) if (gp[t]!=="deny") fail(`SANDBOX_MUTATION_DEFAULT_NOT_DENY: ${t}=${show(gp[t])}`)
 
 
-const registeredHostReads=["host_sdd_status","host_sdd_continue","host_sdd_task_result","host_review_assess","host_review_mode_status","host_review_status","host_review_lens_context"]
-const gatedHostMutations=["host_sdd_attempt_grant","host_sdd_archive_compose","host_git_commit","host_git_push","host_gh_issue_create","host_plan_append","host_register_project","host_review_start","host_review_capture_result","host_review_capture_unachievable","host_review_acknowledge_approved","host_review_capture_correction_plan","host_review_capture_refuter","host_review_capture_validation","host_review_validate","host_review_recover"]
+const registeredHostReads=["host_sdd_status","host_sdd_continue","host_sdd_task_result","host_review_assess","host_review_mode_status","host_review_status","host_review_lens_context","host_sandbox_result"]
+const gatedHostMutations=["host_sdd_attempt_grant","host_sdd_archive_compose","host_git_commit","host_git_push","host_gh_issue_create","host_plan_append","host_register_project","host_review_start","host_review_capture_result","host_review_capture_unachievable","host_review_acknowledge_approved","host_review_capture_correction_plan","host_review_capture_refuter","host_review_capture_validation","host_review_validate","host_review_recover","host_sandbox_result_install"]
 const retiredHostOperations=["host_sdd_verify_validate","host_sdd_attempt_status","host_sdd_attempt_acquire","host_sdd_attempt_begin","host_sdd_attempt_rescope","host_sdd_attempt_finish","host_sdd_attempt_reset","host_sdd_attempt_settle"]
 for (const name of registeredHostReads) if (gp[name]!=="allow") fail(`HOST_READ_PERMISSION_MISMATCH: ${name}`)
 for (const name of [...gatedHostMutations,...retiredHostOperations]) if (gp[name]!=="deny") fail(`HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY: ${name}`)
