@@ -661,7 +661,7 @@
       "description": "R3 Reliability reviewer — behavior-first tests, coverage value, edge cases, determinism, contracts, and regressions",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/glm-5.3-flash",
+      "model": "opencode-go/kimi-k2.7-code",
       "permission": {
         "bash": "deny",
         "edit": "deny",
@@ -704,8 +704,7 @@
         "sandbox_grep": false,
         "sandbox_diff": false,
         "grep": false
-      },
-      "variant": "high"
+      }
     },
     "review-resilience": {
       "description": "R4 Resilience reviewer — fallbacks, retry/backoff, graceful degradation, observability, load, rollback, and SLO risks",
@@ -1675,8 +1674,7 @@
       "description": "Relay reviewer (R3 reliability lens). Provider-materialized prompt only.",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/glm-5.3-flash",
-      "variant": "high",
+      "model": "opencode-go/kimi-k2.7-code",
       "prompt": "Follow only the provider-materialized review prompt. Do not inspect the live worktree, delegate, or edit anything.",
       "tools": {
         "*": false,
