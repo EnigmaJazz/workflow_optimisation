@@ -310,6 +310,13 @@ The health-check plugin pins `verify-workflow.sh`'s sha256 and **refuses to exec
 - **SDD preflight:** quality-first posture — interactive approval at planning boundaries; artifact choice is Magic Context / OpenSpec / Both, defaulting to Magic Context; per-session pace remains user-owned.
 - **Coding model question** (local model vs opencode bridge): asked at coding start, user-owned.
 - **Substantial-feature learning loop:** after archive, route outcomes through Systematic's `compound` skill so learnings are recorded.
+### Long sessions and context management
+
+Work in ONE long session per project. Magic Context manages context for the whole session: older history is compartmentalised and archived automatically, durable memories are keyed to project identity and survive session end, and `ctx_search`/`ctx_expand` recover exact prior wording from the archive. Nothing is lost, so a long conversation is never a reason to stop, wrap up, cut scope, rush, defer work, or start a fresh session to "free space" — high context usage is normal and fully handled, and there are no compaction pauses. When something you need is not in view, search the archive first and expand the relevant range; when an item on the desk has served its purpose, stamp it with `ctx_reduce` silently. Never announce that context is running out.
+
+### Each change is a new routed task
+
+Inside that long session, every new user change is a NEW routed task with its own classification, and none of the previous change's routing, approval or state carries over. Before dispatch: re-read this recipe, reload the `workflow-route` skill, classify, load the selected adapter, and honour the explicit change-intent gate again. For substantial work, create or update the task record and its Magic Context mirror before the first source edit, and close it with its checks. Record the `ROUTER-LOG.md` row — and any retraction in `CLAIM-RETRACTIONS.md` — per change, not per session.
 
 ## Logging
 
