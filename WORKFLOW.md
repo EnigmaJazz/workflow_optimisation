@@ -310,6 +310,7 @@ The health-check plugin pins `verify-workflow.sh`'s sha256 and **refuses to exec
 - **SDD preflight:** quality-first posture — interactive approval at planning boundaries; artifact choice is Magic Context / OpenSpec / Both, defaulting to Magic Context; per-session pace remains user-owned.
 - **Coding model question** (local model vs opencode bridge): asked at coding start, user-owned.
 - **Substantial-feature learning loop:** after archive, route outcomes through Systematic's `compound` skill so learnings are recorded.
+
 ### Long sessions and context management
 
 Work in ONE long session per project. Magic Context manages context for the whole session: older history is compartmentalised and archived automatically, durable memories are keyed to project identity and survive session end, and `ctx_search`/`ctx_expand` recover exact prior wording from the archive. Nothing is lost, so a long conversation is never a reason to stop, wrap up, cut scope, rush, defer work, or start a fresh session to "free space" — high context usage is normal and fully handled, and there are no compaction pauses. When something you need is not in view, search the archive first and expand the relevant range; when an item on the desk has served its purpose, stamp it with `ctx_reduce` silently. Never announce that context is running out.
@@ -321,6 +322,7 @@ Inside that long session, every new user change is a NEW routed task with its ow
 ## Logging
 
 After every routed task — including probes — ensure one row is written to [ROUTER-LOG.md](ROUTER-LOG.md): date, task, class chosen, reclassification, review outcome, probe flag, evidence reference. The read-only orchestrator never edits the log itself; the active writer includes the row or a final `general` worker performs the append. Probe rows are excluded from the prove-out count.
+
 ### Claim retractions
 
 Alongside the router log, keep [CLAIM-RETRACTIONS.md](CLAIM-RETRACTIONS.md): one row per claim an agent reported and then had to retract — kind, what caught it, and the instrument that would have caught it first. Append a row in the same change that records the task in `ROUTER-LOG.md`; the read-only orchestrator never edits it directly. The acceptance test for the evidence-discipline rules is that the retraction rate declines across sessions, which is why every row names the instrument that should have preceded the claim.
