@@ -35,9 +35,21 @@ claim it previously reported; near-misses caught before reporting are not rows.
 | 2026-09-25 | newly installed host tool | absence | "A new session is required" to use the tool | It worked in-session | Trying the tool once | owner report |
 | 2026-09-25 | model/provider call | mechanism | Credential failure, read from the literal text "Incorrect API key provided" | A provider outage explained it; the error string was treated as the root cause | Treating an error string as a symptom, and probing before naming a cause | owner report |
 | 2026-09-25 | evidence-discipline change | mechanism | "The key has been rotated or revoked", and every gpt-pinned agent was unusable | The owner reported a global provider outage | Label the inference `inferred` instead of presenting it as a finding | agent observed |
+| 2026-09-27 | workflow_optimisation | other | That an RDD assessment run with `baseRef=d39a679` had been **confirmed** to cover the last commit `4b79a30` | Git showed `d39a679` carries *identical* stats to `4b79a30` — 2 files, 3 insertions — so the matching counts the claim rested on could not distinguish the two commits; coverage was only established afterwards by the base-ref differential (`baseRef=4b79a30` returning `0 paths / 0 lines`, proving HEAD) combined with the parent link (`4b79a30^ = d39a679`) | Confirm the parent commit and run the empty-range differential probe *before* claiming confirmation — or label the claim `inferred` from counts alone | owner report |
 
 ## Adding a row
 
 Append below the last entry, keep the column order, and add the row in the same
 change that records the task in `ROUTER-LOG.md`. Never rewrite an earlier row to
 read better; a retraction that was itself wrong stays visible.
+# CLAIM-RETRACTIONS
+
+date | claim | class | check performed | positive control | caught by | corrected conclusion
+2026-09-27 | the approval fix "was reverted / never installed" | observed | rg \.\.\.details | the target reads "...input.details"; that pattern cannot match the spread form | reading the builder directly | not reverted; it was present throughout
+2026-09-27 | "no approval occurred at all" | inferred | none | a prompt that had fired would show * | the user clarified what the prompt displayed | a prompt fired; only its content was missing
+2026-09-27 | "the state GC pruned the bundle" | inferred | none | the bundle directory would hold files if pruned | listing the directory | the directory was empty; the bundle was never written
+2026-09-27 | "a new session is required" to use a newly installed tool | assumed | none | the tool would be visible to the current session | trying it | it worked in-session
+2026-09-27 | a credential failure from "Incorrect API key" | inferred | none | a bad key would fail consistently | the user knew of the provider outage | a provider outage, not a credential fault
+2026-09-27 | "metadata shape causes the blank approval prompt" | assumed | none | the renderer would read metadata for custom permission names | reading OpenChamber PermissionCard | three fixes addressed mechanisms that did not exist; the real cause was suppressant keys
+2026-09-27 | "read is limited to read/glob outside the project" | assumed | none | read would fail outside the project | the workflow agent tested it | read already lists directories and reads outside the project
+2026-09-27 | "context is exhausted" | assumed | none | the harness would stop accepting input | the directive explicitly forbids this | WORKFLOW.md:316 manages context; announcing exhaustion is forbidden
