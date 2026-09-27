@@ -285,6 +285,10 @@ The current derived mapping is:
 
 ## Global Tooling Changes
 
+### Routing gate and its reset
+
+The routing-guard plugin warns when a dispatch arrives with no active workflow for the change; a future block mode would refuse it. If the gate ever refuses work, it is disabled live — no restart — by creating `~/.config/opencode/routing-guard-off`; remove that file to re-enable it. The environment variable `SYSTEMATIC_ROUTING_GUARD_MODE=off` remains the broader switch read at plugin start. Never edit the deployed plugin to unblock yourself; fix the routing, or use the kill switch.
+
 Changes that deploy outside a git repo (OpenCode plugins, config, skills) use the in-repo source as the review candidate, then mirror exact reviewed bytes:
 
 1. **Source lives in the repo first** — the reviewed artifact's source copy goes under `global-config/` in this workspace (e.g., `global-config/plugins/`).
@@ -318,6 +322,7 @@ Work in ONE long session per project. Magic Context manages context for the whol
 ### Each change is a new routed task
 
 Inside that long session, every new user change is a NEW routed task with its own classification, and none of the previous change's routing, approval or state carries over. Before dispatch: re-read this recipe, reload the `workflow-route` skill, classify, load the selected adapter, and honour the explicit change-intent gate again. For substantial work, create or update the task record and its Magic Context mirror before the first source edit, and close it with its checks. Record the `ROUTER-LOG.md` row — and any retraction in `CLAIM-RETRACTIONS.md` — per change, not per session.
+
 ### Review is per work unit, after the commit
 
 With RDD enabled, every work-unit commit is followed by the assessment for that commit before any further work: obtain the scoped `gentle-ai review assess` for the committed candidate through the reviewed host tool, read `candidate.consumed`, `review_due` and `review_due_reason`, and when `review_due` is true execute the returned transition verbatim through the same host boundary. The review is taken on the COMMITTED candidate, never before the commit. A size-exception recorded for one earlier oversized candidate does not excuse the checkpoint for later, smaller work units: record the actual outcome per commit, and never let one exception become a standing one.

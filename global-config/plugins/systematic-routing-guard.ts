@@ -38,6 +38,10 @@
  * local plugins from that directory automatically.
  */
 
+import { appendFile, mkdir } from "node:fs/promises"
+import { existsSync } from "node:fs"
+import { homedir } from "node:os"
+import { join } from "node:path"
 import type { Plugin } from "@opencode-ai/plugin"
 
 type WorkKind = "implementation" | "review" | "research" | "utility" | "unknown"
@@ -188,6 +192,46 @@ function guardMode(): GuardMode {
   const raw = (process.env.SYSTEMATIC_ROUTING_GUARD_MODE ?? "block").toLowerCase()
   if (raw === "off" || raw === "warn") return raw
   return "block"
+}
+
+const ROUTING_GATE_TOOLS = new Set([
+  "task",
+  "host_git_commit",
+  "host_git_push",
+  "host_gh_issue_create",
+  "host_plan_append",
+  "host_register_project",
+])
+const ROUTING_GATE_OFF_FILE = join(homedir(), ".config/opencode/routing-guard-off")
+const ROUTING_GATE_LOG_FILE = join(homedir(), ".local/share/opencode/logs/routing-guard.log")
+
+function isRoutingGateTool(tool: string): boolean {
+  return (
+    ROUTING_GATE_TOOLS.has(tool) ||
+    tool.startsWith("host_review_") ||
+    tool.startsWith("host_sdd_")
+  )
+}
+
+function isRoutingGateDisabled(): boolean {
+  try {
+    return existsSync(ROUTING_GATE_OFF_FILE)
+  } catch {
+    return false
+  }
+}
+
+async function logInactiveWorkflowWarning(tool: string, sessionID: string): Promise<void> {
+  const message = `routing gate: ${tool} with no active workflow for this change; load the workflow-route skill (or the selected adapter skill) before dispatching`
+  const line = `[systematic-routing-guard] ${message} (session: ${sessionID})`
+  console.warn(line)
+
+  try {
+    await mkdir(join(homedir(), ".local/share/opencode/logs"), { recursive: true })
+    await appendFile(ROUTING_GATE_LOG_FILE, `${line}\n`, "utf8")
+  } catch {
+    // Logging must never block or fail the tool call.
+  }
 }
 
 function canonicalSkillName(raw: unknown): string | null {
@@ -359,6 +403,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
   const activeBySession = new Map<string, ActiveWorkflow>()
   let warnedModelStrip = false
   let warnedQualifiedRewrite = false
+  const warnedInactiveWorkflow = new Set<string>()
 
   return {
     /**
@@ -370,6 +415,16 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
     },
 
     "tool.execute.before": async (input, output) => {
+      if (mode !== "off" && isRoutingGateTool(input.tool) && !isRoutingGateDisabled()) {
+        const activeWorkflow = getActiveWorkflow(activeBySession, input.sessionID)
+        const warningKey = `${input.sessionID}\u0000${input.tool}`
+        if (!activeWorkflow && !warnedInactiveWorkflow.has(warningKey)) {
+          warnedInactiveWorkflow.add(warningKey)
+          await logInactiveWorkflowWarning(input.tool, input.sessionID)
+          // Future block behavior could throw here; this rollout is warning-only.
+        }
+      }
+
       if (input.tool !== "task") return
       const args = output.args as Record<string, unknown> | undefined
       if (!args) return
