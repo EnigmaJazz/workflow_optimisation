@@ -188,6 +188,32 @@ required evidence; it must not search the host or request a broader filesystem
 surface. The orchestrator resolves the request through an approved exact-path
 read, a registered-project researcher, or a dedicated host-config researcher
 when that reviewed capability exists.
+### Evidence discipline — absence claims, mechanism claims, and labels
+
+Verify with ungated tools before forming any conclusion. Exhaust `read` (a
+bounded file or directory), `aft_outline`/`aft_zoom` (symbols and sections),
+`aft_inspect` (diagnostics), `codegraph_explore` (callers and blast radius),
+`ast_grep_search` (structural patterns), and `ctx_search`/`ctx_expand` (prior
+context). None of these needs approval, so there is no cost argument for
+skipping them. Prefer reading the region to searching for it: a search pattern
+is a hypothesis about a file's shape, and an unmatched pattern is evidence
+about the pattern, not about the file. Reach for a host operation or a worker
+only after these are exhausted.
+
+An absence claim — missing, reverted, not installed, not live — states the
+search performed AND a positive control: the exact form the thing would take if
+present, and why that search would have matched that form. Without the control
+the claim is unsupported, because a pattern that cannot match the target's real
+shape proves nothing about the target.
+
+A mechanism claim — any named cause — carries a differential: the alternative
+explanations considered and what ruled them out. A plausible cause never
+distinguished from its alternatives is a hypothesis, not a finding; an error
+message is a symptom, not a root cause.
+
+Label every factual statement in a report: `observed` (evidence inline),
+`inferred` (basis plus what would falsify it), or `assumed`. Never present an
+inference or an assumption as an observation.
 
 <!-- /user:grep-tool-enforcement -->
 
