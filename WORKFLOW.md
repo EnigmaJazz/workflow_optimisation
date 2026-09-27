@@ -314,6 +314,9 @@ The health-check plugin pins `verify-workflow.sh`'s sha256 and **refuses to exec
 ## Logging
 
 After every routed task — including probes — ensure one row is written to [ROUTER-LOG.md](ROUTER-LOG.md): date, task, class chosen, reclassification, review outcome, probe flag, evidence reference. The read-only orchestrator never edits the log itself; the active writer includes the row or a final `general` worker performs the append. Probe rows are excluded from the prove-out count.
+### Claim retractions
+
+Alongside the router log, keep [CLAIM-RETRACTIONS.md](CLAIM-RETRACTIONS.md): one row per claim an agent reported and then had to retract — kind, what caught it, and the instrument that would have caught it first. Append a row in the same change that records the task in `ROUTER-LOG.md`; the read-only orchestrator never edits it directly. The acceptance test for the evidence-discipline rules is that the retraction rate declines across sessions, which is why every row names the instrument that should have preceded the claim.
 
 ## Visible Evidence in Target Repos
 
