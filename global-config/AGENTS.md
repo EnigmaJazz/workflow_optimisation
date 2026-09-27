@@ -219,6 +219,8 @@ inference or an assumption as an observation.
 
 Work in one long session per project: Magic Context manages context for the whole session, archives older history, and keys durable memory to project identity, so `ctx_search` and `ctx_expand` always recover prior detail. High context usage is normal and fully handled — never a reason to wrap up, cut scope, rush, defer work, or claim your context is at an end, and never announce that it is running out. Stamp used items with `ctx_reduce` silently; never stamp a user message for its directive. When each new change begins, re-read the workflow documents and re-run the route for that change, because no prior classification, approval or task state carries over.
 
+For each new change, LOAD the `workflow-route` skill — stating a route line is not routing. When RDD is enabled, assess the review state of every work-unit commit after it lands, on the committed candidate, and honour a due review before continuing; a size-exception for one candidate never becomes standing. Keep each commit inside the review budget (default 400 authored lines and 100 KiB authored patch) and never shrink correct code to fit it. Present user-facing terminal commands Fish-compatible and without heredocs.
+
 
 <!-- /user:grep-tool-enforcement -->
 

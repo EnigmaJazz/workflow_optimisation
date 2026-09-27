@@ -318,6 +318,15 @@ Work in ONE long session per project. Magic Context manages context for the whol
 ### Each change is a new routed task
 
 Inside that long session, every new user change is a NEW routed task with its own classification, and none of the previous change's routing, approval or state carries over. Before dispatch: re-read this recipe, reload the `workflow-route` skill, classify, load the selected adapter, and honour the explicit change-intent gate again. For substantial work, create or update the task record and its Magic Context mirror before the first source edit, and close it with its checks. Record the `ROUTER-LOG.md` row — and any retraction in `CLAIM-RETRACTIONS.md` — per change, not per session.
+### Review is per work unit, after the commit
+
+With RDD enabled, every work-unit commit is followed by the assessment for that commit before any further work: obtain the scoped `gentle-ai review assess` for the committed candidate through the reviewed host tool, read `candidate.consumed`, `review_due` and `review_due_reason`, and when `review_due` is true execute the returned transition verbatim through the same host boundary. The review is taken on the COMMITTED candidate, never before the commit. A size-exception recorded for one earlier oversized candidate does not excuse the checkpoint for later, smaller work units: record the actual outcome per commit, and never let one exception become a standing one.
+
+### Keep work units inside the review budget
+
+Commit small: by default no more than 400 authored changed lines and 100 KiB of authored textual patch per work unit, generated files excluded. Split before the cap, not after. Shrinking correct code to fit a budget is forbidden — the budget shapes the slicing, never the content.
+
+User-facing terminal commands are Fish-compatible and never contain heredocs, because Fish has none. Pass arguments and options directly rather than with shell redirection.
 
 ## Logging
 
