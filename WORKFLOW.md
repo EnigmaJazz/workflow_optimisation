@@ -329,7 +329,8 @@ Inside that long session, every new user change is a NEW routed task with its ow
 
 With RDD enabled, every work-unit commit is followed by the assessment for that commit before any further work: obtain the scoped `gentle-ai review assess` for the committed candidate through the reviewed host tool, read `candidate.consumed`, `review_due` and `review_due_reason`, and when `review_due` is true execute the returned transition verbatim through the same host boundary. The review is taken on the COMMITTED candidate, never before the commit. A size-exception recorded for one earlier oversized candidate does not excuse the checkpoint for later, smaller work units: record the actual outcome per commit, and never let one exception become a standing one.
 
-Always pass the explicit base ref. The tool's default window is suffix-only, so an assessment run without one silently narrows the candidate and can let an accumulated slice evaporate — which is how a one-off size exception becomes a standing one. The boundary is the last reviewed commit, not whatever the default happens to select.
+Always pass the explicit base ref, and pass the LAST REVIEWED BOUNDARY — not the previous commit. Passing the previous commit makes every window a single work unit, and a single work unit is always `under_budget`, so `review_due` can never become true and the checkpoint silently never fires. Cumulative is the point: `under_budget` keeps the accumulated slice pending so successive commits accumulate toward a due review.
+The boundary is not returned by the tooling: the default window is suffix-only, and `review status --committed-only` itself requires a base ref. So record the boundary with the work unit — the last reviewed commit, or the review lineage that consumed it — in the task record and the router-log row, and pass it explicitly next time. `passive` advances the boundary without review; `under_budget` keeps it.
 
 ### Keep work units inside the review budget
 
