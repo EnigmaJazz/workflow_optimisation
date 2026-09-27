@@ -289,6 +289,8 @@ The current derived mapping is:
 
 The routing-guard plugin warns when a dispatch arrives with no active workflow for the change; a future block mode would refuse it. If the gate ever refuses work, it is disabled live — no restart — by creating `~/.config/opencode/routing-guard-off`; remove that file to re-enable it. The environment variable `SYSTEMATIC_ROUTING_GUARD_MODE=off` remains the broader switch read at plugin start. Never edit the deployed plugin to unblock yourself; fix the routing, or use the kill switch.
 
+A skill reload per turn inside a multi-turn SDD or ODD cycle is expected and acceptable: reloading injects instructions only and never resets cycle state, so the SDD artifacts, the task record and any approvals survive it. What is not acceptable is re-initialising the cycle per turn — a fresh `sdd-init`, a re-created task record, or re-taken approvals — to satisfy a gate.
+
 Changes that deploy outside a git repo (OpenCode plugins, config, skills) use the in-repo source as the review candidate, then mirror exact reviewed bytes:
 
 1. **Source lives in the repo first** — the reviewed artifact's source copy goes under `global-config/` in this workspace (e.g., `global-config/plugins/`).
