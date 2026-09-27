@@ -443,6 +443,51 @@ owned_clean = target_valid and all(current.get(key) == merged.get(key) for key i
 pin_detail = ""
 if preserved_pins:
     pin_detail = "; preserved auto-update pins: " + ", ".join(preserved_pins)
+# Reconcile the canonical source with pins the auto-updater advanced: the
+# deployed pin is the reviewed floor, so write the newer version back into the
+# canonical file. Textual and format-preserving; idempotent when already equal.
+canonical_synced = []
+canonical_skipped = []
+if preserved_pins and isinstance(canonical_plugins, list):
+    canonical_ref_by_identity = {}
+    for ref in canonical_plugins:
+        if isinstance(ref, str):
+            canonical_ref_by_identity[managed_identity(ref)] = ref
+    source_path = Path(source)
+    source_text = None
+    try:
+        source_text = source_path.read_text(encoding="utf-8")
+    except Exception as exc:
+        canonical_skipped.append(f"unreadable canonical source ({exc.__class__.__name__})")
+    if source_text is not None:
+        updated_text = source_text
+        for ref in preserved_pins:
+            identity = managed_identity(ref)
+            canonical_ref = canonical_ref_by_identity.get(identity)
+            if not canonical_ref:
+                canonical_skipped.append(f"{identity} (no canonical counterpart)")
+                continue
+            if updated_text.count(canonical_ref) != 1:
+                canonical_skipped.append(f"{identity} (ambiguous canonical match)")
+                continue
+            updated_text = updated_text.replace(canonical_ref, ref, 1)
+            canonical_synced.append(f"{canonical_ref} -> {ref}")
+        if canonical_synced and updated_text != source_text:
+            try:
+                sync_backup_dir = backup_root / run_id
+                sync_backup_dir.mkdir(parents=True, exist_ok=True)
+                os.chmod(sync_backup_dir, 0o700)
+                shutil.copy2(source_path, sync_backup_dir / "opencode.json.source.before")
+                sync_temp = source_path.with_name(source_path.name + ".tmp-sync")
+                sync_temp.write_text(updated_text, encoding="utf-8")
+                os.replace(sync_temp, source_path)
+            except Exception as exc:
+                canonical_skipped.append(f"write failed ({exc.__class__.__name__})")
+                canonical_synced = []
+if canonical_synced:
+    pin_detail += "; synced canonical pins: " + ", ".join(canonical_synced)
+if canonical_skipped:
+    pin_detail += "; canonical pin sync skipped: " + ", ".join(canonical_skipped)
 if owned_clean:
     print("clean\treviewed OpenCode overlay is current" + pin_detail)
     raise SystemExit(0)
