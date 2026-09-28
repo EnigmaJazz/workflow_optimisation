@@ -219,6 +219,19 @@ const ADAPTER_WORKFLOW_SKILLS = new Set([
   "workflow-sdd-secure",
   "workflow-systematic",
 ])
+const ODD_TRACKER_PATTERN = /^odd\/tasks\/[^/]+\.md$/
+const ODD_ROUTE_STAGES = [
+  { name: "tracker", artifactPattern: ODD_TRACKER_PATTERN },
+] as const
+// sandbox_bash remains unable to be path-gated because its argv can execute arbitrary commands.
+const FILE_MUTATING_TOOLS = new Set([
+  "sandbox_write",
+  "sandbox_edit",
+  "sandbox_apply",
+  "sandbox_apply_patch",
+  "sandbox_copy_in",
+  "sandbox_copy_out",
+])
 
 type WorkflowKeyStatus = "valid" | "missing" | "expired"
 
@@ -313,7 +326,10 @@ async function mintWorkflowKey(
   }
 }
 
-async function getWorkflowKeyStatus(sessionID: string): Promise<WorkflowKeyStatus> {
+async function getWorkflowKeyStatus(
+  sessionID: string,
+  requiredSkill?: string,
+): Promise<WorkflowKeyStatus> {
   try {
     const directory = routingKeySessionDirectory(sessionID)
     if (!directory) return "missing"
@@ -335,7 +351,10 @@ async function getWorkflowKeyStatus(sessionID: string): Promise<WorkflowKeyStatu
       try {
         const content = await readFile(join(directory, file), "utf8")
         const key = JSON.parse(content) as { skill?: unknown; minted_at?: unknown; last_active?: unknown }
-        if (typeof key.skill !== "string" || !ADAPTER_WORKFLOW_SKILLS.has(key.skill)) continue
+        if (
+          typeof key.skill !== "string" ||
+          (requiredSkill ? key.skill !== requiredSkill : !ADAPTER_WORKFLOW_SKILLS.has(key.skill))
+        ) continue
         if (typeof key.minted_at !== "number") continue
         const lastActive = typeof key.last_active === "number" ? key.last_active : key.minted_at
         if (Date.now() - lastActive <= ACTIVE_TTL_MS) return "valid"
@@ -355,7 +374,10 @@ async function getWorkflowKeyStatus(sessionID: string): Promise<WorkflowKeyStatu
           try {
             const content = await readFile(join(parentDirectory, file), "utf8")
             const key = JSON.parse(content) as { skill?: unknown; minted_at?: unknown; last_active?: unknown }
-            if (typeof key.skill !== "string" || !ADAPTER_WORKFLOW_SKILLS.has(key.skill)) continue
+            if (
+              typeof key.skill !== "string" ||
+              (requiredSkill ? key.skill !== requiredSkill : !ADAPTER_WORKFLOW_SKILLS.has(key.skill))
+            ) continue
             if (typeof key.minted_at !== "number") continue
             const lastActive = typeof key.last_active === "number" ? key.last_active : key.minted_at
             if (Date.now() - lastActive <= ACTIVE_TTL_MS) return "valid"
@@ -593,6 +615,23 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
 
     "tool.execute.before": async (input, output) => {
       void refreshWorkflowKeyActivity(input.sessionID, lastKeyRefreshBySession)
+      if (input.tool === "sandbox_write" || input.tool === "sandbox_edit") {
+        const args = output.args as Record<string, unknown> | undefined
+        const targetPath = args?.path
+        if (
+          typeof targetPath === "string" &&
+          ODD_ROUTE_STAGES.some((stage) => stage.artifactPattern.test(targetPath))
+        ) {
+          const directory = routingKeySessionDirectory(input.sessionID)
+          if (directory) {
+            void mkdir(directory, { recursive: true })
+              .then(() => writeFile(join(directory, "artifact-odd-tracker"), new Date().toISOString(), "utf8"))
+              .catch(() => {
+                // Artifact observation must never block or fail a tool call.
+              })
+          }
+        }
+      }
       if (mode !== "off" && isRoutingGateTool(input.tool) && !isRoutingGateDisabled()) {
         const activeWorkflow = getActiveWorkflow(activeBySession, input.sessionID)
         const keyStatus = await getWorkflowKeyStatus(input.sessionID)
@@ -608,6 +647,37 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
           if (warnConsole) warnedInactiveWorkflow.add(warningKey)
           await logInactiveWorkflowWarning(input.tool, input.sessionID, failures.join("; "), warnConsole)
           // Future block behavior could throw here; this rollout is warning-only.
+        }
+
+        if (
+          FILE_MUTATING_TOOLS.has(input.tool) &&
+          (await getWorkflowKeyStatus(input.sessionID, "workflow-odd-secure")) === "valid"
+        ) {
+          const directory = routingKeySessionDirectory(input.sessionID)
+          let trackerObserved = false
+          try {
+            trackerObserved = Boolean(directory && existsSync(join(directory, "artifact-odd-tracker")))
+          } catch {
+            // Marker inspection must never block or fail a tool call.
+          }
+          const args = output.args as Record<string, unknown> | undefined
+          const targetPath =
+            typeof args?.path === "string"
+              ? args.path
+              : typeof args?.workerPath === "string"
+                ? args.workerPath
+                : typeof args?.hostTarget === "string"
+                  ? args.hostTarget
+                  : null
+          const targetsTracker =
+            typeof targetPath === "string" &&
+            ODD_ROUTE_STAGES.some((stage) => stage.artifactPattern.test(targetPath))
+          if (!trackerObserved && !targetsTracker) {
+            const failure = `odd bootstrap: write${targetPath ? ` to ${targetPath}` : ""} before odd/tasks/<feature>.md exists`
+            const warnConsole = !warnedInactiveWorkflow.has(warningKey)
+            if (warnConsole) warnedInactiveWorkflow.add(warningKey)
+            await logInactiveWorkflowWarning(input.tool, input.sessionID, failure, warnConsole)
+          }
         }
       }
 
