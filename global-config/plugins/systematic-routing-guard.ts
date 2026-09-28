@@ -196,6 +196,14 @@ function guardMode(): GuardMode {
 
 const ROUTING_GATE_TOOLS = new Set([
   "task",
+  "sandbox_write",
+  "sandbox_edit",
+  "sandbox_apply",
+  "sandbox_apply_patch",
+  "sandbox_bash",
+  "sandbox_copy_in",
+  "sandbox_copy_out",
+  "sandbox_finish",
   "host_git_commit",
   "host_git_push",
   "host_gh_issue_create",
@@ -269,10 +277,27 @@ async function mintWorkflowKey(
   specialists: string[],
 ): Promise<void> {
   try {
+    const directory = routingKeySessionDirectory(sessionID)
     const file = routingKeyFile(sessionID, skillName)
-    if (!file) return
-    await mkdir(routingKeySessionDirectory(sessionID)!, { recursive: true })
+    if (!directory || !file) return
+    await mkdir(directory, { recursive: true })
     const mintedAt = Date.now()
+    let parentSessionID = ""
+    let hasParentMarker = false
+    try {
+      parentSessionID = (await readFile(join(directory, ".parent"), "utf8")).trim()
+      hasParentMarker = true
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") return
+    }
+    if (hasParentMarker) {
+      await writeFile(
+        join(directory, "inherited.key"),
+        JSON.stringify({ inherited_from: parentSessionID, minted_at: mintedAt, last_active: mintedAt }),
+        "utf8",
+      )
+      return
+    }
     await writeFile(
       file,
       JSON.stringify({ skill: skillName, minted_at: mintedAt, last_active: mintedAt, specialists }),
@@ -289,7 +314,18 @@ async function getWorkflowKeyStatus(sessionID: string): Promise<WorkflowKeyStatu
     if (!directory) return "missing"
     const files = await readdir(directory)
     let foundExpired = false
+    let inheritedFrom: string | null = null
     for (const file of files) {
+      if (file === "inherited.key") {
+        try {
+          const content = await readFile(join(directory, file), "utf8")
+          const inherited = JSON.parse(content) as { inherited_from?: unknown }
+          if (typeof inherited.inherited_from === "string") inheritedFrom = inherited.inherited_from
+        } catch {
+          // Ignore unreadable or malformed inherited keys.
+        }
+        continue
+      }
       if (!/^workflow-[a-zA-Z0-9_-]+\.key$/.test(file)) continue
       try {
         const content = await readFile(join(directory, file), "utf8")
@@ -301,6 +337,31 @@ async function getWorkflowKeyStatus(sessionID: string): Promise<WorkflowKeyStatu
         foundExpired = true
       } catch {
         // Ignore unreadable or malformed key files.
+      }
+    }
+    if (inheritedFrom) {
+      const parentDirectory = routingKeySessionDirectory(inheritedFrom)
+      if (!parentDirectory) return "missing"
+      try {
+        const parentFiles = await readdir(parentDirectory)
+        let parentFoundExpired = false
+        for (const file of parentFiles) {
+          if (!/^workflow-[a-zA-Z0-9_-]+\.key$/.test(file)) continue
+          try {
+            const content = await readFile(join(parentDirectory, file), "utf8")
+            const key = JSON.parse(content) as { skill?: unknown; minted_at?: unknown; last_active?: unknown }
+            if (typeof key.skill !== "string" || !key.skill.startsWith("workflow-")) continue
+            if (typeof key.minted_at !== "number") continue
+            const lastActive = typeof key.last_active === "number" ? key.last_active : key.minted_at
+            if (Date.now() - lastActive <= ACTIVE_TTL_MS) return "valid"
+            parentFoundExpired = true
+          } catch {
+            // Ignore unreadable or malformed parent key files.
+          }
+        }
+        return parentFoundExpired ? "expired" : "missing"
+      } catch {
+        return "missing"
       }
     }
     return foundExpired ? "expired" : "missing"
@@ -605,6 +666,23 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
      * references are left untouched.
      */
     "tool.execute.after": async (input, output) => {
+      if (input.tool === "task") {
+        try {
+          const result = typeof output.output === "string" ? output.output : JSON.stringify(output.output ?? "")
+          const childSessionID = result.match(/ses_[A-Za-z0-9]+/)?.[0]
+          if (!childSessionID) return
+          const directory = routingKeySessionDirectory(childSessionID)
+          if (!directory) return
+          void mkdir(directory, { recursive: true })
+            .then(() => writeFile(join(directory, ".parent"), input.sessionID, "utf8"))
+            .catch(() => {
+              // Parentage persistence must never block or fail a tool call.
+            })
+        } catch {
+          // Malformed task results must never block or fail a tool call.
+        }
+        return
+      }
       if (input.tool !== "systematic_skill" && input.tool !== "skill") return
       const args = input.args as Record<string, unknown> | undefined
       const rawName = args?.name
