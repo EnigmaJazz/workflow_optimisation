@@ -38,7 +38,7 @@
  * local plugins from that directory automatically.
  */
 
-import { appendFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises"
+import { appendFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
 import { existsSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
@@ -205,6 +205,7 @@ const ROUTING_GATE_TOOLS = new Set([
 const ROUTING_GATE_OFF_FILE = join(homedir(), ".config/opencode/routing-guard-off")
 const ROUTING_GATE_LOG_FILE = join(homedir(), ".local/share/opencode/logs/routing-guard.log")
 const ROUTING_KEY_ROOT = join(homedir(), ".local/share/opencode/routing-keys")
+const ROUTING_KEY_REFRESH_INTERVAL_MS = 60 * 1000
 
 type WorkflowKeyStatus = "valid" | "missing" | "expired"
 
@@ -219,6 +220,49 @@ function routingKeyFile(sessionID: string, skillName: string): string | null {
   return join(directory, `${skillName}.key`)
 }
 
+async function deleteWorkflowKeyDirectory(sessionID: string): Promise<void> {
+  try {
+    const directory = routingKeySessionDirectory(sessionID)
+    if (directory) await rm(directory, { recursive: true, force: true })
+  } catch {
+    // Key cleanup must never block or fail a tool call.
+  }
+}
+
+async function refreshWorkflowKeyActivity(
+  sessionID: string,
+  lastRefreshBySession: Map<string, number>,
+): Promise<void> {
+  const now = Date.now()
+  if (now - (lastRefreshBySession.get(sessionID) ?? 0) < ROUTING_KEY_REFRESH_INTERVAL_MS) return
+  lastRefreshBySession.set(sessionID, now)
+
+  try {
+    const directory = routingKeySessionDirectory(sessionID)
+    if (!directory) return
+    const files = await readdir(directory)
+    for (const file of files) {
+      if (!/^workflow-[a-zA-Z0-9_-]+\.key$/.test(file)) continue
+      try {
+        const path = join(directory, file)
+        const content = await readFile(path, "utf8")
+        const key = JSON.parse(content) as { skill?: unknown; minted_at?: unknown; last_active?: unknown; specialists?: unknown }
+        if (typeof key.skill !== "string" || !key.skill.startsWith("workflow-")) continue
+        if (typeof key.minted_at !== "number") continue
+        await writeFile(
+          path,
+          JSON.stringify({ ...key, last_active: now }),
+          "utf8",
+        )
+      } catch {
+        // Ignore unreadable or malformed key files.
+      }
+    }
+  } catch {
+    // Key activity refresh must never block or fail a tool call.
+  }
+}
+
 async function mintWorkflowKey(
   sessionID: string,
   skillName: string,
@@ -228,9 +272,10 @@ async function mintWorkflowKey(
     const file = routingKeyFile(sessionID, skillName)
     if (!file) return
     await mkdir(routingKeySessionDirectory(sessionID)!, { recursive: true })
+    const mintedAt = Date.now()
     await writeFile(
       file,
-      JSON.stringify({ skill: skillName, minted_at: Date.now(), specialists }),
+      JSON.stringify({ skill: skillName, minted_at: mintedAt, last_active: mintedAt, specialists }),
       "utf8",
     )
   } catch {
@@ -248,10 +293,11 @@ async function getWorkflowKeyStatus(sessionID: string): Promise<WorkflowKeyStatu
       if (!/^workflow-[a-zA-Z0-9_-]+\.key$/.test(file)) continue
       try {
         const content = await readFile(join(directory, file), "utf8")
-        const key = JSON.parse(content) as { skill?: unknown; minted_at?: unknown }
+        const key = JSON.parse(content) as { skill?: unknown; minted_at?: unknown; last_active?: unknown }
         if (typeof key.skill !== "string" || !key.skill.startsWith("workflow-")) continue
         if (typeof key.minted_at !== "number") continue
-        if (Date.now() - key.minted_at <= ACTIVE_TTL_MS) return "valid"
+        const lastActive = typeof key.last_active === "number" ? key.last_active : key.minted_at
+        if (Date.now() - lastActive <= ACTIVE_TTL_MS) return "valid"
         foundExpired = true
       } catch {
         // Ignore unreadable or malformed key files.
@@ -463,6 +509,7 @@ function routingViolationMessage(
 export const SystematicRoutingGuardPlugin: Plugin = async () => {
   const mode = guardMode()
   const activeBySession = new Map<string, ActiveWorkflow>()
+  const lastKeyRefreshBySession = new Map<string, number>()
   let warnedModelStrip = false
   let warnedQualifiedRewrite = false
   const warnedInactiveWorkflow = new Set<string>()
@@ -474,9 +521,12 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
      */
     "chat.message": async (input) => {
       activeBySession.delete(input.sessionID)
+      lastKeyRefreshBySession.delete(input.sessionID)
+      void deleteWorkflowKeyDirectory(input.sessionID)
     },
 
     "tool.execute.before": async (input, output) => {
+      void refreshWorkflowKeyActivity(input.sessionID, lastKeyRefreshBySession)
       if (mode !== "off" && isRoutingGateTool(input.tool) && !isRoutingGateDisabled()) {
         const activeWorkflow = getActiveWorkflow(activeBySession, input.sessionID)
         const keyStatus = await getWorkflowKeyStatus(input.sessionID)
