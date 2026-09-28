@@ -289,6 +289,8 @@ The current derived mapping is:
 
 The routing-guard plugin warns when a dispatch arrives with no active workflow for the change; a future block mode would refuse it. If the gate ever refuses work, it is disabled live — no restart — by creating `~/.config/opencode/routing-guard-off`; remove that file to re-enable it. The environment variable `SYSTEMATIC_ROUTING_GUARD_MODE=off` remains the broader switch read at plugin start. Never edit the deployed plugin to unblock yourself; fix the routing, or use the kill switch.
 
+Loading a `workflow-*` skill mints a session-scoped routing key under `~/.local/share/opencode/routing-keys/<sessionID>/`; it expires after 30 minutes of inactivity rather than age, with `last_active` refreshed while the session works, and the key is deleted when a new user change begins. The store is outside the project because the plugin may not derive the project path from the server cwd. The routing gate currently warns only and does not block calls.
+
 A skill reload per turn inside a multi-turn SDD or ODD cycle is expected and acceptable: reloading injects instructions only and never resets cycle state, so the SDD artifacts, the task record and any approvals survive it. What is not acceptable is re-initialising the cycle per turn — a fresh `sdd-init`, a re-created task record, or re-taken approvals — to satisfy a gate.
 
 Changes that deploy outside a git repo (OpenCode plugins, config, skills) use the in-repo source as the review candidate, then mirror exact reviewed bytes:
@@ -297,8 +299,6 @@ Changes that deploy outside a git repo (OpenCode plugins, config, skills) use th
 2. **Native review checks non-SDD source deliverables** — when RDD is enabled and this is a non-SDD change, run the native review transaction against the in-repo source candidate and complete exact approved acknowledgement. An SDD phase does not launch RDD. This produces review evidence, not delivery authority.
 3. **Deployment is a mirror** — model agents never edit the external copy in place. A delegated sandbox writer changes the in-repo source; the reviewed verifier-owned maintenance path re-mirrors only the exact approved deployment artifacts when they drift.
 4. **Log the task** — one row in ROUTER-LOG.md with the deploy target noted in the evidence reference.
-
-Loading a `workflow-*` skill mints a session-scoped routing key under `~/.local/share/opencode/routing-keys/<sessionID>/`; it expires after 30 minutes of inactivity rather than age, with `last_active` refreshed while the session works, and the key is deleted when a new user change begins. The store is outside the project because the plugin may not derive the project path from the server cwd. The routing gate currently warns only and does not block calls.
 
 ### Health-check plugin lifecycle (digest pin — do NOT skip)
 
