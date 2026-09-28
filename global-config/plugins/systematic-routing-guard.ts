@@ -38,7 +38,7 @@
  * local plugins from that directory automatically.
  */
 
-import { appendFile, mkdir } from "node:fs/promises"
+import { appendFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises"
 import { existsSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
@@ -204,6 +204,64 @@ const ROUTING_GATE_TOOLS = new Set([
 ])
 const ROUTING_GATE_OFF_FILE = join(homedir(), ".config/opencode/routing-guard-off")
 const ROUTING_GATE_LOG_FILE = join(homedir(), ".local/share/opencode/logs/routing-guard.log")
+const ROUTING_KEY_ROOT = join(homedir(), ".local/share/opencode/routing-keys")
+
+type WorkflowKeyStatus = "valid" | "missing" | "expired"
+
+function routingKeySessionDirectory(sessionID: string): string | null {
+  if (!/^[a-zA-Z0-9_-]+$/.test(sessionID)) return null
+  return join(ROUTING_KEY_ROOT, sessionID)
+}
+
+function routingKeyFile(sessionID: string, skillName: string): string | null {
+  const directory = routingKeySessionDirectory(sessionID)
+  if (!directory || !/^workflow-[a-zA-Z0-9_-]+$/.test(skillName)) return null
+  return join(directory, `${skillName}.key`)
+}
+
+async function mintWorkflowKey(
+  sessionID: string,
+  skillName: string,
+  specialists: string[],
+): Promise<void> {
+  try {
+    const file = routingKeyFile(sessionID, skillName)
+    if (!file) return
+    await mkdir(routingKeySessionDirectory(sessionID)!, { recursive: true })
+    await writeFile(
+      file,
+      JSON.stringify({ skill: skillName, minted_at: Date.now(), specialists }),
+      "utf8",
+    )
+  } catch {
+    // Key persistence must never block or fail a tool call.
+  }
+}
+
+async function getWorkflowKeyStatus(sessionID: string): Promise<WorkflowKeyStatus> {
+  try {
+    const directory = routingKeySessionDirectory(sessionID)
+    if (!directory) return "missing"
+    const files = await readdir(directory)
+    let foundExpired = false
+    for (const file of files) {
+      if (!/^workflow-[a-zA-Z0-9_-]+\.key$/.test(file)) continue
+      try {
+        const content = await readFile(join(directory, file), "utf8")
+        const key = JSON.parse(content) as { skill?: unknown; minted_at?: unknown }
+        if (typeof key.skill !== "string" || !key.skill.startsWith("workflow-")) continue
+        if (typeof key.minted_at !== "number") continue
+        if (Date.now() - key.minted_at <= ACTIVE_TTL_MS) return "valid"
+        foundExpired = true
+      } catch {
+        // Ignore unreadable or malformed key files.
+      }
+    }
+    return foundExpired ? "expired" : "missing"
+  } catch {
+    return "missing"
+  }
+}
 
 function isRoutingGateTool(tool: string): boolean {
   return (
@@ -221,8 +279,12 @@ function isRoutingGateDisabled(): boolean {
   }
 }
 
-async function logInactiveWorkflowWarning(tool: string, sessionID: string): Promise<void> {
-  const message = `routing gate: ${tool} with no active workflow for this change; load the workflow-route skill (or the selected adapter skill) before dispatching`
+async function logInactiveWorkflowWarning(
+  tool: string,
+  sessionID: string,
+  failure: string,
+): Promise<void> {
+  const message = `routing gate: ${tool} is not authorized for this change (${failure}); load the workflow-route skill (or the selected adapter skill) before dispatching`
   const line = `[systematic-routing-guard] ${message} (session: ${sessionID})`
   console.warn(line)
 
@@ -417,10 +479,16 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
     "tool.execute.before": async (input, output) => {
       if (mode !== "off" && isRoutingGateTool(input.tool) && !isRoutingGateDisabled()) {
         const activeWorkflow = getActiveWorkflow(activeBySession, input.sessionID)
+        const keyStatus = await getWorkflowKeyStatus(input.sessionID)
         const warningKey = `${input.sessionID}\u0000${input.tool}`
-        if (!activeWorkflow && !warnedInactiveWorkflow.has(warningKey)) {
+        if ((!activeWorkflow || keyStatus !== "valid") && !warnedInactiveWorkflow.has(warningKey)) {
           warnedInactiveWorkflow.add(warningKey)
-          await logInactiveWorkflowWarning(input.tool, input.sessionID)
+          const failures = [
+            !activeWorkflow ? "in-memory activation missing" : "",
+            keyStatus === "missing" ? "no workflow key exists" : "",
+            keyStatus === "expired" ? "workflow key expired" : "",
+          ].filter(Boolean)
+          await logInactiveWorkflowWarning(input.tool, input.sessionID, failures.join("; "))
           // Future block behavior could throw here; this rollout is warning-only.
         }
       }
@@ -496,6 +564,11 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
         input.tool === "systematic_skill" ? "systematic_skill" : "skill",
         content,
       )
+      const loadedSkillName = canonicalSkillName(rawName)
+      const activeWorkflow = getActiveWorkflow(activeBySession, input.sessionID)
+      if (loadedSkillName?.startsWith("workflow-")) {
+        void mintWorkflowKey(input.sessionID, loadedSkillName, activeWorkflow ? [...activeWorkflow.targets] : [])
+      }
     },
 
     /**

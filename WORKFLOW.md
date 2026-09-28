@@ -298,6 +298,8 @@ Changes that deploy outside a git repo (OpenCode plugins, config, skills) use th
 3. **Deployment is a mirror** — model agents never edit the external copy in place. A delegated sandbox writer changes the in-repo source; the reviewed verifier-owned maintenance path re-mirrors only the exact approved deployment artifacts when they drift.
 4. **Log the task** — one row in ROUTER-LOG.md with the deploy target noted in the evidence reference.
 
+Loading a `workflow-*` skill mints a session-scoped routing key under `~/.local/share/opencode/routing-keys/<sessionID>/`; the key expires on the same 30-minute window as the in-memory activation. The store is outside the project because the plugin may not derive the project path from the server cwd. The routing gate currently warns only and does not block calls.
+
 ### Health-check plugin lifecycle (digest pin — do NOT skip)
 
 The health-check plugin pins `verify-workflow.sh`'s sha256 and **refuses to execute a mismatched script** (fail-closed). Every edit to the script or its embedded heredocs REQUIRES the full re-pin cycle — forgetting it breaks the startup check with a FAILED banner in every session:
