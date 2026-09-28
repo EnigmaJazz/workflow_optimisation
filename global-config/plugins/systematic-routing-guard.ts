@@ -329,14 +329,15 @@ async function logInactiveWorkflowWarning(
   tool: string,
   sessionID: string,
   failure: string,
+  warnConsole: boolean,
 ): Promise<void> {
   const message = `routing gate: ${tool} is not authorized for this change (${failure}); load the workflow-route skill (or the selected adapter skill) before dispatching`
   const line = `[systematic-routing-guard] ${message} (session: ${sessionID})`
-  console.warn(line)
+  if (warnConsole) console.warn(line)
 
   try {
     await mkdir(join(homedir(), ".local/share/opencode/logs"), { recursive: true })
-    await appendFile(ROUTING_GATE_LOG_FILE, `${line}\n`, "utf8")
+    await appendFile(ROUTING_GATE_LOG_FILE, `${new Date().toISOString()} ${line}\n`, "utf8")
   } catch {
     // Logging must never block or fail the tool call.
   }
@@ -531,14 +532,15 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
         const activeWorkflow = getActiveWorkflow(activeBySession, input.sessionID)
         const keyStatus = await getWorkflowKeyStatus(input.sessionID)
         const warningKey = `${input.sessionID}\u0000${input.tool}`
-        if ((!activeWorkflow || keyStatus !== "valid") && !warnedInactiveWorkflow.has(warningKey)) {
-          warnedInactiveWorkflow.add(warningKey)
+        if (!activeWorkflow || keyStatus !== "valid") {
           const failures = [
             !activeWorkflow ? "in-memory activation missing" : "",
             keyStatus === "missing" ? "no workflow key exists" : "",
             keyStatus === "expired" ? "workflow key expired" : "",
           ].filter(Boolean)
-          await logInactiveWorkflowWarning(input.tool, input.sessionID, failures.join("; "))
+          const warnConsole = !warnedInactiveWorkflow.has(warningKey)
+          if (warnConsole) warnedInactiveWorkflow.add(warningKey)
+          await logInactiveWorkflowWarning(input.tool, input.sessionID, failures.join("; "), warnConsole)
           // Future block behavior could throw here; this rollout is warning-only.
         }
       }
