@@ -214,6 +214,11 @@ const ROUTING_GATE_OFF_FILE = join(homedir(), ".config/opencode/routing-guard-of
 const ROUTING_GATE_LOG_FILE = join(homedir(), ".local/share/opencode/logs/routing-guard.log")
 const ROUTING_KEY_ROOT = join(homedir(), ".local/share/opencode/routing-keys")
 const ROUTING_KEY_REFRESH_INTERVAL_MS = 60 * 1000
+const ADAPTER_WORKFLOW_SKILLS = new Set([
+  "workflow-odd-secure",
+  "workflow-sdd-secure",
+  "workflow-systematic",
+])
 
 type WorkflowKeyStatus = "valid" | "missing" | "expired"
 
@@ -330,7 +335,7 @@ async function getWorkflowKeyStatus(sessionID: string): Promise<WorkflowKeyStatu
       try {
         const content = await readFile(join(directory, file), "utf8")
         const key = JSON.parse(content) as { skill?: unknown; minted_at?: unknown; last_active?: unknown }
-        if (typeof key.skill !== "string" || !key.skill.startsWith("workflow-")) continue
+        if (typeof key.skill !== "string" || !ADAPTER_WORKFLOW_SKILLS.has(key.skill)) continue
         if (typeof key.minted_at !== "number") continue
         const lastActive = typeof key.last_active === "number" ? key.last_active : key.minted_at
         if (Date.now() - lastActive <= ACTIVE_TTL_MS) return "valid"
@@ -341,7 +346,7 @@ async function getWorkflowKeyStatus(sessionID: string): Promise<WorkflowKeyStatu
     }
     if (inheritedFrom) {
       const parentDirectory = routingKeySessionDirectory(inheritedFrom)
-      if (!parentDirectory) return "missing"
+      if (!parentDirectory) return foundExpired ? "expired" : "missing"
       try {
         const parentFiles = await readdir(parentDirectory)
         let parentFoundExpired = false
@@ -350,7 +355,7 @@ async function getWorkflowKeyStatus(sessionID: string): Promise<WorkflowKeyStatu
           try {
             const content = await readFile(join(parentDirectory, file), "utf8")
             const key = JSON.parse(content) as { skill?: unknown; minted_at?: unknown; last_active?: unknown }
-            if (typeof key.skill !== "string" || !key.skill.startsWith("workflow-")) continue
+            if (typeof key.skill !== "string" || !ADAPTER_WORKFLOW_SKILLS.has(key.skill)) continue
             if (typeof key.minted_at !== "number") continue
             const lastActive = typeof key.last_active === "number" ? key.last_active : key.minted_at
             if (Date.now() - lastActive <= ACTIVE_TTL_MS) return "valid"
@@ -359,9 +364,9 @@ async function getWorkflowKeyStatus(sessionID: string): Promise<WorkflowKeyStatu
             // Ignore unreadable or malformed parent key files.
           }
         }
-        return parentFoundExpired ? "expired" : "missing"
+        return parentFoundExpired || foundExpired ? "expired" : "missing"
       } catch {
-        return "missing"
+        return foundExpired ? "expired" : "missing"
       }
     }
     return foundExpired ? "expired" : "missing"
@@ -595,7 +600,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
         if (keyStatus !== "valid") {
           const failures = [
             keyStatus === "missing"
-              ? "workflow key status: missing (no workflow key exists)"
+              ? "workflow key status: missing (no valid adapter workflow key exists)"
               : "workflow key status: expired (workflow key expired)",
             activeWorkflow ? "in-memory activation present (context only)" : "in-memory activation absent (context only)",
           ]
