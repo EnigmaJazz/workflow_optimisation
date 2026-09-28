@@ -584,7 +584,6 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
     "chat.message": async (input) => {
       activeBySession.delete(input.sessionID)
       lastKeyRefreshBySession.delete(input.sessionID)
-      void deleteWorkflowKeyDirectory(input.sessionID)
     },
 
     "tool.execute.before": async (input, output) => {
@@ -593,12 +592,13 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
         const activeWorkflow = getActiveWorkflow(activeBySession, input.sessionID)
         const keyStatus = await getWorkflowKeyStatus(input.sessionID)
         const warningKey = `${input.sessionID}\u0000${input.tool}`
-        if (!activeWorkflow || keyStatus !== "valid") {
+        if (keyStatus !== "valid") {
           const failures = [
-            !activeWorkflow ? "in-memory activation missing" : "",
-            keyStatus === "missing" ? "no workflow key exists" : "",
-            keyStatus === "expired" ? "workflow key expired" : "",
-          ].filter(Boolean)
+            keyStatus === "missing"
+              ? "workflow key status: missing (no workflow key exists)"
+              : "workflow key status: expired (workflow key expired)",
+            activeWorkflow ? "in-memory activation present (context only)" : "in-memory activation absent (context only)",
+          ]
           const warnConsole = !warnedInactiveWorkflow.has(warningKey)
           if (warnConsole) warnedInactiveWorkflow.add(warningKey)
           await logInactiveWorkflowWarning(input.tool, input.sessionID, failures.join("; "), warnConsole)
@@ -674,7 +674,21 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
           const directory = routingKeySessionDirectory(childSessionID)
           if (!directory) return
           void mkdir(directory, { recursive: true })
-            .then(() => writeFile(join(directory, ".parent"), input.sessionID, "utf8"))
+            .then(async () => {
+              await writeFile(join(directory, ".parent"), input.sessionID, "utf8")
+              const files = await readdir(directory)
+              await Promise.all(
+                files
+                  .filter((file) => /^workflow-[a-zA-Z0-9_-]+\.key$/.test(file))
+                  .map((file) => rm(join(directory, file), { force: true })),
+              )
+              const mintedAt = Date.now()
+              await writeFile(
+                join(directory, "inherited.key"),
+                JSON.stringify({ inherited_from: input.sessionID, minted_at: mintedAt, last_active: mintedAt }),
+                "utf8",
+              )
+            })
             .catch(() => {
               // Parentage persistence must never block or fail a tool call.
             })
