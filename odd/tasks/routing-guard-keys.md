@@ -28,6 +28,7 @@ The route gate could be satisfied by any skill load, including a hollow one. A f
 - **T6a — Refresh the parent key from child activity (native review finding R3-inherited-expiry, CRITICAL)** — **done**.
 - **T7 — Per-route stage table and worker mutation gating on required artifacts** — **in progress**. T7a (the ODD bootstrap write gate) is implemented in this change.
 - **T8 — Bug-fix route with its own stages and no ODD tracker** — **planned**.
+- **T9 — Native review outcome recorded (lineage review-16c862492747259a)** — **done**.
 
 ## Acceptance criteria
 - A session with only a `workflow-route` key warns on gated tools.
@@ -49,11 +50,22 @@ The authorized implementation scope is the routing-guard plugin change and this 
 ## Progress
 The assessed slice accumulates from boundary `65b1f35`. Completed commit sequence recorded for this task: `2c0134f`, `3ae9c94`, `f652ddb`, `1993a8e`, `83311d0`, `21e59c0`, and `d27d2d1`; T6 is done, T6a corrects native review finding `R3-inherited-expiry` (T7 is in progress, T7a implemented in the accumulated slice), and T8 is planned. This change implements the ODD bootstrap write warning: before the session's `odd/tasks/<feature>.md` tracker is observed, valid ODD-key sessions warn on path-known non-tracker file mutations and path-unknown file mutations. Native review `review-17a7dab1e332596a` ran on the accumulated slice (401 lines, 5 paths, medium tier), selected the reliability lens, admitted a refuter, and returned one CRITICAL candidate-caused finding, `R3-inherited-expiry`, which this change corrects. No commit has been created. The slice continues to accumulate from `65b1f35`; take native review when assessment returns `review_due` (`slice_budget_reached`), then advance the boundary.
 
+The high-risk candidate (12 paths, 489 lines) was reviewed end to end under lineage `review-16c862492747259a`: all four lenses (risk, resilience, readability, reliability) were admitted; risk and readability were clean; and the review was APPROVED and then acknowledged (`authority: burned`). The earlier CRITICAL finding `R3-inherited-expiry` was corrected and is contained in this approved candidate.
+
+## Advisory follow-ups (non-blocking, from review-16c862492747259a)
+The provider recorded these as non-blocking and never as a reason to re-run review on this candidate.
+- `R3-sandbox-catchall` — WARNING — `global-config/plugins/systematic-routing-guard.ts:447` — `isRoutingGateTool` matches every `sandbox_` tool, gating read-only worker tools the documented scope excludes.
+- `R3-odd-marker-gap` — WARNING — `system-routing-guard.ts:656-672` — The tracker marker is set only for `sandbox_write`/`sandbox_edit`, so satisfying the bootstrap via apply/copy leaves persistent false warnings.
+- `R3-child-session-regex` — WARNING — `system-routing-guard.ts:775` — Parentage uses an unanchored `/ses_[A-Za-z0-9]+/` and can corrupt the wrong session's key directory.
+- `R3-missing-key-tests` — WARNING — `system-routing-guard.ts:238-431` — No automated assertions cover key expiry, inheritance, parent refresh or bootstrap ordering.
+- `R3-unawaited-key-io` — SUGGESTION — `system-routing-guard.ts:655` — Void-launched refreshes can race status reads and cause transient warnings.
+- `R4-001` — WARNING — `system-routing-guard.ts:410` — Nested sessions do not inherit through an already-inherited parent, so their gated calls log as unauthorized.
+
 ## Route and trigger evidence
 Route: delegated. Specialist: `general` sandbox writer. Triggers fired: mapping (4+ files), writer (2+ non-trivial files), preparation, and long-session backstop. The task is a global tooling change. The historical tracker is being created after the first implementation source edit, contrary to protocol; see Debt.
 
 ## Delivery strategy
-`accumulate`, per the owner's decision. Take native review when the assessment returns `review_due` (`slice_budget_reached`), then advance the boundary. Keep the current assessed slice accumulating from `65b1f35`; retain the per-commit reviewability caps and checks.
+`accumulate`, per the owner's decision. This candidate was reviewed and its boundary advanced on acknowledgement, so the accumulated slice restarts from the approved candidate. Keep the per-commit reviewability caps and checks.
 
 ## Next step
 Continue T7 with the remaining route-stage coverage; T7a is implemented but not yet reviewed or committed.
@@ -63,3 +75,4 @@ Continue T7 with the remaining route-stage coverage; T7a is implemented but not 
 - Work-unit commits went to `main` rather than a feature branch.
 - No delivery strategy was selected at tracker creation.
 - The host commit tool rejects multi-line messages, so the `ROUTED:` trailer has to sit on the subject line rather than in the commit body.
+- Lineage `review-17a7dab1e332596a` remains open in state `correction_required` (its targeted validator never completed—a relay refusal, then a provider outage), superseded by the approved lineage; its disposition is unresolved.
