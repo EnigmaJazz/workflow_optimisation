@@ -20,7 +20,7 @@ Cache the main and, when applicable, frontend follow-up choices for the current 
 
 ### Sol-to-Astra upgrade decision (MANDATORY)
 
-Astra is a selectable per-project/session upgrade only for a phase or specialist whose fully resolved base agent currently uses `openai/gpt-6-sol`. Astra is never an implementation agent and never changes the coding-model decision above.
+Astra is a selectable per-project/session upgrade only for a phase or specialist whose fully resolved base agent currently uses `openai/gpt-6.1-sol`. Astra is never an implementation agent and never changes the coding-model decision above.
 
 Before the first Sol-assigned delegation, assess whether the work is extremely critical. The threshold is met only when a mistaken analysis or approval could plausibly cause material, difficult-to-recover harm: credential or authorization compromise, destructive or irreversible data migration, widespread production outage, corruption across trust boundaries, serious compliance or financial exposure, or an architectural commitment whose reversal would be exceptionally costly. File count, changed lines, ordinary complexity, a generic request for quality, or routine security sensitivity is insufficient.
 

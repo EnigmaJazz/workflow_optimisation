@@ -10,7 +10,7 @@
 
 import type { Plugin } from "@opencode-ai/plugin"
 
-const SOL_MODEL = "openai/gpt-6-sol"
+const SOL_MODEL = "openai/gpt-6.1-sol"
 const ASTRA_MODEL = "openai/gpt-6-astra"
 const ASTRA_VARIANT = "xhigh"
 const ASTRA_SUFFIX = "-astra"

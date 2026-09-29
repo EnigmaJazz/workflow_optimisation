@@ -259,7 +259,7 @@ Systematic v3.18.4's workflow-guard result is authoritative. A replay of the sam
 
 ## Per-session Sol-to-Astra escalation
 
-The local `astra-sol-upgrade.ts` plugin runs after configured npm plugins and derives hidden `-astra` aliases from fully resolved non-implementation agents that currently use `openai/gpt-6-sol`. Each alias changes only the model to `openai/gpt-6-astra`, the variant to `xhigh`, visibility, and its descriptive suffix; it inherits the live Gentle AI or Systematic prompt, tools, permissions, mode, phase ownership, and result contract. This keeps the upgrade aligned when Systematic auto-updates instead of copying plugin-owned prompts.
+The local `astra-sol-upgrade.ts` plugin runs after configured npm plugins and derives hidden `-astra` aliases from fully resolved non-implementation agents that currently use `openai/gpt-6.1-sol`. Each alias changes only the model to `openai/gpt-6-astra`, the variant to `xhigh`, visibility, and its descriptive suffix; it inherits the live Gentle AI or Systematic prompt, tools, permissions, mode, phase ownership, and result contract. This keeps the upgrade aligned when Systematic auto-updates instead of copying plugin-owned prompts.
 
 The current derived mapping is:
 

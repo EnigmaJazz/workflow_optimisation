@@ -2072,7 +2072,7 @@ if (compatibleRuntimeProfiles.size===0) {
   console.log(`   ok: runtime Systematic routing matches reviewed profile candidate(s): ${[...compatibleRuntimeProfiles].join(",")}`)
 }
 
-const SOL_MODEL="openai/gpt-6-sol"
+const SOL_MODEL="openai/gpt-6.1-sol"
 const ASTRA_MODEL="openai/gpt-6-astra"
 const ASTRA_SUFFIX="-astra"
 function isImplementationRoute(name) {
@@ -2464,7 +2464,7 @@ else {
           const agentRequirements=cfg.agentRequiredCapabilities && typeof cfg.agentRequiredCapabilities==="object" && !Array.isArray(cfg.agentRequiredCapabilities)?cfg.agentRequiredCapabilities:{}
           const activeFallbackText=JSON.stringify({agentRules,exact,providerRules,global:cfg.fallbackModel})
           if (/gpt-5\.6-(sol|luna)/.test(activeFallbackText)) fail("OPENAI_V6_FALLBACK_MIGRATION_INCOMPLETE: retired Sol/Luna active chain")
-          for (const migrated of ["openai/gpt-6-sol","openai/gpt-6-luna"]) {
+          for (const migrated of ["openai/gpt-6.1-sol","openai/gpt-6-luna"]) {
             if (supportedModels.has(migrated) && !hasOwn(exact,migrated)) fail(`OPENAI_V6_EXACT_FALLBACK_MISSING: ${migrated}`)
           }
           const astraChain=Array.isArray(exact[ASTRA_MODEL])?normalizedRule(exact[ASTRA_MODEL],"FALLBACK_ASTRA",ASTRA_MODEL):[]
@@ -3764,7 +3764,7 @@ if [ ! -f "$ASTRA_PLUGIN_SOURCE" ]; then
   fail "Astra Sol-upgrade plugin source missing: $ASTRA_PLUGIN_SOURCE"
 else
   ASTRA_SOURCE_OK=1
-  for marker in 'SOL_MODEL = "openai/gpt-6-sol"' 'ASTRA_MODEL = "openai/gpt-6-astra"' 'ASTRA_SUFFIX = "-astra"' 'isImplementationRoute' 'systematic-implementer' 'bug-reproduction-validator'; do
+  for marker in 'SOL_MODEL = "openai/gpt-6.1-sol"' 'ASTRA_MODEL = "openai/gpt-6-astra"' 'ASTRA_SUFFIX = "-astra"' 'isImplementationRoute' 'systematic-implementer' 'bug-reproduction-validator'; do
     if ! grep -Fq -- "$marker" "$ASTRA_PLUGIN_SOURCE"; then
       fail "Astra Sol-upgrade plugin source is missing required marker: $marker"
       ASTRA_SOURCE_OK=0
@@ -4099,7 +4099,7 @@ else
      grep -q -- "It never writes implementation code" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "selection never edits global config or requires an OpenCode restart" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "review.acknowledge-approved" "$WORKFLOW" 2>/dev/null && \
-     ! grep -q -- "frontend-dev.*=.*openai/gpt-6-sol" "$WORKFLOW" 2>/dev/null && \
+     ! grep -q -- "frontend-dev.*=.*openai/gpt-6.1-sol" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "Fish shell" "$WORKFLOW" 2>/dev/null; then
     echo "   ok: workflow encodes read-only technical leadership, Magic Context, secure project registration, and Fish-shell UX"
   else

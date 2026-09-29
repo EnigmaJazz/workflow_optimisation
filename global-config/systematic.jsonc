@@ -160,8 +160,8 @@
     "maintainability-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 10},
     "project-standards-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "low", "temperature": 0.1, "steps": 10},
     "agent-native-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 12},
-    "adversarial-reviewer": {"model": "openai/gpt-6-sol", "variant": "high", "temperature": 0.1, "steps": 25},
-    "security-reviewer": {"model": "openai/gpt-6-sol", "variant": "high", "temperature": 0.1, "steps": 25},
+    "adversarial-reviewer": {"model": "openai/gpt-6.1-sol", "variant": "high", "temperature": 0.1, "steps": 25},
+    "security-reviewer": {"model": "openai/gpt-6.1-sol", "variant": "high", "temperature": 0.1, "steps": 25},
     "api-contract-reviewer": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 18},
     "architecture-strategist": {"model": "opencode-go/glm-5.3", "variant": "high", "temperature": 0.1, "steps": 22},
     "reliability-reviewer": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 20},
@@ -178,8 +178,8 @@
     "scope-guardian-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "low", "temperature": 0.1, "steps": 12},
     "design-lens-reviewer": {"model": "openai/gpt-6-luna", "variant": "medium", "temperature": 0.1, "steps": 14},
     "product-lens-reviewer": {"model": "openai/gpt-6-luna", "variant": "medium", "temperature": 0.1, "steps": 16},
-    "security-lens-reviewer": {"model": "openai/gpt-6-sol", "variant": "high", "temperature": 0.1, "steps": 22},
-    "adversarial-document-reviewer": {"model": "openai/gpt-6-sol", "variant": "high", "temperature": 0.1, "steps": 22},
+    "security-lens-reviewer": {"model": "openai/gpt-6.1-sol", "variant": "high", "temperature": 0.1, "steps": 22},
+    "adversarial-document-reviewer": {"model": "openai/gpt-6.1-sol", "variant": "high", "temperature": 0.1, "steps": 22},
     "design-iterator": {
       "model": "opencode-go/glm-5.3-flash", "temperature": 0.2, "steps": 35,
       "permission": {
