@@ -25,6 +25,7 @@ The route gate could be satisfied by any skill load, including a hollow one. A f
 - **T4 — ISO-timestamped per-occurrence logging** — **done**. Commit `83311d0`.
 - **T5 — Parentage, inherited authority and purge of a child's self-minted key** — **done**. Commit `21e59c0`.
 - **T6 — Require an adapter key; bare router key is insufficient** — **done**. Commit `d27d2d1`.
+- **T6a — Refresh the parent key from child activity (native review finding R3-inherited-expiry, CRITICAL)** — **done**.
 - **T7 — Per-route stage table and worker mutation gating on required artifacts** — **in progress**. T7a (the ODD bootstrap write gate) is implemented in this change.
 - **T8 — Bug-fix route with its own stages and no ODD tracker** — **planned**.
 
@@ -42,10 +43,11 @@ The authorized implementation scope is the routing-guard plugin change and this 
 - Run `bun build global-config/plugins/systematic-routing-guard.ts --target=bun --external @opencode-ai/plugin --outdir /tmp/guard-odd-stage-check` for T7a.
 - Confirm `context.directory` is absent from the plugin; verify `ODD_TRACKER_PATTERN` references and warning behavior remain warn-only.
 - After each commit, assess RDD with an explicit base ref; assessments to date returned `review_due: false` with reason `under_budget`.
+- Correction for native review finding `R3-inherited-expiry` was produced under the review's correction budget: 200 lines, 30 declared.
 - Review live warning evidence in `~/.local/share/opencode/logs/routing-guard.log`; ROUTER-LOG.md records live log evidence for the initial key-backed gate at row 98.
 
 ## Progress
-The assessed slice accumulates from boundary `65b1f35`. Completed commit sequence recorded for this task: `2c0134f`, `3ae9c94`, `f652ddb`, `1993a8e`, `83311d0`, `21e59c0`, and `d27d2d1`; T6 is done, T7 is in progress (T7a implemented in this change), and T8 is planned. This change implements the ODD bootstrap write warning: before the session's `odd/tasks/<feature>.md` tracker is observed, valid ODD-key sessions warn on path-known non-tracker file mutations and path-unknown file mutations. No commit has been created. The slice continues to accumulate from `65b1f35`; take native review when assessment returns `review_due` (`slice_budget_reached`), then advance the boundary.
+The assessed slice accumulates from boundary `65b1f35`. Completed commit sequence recorded for this task: `2c0134f`, `3ae9c94`, `f652ddb`, `1993a8e`, `83311d0`, `21e59c0`, and `d27d2d1`; T6 is done, T6a corrects native review finding `R3-inherited-expiry` (T7 is in progress, T7a implemented in the accumulated slice), and T8 is planned. This change implements the ODD bootstrap write warning: before the session's `odd/tasks/<feature>.md` tracker is observed, valid ODD-key sessions warn on path-known non-tracker file mutations and path-unknown file mutations. Native review `review-17a7dab1e332596a` ran on the accumulated slice (401 lines, 5 paths, medium tier), selected the reliability lens, admitted a refuter, and returned one CRITICAL candidate-caused finding, `R3-inherited-expiry`, which this change corrects. No commit has been created. The slice continues to accumulate from `65b1f35`; take native review when assessment returns `review_due` (`slice_budget_reached`), then advance the boundary.
 
 ## Route and trigger evidence
 Route: delegated. Specialist: `general` sandbox writer. Triggers fired: mapping (4+ files), writer (2+ non-trivial files), preparation, and long-session backstop. The task is a global tooling change. The historical tracker is being created after the first implementation source edit, contrary to protocol; see Debt.

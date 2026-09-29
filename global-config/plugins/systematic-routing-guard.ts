@@ -287,6 +287,36 @@ async function refreshWorkflowKeyActivity(
   } catch {
     // Key activity refresh must never block or fail a tool call.
   }
+
+  try {
+    const directory = routingKeySessionDirectory(sessionID)
+    if (!directory) return
+    const inheritedContent = await readFile(join(directory, "inherited.key"), "utf8")
+    const inherited = JSON.parse(inheritedContent) as { inherited_from?: unknown }
+    if (typeof inherited.inherited_from !== "string") return
+    const parentDirectory = routingKeySessionDirectory(inherited.inherited_from)
+    if (!parentDirectory) return
+    const parentFiles = await readdir(parentDirectory)
+    for (const file of parentFiles) {
+      if (!/^workflow-[a-zA-Z0-9_-]+\.key$/.test(file)) continue
+      try {
+        const path = join(parentDirectory, file)
+        const content = await readFile(path, "utf8")
+        const key = JSON.parse(content) as { skill?: unknown; minted_at?: unknown; last_active?: unknown; specialists?: unknown }
+        if (typeof key.skill !== "string" || !key.skill.startsWith("workflow-")) continue
+        if (typeof key.minted_at !== "number") continue
+        await writeFile(
+          path,
+          JSON.stringify({ ...key, last_active: now }),
+          "utf8",
+        )
+      } catch {
+        // Ignore unreadable or malformed parent key files.
+      }
+    }
+  } catch {
+    // Parent key activity refresh must never block or fail a tool call.
+  }
 }
 
 async function mintWorkflowKey(
