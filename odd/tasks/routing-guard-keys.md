@@ -92,16 +92,15 @@ A route declares an ordered list of stages. Each stage carries (a) the evidence 
 
 ### Observation point and limits
 
-Nothing observes the `skill` tool today. Observing `skill({name})` lets the guard mint a per-session marker for each skill actually loaded (`ce:plan`, `ce:brainstorm`, `ce:review`, `ce:work`, `reproduce-bug`). This makes a worker subagent's adherence to its required Systematic workflow observable and lets a stage refuse a specialist whose preceding stages are unmet. The honest limit: where a stage has no file evidence, the system gates attention (was the skill loaded), not completion (was the work done).
+The guard observes the `skill` tool and mints a per-session marker for each skill actually loaded (`ce:plan`, `ce:brainstorm`, `ce:review`, `ce:work`, `reproduce-bug`). This makes a worker subagent's adherence to its required Systematic workflow observable and lets a stage refuse a specialist whose preceding stages are unmet. The honest limit: where a stage has no file evidence, the system gates attention (was the skill loaded), not completion (was the work done).
 
 ### Stage tables by route
 
-- `workflow-systematic` (small feature, bug, substantial non-SDD), currently zero stages:
+- `workflow-systematic` (small feature, bug, substantial non-SDD), with requirements, plan and review stages implemented in T7c:
   - Requirements: `docs/brainstorms/*-requirements.md` or `ce:brainstorm` marker; gates `ce:plan`.
   - Plan: `docs/plans/*-plan.md` or `ce:plan` marker; gates `ce:work` and writing specialists.
-  - Execution: `ce:work` marker; attestation only.
   - Review: `.context/systematic/ce-review/<run-id>/review-summary.json` or `ce:review` marker; gates `host_review_start`.
-  - Learnings: `docs/solutions/**/*.md` or `ce:compound` marker; gates push after an SDD archive.
+- Learnings are deferred because the post-archive condition is not observable yet.
 - `workflow-sdd-secure`, currently zero stages:
   - Proposal: `openspec/changes/<change>/proposal.md` or phase marker; gates `sdd-spec` and `sdd-design`.
   - Spec and design: gates `sdd-tasks`.
@@ -129,7 +128,7 @@ Stages with no file evidence: `ce:work` execution, bug reproduction, the tiny-fi
 ### Implementation order
 
 1. `skill` observation plus specialist allow-lists — **implemented** in this unit: skill loads are recorded per session, child artifact/skill markers merge into the parent on task-result arrival, and the ODD tracker stage allows only `general` and `systematic-implementer` after its artifact is observed. The skill-load branch read the wrong argument object, so skill markers and skill-key minting were inert; it now reads `output.args` with a fallback.
-2. `workflow-systematic` stages — remains.
+2. `workflow-systematic` stages — **implemented** in this unit: requirements, plan and review stages resolve from project-relative artifacts or recorded skill markers; skill-load prerequisites and `host_review_start` warn when their required stage is unsatisfied. The learnings stage is deferred because the post-archive condition is not observable yet.
 3. `workflow-sdd-secure` phase-agent gating — remains.
 4. The review-due marker from the assessment output — remains.
 5. The durable project-scoped signal with the global store in the agent-sandbox-integration project — remains.

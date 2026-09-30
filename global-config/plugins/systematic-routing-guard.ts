@@ -219,16 +219,41 @@ const ADAPTER_WORKFLOW_SKILLS = new Set([
   "workflow-sdd-secure",
   "workflow-systematic",
 ])
-const ROUTE_STAGES: Record<string, ReadonlyArray<{
+type RouteStage = {
   id: string
-  artifactPattern: RegExp
+  artifactPattern?: RegExp
+  skillMarkers?: readonly string[]
+  gatesSkillLoads?: readonly string[]
   allowsSpecialists?: readonly string[]
-}>> = {
+}
+
+const ROUTE_STAGES: Record<string, readonly RouteStage[]> = {
   "workflow-odd-secure": [{
     id: "tracker",
     artifactPattern: /^odd\/tasks\/[^/]+\.md$/,
     allowsSpecialists: ["general", "systematic-implementer"],
   }],
+  "workflow-systematic": [
+    {
+      id: "requirements",
+      artifactPattern: /^docs\/brainstorms\/[^/]+\.md$/,
+      skillMarkers: ["ce-brainstorm"],
+      gatesSkillLoads: ["ce-plan"],
+    },
+    {
+      id: "plan",
+      artifactPattern: /^docs\/plans\/[^/]+\.md$/,
+      skillMarkers: ["ce-plan"],
+      gatesSkillLoads: ["ce-work"],
+      allowsSpecialists: ["general", "systematic-implementer"],
+    },
+    {
+      id: "review",
+      artifactPattern: /^\.context\/systematic\/ce-review\/[^/]+\/review-summary\.json$/,
+      skillMarkers: ["ce-review"],
+      gatesSkillLoads: [],
+    },
+  ],
 }
 // sandbox_bash remains unable to be path-gated because its argv can execute arbitrary commands.
 const FILE_MUTATING_TOOLS = new Set([
@@ -256,6 +281,7 @@ function routingKeyFile(sessionID: string, skillName: string): string | null {
 async function hasRouteStageArtifactInAncestorChain(
   sessionID: string,
   stageID: string,
+  skillMarkers: readonly string[] = [],
 ): Promise<boolean> {
   const visited = new Set<string>()
   let currentSessionID: string | null = sessionID
@@ -267,7 +293,11 @@ async function hasRouteStageArtifactInAncestorChain(
     const directory = routingKeySessionDirectory(currentSessionID)
     if (!directory) return false
     try {
-      const markerNames = [`artifact-${stageID}`, `artifact-odd-${stageID}`]
+      const markerNames = [
+        `artifact-${stageID}`,
+        `artifact-odd-${stageID}`,
+        ...skillMarkers.map((skillName) => `skill-${skillName}`),
+      ]
       if (markerNames.some((markerName) => existsSync(join(directory, markerName)))) return true
     } catch {
       // Marker inspection must never block or fail a tool call.
@@ -701,8 +731,8 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       const patchTrackerPath = patchText?.match(/odd\/tasks\/[^/\s"'`]+\.md/)?.[0]
       const routeStages = Object.values(ROUTE_STAGES).flat()
       const writtenStages = routeStages.filter((stage) =>
-        (typeof targetPath === "string" && stage.artifactPattern.test(targetPath)) ||
-        (typeof patchTrackerPath === "string" && stage.artifactPattern.test(patchTrackerPath)),
+        (typeof targetPath === "string" && stage.artifactPattern?.test(targetPath)) ||
+        (typeof patchTrackerPath === "string" && stage.artifactPattern?.test(patchTrackerPath)),
       )
       if (writtenStages.length > 0) {
         const directory = routingKeySessionDirectory(input.sessionID)
@@ -733,6 +763,31 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
           // Future block behavior could throw here; this rollout is warning-only.
         }
 
+        if (input.tool === "host_review_start") {
+          try {
+            if ((await getWorkflowKeyStatus(input.sessionID, "workflow-systematic")) === "valid") {
+              const reviewStage = ROUTE_STAGES["workflow-systematic"].find((stage) => stage.id === "review")
+              if (
+                reviewStage &&
+                !(await hasRouteStageArtifactInAncestorChain(
+                  input.sessionID,
+                  reviewStage.id,
+                  reviewStage.skillMarkers,
+                ))
+              ) {
+                await logInactiveWorkflowWarning(
+                  input.tool,
+                  input.sessionID,
+                  `workflow-systematic review started before ${reviewStage.id} stage artifact exists`,
+                  true,
+                )
+              }
+            }
+          } catch {
+            // Review-stage observation must never block or fail a tool call.
+          }
+        }
+
         // The guard is project-blind: in a multi-project session, a marker cannot satisfy a stage for the other project. A true fix needs a verified session-project source.
         if (FILE_MUTATING_TOOLS.has(input.tool)) {
           const pathKnown =
@@ -742,12 +797,16 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
             input.tool === "sandbox_copy_out"
           if (pathKnown && typeof targetPath === "string") {
             for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
+              if (routeSkill !== "workflow-odd-secure") continue
               if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
               for (const stage of stages) {
                 const targetsStage =
-                  stage.artifactPattern.test(targetPath) ||
-                  (typeof patchTrackerPath === "string" && stage.artifactPattern.test(patchTrackerPath))
-                if (targetsStage || await hasRouteStageArtifactInAncestorChain(input.sessionID, stage.id)) continue
+                  stage.artifactPattern?.test(targetPath) ||
+                  (typeof patchTrackerPath === "string" && stage.artifactPattern?.test(patchTrackerPath))
+                if (
+                  targetsStage ||
+                  await hasRouteStageArtifactInAncestorChain(input.sessionID, stage.id, stage.skillMarkers)
+                ) continue
 
                 const failure = `${routeSkill} bootstrap: write to ${targetPath} before ${stage.id} stage artifact exists`
                 const warnConsole = !warnedInactiveWorkflow.has(warningKey)
@@ -796,7 +855,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
             if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
             for (const stage of stages) {
               if (!stage.allowsSpecialists?.includes(dispatchedType)) continue
-              if (await hasRouteStageArtifactInAncestorChain(input.sessionID, stage.id)) continue
+              if (await hasRouteStageArtifactInAncestorChain(input.sessionID, stage.id, stage.skillMarkers)) continue
 
               await logInactiveWorkflowWarning(
                 "task",
@@ -898,6 +957,29 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       const rawName = args?.name
       if (typeof rawName === "string") {
         const sanitizedName = rawName.replace(/[^a-zA-Z0-9_-]/g, "-")
+        const canonicalName = canonicalSkillName(rawName)
+        if (
+          !ADAPTER_WORKFLOW_SKILLS.has(canonicalName ?? "") &&
+          !/(?:research|analyst)/i.test(sanitizedName)
+        ) {
+          try {
+            for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
+              if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
+              for (const stage of stages) {
+                if (!stage.gatesSkillLoads?.includes(sanitizedName)) continue
+                if (await hasRouteStageArtifactInAncestorChain(input.sessionID, stage.id, stage.skillMarkers)) continue
+                await logInactiveWorkflowWarning(
+                  input.tool,
+                  input.sessionID,
+                  `${routeSkill} skill ${sanitizedName} loaded before ${stage.id} stage artifact exists`,
+                  true,
+                )
+              }
+            }
+          } catch {
+            // Skill-stage observation must never block or fail a tool call.
+          }
+        }
         const directory = routingKeySessionDirectory(input.sessionID)
         if (directory) {
           void mkdir(directory, { recursive: true })
