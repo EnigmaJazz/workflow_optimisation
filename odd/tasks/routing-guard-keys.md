@@ -43,6 +43,7 @@ The authorized implementation scope is the routing-guard plugin change and this 
 
 ## Checks
 - Run `bun build global-config/plugins/systematic-routing-guard.ts --target=bun --external @opencode-ai/plugin --outdir /tmp/guard-odd-stage-check` for T7a.
+- `bun build` does not resolve named exports, so every plugin change must also be validated by EXECUTING the module (`bun global-config/plugins/systematic-routing-guard.ts` must exit without a SyntaxError).
 - Confirm `context.directory` is absent from the plugin; verify `ODD_TRACKER_PATTERN` references and warning behavior remain warn-only.
 - After each commit, assess RDD with an explicit base ref; assessments to date returned `review_due: false` with reason `under_budget`.
 - Correction for native review finding `R3-inherited-expiry` was produced under the review's correction budget: 200 lines, 30 declared.
@@ -127,7 +128,7 @@ Stages with no file evidence: `ce:work` execution, bug reproduction, the tiny-fi
 
 ### Implementation order
 
-1. `skill` observation plus specialist allow-lists — **implemented** in this unit: skill loads are recorded per session, child artifact/skill markers merge into the parent on task-result arrival, and the ODD tracker stage allows only `general` and `systematic-implementer` after its artifact is observed. The skill-load branch read the wrong argument object, so skill markers and skill-key minting were inert; it now reads `output.args` with a fallback.
+1. `skill` observation plus specialist allow-lists — **implemented** in this unit: skill loads are recorded per session, child artifact/skill markers merge into the parent on task-result arrival, and the ODD tracker stage allows only `general` and `systematic-implementer` after its artifact is observed. The skill-load branch read the wrong argument object, so skill markers and skill-key minting were inert; it now reads `output.args` with a fallback. The plugin failed to load entirely because it imported `COPYFILE_EXCL` as a named export from `node:fs`, which this runtime does not provide; the import now uses `constants`.
 2. `workflow-systematic` stages — **implemented** in this unit: requirements, plan and review stages resolve from project-relative artifacts or recorded skill markers; skill-load prerequisites and `host_review_start` warn when their required stage is unsatisfied. The learnings stage is deferred because the post-archive condition is not observable yet.
 3. `workflow-sdd-secure` phase-agent gating — remains.
 4. The review-due marker from the assessment output — remains.

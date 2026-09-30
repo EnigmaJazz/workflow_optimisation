@@ -39,7 +39,7 @@
  */
 
 import { appendFile, copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
-import { COPYFILE_EXCL, existsSync } from "node:fs"
+import { constants, existsSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
 import type { Plugin } from "@opencode-ai/plugin"
@@ -921,7 +921,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
                       await copyFile(
                         join(directory, entry.name),
                         join(parentDirectory, entry.name),
-                        COPYFILE_EXCL,
+                        constants.COPYFILE_EXCL,
                       )
                     } catch {
                       // Marker merge must not overwrite parent state or fail the task result hook.
