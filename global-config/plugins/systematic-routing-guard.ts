@@ -894,7 +894,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
         return
       }
       if (input.tool !== "systematic_skill" && input.tool !== "skill") return
-      const args = input.args as Record<string, unknown> | undefined
+      const args = ((output.args ?? input.args) as Record<string, unknown> | undefined)
       const rawName = args?.name
       if (typeof rawName === "string") {
         const sanitizedName = rawName.replace(/[^a-zA-Z0-9_-]/g, "-")

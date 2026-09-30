@@ -128,7 +128,7 @@ Stages with no file evidence: `ce:work` execution, bug reproduction, the tiny-fi
 
 ### Implementation order
 
-1. `skill` observation plus specialist allow-lists — **implemented** in this unit: skill loads are recorded per session, child artifact/skill markers merge into the parent on task-result arrival, and the ODD tracker stage allows only `general` and `systematic-implementer` after its artifact is observed.
+1. `skill` observation plus specialist allow-lists — **implemented** in this unit: skill loads are recorded per session, child artifact/skill markers merge into the parent on task-result arrival, and the ODD tracker stage allows only `general` and `systematic-implementer` after its artifact is observed. The skill-load branch read the wrong argument object, so skill markers and skill-key minting were inert; it now reads `output.args` with a fallback.
 2. `workflow-systematic` stages — remains.
 3. `workflow-sdd-secure` phase-agent gating — remains.
 4. The review-due marker from the assessment output — remains.
