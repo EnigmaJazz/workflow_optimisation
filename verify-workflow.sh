@@ -2687,6 +2687,8 @@ const isolatedMemoryAgents=new Set([
   "jd-judge-a","jd-judge-b",
   "review-risk","review-readability","review-reliability",
   "review-resilience","review-refuter","review-validator","sdd-research",
+  "advisor-design","advisor-integration","advisor-testing",
+  "advisor-security","advisor-maintainability",
   "asi-review-risk","asi-review-resilience","asi-review-readability",
   "asi-review-reliability","asi-review-refuter","asi-review-validator",
 ])
