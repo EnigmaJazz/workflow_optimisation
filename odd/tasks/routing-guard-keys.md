@@ -146,3 +146,21 @@ This session itself skipped `ce:brainstorm`, `ce:plan`, and `ce:review` while su
 - Lineage `review-17a7dab1e332596a` remains open in state `correction_required` (its targeted validator never completed—a relay refusal, then a provider outage), superseded by the approved lineage; its disposition is unresolved.
 - Project-blindness persists because no trustworthy session-project source exists, so a marker cannot satisfy a stage artifact for a different project; the host-side append operation and ledger move are tracked as separate units in the agent-sandbox-integration project.
 - The Magic Context mirror stores the tracker body newline-flattened, so a verbatim write-back from the mirror collapses this file's markdown structure; restore from git and re-apply sections as real multi-line markdown.
+
+## Native review review-10d26170c9d40efc (approved, authority burned)
+
+| ID | Lens | Severity | Location |
+|---|---|---|---|
+| R2-001 | readability | WARNING | `verify-workflow.sh:217-226` |
+| R2-002 | readability | WARNING | `verify-workflow.sh:220-226` |
+| R2-003 | readability | SUGGESTION | `odd/tasks/routing-guard-keys.md:133` |
+| R3-child-regex-format | reliability | WARNING | `systematic-routing-guard.ts:903-905` |
+| R3-console-warning-dedup | reliability | WARNING | `systematic-routing-guard.ts:786-790` |
+| R3-copy-path-gap | reliability | WARNING | `systematic-routing-guard.ts:800-804` |
+| R3-missing-stage-tests | reliability | WARNING | `systematic-routing-guard.ts:227-260` |
+| R3-systematic-apply-marker-gap | reliability | SUGGESTION | `systematic-routing-guard.ts:729` |
+| R3-unawaited-marker-race | reliability | WARNING | `systematic-routing-guard.ts:738-744` |
+| R3-verifier-missing-dep | reliability | WARNING | `verify-workflow.sh:223` |
+| R4-001 | resilience | WARNING | `verify-workflow.sh:219` |
+
+Three of these are fixed by this change: R2-001 (vacuous pass), R2-002 together with R3-verifier-missing-dep (failure classification), and partially R4-001 (an exported factory is now required but is not invoked, because it needs a host-shaped input). The remaining findings are recorded here as separate later work and are not blockers.

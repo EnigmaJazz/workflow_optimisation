@@ -199,7 +199,7 @@ fail() {
 
 check_plugin_loads() {
   local plugin_dir="${1:-$PLUGINS_DIR}"
-  local scratch_dir plugin output status
+  local scratch_dir plugin output status checked=0
   plugin_dir=$(cd "$plugin_dir" 2>/dev/null && pwd) || {
     fail "deployed plugin directory is unavailable: $plugin_dir"
     return
@@ -217,19 +217,31 @@ check_plugin_loads() {
     case "${plugin##*/}" in
       *.bak*|*.disabled) continue ;;
     esac
-    output=$(cd "$scratch_dir" && timeout 8s bun --no-install run "$plugin" 2>&1)
+    checked=$((checked + 1))
+    output=$(cd "$scratch_dir" && PLUGIN_LOAD_CHECK_PATH="$plugin" timeout 8s bun --no-install -e 'const m = await import(process.env.PLUGIN_LOAD_CHECK_PATH); const usable = Object.values(m).some((v) => (typeof v === "function") || (v !== null && typeof v === "object")); if (!usable) { console.error("plugin exports no factory: " + process.env.PLUGIN_LOAD_CHECK_PATH); process.exit(3) }' 2>&1)
     status=$?
     if [ "$status" -eq 0 ]; then
       echo "   OK plugin load: ${plugin##*/}"
       continue
     fi
-    if [[ "$output" =~ SyntaxError|syntax[[:space:]]error|Export[[:space:]]named.*not[[:space:]]found|does[[:space:]]not[[:space:]]provide[[:space:]]an[[:space:]]export|not[[:space:]]exported[[:space:]]by ]]; then
+    if [ "$status" -eq 3 ]; then
+      fail "plugin exports no factory: $plugin"
+      continue
+    fi
+    if [ "$status" -eq 124 ]; then
+      fail "plugin load timed out: $plugin"
+      continue
+    fi
+    if [[ "$output" =~ SyntaxError|syntax[[:space:]]error|Export[[:space:]]named.*not[[:space:]]found|does[[:space:]]not[[:space:]]provide[[:space:]]an[[:space:]]export|not[[:space:]]exported[[:space:]]by|Cannot[[:space:]]find[[:space:]](package|module)|Could[[:space:]]not[[:space:]]resolve|Module[[:space:]]not[[:space:]]found ]]; then
       fail "plugin cannot load: $plugin: $output"
     else
       echo "   INFO plugin import error (non-load-blocking): $plugin (exit $status): $output"
     fi
   done
   rm -rf "$scratch_dir"
+  if [ "$checked" -eq 0 ]; then
+    fail "plugin load check found no plugin files under $plugin_dir"
+  fi
 }
 
 repair_note() {
