@@ -38,8 +38,8 @@
  * local plugins from that directory automatically.
  */
 
-import { appendFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
-import { existsSync } from "node:fs"
+import { appendFile, copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
+import { COPYFILE_EXCL, existsSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
 import type { Plugin } from "@opencode-ai/plugin"
@@ -219,8 +219,16 @@ const ADAPTER_WORKFLOW_SKILLS = new Set([
   "workflow-sdd-secure",
   "workflow-systematic",
 ])
-const ROUTE_STAGES: Record<string, ReadonlyArray<{ id: string; artifactPattern: RegExp }>> = {
-  "workflow-odd-secure": [{ id: "tracker", artifactPattern: /^odd\/tasks\/[^/]+\.md$/ }],
+const ROUTE_STAGES: Record<string, ReadonlyArray<{
+  id: string
+  artifactPattern: RegExp
+  allowsSpecialists?: readonly string[]
+}>> = {
+  "workflow-odd-secure": [{
+    id: "tracker",
+    artifactPattern: /^odd\/tasks\/[^/]+\.md$/,
+    allowsSpecialists: ["general", "systematic-implementer"],
+  }],
 }
 // sandbox_bash remains unable to be path-gated because its argv can execute arbitrary commands.
 const FILE_MUTATING_TOOLS = new Set([
@@ -781,6 +789,28 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
         }
       }
 
+      const dispatchedType = typeof args.subagent_type === "string" ? args.subagent_type : null
+      if (mode !== "off" && dispatchedType && dispatchedType !== "explore" && !dispatchedType.endsWith("reviewer")) {
+        try {
+          for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
+            if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
+            for (const stage of stages) {
+              if (!stage.allowsSpecialists?.includes(dispatchedType)) continue
+              if (await hasRouteStageArtifactInAncestorChain(input.sessionID, stage.id)) continue
+
+              await logInactiveWorkflowWarning(
+                "task",
+                input.sessionID,
+                `${routeSkill} specialist ${dispatchedType} dispatched before ${stage.id} stage artifact exists`,
+                true,
+              )
+            }
+          }
+        } catch {
+          // Specialist-stage observation must never block or fail a tool call.
+        }
+      }
+
       if (mode === "off") return
       if (args.subagent_type !== "general" && args.subagent_type !== "explore") return
 
@@ -819,6 +849,29 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
           void mkdir(directory, { recursive: true })
             .then(async () => {
               await writeFile(join(directory, ".parent"), input.sessionID, "utf8")
+              try {
+                const parentDirectory = routingKeySessionDirectory(input.sessionID)
+                if (parentDirectory) {
+                  await mkdir(parentDirectory, { recursive: true })
+                  const childEntries = await readdir(directory, { withFileTypes: true })
+                  const observedMarkers = childEntries
+                    .filter((entry) => entry.isFile() && /^(artifact-|skill-)/.test(entry.name))
+                    .slice(0, 64)
+                  await Promise.all(observedMarkers.map(async (entry) => {
+                    try {
+                      await copyFile(
+                        join(directory, entry.name),
+                        join(parentDirectory, entry.name),
+                        COPYFILE_EXCL,
+                      )
+                    } catch {
+                      // Marker merge must not overwrite parent state or fail the task result hook.
+                    }
+                  }))
+                }
+              } catch {
+                // Marker enumeration and merge are best-effort and never affect key inheritance.
+              }
               const files = await readdir(directory)
               await Promise.all(
                 files
@@ -843,6 +896,17 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       if (input.tool !== "systematic_skill" && input.tool !== "skill") return
       const args = input.args as Record<string, unknown> | undefined
       const rawName = args?.name
+      if (typeof rawName === "string") {
+        const sanitizedName = rawName.replace(/[^a-zA-Z0-9_-]/g, "-")
+        const directory = routingKeySessionDirectory(input.sessionID)
+        if (directory) {
+          void mkdir(directory, { recursive: true })
+            .then(() => writeFile(join(directory, `skill-${sanitizedName}`), new Date().toISOString(), "utf8"))
+            .catch(() => {
+              // Skill observation must never block or fail a tool call.
+            })
+        }
+      }
       const content = typeof output.output === "string" ? output.output : ""
       activateWorkflow(
         activeBySession,

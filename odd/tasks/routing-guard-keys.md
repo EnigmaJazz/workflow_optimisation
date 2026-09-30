@@ -128,11 +128,11 @@ Stages with no file evidence: `ce:work` execution, bug reproduction, the tiny-fi
 
 ### Implementation order
 
-1. `skill` observation plus specialist allow-lists — pure plugin, session-local.
-2. `workflow-systematic` stages.
-3. `workflow-sdd-secure` phase-agent gating.
-4. The review-due marker from the assessment output.
-5. The durable project-scoped signal with the global store in the agent-sandbox-integration project.
+1. `skill` observation plus specialist allow-lists — **implemented** in this unit: skill loads are recorded per session, child artifact/skill markers merge into the parent on task-result arrival, and the ODD tracker stage allows only `general` and `systematic-implementer` after its artifact is observed.
+2. `workflow-systematic` stages — remains.
+3. `workflow-sdd-secure` phase-agent gating — remains.
+4. The review-due marker from the assessment output — remains.
+5. The durable project-scoped signal with the global store in the agent-sandbox-integration project — remains.
 
 This session itself skipped `ce:brainstorm`, `ce:plan`, and `ce:review` while subagents used `ce:work`; that is the asymmetry this design targets. The stage machine would have flagged this session first.
 
