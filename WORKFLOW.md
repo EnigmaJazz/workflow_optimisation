@@ -441,3 +441,17 @@ A failed or exhausted advisor is a missing opinion, never an approval; report a 
 This layer runs BEFORE planning and implementation; ODD or SDD remains the execution spine beneath it.
 
 Registered advisors and their models: `advisor-design`, `advisor-integration`, `advisor-security` on `opencode-go/deepseek-v4.1-flash`; `advisor-testing` on `opencode-go/kimi-k2.7-code`; `advisor-maintainability` on `opencode-go/mimo-v2.6-flash`.
+
+### Structured test requests
+
+Advisors cannot return artifacts to the host. When a finding depends on something an advisor cannot run itself, it must emit a structured test request rather than assert a result. A request includes:
+
+- **Hypothesis:** what is believed and why it matters.
+- **Exact test:** the precise command or procedure, including arguments.
+- **Required environment:** project, paths, tools, credentials, and state.
+- **Expected observations:** what confirms the hypothesis and what falsifies it, stated separately.
+- **Side effects:** what the test would change, create, or delete, and whether those effects are reversible.
+
+The orchestrator routes the request to an authorized testing agent or an existing constrained tool and returns the observed evidence. An advisor never claims a result it did not receive.
+
+Advisors may run diagnostics inside their own isolated workspace using the workspace-local sandbox tools granted to them: `sandbox_write`, `sandbox_edit`, `sandbox_apply_patch`, and `sandbox_bash`. They cannot export or install anything: `sandbox_finish`, `sandbox_apply`, `sandbox_copy_out`, and `sandbox_copy_in` are denied, as are native host `edit`, `write`, and `bash`. Do not invent tool names or claim isolated-execution guarantees beyond those the sandbox is verified to enforce.
