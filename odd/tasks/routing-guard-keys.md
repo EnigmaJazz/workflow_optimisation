@@ -86,6 +86,56 @@ False positives had three causes:
 
 Lines 99-100 are the `R3-odd-marker-gap` case in the wild, removed by T7a-fix.
 
+## T7c — full route and stage design (2026-09-30)
+
+A route declares an ordered list of stages. Each stage carries (a) the evidence that clears it — a project-relative artifact pattern or a skill-use marker — (b) the actions it gates, and (c) the specialists it allows. Gates remain warning-only until the warn log is clean.
+
+### Observation point and limits
+
+Nothing observes the `skill` tool today. Observing `skill({name})` lets the guard mint a per-session marker for each skill actually loaded (`ce:plan`, `ce:brainstorm`, `ce:review`, `ce:work`, `reproduce-bug`). This makes a worker subagent's adherence to its required Systematic workflow observable and lets a stage refuse a specialist whose preceding stages are unmet. The honest limit: where a stage has no file evidence, the system gates attention (was the skill loaded), not completion (was the work done).
+
+### Stage tables by route
+
+- `workflow-systematic` (small feature, bug, substantial non-SDD), currently zero stages:
+  - Requirements: `docs/brainstorms/*-requirements.md` or `ce:brainstorm` marker; gates `ce:plan`.
+  - Plan: `docs/plans/*-plan.md` or `ce:plan` marker; gates `ce:work` and writing specialists.
+  - Execution: `ce:work` marker; attestation only.
+  - Review: `.context/systematic/ce-review/<run-id>/review-summary.json` or `ce:review` marker; gates `host_review_start`.
+  - Learnings: `docs/solutions/**/*.md` or `ce:compound` marker; gates push after an SDD archive.
+- `workflow-sdd-secure`, currently zero stages:
+  - Proposal: `openspec/changes/<change>/proposal.md` or phase marker; gates `sdd-spec` and `sdd-design`.
+  - Spec and design: gates `sdd-tasks`.
+  - Tasks: `tasks.md`; gates `sdd-apply` and `systematic-implementer`.
+  - Apply/verify: gates archive.
+- `workflow-odd-secure`:
+  - Tracker: tracker is built; gates non-tracker mutations.
+  - Review: a CONTINUOUS STATE, not an artifact — see Review stage semantics below.
+- Bug-fix route (T8), no tracker:
+  - Reproduce: `reproduce-bug` marker; followed by `ce:work`, then `ce:review`; gates `host_review_start`.
+- `workflow-route` stays stageless; it is the classifier.
+
+### Review stage semantics (owner-corrected)
+
+Do not require a review start per change. The provider's own model is a slice: commits accumulate against a budget until a review is due. The guard observes the assessment verdict: `review_due: false` sets a cleared marker; `review_due: true` clears that marker. Work-unit commits gate on “not due.” `ce:review` keeps its own stage gating `host_review_start`, per native review rather than per commit.
+
+### Order correction (owner-corrected)
+
+For a substantial feature the order is requirements → plan → tracker → implement. Brainstorm and planning precede the tracker, while the tracker still precedes the first source edit.
+
+### Gaps and boundaries
+
+Stages with no file evidence: `ce:work` execution, bug reproduction, the tiny-fix structural readback, the documentation route, `ce:review` in report-only mode, and the ODD route/trigger declaration stored as prose in the tracker. Stages written outside the project: the key store and markers, the gate log, Magic Context, and native review state. A residual: a tracker created via `sandbox_apply` rather than `sandbox_write` does not mint its marker, because apply exposes no path.
+
+### Implementation order
+
+1. `skill` observation plus specialist allow-lists — pure plugin, session-local.
+2. `workflow-systematic` stages.
+3. `workflow-sdd-secure` phase-agent gating.
+4. The review-due marker from the assessment output.
+5. The durable project-scoped signal with the global store in the agent-sandbox-integration project.
+
+This session itself skipped `ce:brainstorm`, `ce:plan`, and `ce:review` while subagents used `ce:work`; that is the asymmetry this design targets. The stage machine would have flagged this session first.
+
 ## Debt
 - This tracker was created after the first implementation source edit, contrary to protocol.
 - Work-unit commits went to `main` rather than a feature branch.
