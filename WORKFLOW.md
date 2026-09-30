@@ -417,3 +417,27 @@ the Sandbox Tool Contract (global AGENTS.md). Critical for orchestration:
 - A failed or exhausted advisor is a missing opinion, never an approval; report a blocked mandatory gate rather than proceeding.
 - This layer runs before planning and implementation; ODD or SDD remains the execution spine beneath it.
 - Registered advisors and assigned models: `advisor-design`, `advisor-integration`, and `advisor-security` on `opencode-go/deepseek-v4.1-flash`; `advisor-testing` on `opencode-go/kimi-k2.7-code`; `advisor-maintainability` on `opencode-go/mimo-v2.6-flash`.
+
+## Pre-code advice (advisors)
+
+Advisory review is mandatory when any of the following holds: the change affects multiple parts of the system; sandbox TDD cannot test the relevant behaviour; requirements or approach are uncertain; a wrong approach would mean substantial rework; or security, permissions, credentials, or a consequential architecture decision is involved.
+
+Select the smallest sufficient set: one advisor usually suffices. Add testing or security only for a distinct necessary question; a single integration advisor may cover cross-component behaviour and deployment.
+
+Supply a compact plan, the relevant code, the constraints, and this question: "What is wrong or missing in this approach, what should change before implementation, and what evidence supports that?"
+
+Resolve consequential findings before coding; record the chosen approach and required checks briefly.
+
+Trivial document edits and clearly bounded few-line changes get no advisory call unless a trigger applies; a small diff does not excuse a consequential contract or security change.
+
+First-pass advisors must not see one another's answers; use parallel calls for distinct questions against frozen evidence, sequential only when a later question depends on a finding.
+
+Consensus requires different model families; several sessions of one model are valid specialist advice but never multi-model consensus. Never decide by majority vote.
+
+Model fallback: prefer Go routes; Luna for moderate work when Go is unsuitable; Sol only for unresolved consequential questions. Do not place GLM 5.3 Flash in an advisor's initial fallback chain.
+
+A failed or exhausted advisor is a missing opinion, never an approval; report a blocked mandatory gate rather than proceeding.
+
+This layer runs BEFORE planning and implementation; ODD or SDD remains the execution spine beneath it.
+
+Registered advisors and their models: `advisor-design`, `advisor-integration`, `advisor-security` on `opencode-go/deepseek-v4.1-flash`; `advisor-testing` on `opencode-go/kimi-k2.7-code`; `advisor-maintainability` on `opencode-go/mimo-v2.6-flash`.
