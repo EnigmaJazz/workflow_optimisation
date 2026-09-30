@@ -26,7 +26,7 @@ The route gate could be satisfied by any skill load, including a hollow one. A f
 - **T5 — Parentage, inherited authority and purge of a child's self-minted key** — **done**. Commit `21e59c0`.
 - **T6 — Require an adapter key; bare router key is insufficient** — **done**. Commit `d27d2d1`.
 - **T6a — Refresh the parent key from child activity (native review finding R3-inherited-expiry, CRITICAL)** — **done**.
-- **T7 — Per-route stage table and worker mutation gating on required artifacts** — **in progress**. T7a (the ODD bootstrap write gate) is implemented in this change.
+- **T7 — Per-route stage table and worker mutation gating on required artifacts** — **in progress**. T7a (the ODD bootstrap write gate) is implemented in this change. The 2026-09-30 warn-log audit defines T7b's requirements.
 - **T7a-fix — Correct the review's three T7a advisory findings (R3-sandbox-catchall, R3-odd-marker-gap, R3-child-session-regex)** — **done**.
 - **T8 — Bug-fix route with its own stages and no ODD tracker** — **planned**.
 - **T9 — Native review outcome recorded (lineage review-16c862492747259a)** — **done**.
@@ -71,9 +71,26 @@ Route: delegated. Specialist: `general` sandbox writer. Triggers fired: mapping 
 ## Next step
 Continue T7 with the remaining route-stage coverage; T7a was committed as `af1a841` and reviewed inside lineage `review-16c862492747259a`. T7a-fix's three advisory corrections are recorded under the T7 work unit.
 
+## Warn-log audit (2026-09-30)
+
+The log `~/.local/share/opencode/logs/routing-guard.log` held 131 lines across four message generations.
+
+Genuine warnings:
+- This orchestrator session (`ses_f270b9eafffeFfcM9pOx6jrScb`) generated warnings across dozens of lines because it never loaded a route or adapter skill.
+- A second orchestrator session (`ses_f63454890ffej5Y5gIUDN4HFKf`) generated warnings covering `task`, `host_review_status`, `host_review_assess`, `host_review_start`, `host_review_recover`, `host_review_acknowledge_approved`, and `host_git_push`; it never held an adapter key.
+
+False positives had three causes:
+- (a) Per-message key deletion, lines 4-47, fixed in `f652ddb`/`1993a8e`.
+- (b) The in-memory AND-condition, lines 8, 11, 24, 28, and 43, fixed in `1993a8e`.
+- (c) The per-session and project-blind artifact marker: lines 85-100 and 127-130 write to config and to the guard itself while `odd/tasks/routing-guard-keys.md` existed; lines 79-83 write into the agent-sandbox-integration project, where a marker can never be satisfied.
+
+Lines 99-100 are the `R3-odd-marker-gap` case in the wild, removed by T7a-fix.
+
 ## Debt
 - This tracker was created after the first implementation source edit, contrary to protocol.
 - Work-unit commits went to `main` rather than a feature branch.
 - No delivery strategy was selected at tracker creation.
 - The host commit tool rejects multi-line messages, so the `ROUTED:` trailer has to sit on the subject line rather than in the commit body.
 - Lineage `review-17a7dab1e332596a` remains open in state `correction_required` (its targeted validator never completed—a relay refusal, then a provider outage), superseded by the approved lineage; its disposition is unresolved.
+- The guard is project-blind, so in a multi-project session the bootstrap marker cannot be satisfied for the other project.
+- The Magic Context mirror stores the tracker body newline-flattened, so a verbatim write-back from the mirror collapses this file's markdown structure; restore from git and re-apply sections as real multi-line markdown.
