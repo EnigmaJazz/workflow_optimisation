@@ -342,6 +342,20 @@ Commit small: by default no more than 400 authored changed lines and 100 KiB of 
 
 User-facing terminal commands are Fish-compatible and never contain heredocs, because Fish has none. Pass arguments and options directly rather than with shell redirection.
 
+## Verification must execute
+
+Every verification step must EXECUTE the artifact it validates. Build, parse, and lint checks prove syntax, never behaviour: `bun build` bundles without resolving named exports; `bash -n` parses without running; a JSON parser accepts a config it is never read as.
+
+A change is verified only by running the thing and observing an outcome: import the module, execute the script's entry path, exercise the code path, or have the consumer read the config.
+
+Applied per class: a plugin change must load; a shell change must run; a config change must be read by its consumer; a service change must serve.
+
+Record the observed outcome, not the command. “Build passed” is not verification; “the module imported and the hook fired” is.
+
+Where execution is impossible in the environment, say so explicitly and treat the change as UNVERIFIED rather than verified.
+
+Worked example: the guard plugin built cleanly on every edit and failed to load, silencing the whole gate for hours.
+
 ## Logging
 
 After every routed task — including probes — ensure one row is written to [ROUTER-LOG.md](ROUTER-LOG.md): date, task, class chosen, reclassification, review outcome, probe flag, evidence reference. The read-only orchestrator never edits the log itself; the active writer includes the row or a final `general` worker performs the append. Probe rows are excluded from the prove-out count.

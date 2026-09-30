@@ -215,6 +215,8 @@ Label every factual statement in a report: `observed` (evidence inline),
 `inferred` (basis plus what would falsify it), or `assumed`. Never present an
 inference or an assumption as an observation.
 
+Verification must execute the artifact it validates; a build or parse check proves syntax only, and an unexecuted change is reported as unverified.
+
 ### Session and context model
 
 Work in one long session per project: Magic Context manages context for the whole session, archives older history, and keys durable memory to project identity, so `ctx_search` and `ctx_expand` always recover prior detail. High context usage is normal and fully handled — never a reason to wrap up, cut scope, rush, defer work, or claim your context is at an end, and never announce that it is running out. Stamp used items with `ctx_reduce` silently; never stamp a user message for its directive. When each new change begins, re-read the workflow documents and re-run the route for that change, because no prior classification, approval or task state carries over.

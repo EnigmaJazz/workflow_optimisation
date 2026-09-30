@@ -45,6 +45,7 @@ The authorized implementation scope is the routing-guard plugin change and this 
 - Run `bun build global-config/plugins/systematic-routing-guard.ts --target=bun --external @opencode-ai/plugin --outdir /tmp/guard-odd-stage-check` for T7a.
 - `bun build` does not resolve named exports, so every plugin change must also be validated by EXECUTING the module (`bun global-config/plugins/systematic-routing-guard.ts` must exit without a SyntaxError).
 - Confirm `context.directory` is absent from the plugin; verify `ODD_TRACKER_PATTERN` references and warning behavior remain warn-only.
+- The module-execution verification rule is stated in `WORKFLOW.md` and in the recovered `global-config/AGENTS.md` block.
 - After each commit, assess RDD with an explicit base ref; assessments to date returned `review_due: false` with reason `under_budget`.
 - Correction for native review finding `R3-inherited-expiry` was produced under the review's correction budget: 200 lines, 30 declared.
 - Review live warning evidence in `~/.local/share/opencode/logs/routing-guard.log`; ROUTER-LOG.md records live log evidence for the initial key-backed gate at row 98.
