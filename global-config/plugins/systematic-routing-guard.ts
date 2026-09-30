@@ -645,21 +645,32 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
 
     "tool.execute.before": async (input, output) => {
       void refreshWorkflowKeyActivity(input.sessionID, lastKeyRefreshBySession)
-      if (input.tool === "sandbox_write" || input.tool === "sandbox_edit") {
-        const args = output.args as Record<string, unknown> | undefined
-        const targetPath = args?.path
-        if (
-          typeof targetPath === "string" &&
-          ODD_ROUTE_STAGES.some((stage) => stage.artifactPattern.test(targetPath))
-        ) {
-          const directory = routingKeySessionDirectory(input.sessionID)
-          if (directory) {
-            void mkdir(directory, { recursive: true })
-              .then(() => writeFile(join(directory, "artifact-odd-tracker"), new Date().toISOString(), "utf8"))
-              .catch(() => {
-                // Artifact observation must never block or fail a tool call.
-              })
-          }
+      const args = output.args as Record<string, unknown> | undefined
+      const targetPath =
+        typeof args?.path === "string"
+          ? args.path
+          : typeof args?.workerPath === "string"
+            ? args.workerPath
+            : typeof args?.hostTarget === "string"
+              ? args.hostTarget
+              : null
+      const patchText = input.tool === "sandbox_apply_patch" && typeof args?.patch === "string"
+        ? args.patch
+        : null
+      const patchTrackerPath = patchText?.match(/odd\/tasks\/[^/\s"'`]+\.md/)?.[0]
+      const writesTracker =
+        (typeof targetPath === "string" &&
+          ODD_ROUTE_STAGES.some((stage) => stage.artifactPattern.test(targetPath))) ||
+        (typeof patchTrackerPath === "string" &&
+          ODD_ROUTE_STAGES.some((stage) => stage.artifactPattern.test(patchTrackerPath)))
+      if (writesTracker) {
+        const directory = routingKeySessionDirectory(input.sessionID)
+        if (directory) {
+          void mkdir(directory, { recursive: true })
+            .then(() => writeFile(join(directory, "artifact-odd-tracker"), new Date().toISOString(), "utf8"))
+            .catch(() => {
+              // Artifact observation must never block or fail a tool call.
+            })
         }
       }
       if (mode !== "off" && isRoutingGateTool(input.tool) && !isRoutingGateDisabled()) {
@@ -690,20 +701,18 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
           } catch {
             // Marker inspection must never block or fail a tool call.
           }
-          const args = output.args as Record<string, unknown> | undefined
-          const targetPath =
-            typeof args?.path === "string"
-              ? args.path
-              : typeof args?.workerPath === "string"
-                ? args.workerPath
-                : typeof args?.hostTarget === "string"
-                  ? args.hostTarget
-                  : null
           const targetsTracker =
-            typeof targetPath === "string" &&
-            ODD_ROUTE_STAGES.some((stage) => stage.artifactPattern.test(targetPath))
-          if (!trackerObserved && !targetsTracker) {
-            const failure = `odd bootstrap: write${targetPath ? ` to ${targetPath}` : ""} before odd/tasks/<feature>.md exists`
+            (typeof targetPath === "string" &&
+              ODD_ROUTE_STAGES.some((stage) => stage.artifactPattern.test(targetPath))) ||
+            (typeof patchTrackerPath === "string" &&
+              ODD_ROUTE_STAGES.some((stage) => stage.artifactPattern.test(patchTrackerPath)))
+          const pathKnown =
+            input.tool === "sandbox_write" ||
+            input.tool === "sandbox_edit" ||
+            input.tool === "sandbox_copy_in" ||
+            input.tool === "sandbox_copy_out"
+          if (!trackerObserved && pathKnown && typeof targetPath === "string" && !targetsTracker) {
+            const failure = `odd bootstrap: write to ${targetPath} before odd/tasks/<feature>.md exists`
             const warnConsole = !warnedInactiveWorkflow.has(warningKey)
             if (warnConsole) warnedInactiveWorkflow.add(warningKey)
             await logInactiveWorkflowWarning(input.tool, input.sessionID, failure, warnConsole)
@@ -711,9 +720,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
         }
       }
 
-      if (input.tool !== "task") return
-      const args = output.args as Record<string, unknown> | undefined
-      if (!args) return
+      if (input.tool !== "task" || !args) return
 
       // OpenCode's current task schema has no `model` argument. Preserve the
       // historical defensive normalization so a stale Systematic/Gentle prompt
@@ -774,8 +781,8 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       if (input.tool === "task") {
         try {
           const result = typeof output.output === "string" ? output.output : JSON.stringify(output.output ?? "")
-          const childSessionID = result.match(/ses_[A-Za-z0-9]+/)?.[0]
-          if (!childSessionID) return
+          const childSessionID = result.match(/id="(ses_[A-Za-z0-9]+)"/)?.[1]
+          if (!childSessionID || childSessionID === input.sessionID) return
           const directory = routingKeySessionDirectory(childSessionID)
           if (!directory) return
           void mkdir(directory, { recursive: true })

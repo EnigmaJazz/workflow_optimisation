@@ -27,6 +27,7 @@ The route gate could be satisfied by any skill load, including a hollow one. A f
 - **T6 — Require an adapter key; bare router key is insufficient** — **done**. Commit `d27d2d1`.
 - **T6a — Refresh the parent key from child activity (native review finding R3-inherited-expiry, CRITICAL)** — **done**.
 - **T7 — Per-route stage table and worker mutation gating on required artifacts** — **in progress**. T7a (the ODD bootstrap write gate) is implemented in this change.
+- **T7a-fix — Correct the review's three T7a advisory findings (R3-sandbox-catchall, R3-odd-marker-gap, R3-child-session-regex)** — **done**.
 - **T8 — Bug-fix route with its own stages and no ODD tracker** — **planned**.
 - **T9 — Native review outcome recorded (lineage review-16c862492747259a)** — **done**.
 
@@ -48,15 +49,15 @@ The authorized implementation scope is the routing-guard plugin change and this 
 - Review live warning evidence in `~/.local/share/opencode/logs/routing-guard.log`; ROUTER-LOG.md records live log evidence for the initial key-backed gate at row 98.
 
 ## Progress
-The assessed slice accumulates from boundary `65b1f35`. Completed commit sequence recorded for this task: `2c0134f`, `3ae9c94`, `f652ddb`, `1993a8e`, `83311d0`, `21e59c0`, and `d27d2d1`; T6 is done, T6a corrects native review finding `R3-inherited-expiry` (T7 is in progress, T7a implemented in the accumulated slice), and T8 is planned. This change implements the ODD bootstrap write warning: before the session's `odd/tasks/<feature>.md` tracker is observed, valid ODD-key sessions warn on path-known non-tracker file mutations and path-unknown file mutations. Native review `review-17a7dab1e332596a` ran on the accumulated slice (401 lines, 5 paths, medium tier), selected the reliability lens, admitted a refuter, and returned one CRITICAL candidate-caused finding, `R3-inherited-expiry`, which this change corrects. No commit has been created. The slice continues to accumulate from `65b1f35`; take native review when assessment returns `review_due` (`slice_budget_reached`), then advance the boundary.
+The assessed slice accumulates from boundary `65b1f35`. Completed commit sequence recorded for this task: `2c0134f`, `3ae9c94`, `f652ddb`, `1993a8e`, `83311d0`, `21e59c0`, and `d27d2d1`; T6 is done, T6a corrects native review finding `R3-inherited-expiry` (T7 is in progress, T7a implemented in the accumulated slice), and T8 is planned. This change implements the ODD bootstrap write warning: before the session's `odd/tasks/<feature>.md` tracker is observed, valid ODD-key sessions warn only on mutations with a known non-tracker target path. Native review `review-17a7dab1e332596a` ran on the accumulated slice (401 lines, 5 paths, medium tier), selected the reliability lens, admitted a refuter, and returned one CRITICAL candidate-caused finding, `R3-inherited-expiry`, which this change corrects. No commit has been created. The slice continues to accumulate from `65b1f35`; take native review when assessment returns `review_due` (`slice_budget_reached`), then advance the boundary. T7a-fix corrected `R3-odd-marker-gap` and `R3-child-session-regex`. `R3-sandbox-catchall` was not reproducible in the candidate — the gate already matched only the explicit tool set and the host prefixes, with no blanket `sandbox_` rule — so no code change was made for it; the advisory finding was a false positive.
 
 The high-risk candidate (12 paths, 489 lines) was reviewed end to end under lineage `review-16c862492747259a`: all four lenses (risk, resilience, readability, reliability) were admitted; risk and readability were clean; and the review was APPROVED and then acknowledged (`authority: burned`). The earlier CRITICAL finding `R3-inherited-expiry` was corrected and is contained in this approved candidate.
 
 ## Advisory follow-ups (non-blocking, from review-16c862492747259a)
 The provider recorded these as non-blocking and never as a reason to re-run review on this candidate.
-- `R3-sandbox-catchall` — WARNING — `global-config/plugins/systematic-routing-guard.ts:447` — `isRoutingGateTool` matches every `sandbox_` tool, gating read-only worker tools the documented scope excludes.
-- `R3-odd-marker-gap` — WARNING — `system-routing-guard.ts:656-672` — The tracker marker is set only for `sandbox_write`/`sandbox_edit`, so satisfying the bootstrap via apply/copy leaves persistent false warnings.
-- `R3-child-session-regex` — WARNING — `system-routing-guard.ts:775` — Parentage uses an unanchored `/ses_[A-Za-z0-9]+/` and can corrupt the wrong session's key directory.
+- `R3-sandbox-catchall` — WARNING — `global-config/plugins/systematic-routing-guard.ts:447` — `isRoutingGateTool` matches every `sandbox_` tool, gating read-only worker tools the documented scope excludes. **Not reproducible in the candidate: `isRoutingGateTool` matched only the explicit tool set, with no `sandbox_` prefix rule. No code change required.**
+- `R3-odd-marker-gap` — WARNING — `system-routing-guard.ts:656-672` — The tracker marker is set only for `sandbox_write`/`sandbox_edit`, so satisfying the bootstrap via apply/copy leaves persistent false warnings. **Addressed by T7a-fix.**
+- `R3-child-session-regex` — WARNING — `system-routing-guard.ts:775` — Parentage uses an unanchored `/ses_[A-Za-z0-9]+/` and can corrupt the wrong session's key directory. **Addressed by T7a-fix.**
 - `R3-missing-key-tests` — WARNING — `system-routing-guard.ts:238-431` — No automated assertions cover key expiry, inheritance, parent refresh or bootstrap ordering.
 - `R3-unawaited-key-io` — SUGGESTION — `system-routing-guard.ts:655` — Void-launched refreshes can race status reads and cause transient warnings.
 - `R4-001` — WARNING — `system-routing-guard.ts:410` — Nested sessions do not inherit through an already-inherited parent, so their gated calls log as unauthorized.
@@ -68,7 +69,7 @@ Route: delegated. Specialist: `general` sandbox writer. Triggers fired: mapping 
 `accumulate`, per the owner's decision. This candidate was reviewed and its boundary advanced on acknowledgement, so the accumulated slice restarts from the approved candidate. Keep the per-commit reviewability caps and checks.
 
 ## Next step
-Continue T7 with the remaining route-stage coverage; T7a is implemented but not yet reviewed or committed.
+Continue T7 with the remaining route-stage coverage; T7a was committed as `af1a841` and reviewed inside lineage `review-16c862492747259a`. T7a-fix's three advisory corrections are recorded under the T7 work unit.
 
 ## Debt
 - This tracker was created after the first implementation source edit, contrary to protocol.
