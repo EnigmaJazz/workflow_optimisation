@@ -43,6 +43,7 @@ The authorized implementation scope is the routing-guard plugin change and this 
 
 ## Checks
 - Run `bun build global-config/plugins/systematic-routing-guard.ts --target=bun --external @opencode-ai/plugin --outdir /tmp/guard-odd-stage-check` for T7a.
+- The verifier load-checks every deployed plugin by executing it with Bun from a scratch cwd and timeout; syntax/parse and unresolved named-export errors fail, while other import-time errors are informational.
 - `bun build` does not resolve named exports, so every plugin change must also be validated by EXECUTING the module (`bun global-config/plugins/systematic-routing-guard.ts` must exit without a SyntaxError).
 - Confirm `context.directory` is absent from the plugin; verify `ODD_TRACKER_PATTERN` references and warning behavior remain warn-only.
 - The module-execution verification rule is stated in `WORKFLOW.md` and in the recovered `global-config/AGENTS.md` block.

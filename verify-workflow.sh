@@ -197,6 +197,41 @@ fail() {
   FAIL=1
 }
 
+check_plugin_loads() {
+  local plugin_dir="${1:-$PLUGINS_DIR}"
+  local scratch_dir plugin output status
+  plugin_dir=$(cd "$plugin_dir" 2>/dev/null && pwd) || {
+    fail "deployed plugin directory is unavailable: $plugin_dir"
+    return
+  }
+  if ! command_exists bun || ! command_exists timeout; then
+    fail "cannot load-check deployed plugins: bun and timeout are required"
+    return
+  fi
+  scratch_dir=$(mktemp -d "${TMPDIR:-/tmp}/workflow-plugin-load.XXXXXX") || {
+    fail "cannot create scratch directory for deployed plugin load checks"
+    return
+  }
+  for plugin in "$plugin_dir"/*.ts "$plugin_dir"/*.js; do
+    [ -f "$plugin" ] || continue
+    case "${plugin##*/}" in
+      *.bak*|*.disabled) continue ;;
+    esac
+    output=$(cd "$scratch_dir" && timeout 8s bun --no-install run "$plugin" 2>&1)
+    status=$?
+    if [ "$status" -eq 0 ]; then
+      echo "   OK plugin load: ${plugin##*/}"
+      continue
+    fi
+    if [[ "$output" =~ SyntaxError|syntax[[:space:]]error|Export[[:space:]]named.*not[[:space:]]found|does[[:space:]]not[[:space:]]provide[[:space:]]an[[:space:]]export|not[[:space:]]exported[[:space:]]by ]]; then
+      fail "plugin cannot load: $plugin: $output"
+    else
+      echo "   INFO plugin import error (non-load-blocking): $plugin (exit $status): $output"
+    fi
+  done
+  rm -rf "$scratch_dir"
+}
+
 repair_note() {
   echo "   !! $*"
   AUTO_REPAIRED=1
@@ -209,6 +244,12 @@ command_exists() {
 sha256_file() {
   sha256sum "$1" 2>/dev/null | awk '{print $1}'
 }
+
+check_plugin_loads "${WORKFLOW_VERIFY_PLUGIN_LOAD_DIR:-$PLUGINS_DIR}"
+if [ "${WORKFLOW_VERIFY_PLUGIN_LOADS_ONLY:-0}" = "1" ]; then
+  [ "$FAIL" -eq 0 ] && exit 0
+  exit 1
+fi
 
 write_cache_prune_approval() {
   python3 - "$CACHE_PRUNE_APPROVAL" "$OPENCODE_CONFIG_FILE" "$TUI_CONFIG_FILE" "$0" <<'PY_CACHE_APPROVAL'

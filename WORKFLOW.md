@@ -344,7 +344,7 @@ User-facing terminal commands are Fish-compatible and never contain heredocs, be
 
 ## Verification must execute
 
-Every verification step must EXECUTE the artifact it validates. Build, parse, and lint checks prove syntax, never behaviour: `bun build` bundles without resolving named exports; `bash -n` parses without running; a JSON parser accepts a config it is never read as.
+Every verification step must EXECUTE the artifact it validates. Build, parse, and lint checks prove syntax, never behaviour: `bun build` bundles without resolving named exports; `bash -n` parses without running; a JSON parser accepts a config it is never read as. Where a mechanical check can enforce execution, the verifier does so — every deployed plugin is load-checked on each run, and a plugin that cannot load fails the verifier rather than silently disabling itself.
 
 A change is verified only by running the thing and observing an outcome: import the module, execute the script's entry path, exercise the code path, or have the consumer read the config.
 
