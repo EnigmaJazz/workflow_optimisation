@@ -219,10 +219,9 @@ const ADAPTER_WORKFLOW_SKILLS = new Set([
   "workflow-sdd-secure",
   "workflow-systematic",
 ])
-const ODD_TRACKER_PATTERN = /^odd\/tasks\/[^/]+\.md$/
-const ODD_ROUTE_STAGES = [
-  { name: "tracker", artifactPattern: ODD_TRACKER_PATTERN },
-] as const
+const ROUTE_STAGES: Record<string, ReadonlyArray<{ id: string; artifactPattern: RegExp }>> = {
+  "workflow-odd-secure": [{ id: "tracker", artifactPattern: /^odd\/tasks\/[^/]+\.md$/ }],
+}
 // sandbox_bash remains unable to be path-gated because its argv can execute arbitrary commands.
 const FILE_MUTATING_TOOLS = new Set([
   "sandbox_write",
@@ -244,6 +243,40 @@ function routingKeyFile(sessionID: string, skillName: string): string | null {
   const directory = routingKeySessionDirectory(sessionID)
   if (!directory || !/^workflow-[a-zA-Z0-9_-]+$/.test(skillName)) return null
   return join(directory, `${skillName}.key`)
+}
+
+async function hasRouteStageArtifactInAncestorChain(
+  sessionID: string,
+  stageID: string,
+): Promise<boolean> {
+  const visited = new Set<string>()
+  let currentSessionID: string | null = sessionID
+
+  for (let depth = 0; currentSessionID && depth <= 3; depth++) {
+    if (visited.has(currentSessionID)) return false
+    visited.add(currentSessionID)
+
+    const directory = routingKeySessionDirectory(currentSessionID)
+    if (!directory) return false
+    try {
+      const markerNames = [`artifact-${stageID}`, `artifact-odd-${stageID}`]
+      if (markerNames.some((markerName) => existsSync(join(directory, markerName)))) return true
+    } catch {
+      // Marker inspection must never block or fail a tool call.
+    }
+
+    if (depth === 3) return false
+    try {
+      const parentSessionID = (await readFile(join(directory, ".parent"), "utf8")).trim()
+      if (!parentSessionID) return false
+      currentSessionID = parentSessionID
+    } catch {
+      // A missing or unreadable parent marker ends the bounded ancestor walk.
+      return false
+    }
+  }
+
+  return false
 }
 
 async function deleteWorkflowKeyDirectory(sessionID: string): Promise<void> {
@@ -658,16 +691,18 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
         ? args.patch
         : null
       const patchTrackerPath = patchText?.match(/odd\/tasks\/[^/\s"'`]+\.md/)?.[0]
-      const writesTracker =
-        (typeof targetPath === "string" &&
-          ODD_ROUTE_STAGES.some((stage) => stage.artifactPattern.test(targetPath))) ||
-        (typeof patchTrackerPath === "string" &&
-          ODD_ROUTE_STAGES.some((stage) => stage.artifactPattern.test(patchTrackerPath)))
-      if (writesTracker) {
+      const routeStages = Object.values(ROUTE_STAGES).flat()
+      const writtenStages = routeStages.filter((stage) =>
+        (typeof targetPath === "string" && stage.artifactPattern.test(targetPath)) ||
+        (typeof patchTrackerPath === "string" && stage.artifactPattern.test(patchTrackerPath)),
+      )
+      if (writtenStages.length > 0) {
         const directory = routingKeySessionDirectory(input.sessionID)
         if (directory) {
           void mkdir(directory, { recursive: true })
-            .then(() => writeFile(join(directory, "artifact-odd-tracker"), new Date().toISOString(), "utf8"))
+            .then(() => Promise.all(writtenStages.map((stage) =>
+              writeFile(join(directory, `artifact-${stage.id}`), new Date().toISOString(), "utf8"),
+            )))
             .catch(() => {
               // Artifact observation must never block or fail a tool call.
             })
@@ -690,32 +725,28 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
           // Future block behavior could throw here; this rollout is warning-only.
         }
 
-        if (
-          FILE_MUTATING_TOOLS.has(input.tool) &&
-          (await getWorkflowKeyStatus(input.sessionID, "workflow-odd-secure")) === "valid"
-        ) {
-          const directory = routingKeySessionDirectory(input.sessionID)
-          let trackerObserved = false
-          try {
-            trackerObserved = Boolean(directory && existsSync(join(directory, "artifact-odd-tracker")))
-          } catch {
-            // Marker inspection must never block or fail a tool call.
-          }
-          const targetsTracker =
-            (typeof targetPath === "string" &&
-              ODD_ROUTE_STAGES.some((stage) => stage.artifactPattern.test(targetPath))) ||
-            (typeof patchTrackerPath === "string" &&
-              ODD_ROUTE_STAGES.some((stage) => stage.artifactPattern.test(patchTrackerPath)))
+        // The guard is project-blind: in a multi-project session, a marker cannot satisfy a stage for the other project. A true fix needs a verified session-project source.
+        if (FILE_MUTATING_TOOLS.has(input.tool)) {
           const pathKnown =
             input.tool === "sandbox_write" ||
             input.tool === "sandbox_edit" ||
             input.tool === "sandbox_copy_in" ||
             input.tool === "sandbox_copy_out"
-          if (!trackerObserved && pathKnown && typeof targetPath === "string" && !targetsTracker) {
-            const failure = `odd bootstrap: write to ${targetPath} before odd/tasks/<feature>.md exists`
-            const warnConsole = !warnedInactiveWorkflow.has(warningKey)
-            if (warnConsole) warnedInactiveWorkflow.add(warningKey)
-            await logInactiveWorkflowWarning(input.tool, input.sessionID, failure, warnConsole)
+          if (pathKnown && typeof targetPath === "string") {
+            for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
+              if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
+              for (const stage of stages) {
+                const targetsStage =
+                  stage.artifactPattern.test(targetPath) ||
+                  (typeof patchTrackerPath === "string" && stage.artifactPattern.test(patchTrackerPath))
+                if (targetsStage || await hasRouteStageArtifactInAncestorChain(input.sessionID, stage.id)) continue
+
+                const failure = `${routeSkill} bootstrap: write to ${targetPath} before ${stage.id} stage artifact exists`
+                const warnConsole = !warnedInactiveWorkflow.has(warningKey)
+                if (warnConsole) warnedInactiveWorkflow.add(warningKey)
+                await logInactiveWorkflowWarning(input.tool, input.sessionID, failure, warnConsole)
+              }
+            }
           }
         }
       }
