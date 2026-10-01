@@ -54,6 +54,19 @@ rotation.
   (interface contract §2–§4). Plan A may defer or drop them. Changing the contract needs both
   sides' agreement.
 
+**Amendment (owner, 2026-10-01): external post-code advisory review.**
+- After a non-trivial unit's work-unit commit, both hosts review the committed snapshot (rule
+  `post-code-pair`). This runs BEFORE the mandatory `ce:review` (where owed) and the native
+  gentle-ai review.
+- It is advisory evidence only: no lens result, no approval.
+- **Contract request to the sandbox side:** add an advisory request kind for this, proposed
+  `advisory-review`. Its mechanics match `pre-code-advice` (immutable bound response, `group`
+  independence, evidence manifest), with a commit or `resultRef` snapshot and the review
+  question. Until it is agreed, workflow_optimisation uses `pre-code-advice` with
+  `binding.step: "post-code"`.
+- Acceptance 2 adds: every non-trivial unit has a `post-code-pair` group with two independent
+  responses, recorded before its `ce:review` or native review starts.
+
 **Preserve the work under way:**
 - the five registered `advisor-*` subagents and their verifier fixes (TODO "Advisor
   registration — verifier findings");

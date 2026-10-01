@@ -430,21 +430,23 @@ Not in force until the external lane is installed and its permissions are grante
 | Rule id | When | Host |
 |---|---|---|
 | `pair-default` | every non-trivial pre-code advice request (initial state) | a group of both hosts, independent first pass |
+| `post-code-pair` | every non-trivial unit's post-code advisory review, after its work-unit commit and before `ce:review` (where owed) and the native review | a group of both hosts, independent first pass |
 | `user-override` | the user overrides when opening the session, with a reason | recorded by the broker, never chosen by the orchestrator |
 | `default-rotate` | RESERVED, not in force: the first tightening step if usage outgrows the allowances | `rotate` (alternates hosts per project) |
 
-The former `consequential-pair` rule is subsumed by `pair-default`. The external lane covers pre-code advice only.
+The former `consequential-pair` rule is subsumed by `pair-default`. The external lane covers pre-code advice and the post-code advisory review; it never supplies native review lenses.
 
 - **No external review lenses.** Native gentle-ai review always uses the in-OpenCode `asi-review-*` relay lanes (`### 4R review lane routing (mandatory)`). Do not start a review with `externalLenses: true`.
+- **Post-code advisory review (owner, 2026-10-01).** After a non-trivial unit's work-unit commit, both hosts review the committed snapshot against the agreed approach (rule `post-code-pair`). This happens BEFORE the mandatory reviews: `ce:review` where the route owes it, then the native gentle-ai review. Resolve or record consequential findings before those start. The external review is advisory evidence only: it never approves, never stands in for `ce:review` or the native review, and never feeds gentle-ai as a lens result.
 - **Subscription rule.** External sessions are opened and prompted only by the user. No queue watcher, script or OpenCode agent launches or prompts them.
-- **Throughput.** Every non-trivial unit then waits for the user to open two sessions, one per host. That is intentional while testing. The first tightening step, if usage approaches the allowances, is `default-rotate`.
+- **Throughput.** Every non-trivial unit then waits for the user to open sessions twice per host: pre-code advice and post-code advisory review, four in all. That is intentional while testing. The first tightening step, if usage approaches the allowances, is `default-rotate`.
 
 ### Advisory evidence in the ODD tracker
 
 A non-trivial unit records its advice under its task ID in `odd/tasks/<feature>.md`. A unit lacking an advice record is reported as a blocked gate, never silently skipped.
 
 - **Interim lane:** record each advisor dispatch, its model and a summary of its answer.
-- **External lane (PLANNED):** on asking, record `advice pending: <id>` with `selection.rule`, where `binding.task` is `odd/tasks/<feature>.md#T<n>`, and mirror it. On resume, call `host_advisor_get` and record the status, `resolvedHost`, any override, the snapshot commit, the evidence manifest hash and how each finding was resolved.
+- **External lane (PLANNED):** on asking, record `advice pending: <id>` with `selection.rule`, where `binding.task` is `odd/tasks/<feature>.md#T<n>`, and mirror it. On resume, call `host_advisor_get` and record the status, `resolvedHost`, any override, the snapshot commit, the evidence manifest hash and how each finding was resolved. The post-code advisory review is recorded the same way with step `post-code`, before the `ce:review` and native review entries.
 - **Follow-ups** are new requests carrying `parentId`. Recorded responses are never edited.
 - An advisory response is evidence, never approval.
 

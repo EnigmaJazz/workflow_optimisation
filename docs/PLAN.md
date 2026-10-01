@@ -36,7 +36,9 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
   Interim lane: the smallest sufficient set of registered advisors, one by default. External
   lane (after plan A is installed): both external advisors (Claude Code and Antigravity) as an
   independent group for every non-trivial change, per the policy table in `WORKFLOW.md`.
-- **Post-code review** — focused review of the agreed approach, then the native RDD review.
+- **Post-code review** — an external advisory review of the committed unit against the agreed
+  approach (both hosts, once the external lane is active), then `ce:review` where the route owes
+  it, then the native RDD review. The external review is evidence, never approval.
 - **Impact axis** — decides HOW MUCH advice (the number of advisors, whether a cross-family group
   is needed, whether both external hosts are consulted once the lane is active); still raises scrutiny and never lowers
   it. A heavier route always governs when the
@@ -70,6 +72,9 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
   Rotation (`default-rotate`) is reserved as the first tightening step.
 - 2026-10-01: native gentle-ai review always uses the in-OpenCode `asi-review-*` agents. External
   hosts give pre-code advice only, so external-lens review lineages are dropped from the plan.
+- 2026-10-01 (amends the line above): external hosts ALSO give a post-code advisory review, after
+  the work-unit commit and before the mandatory `ce:review` and native review. It is advisory
+  evidence only and never a gentle-ai lens.
 
 ## Memory and inter-agent communication (direction, 2026-10-01)
 - **Magic Context is the main memory:** durable project memory and the ODD tracker mirror.

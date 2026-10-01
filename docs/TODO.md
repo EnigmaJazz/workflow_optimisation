@@ -113,7 +113,10 @@ change then needs the deploy step: verifier mirror, then restart. Q27 waits on a
   relay lanes; add verifier checks (grants, no non-user launcher references `advisor-open`, and no
   agent or skill starts a review with `externalLenses: true`); flip the external lane from PLANNED to mandatory.
   Initial state on activation is `pair-default`: both hosts per non-trivial unit (owner,
-  2026-10-01). Verify that the broker's `group` gives first-pass independence for the pair. Pass condition:
+  2026-10-01). Also activate `post-code-pair`: both hosts review the committed unit before
+  `ce:review` and the native review. Prerequisite with the sandbox side: an advisory request
+  kind for post-code review (proposed `advisory-review`; interim fallback `pre-code-advice` with
+  `binding.step: "post-code"` and a commit snapshot). Verify that the broker's `group` gives first-pass independence for the pair. Pass condition:
   after host A submits, `host_advisor_get` on B's request (and B's advisor view) shows no
   `response` from A until B has submitted. Then both responses are visible, and each carries the
   same `group` and its own `resolvedHost`.
