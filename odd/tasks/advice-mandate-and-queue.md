@@ -89,7 +89,7 @@ requirement that all planned work is in the TODO list with any prerequisite spec
 - 2026-10-01: T1 done. `docs/TODO.md` rebuilt as ordered queue Q01-Q23 with status, prerequisites and source; old item bodies and dated entries moved verbatim to `docs/TODO-HISTORY.md` (all 18 removed `## ` headings from main confirmed present). Commit `21c1aa2`.
 - 2026-10-01: T2 done. `WORKFLOW.md`: two advice sections merged into one (`rg -c '^## Pre-code advice'` = 1); mandate, interim lane, PLANNED external lane with selection table, external-lens definition and relay-rule cross-reference, `### Advisory evidence in the ODD tracker`; all 11 verifier keywords present. Commit `1bdbd70`.
 - 2026-10-01: T3 done. `docs/PLAN.md` sequence matches the TODO queue; layers and impact axis updated; dated 2026-10-01 superseding decision appended (original line kept). Commit `1f748ee`.
-- 2026-10-01: T4 done. `ROUTER-LOG.md`: rewritten tesla #26 row restored to its HEAD text; both appended tesla #26 rows kept; three plain-text rows converted to table columns; this unit's row appended; `git diff main` shows additions only for `ROUTER-LOG.md` and `CLAIM-RETRACTIONS.md`. RDD assessment pending (orchestrator). T4 commit recorded in the closing commit.
+- 2026-10-01: T4 done. `ROUTER-LOG.md`: rewritten tesla #26 row restored to its HEAD text; both appended tesla #26 rows kept; three plain-text rows converted to table columns; this unit's row appended; `git diff main` shows additions only for `ROUTER-LOG.md` and `CLAIM-RETRACTIONS.md`. RDD assessment pending (orchestrator). T4 commit `42461dc`.
 
 ## Next step
 Orchestrator: run the RDD assessment on the work-unit commits and fill the ROUTER-LOG row's gate outcome; push and PR are the user's decision.
