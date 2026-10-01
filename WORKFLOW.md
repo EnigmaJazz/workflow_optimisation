@@ -421,6 +421,8 @@ Advice is **mandatory for every non-trivial change**. "Trivial" keeps its meanin
 
 Use the smallest sufficient set of registered `advisor-*` subagents: one by default. Impact decides when to add a second model family (the Go advisors span DeepSeek, Kimi and MiMo). Add testing or security only for a distinct necessary question; a single integration advisor may cover cross-component behaviour and deployment. These advisors are automated and raise no subscription issue.
 
+**Interim post-code advisory review (owner, 2026-10-01).** The registered `advisor-*` subagents also review a non-trivial unit after its work-unit commit and before the native review, but only when the route does not run `ce:review` for that unit, because `ce:review` already provides the advisory multi-persona review. When `ce:review` runs, make no interim post-code advisor call. The same rules apply as for pre-code advice: the smallest sufficient set, evidence only, never approval. Record it under the task ID with step `post-code`. Once the external lane is active, `post-code-pair` applies as written below.
+
 Registered advisors and their models: `advisor-design`, `advisor-integration`, and `advisor-security` on `opencode-go/deepseek-v4.1-flash`; `advisor-testing` on `opencode-go/kimi-k2.7-code`; `advisor-maintainability` on `opencode-go/mimo-v2.6-flash`.
 
 ### External lane (PLANNED — activated by B3)
@@ -445,7 +447,7 @@ The former `consequential-pair` rule is subsumed by `pair-default`. The external
 
 A non-trivial unit records its advice under its task ID in `odd/tasks/<feature>.md`. A unit lacking an advice record is reported as a blocked gate, never silently skipped.
 
-- **Interim lane:** record each advisor dispatch, its model and a summary of its answer.
+- **Interim lane:** record each advisor dispatch, its model and a summary of its answer. Record the interim post-code advisory review the same way with step `post-code` (only where `ce:review` is not run), before the native review entry.
 - **External lane (PLANNED):** on asking, record `advice pending: <id>` with `selection.rule`, where `binding.task` is `odd/tasks/<feature>.md#T<n>`, and mirror it. On resume, call `host_advisor_get` and record the status, `resolvedHost`, any override, the snapshot commit, the evidence manifest hash and how each finding was resolved. The post-code advisory review is recorded the same way with step `post-code`, before the `ce:review` and native review entries.
 - **Follow-ups** are new requests carrying `parentId`. Recorded responses are never edited.
 - An advisory response is evidence, never approval.
