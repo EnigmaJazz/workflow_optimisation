@@ -112,6 +112,8 @@ change then needs the deploy step: verifier mirror, then restart. Q27 waits on a
   `host_advisor_list` in `global-config/opencode.json`, deny them to workers, `advisor-*` and
   relay lanes; add verifier checks (grants, sole holder of `host_review_capture_result`, no
   non-user launcher references `advisor-open`); flip the external lane from PLANNED to mandatory.
+  Initial state on activation is `pair-default`: both hosts per non-trivial unit (owner,
+  2026-10-01). Verify that the broker's `group` gives first-pass independence for the pair.
 
 ### Q07. B4 — routing guard integration (warn-only)
 - **Status:** BLOCKED.

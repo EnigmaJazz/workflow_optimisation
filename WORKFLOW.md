@@ -425,18 +425,20 @@ Registered advisors and their models: `advisor-design`, `advisor-integration`, a
 
 ### External lane (PLANNED — activated by B3)
 
-Not in force until the external lane is installed and its permissions are granted (`docs/TODO.md` Q06). Once active, every non-trivial change also gets an external advisor (Claude Code or Antigravity), chosen by this table; the orchestrator records the rule that applied as `selection.rule`.
+Not in force until the external lane is installed and its permissions are granted (`docs/TODO.md` Q06). Once active, every non-trivial change also gets **both** external advisors (Claude Code and Antigravity) as one independent group. This is the initial state (owner decision, 2026-10-01: current usage fits the subscription allowances). The orchestrator records the rule that applied as `selection.rule`.
 
 | Rule id | When | Host |
 |---|---|---|
-| `default-rotate` | every non-trivial change not matched below | `rotate` (alternates Claude and Antigravity per project) |
-| `consequential-pair` | security, permissions, credentials, enforcement paths, or a consequential architecture decision | a group of both hosts, independent first pass |
-| `review-lens-external` | a review routed to an external-lens lineage (below) | `rotate` per lens; `consequential-pair` lenses get both |
+| `pair-default` | every non-trivial pre-code advice request (initial state) | a group of both hosts, independent first pass |
+| `review-lens-external` | a review routed to an external-lens lineage (below) | `rotate` per lens; a lens takes exactly one host, because gentle-ai accepts one result per lens per lineage |
 | `user-override` | the user overrides when opening the session, with a reason | recorded by the broker, never chosen by the orchestrator |
+| `default-rotate` | RESERVED, not in force: the first tightening step if usage outgrows the allowances | `rotate` (alternates hosts per project) |
+
+The former `consequential-pair` rule is subsumed by `pair-default`. Pairing does not apply to review lenses: the broker refuses a second relay of a lens in one lineage (`docs/advisor/interface-contract.md` §7).
 
 - **External-lens review (proposed definition).** A review is started with `externalLenses: true` instead of the `asi-review-*` relay for `high_risk` assessments and hot paths. Relayed and external lenses never mix in one lineage. This is the one named exception to the mandatory relay lane rule in `### 4R review lane routing (mandatory)`.
 - **Subscription rule.** External sessions are opened and prompted only by the user. No queue watcher, script or OpenCode agent launches or prompts them.
-- **Throughput.** Every non-trivial unit then waits for the user to open at least one session. That is intentional while testing and is the first thing to tighten.
+- **Throughput.** Every non-trivial unit then waits for the user to open two sessions, one per host. That is intentional while testing. The first tightening step, if usage approaches the allowances, is `default-rotate`.
 
 ### Advisory evidence in the ODD tracker
 

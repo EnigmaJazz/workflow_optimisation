@@ -25,6 +25,21 @@ WORKFLOW.md policy, the verifier and gentle-ai's review authority.
    Consequential questions go to both hosts as an independent group. The orchestrator records
    the rule; the user may override when opening the session, and the override is recorded.
 
+**Amendment (owner, 2026-10-01): pair by default.** This supersedes decision 4's default
+rotation.
+- Every non-trivial pre-code advice request goes to both hosts as one independent group:
+  rule `pair-default`, replacing `default-rotate` and subsuming `consequential-pair`. This is the
+  initial state because current usage fits the subscription allowances. `default-rotate` is
+  reserved as the first tightening step.
+- Review lenses are unchanged: `rotate` per lens, exactly one host per lens, because the broker
+  refuses a second relay of a lens per lineage (`interface-contract.md` §7).
+- That also retires the old "`consequential-pair` lenses get both" clause, which the contract
+  could not satisfy.
+- Acceptance 2 becomes: every non-trivial unit has a `pair-default` group with two independent
+  responses.
+- Mechanism impact on plan A: none. `group` and per-host requests already exist; the broker
+  simply sees two requests per unit.
+
 **Preserve the work under way:**
 - the five registered `advisor-*` subagents and their verifier fixes (TODO "Advisor
   registration — verifier findings");
