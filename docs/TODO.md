@@ -110,8 +110,8 @@ change then needs the deploy step: verifier mirror, then restart. Q27 waits on a
 - **Source:** `docs/advisor/handoff-workflow-optimisation.md` B3; `docs/advisor/interface-contract.md`.
 - **Description:** grant the orchestrator `host_advisor_ask`, `host_advisor_get`,
   `host_advisor_list` in `global-config/opencode.json`, deny them to workers, `advisor-*` and
-  relay lanes; add verifier checks (grants, sole holder of `host_review_capture_result`, no
-  non-user launcher references `advisor-open`); flip the external lane from PLANNED to mandatory.
+  relay lanes; add verifier checks (grants, no non-user launcher references `advisor-open`, and no
+  agent or skill starts a review with `externalLenses: true`); flip the external lane from PLANNED to mandatory.
   Initial state on activation is `pair-default`: both hosts per non-trivial unit (owner,
   2026-10-01). Verify that the broker's `group` gives first-pass independence for the pair.
 
@@ -121,8 +121,8 @@ change then needs the deploy step: verifier mirror, then restart. Q27 waits on a
 - **Source:** `docs/advisor/handoff-workflow-optimisation.md` B4.
 - **Description:** optional `advice` stage satisfied only by an observed `host_advisor_get`
   result (`status: submitted`, matching `binding.task`) and, in the interim, an observed
-  `advisor-*` dispatch result; warn on free-form `input` to `host_review_capture_result` for
-  external-lens reviews. Owner decides whether the stage exists.
+  `advisor-*` dispatch result. Owner decides whether the stage exists. (The external-lens capture
+  warning was dropped: reviews stay on the in-OpenCode agents.)
 
 ### Q08. B5 — advisor handoff document
 - **Status:** BLOCKED.

@@ -40,6 +40,20 @@ rotation.
 - Mechanism impact on plan A: none. `group` and per-host requests already exist; the broker
   simply sees two requests per unit.
 
+**Amendment (owner, 2026-10-01): reviews stay in OpenCode.**
+- Native gentle-ai review always uses the in-OpenCode `asi-review-*` relay lanes. External
+  advisors give `pre-code-advice` only.
+- Withdrawn from this side's plan:
+  - the `review-lens-external` rule;
+  - the external-lens review definition and its relay-rule exception (B1);
+  - the review-lens bullet in B2;
+  - the `host_review_capture_result` verifier check (B3);
+  - the free-form-input warning (B4).
+- workflow_optimisation will not request the `review-lens` kind,
+  `host_review_start externalLenses`, or `host_review_capture_result inputFromAdvisorResponse`
+  (interface contract §2–§4). Plan A may defer or drop them. Changing the contract needs both
+  sides' agreement.
+
 **Preserve the work under way:**
 - the five registered `advisor-*` subagents and their verifier fixes (TODO "Advisor
   registration — verifier findings");

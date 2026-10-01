@@ -174,7 +174,7 @@ The provider's continuation names its agent with the plain installed names (`pro
 2. A reviewer reply stating the required `GENTLE_AI_REVIEW_CONTEXT` block was not supplied is a **TRANSPORT-LANE FAILURE**, not a review finding. Do not record it as an outcome, adjudicate it, or count it as a lens result; re-dispatch through the mapped `asi-review-*` lane.
 3. Never dispatch a review Task to the plain `review-*` names while the installed transport is loaded: two transports cannot own one Task.
 4. Never grant review lanes to implementation workers or isolated reviewers.
-5. One named exception, effective when B3 is active: an external-lens lineage started with `externalLenses: true` (see `## Pre-code advice (advisors)`, External lane) takes its lenses from stored external advisor responses and does not use this relay; the two never mix in one lineage.
+5. No exceptions for external advisors (owner, 2026-10-01): native gentle-ai review always uses the in-OpenCode `asi-review-*` relay lanes. External hosts give pre-code advice only and never supply review lenses.
 - Native authority owns frozen candidate/lenses, binding, capture admission, refutation, one bounded correction, validation, and closure.
 - **Grouped OpenCode 4R:** when STATUS returns independent canonical four-lens work, launch fresh isolated reviewer slots concurrently/grouped in **Risk, Resilience, Readability, Reliability** order. Grouping changes scheduling only.
 - The final admitted reviewer/refuter/targeted-validator capture closes causal review work. Approved authority produces an exact `review.acknowledge-approved` continuation.
@@ -430,13 +430,12 @@ Not in force until the external lane is installed and its permissions are grante
 | Rule id | When | Host |
 |---|---|---|
 | `pair-default` | every non-trivial pre-code advice request (initial state) | a group of both hosts, independent first pass |
-| `review-lens-external` | a review routed to an external-lens lineage (below) | `rotate` per lens; a lens takes exactly one host, because gentle-ai accepts one result per lens per lineage |
 | `user-override` | the user overrides when opening the session, with a reason | recorded by the broker, never chosen by the orchestrator |
 | `default-rotate` | RESERVED, not in force: the first tightening step if usage outgrows the allowances | `rotate` (alternates hosts per project) |
 
-The former `consequential-pair` rule is subsumed by `pair-default`. Pairing does not apply to review lenses: the broker refuses a second relay of a lens in one lineage (`docs/advisor/interface-contract.md` §7).
+The former `consequential-pair` rule is subsumed by `pair-default`. The external lane covers pre-code advice only.
 
-- **External-lens review (proposed definition).** A review is started with `externalLenses: true` instead of the `asi-review-*` relay for `high_risk` assessments and hot paths. Relayed and external lenses never mix in one lineage. This is the one named exception to the mandatory relay lane rule in `### 4R review lane routing (mandatory)`.
+- **No external review lenses.** Native gentle-ai review always uses the in-OpenCode `asi-review-*` relay lanes (`### 4R review lane routing (mandatory)`). Do not start a review with `externalLenses: true`.
 - **Subscription rule.** External sessions are opened and prompted only by the user. No queue watcher, script or OpenCode agent launches or prompts them.
 - **Throughput.** Every non-trivial unit then waits for the user to open two sessions, one per host. That is intentional while testing. The first tightening step, if usage approaches the allowances, is `default-rotate`.
 
@@ -446,7 +445,6 @@ A non-trivial unit records its advice under its task ID in `odd/tasks/<feature>.
 
 - **Interim lane:** record each advisor dispatch, its model and a summary of its answer.
 - **External lane (PLANNED):** on asking, record `advice pending: <id>` with `selection.rule`, where `binding.task` is `odd/tasks/<feature>.md#T<n>`, and mirror it. On resume, call `host_advisor_get` and record the status, `resolvedHost`, any override, the snapshot commit, the evidence manifest hash and how each finding was resolved.
-- **Review lenses** are relayed only through `host_review_capture_result` with `inputFromAdvisorResponse`. After that, follow the gentle-ai transitions verbatim and record the `assess` result (`already_reviewed`, `consumed`) as for native review.
 - **Follow-ups** are new requests carrying `parentId`. Recorded responses are never edited.
 - An advisory response is evidence, never approval.
 

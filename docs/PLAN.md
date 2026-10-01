@@ -38,7 +38,7 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
   independent group for every non-trivial change, per the policy table in `WORKFLOW.md`.
 - **Post-code review** — focused review of the agreed approach, then the native RDD review.
 - **Impact axis** — decides HOW MUCH advice (the number of advisors, whether a cross-family group
-  is needed, whether an external review lineage is used); still raises scrutiny and never lowers
+  is needed, whether both external hosts are consulted once the lane is active); still raises scrutiny and never lowers
   it. A heavier route always governs when the
   class and the impact disagree.
 
@@ -67,8 +67,9 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
   (B0 fix 4).
 - 2026-10-01: the external lane's initial state is BOTH hosts for every non-trivial pre-code
   advice request (`pair-default`), because current usage fits the subscription allowances.
-  Rotation (`default-rotate`) is reserved as the first tightening step. Review lenses stay one
-  host per lens: gentle-ai accepts one result per lens per lineage.
+  Rotation (`default-rotate`) is reserved as the first tightening step.
+- 2026-10-01: native gentle-ai review always uses the in-OpenCode `asi-review-*` agents. External
+  hosts give pre-code advice only, so external-lens review lineages are dropped from the plan.
 
 ## Memory and inter-agent communication (direction, 2026-10-01)
 - **Magic Context is the main memory:** durable project memory and the ODD tracker mirror.
