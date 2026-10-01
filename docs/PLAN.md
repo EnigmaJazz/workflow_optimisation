@@ -19,7 +19,10 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
    the routing-guard advice stage (B4) and the advisor handoff document (B5).
 6. Tracking contract in the recipe.
 7. Reconcile drift and close the gaps found by the options inventory; emergency fix route;
-   worker contract; Engram evaluation (report only); remaining routing-guard stage work.
+   worker contract; guard against gentle-ai sync overwriting the live config; remaining
+   routing-guard stage work.
+8. Engram as the inter-agent communication channel: evaluation first, then adoption as a
+   canonical MCP with a scoped `WORKFLOW.md` policy (Magic Context stays main memory).
 
 ## Layers
 - **Execution spine** — tiny fix: direct. Everything beyond trivial and not SDD: **ODD** (tracker
@@ -58,6 +61,19 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
   advisors, cross-family group, external review lineage) and still only raises scrutiny, never
   lowers it. Source: user decision recorded in `docs/advisor/handoff-workflow-optimisation.md`
   (B0 fix 4).
+
+## Memory and inter-agent communication (direction, 2026-10-01)
+- **Magic Context is the main memory:** durable project memory and the ODD tracker mirror.
+- **Engram is the candidate inter-agent communication channel:** handoffs, evidence references,
+  and requests and answers between agents. Adopt it only after the evaluation (queue Q14a) and
+  the owner's decision.
+- **On adoption:**
+  - Engram is added as a canonical MCP in `global-config/opencode.json` and known to the verifier.
+    Otherwise every gentle-ai sync adds it, and every verifier run strips it.
+  - Engram tools are granted per agent, with first-pass independence preserved.
+  - `WORKFLOW.md` states clearly what goes where, with no duplication between the two stores.
+  - An Engram message is evidence, never approval.
+- **Until then** the current rule stands: ODD work does not invoke `mem_*`.
 
 ## Tracking contract
 The orchestrator maintains `docs/TODO.md`, this plan, and an in-agent todo list, plus the

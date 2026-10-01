@@ -26,17 +26,19 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 ## Queue (in order)
 
 ### Q01. Advisor layer close-out
-- **Status:** READY. Registration fixes appear landed: `c01a73f` (MiMo fallback policy, advisors
-  classified as isolated-memory agents), `c5a326b` (search-contract block in advisor prompts),
-  `8570dc6` (workspace-local sandbox tools). `github_ro_*` is absent from the five advisor blocks
-  in `global-config/opencode.json`. Verifier pass on the final state is **status unverified**:
-  confirm by running `verify-workflow.sh` after the mirror.
-- **Prerequisites:** none. Host actions in order: verifier mirror, then service restart
-  (`SECURE_OPENCODE_RESTART_REQUIRED` is expected until then).
+- **Status:** IN PROGRESS. Registration fixes landed (`c01a73f`, `c5a326b`, `8570dc6`). Verifier
+  ran on 2026-10-01: exit 0, "All checks passed (self-repairs applied)". It recovered the gentle-ai
+  sync drift in the live `opencode.json` and `AGENTS.md` (Q24), with a backup in
+  `backups/workflow-recovery/20261001T211934Z.384302/`. The live config now matches
+  `global-config/`, and `gentle-orchestrator` again allows all five `advisor-*`.
+- **Prerequisites:** none. Next host action: restart OpenCode (user). Until then the running
+  servers (started 17:26 and 18:07) use the config they loaded at start.
 - **Source:** `docs/TODO-HISTORY.md` "Advisor registration — verifier findings" and "PRIORITY
   CHANGE"; `docs/advisor/handoff-workflow-optimisation.md` "Where this slots in" 1.
-- **Remaining:** dispatch each of the five `advisor-*` agents once on a bounded task and confirm
-  registration, successful reads, denied host mutations, and the assigned model observed.
+- **Remaining:** after the restart, run `verify-workflow.sh --behavioral` and a plain re-run (the
+  cache-prune check was skipped because config was repaired). Then dispatch each of the five
+  `advisor-*` agents once on a bounded task and confirm registration, successful reads, denied host
+  mutations, and the assigned model observed.
 
 ### Q02. B0 coherence fixes, B1 mandatory advice policy, B2 advisory-evidence protocol
 - **Status:** DONE (2026-10-01, review `review-bd57149caec073dc` approved). Tracker `odd/tasks/advice-mandate-and-queue.md` (T1 queue, T2
@@ -170,14 +172,34 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 - **Note:** the host commit tool also rejects multi-line messages (`routing-guard-keys.md` Debt);
   the `ROUTED:` trailer sits on the subject line until that is fixed in the host tooling.
 
-### Q14. B6 — Engram evaluation (report only)
-- **Status:** PLANNED.
-- **Prerequisites:** none. Output is a report; adoption is the owner's decision because
-  `WORKFLOW.md` currently forbids `mem_*` in ODD.
-- **Source:** `docs/advisor/handoff-workflow-optimisation.md` B6.
-- **Description:** assess scoped, per-request access to handoff summaries and evidence
-  references: project labels are not access control, unrelated memories must not be exposed,
-  independent first-pass reviewers must not see each other's conclusions.
+### Q14. Engram as the inter-agent communication channel (Magic Context stays main memory)
+Owner direction (2026-10-01): Engram is a candidate channel for information that agents pass to
+each other. Magic Context stays the main memory, including the ODD tracker mirror. Recorded in
+`docs/PLAN.md` "Memory and inter-agent communication".
+
+- **Q14a. Evaluation (B6, report only).** Status: PLANNED. Prerequisites: none.
+  - Assess scoped, per-request access to handoff summaries and evidence references:
+    - project labels are not access control;
+    - unrelated memories must not be exposed;
+    - independent first-pass reviewers and advisors must not see each other's conclusions
+      before they submit.
+  - Also define the channel semantics: what a message is (sender, recipient or topic, task
+    binding, evidence refs), its lifetime, and how it is read.
+  - Source: `docs/advisor/handoff-workflow-optimisation.md` B6.
+- **Q14b. Adoption.** Status: PLANNED. Prerequisites: Q14a; the owner's adoption decision on
+  Q14a's report; Q04 preferred (it adds verifier checks).
+  - Add the `engram` MCP to the canonical `global-config/opencode.json`. Today the verifier strips
+    it, because gentle-ai sync adds `engram mcp --tools=agent` and the canonical config lacks it
+    (observed 2026-10-01).
+  - Teach the verifier the entry.
+  - Grant the `engram` tools per agent, with first-pass isolation kept.
+  - Write the `WORKFLOW.md` policy with clear direction:
+    - Engram carries only inter-agent communication (handoffs, evidence references, requests and
+      answers between agents);
+    - Magic Context stays the main memory and the ODD mirror;
+    - nothing is duplicated between them;
+    - an Engram message is evidence, never approval.
+  - Replace the current "do not invoke `mem_*`" rule with this scoped rule.
 
 ### Q15. Routing guard T7 — `workflow-sdd-secure` phase-agent gating
 - **Status:** PLANNED.
@@ -251,6 +273,23 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 - **Source:** `odd/tasks/routing-guard-keys.md` Debt.
 - **Description:** the mirror stores the tracker body newline-flattened, so a verbatim write-back
   collapses markdown structure; restore from git and re-apply sections as real multi-line text.
+
+### Q24. gentle-ai sync overwrites the live OpenCode config
+- **Status:** READY.
+- **Prerequisites:** none. Coordinate with Q14b (part of the sync diff is the `engram` MCP).
+- **Source:** observation 2026-10-01, Q01.
+- **Description:** a `gentle-ai sync` at 20:28 on 2026-10-01 rewrote `~/.config/opencode/opencode.json`
+  and `AGENTS.md`. It:
+  - reset `gentle-orchestrator`'s `permission.task` to `{"*": "deny"}`, dropping the `advisor-*`,
+    `asi-review-*` and Systematic specialists;
+  - reverted 12 agent models (e.g. `review-validator` back to `glm-5.2`);
+  - dropped search-contract prompts and `github_ro`;
+  - added the `sdd-*-local` agents and the `engram` MCP.
+
+  The verifier recovers all of this, but only when it is run; a restart before it would have
+  loaded the drift. Make it detectable or self-correcting: run the verifier after every
+  gentle-ai sync (`WORKFLOW.md` "After Updates"), and/or have the health plugin flag drift at
+  OpenCode start.
 
 ## Done
 
