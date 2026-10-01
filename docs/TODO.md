@@ -544,7 +544,17 @@ Release facts that drive the group:
   10. Rollback: keep the v3.7.0 binary and the verifier backup in `backups/workflow-recovery/`.
 
 ### Q35. Remove mandatory Engram instructions everywhere (Magic Context is the default memory)
-- **Status:** READY. Owner decision 2026-10-01.
+- **Status:** IN PROGRESS.
+  - Done 2026-10-01: Claude Code text stripped. The `gentle-ai:engram-protocol` block was removed
+    from `~/.claude/CLAUDE.md`, and the ODD lines now make the task file the durable record, with
+    a Magic Context mirror where the runtime has it and Engram "never required". Backup:
+    `backups/claude-md/CLAUDE.md.20261001T222932Z.before`.
+  - Owner choice: the Engram plugin stays installed until Q14b brings Engram back as an
+    inter-agent MCP.
+  - Remaining: the plugin's SessionStart hook still injects its own "MANDATORY" protocol text.
+    The ODD lines sit inside the gentle-ai-managed `agent-routing` block, and the protocol block
+    is gentle-ai-managed too, so the next `gentle-ai sync` will restore both. The enforcement
+    check below is what makes the removal stick.
 - **Prerequisites:** none for the OpenCode side (already done). Claude Code side: owner confirms
   the scope of edits to `~/.claude` (outside this repo).
 - **Source:** owner decision; read-only survey 2026-10-01.
