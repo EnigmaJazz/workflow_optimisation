@@ -369,7 +369,12 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
   stage or check, verifier check, native gentle-ai gate) and a status: enforced, planned, or
   advisory-only (with the reason). At minimum these rules:
   - pre-code advice record (interim and `pair-default`);
-  - post-code advisory review (interim when no `ce:review`; `post-code-pair`);
+  - post-code advisory review (interim when no `ce:review`; `post-code-pair`). Concrete check for
+    the interim branch: after a non-trivial unit's work-unit commit, before the native review
+    starts, warn if neither a `ce-review` skill marker nor an observed `advisor-*` dispatch with
+    step `post-code` exists for the session. When a `ce-review` marker exists, no advisor
+    dispatch is required. Implementation is a guard stage (with Q03 namespacing and Q07). Until
+    then the rule is advisory-only, recorded here as such;
   - `ce:review` before the native review where owed;
   - native review lanes only `asi-review-*`, and no `externalLenses: true`;
   - ODD tracker before the first source write;
@@ -619,8 +624,18 @@ Release facts that drive the group:
     are what the journal protects.
   - **Gating (Q28):** apply refuses when the verifier fails before it starts, and reports the
     verifier result after it finishes.
-  - **Tests:** a fixture tree covering clean apply, already-applied, conflict-skip, revert, and
-    revert-with-drift-preserved.
+  - **Failure paths:**
+    - The journal is write-ahead: each operation's before value and intent are recorded and
+      flushed BEFORE its write, and the outcome after it. An interrupted apply is resumable,
+      because rerunning treats applied operations as idempotent and pending ones as fresh.
+    - Revert ignores operations whose apply outcome was conflict-skip or already-applied (it
+      wrote nothing).
+    - Revert refuses a missing journal, or one that fails its checksum or schema, and changes
+      nothing.
+    - Both tools take a lock so two runs cannot interleave.
+  - **Tests:** a fixture tree covering clean apply, already-applied, conflict-skip, interrupted
+    apply then resume, revert, revert-with-drift-preserved, revert of a conflict-skipped
+    operation (no-op), and a missing or corrupt journal (refused).
 
 ### Q37. Deny the `host_sdd_*` tools now (optional pre-upgrade step)
 - **Status:** READY; awaiting owner go-ahead to apply before the upgrade rather than with it.
@@ -634,6 +649,13 @@ Release facts that drive the group:
   - Mirror, then restart.
   - Effect: SDD host tools stop working on 3.7.0 too. Acceptable only if no SDD work is in
     flight.
+  - **Ordering guard:** the `opencode.json` deny and the verifier update land in ONE commit, and
+    the verifier must pass on that commit before the mirror. Applying either half alone fails the
+    verifier (`HOST_READ_PERMISSION_MISMATCH`, or the new deny assertion).
+  - **Precondition check:** confirm no SDD change is in flight before applying. Use
+    `gentle-ai sdd-status` on 3.7.0 for each registered project, and look for active
+    `openspec/changes/*` or Magic Context `SDD_ARTIFACT` keys. If any are found, stop and ask
+    the owner.
 
 ## Done
 
