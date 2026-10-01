@@ -15,9 +15,9 @@ this file. Dated reasoning and the old item bodies live in `docs/TODO-HISTORY.md
 **Former BLOCKER (sandbox worker lifecycle): RESOLVED / narrowed.** Evidence in
 `docs/TODO-HISTORY.md`: worker creation and mutation work (item 1 landed through
 `sandbox_apply_patch` and was verified by execution, commit `71a2eb3`); `sandbox_edit` landed a
-change on a small file. Residual faults, tracked below: `sandbox_read` timeouts were recorded
-before the drain fix `81c78cc` and are **stale pending a re-probe** (Q12); the install-vs-commit
-gap is a cross-project item (Q13).
+change on a small file. Residual faults, tracked below: the `sandbox_read` timeouts were re-probed
+on 2026-10-01 and are fixed (`docs/TODO-HISTORY.md` "2026-10-01 — sandbox_read confirmed fixed");
+the rule revision is Q12; the install-vs-commit gap is a cross-project item (Q13).
 
 Status vocabulary: DONE (with commit) / IN PROGRESS / READY (prerequisites met) / BLOCKED
 (a prerequisite is unmet) / PLANNED (not started, not yet scheduled) / PARKED. "status
@@ -39,7 +39,7 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   registration, successful reads, denied host mutations, and the assigned model observed.
 
 ### Q02. B0 coherence fixes, B1 mandatory advice policy, B2 advisory-evidence protocol
-- **Status:** IN PROGRESS. Tracker `odd/tasks/advice-mandate-and-queue.md` (T1 queue, T2
+- **Status:** DONE (2026-10-01, review `review-bd57149caec073dc` approved). Tracker `odd/tasks/advice-mandate-and-queue.md` (T1 queue, T2
   `WORKFLOW.md`, T3 `docs/PLAN.md`, T4 ledgers).
 - **Prerequisites:** none. The interim lane it defines relies on Q01 verification; until Q01 is
   done an unverified advisor is a missing opinion, not an approval.
@@ -125,8 +125,8 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 - **Q10.3 Global tooling adapter and stage coverage.** Status: PLANNED. Prerequisites: Q03.
   Global tooling has no adapter skill and no stage coverage, so the guard cannot see it.
 - **Q10.4 `ce:review` helper pipeline needs a sandbox worker.** Status: PLANNED. Prerequisites:
-  Q12 (sandbox read path re-probe). Mandating it enforces nothing while the sandbox read path is
-  unreliable; re-assess after the re-probe.
+  Q12. The read path re-probe passed on 2026-10-01; re-assess whether the helper pipeline now
+  runs once Q12 records the revised worker rules.
 
 ### Q11. Emergency fix route (old item 9)
 - **Status:** PLANNED.
@@ -137,16 +137,18 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   bounded diff, review debts recorded as named follow-ups.
 
 ### Q12. Worker contract — sandbox tool rules (old item 10, amended per B0 fix 1)
-- **Status:** PLANNED.
-- **Prerequisites:** re-probe of `sandbox_read` after the drain fix `81c78cc` (plan A
-  prerequisite, external).
+- **Status:** READY. The re-probe passed on 2026-10-01: `sandbox_read` succeeds at all sizes,
+  and a very large file only hits the harness's limit on one tool response
+  (`docs/TODO-HISTORY.md` "2026-10-01 — sandbox_read confirmed fixed").
+- **Prerequisites:** none (the re-probe was met on 2026-10-01).
 - **Source:** `docs/TODO-HISTORY.md` item 10 and "sandbox tooling fault fully characterised";
   `docs/PLAN.md` "Coding standard: prefer small files".
 - **Description:** keep the patch route as the interim worker rule (host reads before
   activation; context-bearing hunks via `sandbox_apply_patch`; verify with `sandbox_bash git
   diff`; treat a success return as unverified until readback). The conclusion "`sandbox_read`
-  broken at any size; never use" is STALE: make "never use `sandbox_read`" conditional on the
-  re-probe. First rule is file-size discipline; the patch route is the escape hatch.
+  broken at any size; never use" is superseded: `sandbox_read` is the normal read for small
+  and moderate files; very large files use a host read before activation, the saved-output
+  artifact, or a targeted read. First rule is file-size discipline; the patch route is the escape hatch.
 
 ### Q13. Cross-project items (old item 8) — agent-sandbox-integration
 - **Status:** BLOCKED (external project).

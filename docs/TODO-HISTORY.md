@@ -229,3 +229,21 @@ script before finishing; an exported result containing only the script must neve
 After the fix: mirror, then restart — `SECURE_OPENCODE_RESTART_REQUIRED` is expected until then.
 Then verify by dispatching each advisor on a bounded task: confirm registration, reads succeed,
 mutations denied, and the assigned models are observed.
+## 2026-10-01 — sandbox_read confirmed fixed
+Retested after a broker fix, on a freshly activated worker:
+
+- `docs/ADVISOR-HANDOFF.md` (47 lines) → SUCCEEDED, full content, no truncation, reached the final line.
+- `verify-workflow.sh` (~4,800 lines) → the call SUCCEEDED with no broker error; the RESPONSE was
+  truncated by output size, and the tool reported saving the full output elsewhere.
+
+The earlier fault — `broker request 'readFile' timed out` at every size, including a ~100-line
+control — is gone. What remains for very large files is the harness limit on one tool response,
+not a broken read path.
+
+Revised sandbox tool rules, replacing the blanket "never use sandbox_read": `sandbox_read` is now
+the normal read inside an active worker for small and moderate files; for very large files prefer
+a host read before activation, or the saved-output artifact, or a targeted `aft_zoom`/host read
+rather than a whole-file read. `sandbox_edit` still requires the whole body to be emitted, so large
+files still need patches — but that is an OUTPUT limit in the caller, not a tool fault.
+
+Item 10 (worker sandbox rules) should be updated with this revision when it is implemented.

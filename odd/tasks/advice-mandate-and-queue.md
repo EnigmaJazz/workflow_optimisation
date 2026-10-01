@@ -91,5 +91,21 @@ requirement that all planned work is in the TODO list with any prerequisite spec
 - 2026-10-01: T3 done. `docs/PLAN.md` sequence matches the TODO queue; layers and impact axis updated; dated 2026-10-01 superseding decision appended (original line kept). Commit `1f748ee`.
 - 2026-10-01: T4 done. `ROUTER-LOG.md`: rewritten tesla #26 row restored to its HEAD text; both appended tesla #26 rows kept; three plain-text rows converted to table columns; this unit's row appended; `git diff main` shows additions only for `ROUTER-LOG.md` and `CLAIM-RETRACTIONS.md`. RDD assessment pending (orchestrator). T4 commit `42461dc`.
 
+- 2026-10-01: RDD. `review assess --base-ref main --committed-only`: medium, `review_due` true
+  (`slice_budget_reached`). The user granted consent. Lineage `review-bd57149caec073dc`, lens
+  `review-reliability`: APPROVED, acknowledged, authority burned. Advisory, non-blocking:
+  - R3-001 (introduced, cosmetic): some appended ROUTER-LOG rows end with a trailing pipe,
+    inconsistent with the rows above. Append-only, so left as is.
+  - R3-002 (false positive): it claimed the tesla #26 row restoration is not visible. Against
+    `main`, `ROUTER-LOG.md` shows additions only, and line 103 keeps the HEAD text "RDD receipt
+    pending", which is the restoration.
+  The parent spot-checked: `rg -c '^## Pre-code advice' WORKFLOW.md` = 1, and `git diff main --
+  ROUTER-LOG.md CLAIM-RETRACTIONS.md` removed lines = 0.
+- Advice record: none for this unit. It is a documentation unit that defines the mandate itself,
+  and it was authorized before the mandate took effect.
+
+## Status
+DONE. Push and PR are the user's decision.
+
 ## Next step
-Orchestrator: run the RDD assessment on the work-unit commits and fill the ROUTER-LOG row's gate outcome; push and PR are the user's decision.
+Q01, then Q03 (R2-001 first), each with an advice record under the new mandate.
