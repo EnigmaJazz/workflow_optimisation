@@ -8,172 +8,233 @@ detail for one body of work; this file holds the cross-cutting queue and the ord
 input is a valid recorded state and does not block. Unfinished work must be finished or
 explicitly parked before another unit starts.
 
-**BLOCKER (active):** the sandbox worker lifecycle is failing repeatedly — lost microVMs,
-exported results with zero changed paths, `no worker recorded` on finish. Source changes and
-the queued fixes are blocked until it recovers or an explicit fallback path is agreed.
+**Completeness rule (user requirement, 2026-10-01):** every planned work unit is listed here,
+once, with its prerequisites. Work that exists only in a plan, tracker or handoff is a defect in
+this file. Dated reasoning and the old item bodies live in `docs/TODO-HISTORY.md`.
 
-## 1. IN PROGRESS — review follow-up on the plugin load check
-Apply the three review fixes to `check_plugin_loads()` in `verify-workflow.sh`:
-- fail when zero plugin files were checked (the vacuous-pass case);
-- also fail on a module-resolution error (bun reports `Cannot find package`) and on a timeout
-  (exit 124), keeping other import-time errors informational;
-- require a usable exported factory without invoking it.
-Record all eleven advisory findings from `review-10d26170c9d40efc` in the feature tracker, and
-re-pin `verify-workflow.sh`'s sha256 in the health plugin.
+**Former BLOCKER (sandbox worker lifecycle): RESOLVED / narrowed.** Evidence in
+`docs/TODO-HISTORY.md`: worker creation and mutation work (item 1 landed through
+`sandbox_apply_patch` and was verified by execution, commit `71a2eb3`); `sandbox_edit` landed a
+change on a small file. Residual faults, tracked below: `sandbox_read` timeouts were recorded
+before the drain fix `81c78cc` and are **stale pending a re-probe** (Q12); the install-vs-commit
+gap is a cross-project item (Q13).
 
-## 2. Commit, assess, review the follow-up
-Commit the fixes, assess RDD, and run the native review when the slice is due.
+Status vocabulary: DONE (with commit) / IN PROGRESS / READY (prerequisites met) / BLOCKED
+(a prerequisite is unmet) / PLANNED (not started, not yet scheduled) / PARKED. "status
+unverified" means the evidence is ambiguous; the line says what would confirm it.
 
-## 3. Deploy what is already committed (host action)
-Verifier mirror, then service restart. Nothing from the guard work is live: the routing gate has
-never run, so no keys have minted and no warnings have fired. Order matters — mirror first, then
-restart.
+## Queue (in order)
 
-## 4. Advisor layer
-Register five read-only advisor agents (`advisor-design`, `advisor-integration`,
-`advisor-testing`, `advisor-security`, `advisor-maintainability`) in
-`global-config/opencode.json`, add them to the orchestrator's `permission.task`, and add the
-pre-code advice policy to `WORKFLOW.md`.
+### Q01. Advisor layer close-out
+- **Status:** READY. Registration fixes appear landed: `c01a73f` (MiMo fallback policy, advisors
+  classified as isolated-memory agents), `c5a326b` (search-contract block in advisor prompts),
+  `8570dc6` (workspace-local sandbox tools). `github_ro_*` is absent from the five advisor blocks
+  in `global-config/opencode.json`. Verifier pass on the final state is **status unverified**:
+  confirm by running `verify-workflow.sh` after the mirror.
+- **Prerequisites:** none. Host actions in order: verifier mirror, then service restart
+  (`SECURE_OPENCODE_RESTART_REQUIRED` is expected until then).
+- **Source:** `docs/TODO-HISTORY.md` "Advisor registration — verifier findings" and "PRIORITY
+  CHANGE"; `docs/advisor/handoff-workflow-optimisation.md` "Where this slots in" 1.
+- **Remaining:** dispatch each of the five `advisor-*` agents once on a bounded task and confirm
+  registration, successful reads, denied host mutations, and the assigned model observed.
 
-## 5. Workflow policy
-Define the policy across task classes and the ODD/SDD/advisor layers, including the
-complexity-and-impact axis, the per-project impact-surface declaration delivered by the host,
-and the rule that a heavier route always governs.
+### Q02. B0 coherence fixes, B1 mandatory advice policy, B2 advisory-evidence protocol
+- **Status:** IN PROGRESS. Tracker `odd/tasks/advice-mandate-and-queue.md` (T1 queue, T2
+  `WORKFLOW.md`, T3 `docs/PLAN.md`, T4 ledgers).
+- **Prerequisites:** none. The interim lane it defines relies on Q01 verification; until Q01 is
+  done an unverified advisor is a missing opinion, not an approval.
+- **Source:** `docs/advisor/handoff-workflow-optimisation.md` B0, B1, B2.
+- **Description:** advice mandatory for every non-trivial change (interim lane: registered
+  advisors); external lane written as PLANNED; tracker protocol for advisory evidence.
 
-## 6. Tracking contract in the recipe
-Add to `WORKFLOW.md`: the orchestrator maintains this file, the plan, and an in-agent list;
-updating them gates starting a NEW unit; a unit paused awaiting user input does not block.
+### Q03. Guard review findings — fix unit (old item 12)
+- **Status:** READY. Subject to the advice mandate (Q02). The guard is live and warn-only, so
+  any fix needs the verifier mirror and a restart to take effect.
+- **Prerequisites:** Q02 (advice record before coding).
+- **Source:** `docs/TODO-HISTORY.md` "12. Guard review findings"; `odd/tasks/routing-guard-keys.md`
+  review `review-84383b2e59dc8844`.
+- **Findings, in fix order:**
+  - R2-001 (real defect): `allowsSpecialists` is inverted; fix first.
+  - R3-patch-stage-marker-gap: patch path extraction recognises only `odd/tasks/*.md`.
+  - R3-child-marker-merge-excl: `COPYFILE_EXCL` stops a re-dispatched child updating a parent marker.
+  - R3-marker-write-race and R4-001 (resilience): unawaited marker writes cause false warnings.
+  - R3-specialist-warning-dedup: specialist warnings bypass `warningKey` deduplication.
+  - R3-stage-logic-untested: add automated assertions for the stage table and its gates (the
+    recurring finding across two reviews).
 
-## 7. Recipe drift and gaps
-- `WORKFLOW.md` names Systematic v3.18.4 while v3.21.0 is installed.
-- The documentation class has no mandated review option — `document-review` is the candidate.
-- Global tooling has no adapter skill and no stage coverage, so the guard cannot see it.
-- `ce:review`'s helper pipeline needs a sandbox worker, so mandating it enforces nothing while
-  the sandbox is failing.
+### Q04. Split `verify-workflow.sh` (old item 11)
+- **Status:** READY. Ordered before B3 because B3 adds verifier checks.
+- **Prerequisites:** none. Preserve check ordering, `fail` aggregation, TTY/`NO_COLOR` colour
+  behaviour, the digest pinning contract and the `WORKFLOW_VERIFY_*` switches.
+- **Source:** `docs/PLAN.md` "11. Split `verify-workflow.sh`"; `docs/TODO-HISTORY.md` item 11.
+- **Description:** thin runner plus per-area check scripts (recommended) so each check is
+  independently runnable and testable; the file is 4,770 lines and cannot be whole-body edited.
 
-## 8. Cross-project items
-Confirm the agent-sandbox-integration work is delivered: the allowlisted append operation, the
-ledger move out of git, the project-scoped signal channel, and the install-vs-commit gap.
-## 2026-09-30 — sandbox blocker confirmed after reboot; fallback taken
-The sandbox worker lifecycle fails at worker creation (`ensureWorker` timeout, then
-`no worker recorded — fail closed`) even after a full reboot, so it is the broker/worker
-lifecycle rather than a transient. Item 1 (the review follow-up) is therefore handed over for
-host-side application: the exact replacement for `check_plugin_loads()`, the digest re-pin
-procedure, and the tracker section. Item 1 stays IN PROGRESS and unverified until that lands
-and is checked. No other unit starts while it is open.
-## 2026-09-30 — activation workaround did not fix mutation; blocker narrowed
-Retry with the instructed sequencing (`sandbox_bash pwd` to activate before any edit) behaved
-differently but still failed:
+### Q05. Workflow policy (old item 5)
+- **Status:** PLANNED.
+- **Prerequisites:** Q02.
+- **Source:** `docs/TODO-HISTORY.md` item 5; `docs/PLAN.md` Sequence 4; B0 fix 4 and the B1
+  selection table in `docs/advisor/handoff-workflow-optimisation.md`.
+- **Description:** policy across task classes and the ODD/SDD/advisor layers; the
+  complexity-and-impact axis, where impact decides how much advice (B0 fix 4); the per-project
+  impact-surface declaration delivered by the host; the heavier route always governs; the B1
+  selection table.
 
-- `sandbox_bash pwd` SUCCEEDED — the worker activated and file reads worked.
-- The mutation itself failed: the patch/edit did not apply, and subsequent read and edit calls
-  timed out.
-- Recovery check: `git diff --stat` and `git diff --name-only` both empty; the repository is
-  untouched and no sandbox result was produced.
-- The verifier digest in the repo is still `ff38b6ba…`, which matches the healthy script, so the
-  pin is consistent — it simply was never changed.
+### Q06. B3 — activate the external advisor lane
+- **Status:** BLOCKED.
+- **Prerequisites:** agent-sandbox-integration plan A slices A3, A5, A6 and A7/A8 installed
+  (external); Q04.
+- **Source:** `docs/advisor/handoff-workflow-optimisation.md` B3; `docs/advisor/interface-contract.md`.
+- **Description:** grant the orchestrator `host_advisor_ask`, `host_advisor_get`,
+  `host_advisor_list` in `global-config/opencode.json`, deny them to workers, `advisor-*` and
+  relay lanes; add verifier checks (grants, sole holder of `host_review_capture_result`, no
+  non-user launcher references `advisor-open`); flip the external lane from PLANNED to mandatory.
 
-Failure is therefore narrowed to the sandbox WRITE path (worker mutation and post-write
-operations), not worker activation. The activation workaround is necessary but not sufficient.
-Item 1 remains IN PROGRESS and unverified; the prepared hand-application (replacement
-`check_plugin_loads()`, digest re-pin, tracker section) stands as the fallback.
-## 9. Emergency fix route (logged now; implement after the open items)
-Design recorded in the plan. A user-declared priority lane: it preempts the session, parks the
-current unit with its state recorded, and resumes it after. Minimum ceremony, bounded diff, the
-fix is logged as part of the work, and its review/cleanup debts become named follow-ups rather
-than silent omissions. Higher priority than items 4-8, but it does not start while item 1 is open.
-## 2026-09-30 — root cause located: sandbox_edit silently no-ops
-A worker instructed to make its first mutation with `sandbox_edit` and stop on failure reported:
+### Q07. B4 — routing guard integration (warn-only)
+- **Status:** BLOCKED.
+- **Prerequisites:** Q06; Q03 (R2-001 fixed before another stage relies on `allowsSpecialists`).
+- **Source:** `docs/advisor/handoff-workflow-optimisation.md` B4.
+- **Description:** optional `advice` stage satisfied only by an observed `host_advisor_get`
+  result (`status: submitted`, matching `binding.task`) and, in the interim, an observed
+  `advisor-*` dispatch result; warn on free-form `input` to `host_review_capture_result` for
+  external-lens reviews. Owner decides whether the stage exists.
 
-- `sandbox_edit` **returned success**, but the readback showed the target unchanged (digest identical).
-- Follow-up `sandbox_apply_patch` attempts were rejected.
-- `git --no-pager diff` empty; no changed files; `sandbox_finish` not run.
+### Q08. B5 — advisor handoff document
+- **Status:** BLOCKED.
+- **Prerequisites:** Q06.
+- **Source:** `docs/advisor/handoff-workflow-optimisation.md` B5; `docs/ADVISOR-HANDOFF.md` "Requested".
+- **Description:** answer the two "Requested" items with plan A's verified contracts
+  (cross-project read-only inspection; workspace isolation) and describe the external lane next
+  to the five registered advisors.
 
-This is a silent no-op, not an error: the tool fails OPEN, reporting success and discarding the
-write. It retro-explains the two earlier "finished result with zero changed paths although edits
-existed mid-run" cases — those edits never reached disk, so the workers' belief that they had
-edited was the only thing that existed.
+### Q09. Tracking contract in the recipe (old item 6)
+- **Status:** PLANNED.
+- **Prerequisites:** Q05 (same `WORKFLOW.md` policy area; avoids conflicting edits).
+- **Source:** `docs/TODO-HISTORY.md` item 6; `docs/PLAN.md` "Tracking contract".
+- **Description:** state in `WORKFLOW.md` that the orchestrator maintains this file, the plan and
+  an in-agent list; updating them gates starting a NEW unit; a unit paused awaiting user input
+  does not block.
 
-Implication for checks: because the success signal is false, "continue only if the edit succeeded"
-cannot protect a worker. A readback after every mutation is the only reliable verification, and it
-is what caught this. Worth making an explicit worker rule.
+### Q10. Recipe drift and gaps (old item 7), one unit per bullet
+- **Source:** `docs/TODO-HISTORY.md` item 7.
+- **Q10.1 Systematic version drift.** Status: READY. Prerequisites: none. `WORKFLOW.md` names
+  Systematic v3.18.4; v3.21.0 is installed. Status of the installed version is **unverified**:
+  confirm with the installed Systematic inventory before editing.
+- **Q10.2 Documentation class review option.** Status: PLANNED. Prerequisites: Q05. The
+  documentation class has no mandated review option; `document-review` is the candidate.
+- **Q10.3 Global tooling adapter and stage coverage.** Status: PLANNED. Prerequisites: Q03.
+  Global tooling has no adapter skill and no stage coverage, so the guard cannot see it.
+- **Q10.4 `ce:review` helper pipeline needs a sandbox worker.** Status: PLANNED. Prerequisites:
+  Q12 (sandbox read path re-probe). Mandating it enforces nothing while the sandbox read path is
+  unreliable; re-assess after the re-probe.
 
-Item 1 remains IN PROGRESS and unverified. The prepared hand-application stays the fallback.
-## 2026-09-30 — item 1 fixed and verified; commit needs the host
-The review follow-up landed and is verified by execution:
+### Q11. Emergency fix route (old item 9)
+- **Status:** PLANNED.
+- **Prerequisites:** Q05 (the open question, a seventh task class versus an orthogonal session
+  mode, is settled when the policy is defined).
+- **Source:** `docs/PLAN.md` "Emergency fix route (design — to implement)"; `docs/TODO-HISTORY.md` item 9.
+- **Description:** user-declared priority lane that parks the current unit, minimum ceremony,
+  bounded diff, review debts recorded as named follow-ups.
 
-- `verify-workflow.sh`: `checked` counter with the zero-files failure; module-resolution patterns
-  (`Cannot find package` etc.) and timeout exit 124 now FAIL; dynamic import inspects exports and
-  fails when none are usable. Digest re-pinned to `1653d28d…`.
-- `odd/tasks/routing-guard-keys.md`: the review section, all eleven findings, and the closing
-  status paragraph.
+### Q12. Worker contract — sandbox tool rules (old item 10, amended per B0 fix 1)
+- **Status:** PLANNED.
+- **Prerequisites:** re-probe of `sandbox_read` after the drain fix `81c78cc` (plan A
+  prerequisite, external).
+- **Source:** `docs/TODO-HISTORY.md` item 10 and "sandbox tooling fault fully characterised";
+  `docs/PLAN.md` "Coding standard: prefer small files".
+- **Description:** keep the patch route as the interim worker rule (host reads before
+  activation; context-bearing hunks via `sandbox_apply_patch`; verify with `sandbox_bash git
+  diff`; treat a success return as unverified until readback). The conclusion "`sandbox_read`
+  broken at any size; never use" is STALE: make "never use `sandbox_read`" conditional on the
+  re-probe. First rule is file-size discipline; the patch route is the escape hatch.
 
-Checks, all passing in the sandbox: `bash -n` clean; empty directory fails with the no-plugin-files
-message; a clean plugin copy reports `OK plugin load`; a broken-import copy fails with
-`Cannot find package` rather than INFO.
+### Q13. Cross-project items (old item 8) — agent-sandbox-integration
+- **Status:** BLOCKED (external project).
+- **Prerequisites:** delivery of these entries in agent-sandbox-integration's TODO, by name:
+  Tier 2 items 7–8 (ledger appends); the allowlisted append operation; the ledger move out of
+  git; the project-scoped signal channel; the install-vs-commit gap. Confirm each is delivered
+  and installed here.
+- **Source:** B0 fix 5 in `docs/advisor/handoff-workflow-optimisation.md`; `docs/TODO-HISTORY.md`
+  item 8 and "Review state" (ledgers are shared git-tracked files).
+- **Note:** the host commit tool also rejects multi-line messages (`routing-guard-keys.md` Debt);
+  the `ROUTED:` trailer sits on the subject line until that is fixed in the host tooling.
 
-Method that worked, and should become the worker contract: read targets with HOST tools before
-activating, hand-compose context-bearing patches, apply with `sandbox_apply_patch` only, never use
-`sandbox_edit` or `sandbox_read` (both read the whole file body and fail on large files). The
-failure is the whole-body read path, NOT the file's size — the large script patched cleanly.
+### Q14. B6 — Engram evaluation (report only)
+- **Status:** PLANNED.
+- **Prerequisites:** none. Output is a report; adoption is the owner's decision because
+  `WORKFLOW.md` currently forbids `mem_*` in ODD.
+- **Source:** `docs/advisor/handoff-workflow-optimisation.md` B6.
+- **Description:** assess scoped, per-request access to handoff summaries and evidence
+  references: project labels are not access control, unrelated memories must not be exposed,
+  independent first-pass reviewers must not see each other's conclusions.
 
-**Blocked on host:** `host_git_commit` refuses the install — `no applied B->C result` — the known
-install-vs-commit gap. Commit commands handed over. Item 1 moves to COMMITTED-pending, still
-uncommitted and therefore still open.
-## 2026-09-30 — post-broker-fix probes: read path still broken, general not size-bound
-`sandbox_read` was probed after the broker fix, on a freshly activated worker:
+### Q15. Routing guard T7 — `workflow-sdd-secure` phase-agent gating
+- **Status:** PLANNED.
+- **Prerequisites:** Q03.
+- **Source:** `odd/tasks/routing-guard-keys.md` T7c "Implementation order" 3.
 
-- `verify-workflow.sh` (4,770 lines) → `broker request 'readFile' timed out`, no content.
-- `global-config/plugins/workflow-health-check.ts` (~100 lines, control) → the SAME timeout.
+### Q16. Routing guard T7 — review-due marker from the assessment output
+- **Status:** PLANNED.
+- **Prerequisites:** Q03.
+- **Source:** `odd/tasks/routing-guard-keys.md` T7c "Implementation order" 4 and "Review stage semantics".
 
-Conclusion: the whole-file read path is broken generally, NOT by file size — a small file fails
-identically. The broker fix did not restore it.
+### Q17. Routing guard T7 — durable project-scoped signal and project-aware markers
+- **Status:** BLOCKED.
+- **Prerequisites:** Q13 (project-scoped signal channel and ledger move, agent-sandbox-integration).
+- **Source:** `odd/tasks/routing-guard-keys.md` T7c "Implementation order" 5 and Debt
+  (project-blindness: no trustworthy session-project source).
 
-Two distinct faults, now separated:
-- `sandbox_read`: the `readFile` RPC times out regardless of size.
-- `sandbox_edit`: needs the entire file body emitted in one call, which a worker cannot do for
-  large files; that is an output limit, not a read limit.
+### Q18. Routing guard T8 — bug-fix route with its own stages and no ODD tracker
+- **Status:** PLANNED.
+- **Prerequisites:** Q03, Q05.
+- **Source:** `odd/tasks/routing-guard-keys.md` T8 and T7c stage tables (reproduce-bug, `ce:work`, `ce:review`).
 
-Unaffected: the working method is host reads BEFORE activation, then hand-composed context-bearing
-patches via `sandbox_apply_patch`. It uses neither broken tool and is what landed and verified
-item 1. Unprobed: whether `sandbox_edit` works on a small file after the fix — that would separate
-a pure emit limit from an additional fault.
-## 2026-09-30 — sandbox tooling fault fully characterised
-Retests after the broker fix, both on freshly activated workers:
+### Q19. Routing guard — learnings stage
+- **Status:** PARKED.
+- **Prerequisites:** the post-archive condition must become observable (external condition).
+- **Source:** `odd/tasks/routing-guard-keys.md` T7c "Implementation order" 2.
 
-- `sandbox_edit` on a SMALL file (`workflow-health-check.ts`, ~100 lines): **SUCCEEDED and the change
-  LANDED** — `git diff` showed the probe line. The silent no-op did NOT reproduce.
-- `sandbox_read` on the same small file and on `verify-workflow.sh`: **still times out**
-  (`broker request 'readFile' timed out`) regardless of size.
+### Q20. Routing guard — advisory findings of `review-10d26170c9d40efc` not covered by Q03
+- **Status:** PLANNED; whether later guard commits already fixed any of them is **status
+  unverified**: confirm by reading the cited locations in `systematic-routing-guard.ts`.
+- **Prerequisites:** Q03.
+- **Source:** `odd/tasks/routing-guard-keys.md` review `review-10d26170c9d40efc`.
+- **Findings:** R2-003 (tracker wording, `routing-guard-keys.md:133`); R3-child-regex-format;
+  R3-console-warning-dedup; R3-copy-path-gap; R3-systematic-apply-marker-gap; R4-001
+  (verifier, partially fixed: factory required but not invoked).
 
-Settled conclusion — two independent faults, now separated with evidence:
+### Q21. Routing guard — advisory follow-ups of `review-16c862492747259a` not covered by Q03
+- **Status:** PLANNED; R3-missing-key-tests, R3-unawaited-key-io and R4-001 (nested inheritance)
+  are **status unverified** (not recorded as fixed): confirm against the guard source.
+- **Prerequisites:** Q03 (R3-unawaited-key-io overlaps the Q03 marker-write race; handle together).
+- **Source:** `odd/tasks/routing-guard-keys.md` "Advisory follow-ups".
+- **Findings:** R3-missing-key-tests (assertions for key expiry, inheritance, parent refresh,
+  bootstrap ordering); R3-unawaited-key-io; R4-001 (nested sessions do not inherit through an
+  already-inherited parent). R3-sandbox-catchall was a false positive; R3-odd-marker-gap and
+  R3-child-session-regex were fixed by T7a-fix.
 
-| Tool | Status | Rule |
-|---|---|---|
-| `sandbox_read` | broken at any size | never use; host-read before activation |
-| `sandbox_edit` | works; needs the whole body emitted | only for files a worker can emit whole; not `verify-workflow.sh` (4,770 lines) |
-| `sandbox_apply_patch` | works, proven on the 4,770-line script | the method for large files, from pre-activation host reads |
-| `sandbox_bash` | works | activation, and `git diff` for verification |
+### Q22. Disposition of open review lineage `review-17a7dab1e332596a`
+- **Status:** READY. Lineage is in `correction_required`, superseded by the approved lineage
+  `review-16c862492747259a`; its disposition is unresolved.
+- **Prerequisites:** none. The owner decides the disposition through the gentle-ai lifecycle.
+- **Source:** `odd/tasks/routing-guard-keys.md` Debt.
 
-The earlier silent no-op on `verify-workflow.sh` is explained by the emit limit, not a broker fault.
+### Q23. Magic Context mirror flattens tracker newlines
+- **Status:** PLANNED.
+- **Prerequisites:** none.
+- **Source:** `odd/tasks/routing-guard-keys.md` Debt.
+- **Description:** the mirror stores the tracker body newline-flattened, so a verbatim write-back
+  collapses markdown structure; restore from git and re-apply sections as real multi-line text.
 
-## 10. Worker contract — sandbox tool rules (to add to the recipe)
-Record for workers: read with HOST tools BEFORE activation; use `sandbox_apply_patch` with
-context-bearing hunks for any large file; verify with `sandbox_bash git diff`, never `sandbox_read`;
-treat a tool's success return as unverified until a readback confirms it.
-## 11. Split `verify-workflow.sh` into smaller files
-`verify-workflow.sh` is 4,770 lines: too large to whole-body edit, timing out on reads, and the
-reason every repair cycle today was expensive. Split it per the design recorded in `docs/PLAN.md`
-— prefer a thin runner invoking per-area check scripts so each check is independently runnable and
-testable, preserving check ordering, the `fail` aggregation, TTY/`NO_COLOR` colour behaviour, the
-digest pinning contract, and the `WORKFLOW_VERIFY_*` switches. Related principle: keep files small
-as a coding standard in its own right; the patch route is only for the unsplittable.
+## Done
 
-## Review state
-Commit `71a2eb3` carries the review follow-up and item 1 is closed. The native review is now DUE
-(`high`) for the accumulated slice, but `review assess` refuses until the untracked-file inventory
-is declared explicitly — the digest moved from `0fc9c89f…` to `334c3048…`. Resolve by reading the
-canonical inventory and re-running the assessment with the matching declaration. Note also that
-`CLAIM-RETRACTIONS.md` and `ROUTER-LOG.md` hold uncommitted cross-project writes; the ledgers are
-still shared git-tracked files, which is the divergence surface already logged for the
-agent-sandbox-integration project.
+- Review follow-up on the plugin load check (old items 1–2): `71a2eb3` (`d85ca4a` introduced the
+  check); native review `review-10d26170c9d40efc` approved and acknowledged.
+- Guard deploy (old item 3): the guard is live and warn-only (history "Deploy note"); the
+  verifier mirror and restart for the advisor registration remain in Q01.
+- Advisor registration: `5c41a4f`, `844d759`, `c01a73f`, `c5a326b`, `8570dc6`; verification in Q01.
+- Pre-code advice policy and structured test requests in `WORKFLOW.md`: `a08e447`, `812741b`;
+  advisor interface contract and plan B: `2a757ab`.
+- Guard stages and keys, T1–T7b, T7a-fix, T9: see `odd/tasks/routing-guard-keys.md`; native review
+  `review-84383b2e59dc8844` approved and acknowledged (its findings are Q03).
+- Work queue and plan created: `b0e000e`.
