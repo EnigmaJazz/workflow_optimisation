@@ -27,7 +27,7 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 
 **Current working order (owner, 2026-10-01):** Q35 (Claude Code side, once scope is confirmed) can run any time; Q03 (R2-001 + cross-route stage resolution) → Q25
 (handoff corrections) → Q26 (verifier prose coupling) → Q28 (deployment gating matrix) → the rest
-in listed order; then, when the owner decides to upgrade: Q29 → Q30–Q33 (one feature branch,
+in listed order; then, when the owner decides to upgrade: Q29 → Q30–Q33 delivered as the Q36 change set (one feature branch,
 gated) → Q34. Every source change then needs the deploy step: verifier mirror, then restart. Q27
 waits on an owner decision.
 
@@ -472,7 +472,12 @@ Release facts that drive the group:
   `asi-review-*` :595-600, :1809-2013; `jd-*` :537-539, :672, :720, :770.
   `global-config/tui.json` :6 `opencode-sdd-engram-manage`.
 - **Description:**
-  - Remove the `sdd-*` agents, their `permission.task` entries and the `host_sdd_*` permissions.
+  - Remove the `sdd-*` agents and their `permission.task` entries.
+  - Set every `host_sdd_*` permission to `deny` (owner, 2026-10-01). Deny rather than delete, so a
+    host tool that still registers is refused explicitly. Today the global grants
+    `host_sdd_status`, `host_sdd_continue` and `host_sdd_task_result` are `allow`, and the
+    orchestrator's `host_sdd_attempt_grant` and `host_sdd_archive_compose` are `ask`. All become
+    `deny`. This can land before the upgrade (Q37).
   - Add and allow the v4 generic agents per Q29d, with explicit models.
   - Reconcile the re-provisioned `review-*` and `jd-*` agents with our definitions.
   - Retitle the `gentle-orchestrator` description and prompt per Q29c.
@@ -494,7 +499,9 @@ Release facts that drive the group:
     `:4333`, `:4339`, `:4349`, `:4357` routing-contract SDD strings; `:2788-2793`, `:2870`,
     `:2889`, `:2904` embedded SDD strings.
   - §9: `:352-355` required agents `sdd-research`, `sdd-apply-local`; `:2273` writer/reviewer pair
-    `sdd-apply`/`sdd-verify`; `:2641-2643` `host_sdd_*` permission asserts; `:2663-2679` `sdd-*`
+    `sdd-apply`/`sdd-verify`; `:2641-2643` `host_sdd_*` permission asserts. Move `host_sdd_status`, `host_sdd_continue` and
+    `host_sdd_task_result` out of `registeredHostReads` and assert every `host_sdd_*` is `deny`
+    (global and orchestrator), keeping the `HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY` code; `:2663-2679` `sdd-*`
     writer and `SDD_RESEARCH_*` checks; `:2699`, `:2767`; `:2916-2919`
     `MAGIC_CONTEXT_SDD_OVERRIDE_MISSING`; `:2950-2958` runtime probes; `:3108-3126` GitHub MCP
     reader lists that include sdd agents; `:4448-4456` probe list; `:4617`.
@@ -536,7 +543,8 @@ Release facts that drive the group:
   3. Upgrade the binary.
   4. `gentle-ai sync`; expect it to overwrite managed agents and prompts, and handle a non-zero
      exit when it cannot detect the OpenCode version.
-  5. Apply Q30-Q33 from the branch.
+  5. Apply Q30-Q33 with the Q36 change-set tool (`apply --dry-run`, then `apply`). Do not
+     hand-copy.
   6. Run the verifier (recovery plus checks).
   7. Restart OpenCode.
   8. `verify-workflow.sh --behavioral`.
@@ -570,13 +578,62 @@ Release facts that drive the group:
       resume steps that call `mem_*`);
     - the Engram plugin's SessionStart "ACTIVE PROTOCOL … MANDATORY" injection. Disable it, or
       keep the plugin's tools available without the mandatory hook.
-    Claude Code has no Magic Context tools, so the ODD tracker file itself is the durable record
-    there.
+    Correction (owner, 2026-10-01): Claude Code cannot reach Magic Context, so its memory
+    pathway is Engram only, used mainly in its advisory role. What is removed is the blanket
+    mandatory-protocol text, not Engram itself. `~/.claude/CLAUDE.md` now states the
+    per-runtime pathway.
   - **Enforcement (per the deployment-gating constraint, Q28):** gentle-ai sync rewrites the
     CLAUDE.md block. Add a check (in the verifier, or a Claude Code-side health check) that fails
     when `<!-- gentle-ai:engram-protocol -->` or a mandatory Engram hook reappears, and relates to
     Q24 (sync drift).
   - **v4:** apply the same rule to v4's managed orchestrator prompts (Q29b, Q30).
+
+### Q36. Non-destructive change set for the v4 upgrade: apply and revert without clobbering drift
+- **Status:** PLANNED (design in `docs/PLAN.md` "Upgrade change set"). Build it with Q30-Q33; it
+  is how they are delivered.
+- **Prerequisites:** Q29 (the changes to encode); Q26 (stable anchors make markdown edits
+  addressable).
+- **Source:** owner, 2026-10-01: build it all non-destructively, with a simple process to insert
+  the changes when upgrading and, ideally, a revert that will not overwrite drift elsewhere.
+- **Description:**
+  - **Change set:** `upgrade/v4/` holds declarative operations, never whole-file copies.
+    - JSON (`opencode.json`, `tui.json`): operations keyed by JSON path, each with
+      `expect_before` and `set` (or `delete`).
+    - Markdown (`WORKFLOW.md`, `AGENTS.md`, skills, `~/.claude/CLAUDE.md`): operations keyed by
+      an anchor or marked block, with the expected current block text and the replacement.
+    - Whole files: add or remove only with the expected hash, e.g. deleting `workflow-sdd-secure`.
+  - **Apply (`upgrade/v4/apply.sh --dry-run | apply`):**
+    - For each operation, apply it only when the current value equals `expect_before`.
+    - If it already equals the target, record it as already applied (idempotent).
+    - Otherwise report a conflict and skip that operation. Never overwrite.
+    - Write a journal under `backups/upgrade-v4/<timestamp>/` with, per operation, the before
+      value, the applied value and the outcome.
+    - Finish by running the verifier: mirror, checks, digest re-pin as committed.
+  - **Revert (`upgrade/v4/revert.sh --dry-run | revert <journal>`):**
+    - Restore an operation's before value only when the current value still equals what apply
+      wrote.
+    - Anything changed since (gentle-ai sync, other sessions, manual edits) is reported as drift
+      and left untouched.
+  - **Repo-tracked files** additionally ship as one feature branch (Q30-Q33); `git revert` of the
+    merge is the repo-level rollback. The live files under `~/.config/opencode` and `~/.claude`
+    are what the journal protects.
+  - **Gating (Q28):** apply refuses when the verifier fails before it starts, and reports the
+    verifier result after it finishes.
+  - **Tests:** a fixture tree covering clean apply, already-applied, conflict-skip, revert, and
+    revert-with-drift-preserved.
+
+### Q37. Deny the `host_sdd_*` tools now (optional pre-upgrade step)
+- **Status:** READY; awaiting owner go-ahead to apply before the upgrade rather than with it.
+- **Prerequisites:** none. It is a global tooling change, routed as source change, then native
+  review, then verifier mirror and restart.
+- **Source:** owner, 2026-10-01; current grants listed in Q31.
+- **Description:**
+  - Set the five open `host_sdd_*` grants to `deny` in `global-config/opencode.json`.
+  - Update `verify-workflow.sh` `registeredHostReads` and the deny assertion, then re-pin the
+    digest.
+  - Mirror, then restart.
+  - Effect: SDD host tools stop working on 3.7.0 too. Acceptable only if no SDD work is in
+    flight.
 
 ## Done
 

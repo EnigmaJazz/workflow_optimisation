@@ -90,10 +90,13 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
   the Constraints bullet and queue Q28 (gating matrix).
 
 ## Memory and inter-agent communication (direction, 2026-10-01)
-- **Magic Context is the default memory pathway throughout (owner decision, 2026-10-01):**
-  durable project memory and the ODD tracker mirror, on every runtime that has it. Mandatory
-  Engram instructions are removed everywhere (queue Q35). Where Magic Context is unavailable
-  (Claude Code), the ODD tracker file is the durable record.
+- **Memory pathway by runtime (owner decisions, 2026-10-01):**
+  - **OpenCode:** Magic Context is the default memory pathway, holding durable project memory
+    and the ODD tracker mirror.
+  - **Claude Code:** it cannot reach Magic Context, so it uses Engram only, mainly in its
+    advisory role.
+  - **Everywhere:** blanket mandatory-Engram protocol text is removed (queue Q35), and the ODD
+    tracker file is the durable task record.
 - **Engram is the candidate inter-agent communication channel:** handoffs, evidence references,
   and requests and answers between agents. Adopt it only after the evaluation (queue Q14a) and
   the owner's decision.
@@ -106,6 +109,23 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
 - **Until then** the current rule stands: ODD work does not invoke `mem_*`. Even after adoption,
   Engram is never mandatory and never a memory pathway; it is only a scoped opt-in channel.
 - **v4:** override or disable v4's Engram tracker mirror (Q29b decided).
+
+## Upgrade change set: non-destructive apply and revert (design, 2026-10-01)
+- Every upgrade change is a declarative operation with an expected-before value. There are no
+  whole-file copies.
+  - JSON: path, `expect_before`, then `set` or `delete`.
+  - Markdown: anchored or marked block, expected text, then replacement.
+  - Whole files: expected hash.
+- **Apply** writes an operation only when the current value matches `expect_before`. It is
+  idempotent when the target is already present, and it skips with a reported conflict
+  otherwise. It journals before and after values per operation.
+- **Revert** restores the before value only where the current value still equals what apply
+  wrote. Later drift from gentle-ai sync, other sessions or hand edits is reported, never
+  overwritten.
+- **Process:** `apply.sh --dry-run`, then `apply.sh`, then the verifier. Rollback is
+  `revert.sh --dry-run <journal>`, then `revert.sh <journal>`, then the verifier. Repo-tracked
+  sources also ride one feature branch, so `git revert` is the repo-level rollback.
+- Queue Q36. `host_sdd_*` deny is part of the set (Q31/Q32) and may land early (Q37).
 
 ## Route for former-SDD work (proposed, v4)
 
