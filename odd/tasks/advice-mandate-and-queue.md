@@ -52,7 +52,7 @@ Ordinary checks apply (see Checks).
   apply B0 fixes 1, 2 and 5. Route: delegated (writer trigger: 2+ non-trivial files).
 - [x] T2 — `WORKFLOW.md`: merge the duplicate advice sections (B0 fix 3), apply B1 and B2.
   Route: delegated (same writer).
-- [ ] T3 — `docs/PLAN.md`: sequence update, impact = how much advice (B0 fix 4), recorded
+- [x] T3 — `docs/PLAN.md`: sequence update, impact = how much advice (B0 fix 4), recorded
   decisions. Route: delegated (same writer).
 - [ ] T4 — Ledgers: restore the rewritten tesla #26 row, convert the three plain-text rows to the
   table format, append this unit's route row. Route: delegated (same writer).
@@ -87,7 +87,8 @@ requirement that all planned work is in the TODO list with any prerequisite spec
 - 2026-10-01: tracker created; branch `feat/advice-mandate-and-queue` created from `main`
   (`2a757ab`).
 - 2026-10-01: T1 done. `docs/TODO.md` rebuilt as ordered queue Q01-Q23 with status, prerequisites and source; old item bodies and dated entries moved verbatim to `docs/TODO-HISTORY.md` (all 18 removed `## ` headings from main confirmed present). Commit `21c1aa2`.
-- 2026-10-01: T2 done. `WORKFLOW.md`: two advice sections merged into one (`rg -c '^## Pre-code advice'` = 1); mandate, interim lane, PLANNED external lane with selection table, external-lens definition and relay-rule cross-reference, `### Advisory evidence in the ODD tracker`; all 11 verifier keywords present. Commit recorded in the T3 commit.
+- 2026-10-01: T2 done. `WORKFLOW.md`: two advice sections merged into one (`rg -c '^## Pre-code advice'` = 1); mandate, interim lane, PLANNED external lane with selection table, external-lens definition and relay-rule cross-reference, `### Advisory evidence in the ODD tracker`; all 11 verifier keywords present. Commit `1bdbd70`.
+- 2026-10-01: T3 done. `docs/PLAN.md` sequence matches the TODO queue; layers and impact axis updated; dated 2026-10-01 superseding decision appended (original line kept). Commit recorded in the T4 commit.
 
 ## Next step
-T3.
+T4.

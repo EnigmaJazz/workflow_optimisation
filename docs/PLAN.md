@@ -6,26 +6,33 @@ wide-blast-radius changes cannot take a light route. Preference is explicit: ove
 structure is cheaper than repeatedly repairing changes.
 
 ## Sequence
-1. Finish the open review follow-up on the plugin load check (the queued fixes and the finding
-   record). Nothing else starts until this is done or explicitly parked.
-2. Deploy the already-committed guard work — verifier mirror, then service restart — so the
-   routing gate actually runs and begins producing evidence.
-3. Advisor layer: five read-only advisors with pre-code advice obligations, bound to the
-   triggers below.
-4. Workflow policy: classes, ODD/SDD/advisor layers, the impact axis, and the per-project
-   impact-surface declaration.
-5. Tracking contract in the recipe.
-6. Reconcile drift and close the gaps found by the options inventory.
+The queue with statuses and prerequisites is `docs/TODO.md`; this sequence matches its order.
+1. Advisor layer: registration, then the mandatory advice policy (interim lane). Close out the
+   registration (verifier mirror, restart, dispatch each advisor once), then the B0/B1/B2 policy
+   unit: advice mandatory for every non-trivial change, met by the registered advisors.
+2. Guard fixes (R2-001 first, with automated assertions for the stage table and gates). Subject to
+   the advice mandate; they need the verifier mirror and a restart to take effect.
+3. Split `verify-workflow.sh`, before the external lane adds verifier checks.
+4. Workflow policy: classes, ODD/SDD/advisor layers, the impact axis (how much advice), and the
+   per-project impact-surface declaration.
+5. External advisor lane: activate after agent-sandbox-integration plan A is installed (B3), then
+   the routing-guard advice stage (B4) and the advisor handoff document (B5).
+6. Tracking contract in the recipe.
+7. Reconcile drift and close the gaps found by the options inventory; emergency fix route;
+   worker contract; Engram evaluation (report only); remaining routing-guard stage work.
 
 ## Layers
 - **Execution spine** — tiny fix: direct. Everything beyond trivial and not SDD: **ODD** (tracker
   plus Magic Context mirror plus delegation plus the review boundary). SDD when selected.
-- **Pre-code advice** — mandatory when any trigger holds: multi-part change; behaviour sandbox
-  TDD cannot cover; uncertain requirements or approach; wrong approach means substantial rework;
-  security, permissions, credentials or a consequential architecture decision. Smallest
-  sufficient advisor set.
+- **Pre-code advice** — mandatory for every non-trivial change ("trivial" keeps its meaning:
+  trivial document edits; clearly bounded few-line changes with no contract or security effect).
+  Interim lane: the smallest sufficient set of registered advisors, one by default. External
+  lane (after plan A is installed): an external advisor chosen by the policy table in
+  `WORKFLOW.md`.
 - **Post-code review** — focused review of the agreed approach, then the native RDD review.
-- **Impact axis** — raises scrutiny, never lowers it. A heavier route always governs when the
+- **Impact axis** — decides HOW MUCH advice (the number of advisors, whether a cross-family group
+  is needed, whether an external review lineage is used); still raises scrutiny and never lowers
+  it. A heavier route always governs when the
   class and the impact disagree.
 
 ## Constraints
@@ -46,6 +53,11 @@ structure is cheaper than repeatedly repairing changes.
 - ODD was omitted from the first draft of the class mapping; it is the default spine for
   non-SDD work beyond trivial, not a class of its own.
 - The advisor layer and the impact axis share one trigger set; they are one mechanism, not two.
+- 2026-10-01 (supersedes the line above): advice is mandatory for every non-trivial change, so the
+  advisor layer no longer has a trigger set. The impact axis decides how much advice (number of
+  advisors, cross-family group, external review lineage) and still only raises scrutiny, never
+  lowers it. Source: user decision recorded in `docs/advisor/handoff-workflow-optimisation.md`
+  (B0 fix 4).
 
 ## Tracking contract
 The orchestrator maintains `docs/TODO.md`, this plan, and an in-agent todo list, plus the
