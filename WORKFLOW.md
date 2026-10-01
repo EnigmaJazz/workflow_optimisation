@@ -244,7 +244,7 @@ implementation path, regardless of task class:
 
 All Systematic skills required by the workflow must be discoverable from the active Systematic package/registry. Current Systematic registers its bundled skills directly; obsolete compatibility symlinks under `~/.config/opencode/skills/` are removed rather than recreated. `verify-workflow.sh` section 3 checks the active bundled skills and cleans stale Systematic symlinks:
 
-Systematic v3.18.4's workflow-guard result is authoritative. A replay of the same completion `callID` must retain its original terminal `reasonCode`; `invalid-transition`, `guard-unavailable`, `finalization-failed`, and `failed-operation` are failures, not ready/success states. Metadata-only replay must never overwrite the host's own failure sentinel or evidence text.
+Systematic v3.18.4+ (verified in the installed 3.21.0) workflow-guard result is authoritative. A replay of the same completion `callID` must retain its original terminal `reasonCode`; `invalid-transition`, `guard-unavailable`, `finalization-failed`, and `failed-operation` are failures, not ready/success states. Metadata-only replay must never overwrite the host's own failure sentinel or evidence text.
 
 **Workflow skills (orchestrator):**
 - `ce-brainstorm` — requirements elicitation for substantial features

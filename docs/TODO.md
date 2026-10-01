@@ -68,7 +68,8 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   behaviour, the digest pinning contract and the `WORKFLOW_VERIFY_*` switches.
 - **Source:** `docs/PLAN.md` "11. Split `verify-workflow.sh`"; `docs/TODO-HISTORY.md` item 11.
 - **Description:** thin runner plus per-area check scripts (recommended) so each check is
-  independently runnable and testable; the file is 4,770 lines and cannot be whole-body edited.
+  independently runnable and testable. Motivation is readability and testability, no longer
+  tooling: targeted `sandbox_edit` works on the ~4,800-line file (`docs/TODO-HISTORY.md` "2026-10-01 — CORRECTION: sandbox_edit is targeted").
 
 ### Q05. Workflow policy (old item 5)
 - **Status:** PLANNED.
@@ -117,9 +118,11 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 
 ### Q10. Recipe drift and gaps (old item 7), one unit per bullet
 - **Source:** `docs/TODO-HISTORY.md` item 7.
-- **Q10.1 Systematic version drift.** Status: READY. Prerequisites: none. `WORKFLOW.md` names
-  Systematic v3.18.4; v3.21.0 is installed. Status of the installed version is **unverified**:
-  confirm with the installed Systematic inventory before editing.
+- **Q10.1 Systematic version drift.** Status: DONE (2026-10-01). Both `global-config/opencode.json`
+  and `~/.config/opencode/opencode.json` pin `@fro.bot/systematic@3.21.0`; the 3.21.0 package still
+  ships the `screen`/`prepare`/`merge`/`finalize` pipeline (`skills/ce-review/references/
+  pipeline-invocation.md`) and the four guard reason codes. `WORKFLOW.md` wording updated to
+  "3.18.4+ (verified in the installed 3.21.0)".
 - **Q10.2 Documentation class review option.** Status: PLANNED. Prerequisites: Q05. The
   documentation class has no mandated review option; `document-review` is the candidate.
 - **Q10.3 Global tooling adapter and stage coverage.** Status: PLANNED. Prerequisites: Q03.
@@ -143,12 +146,14 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 - **Prerequisites:** none (the re-probe was met on 2026-10-01).
 - **Source:** `docs/TODO-HISTORY.md` item 10 and "sandbox tooling fault fully characterised";
   `docs/PLAN.md` "Coding standard: prefer small files".
-- **Description:** keep the patch route as the interim worker rule (host reads before
-  activation; context-bearing hunks via `sandbox_apply_patch`; verify with `sandbox_bash git
-  diff`; treat a success return as unverified until readback). The conclusion "`sandbox_read`
-  broken at any size; never use" is superseded: `sandbox_read` is the normal read for small
-  and moderate files; very large files use a host read before activation, the saved-output
-  artifact, or a targeted read. First rule is file-size discipline; the patch route is the escape hatch.
+- **Description:** record the revised worker rules (`docs/TODO-HISTORY.md` "2026-10-01 — CORRECTION: sandbox_edit is targeted"):
+  `sandbox_read` is fine to use (very large files may hit the harness's per-response limit; use
+  a targeted read); `sandbox_edit` for targeted `oldString`/`newString` changes at any size up to
+  the 512 KB cap; `sandbox_write` only for files the caller can produce whole; patches when a
+  change spans many separate places. Verify with `sandbox_bash git diff` and treat a success
+  return as unverified until readback. Check the file mode after `sandbox_edit` on an executable
+  (see Q13 file-mode defect). The earlier "whole-body" rule is retracted. The original silent
+  no-op is still UNEXPLAINED (open question). File-size discipline stays a coding standard.
 
 ### Q13. Cross-project items (old item 8) — agent-sandbox-integration
 - **Status:** BLOCKED (external project).
@@ -158,6 +163,10 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   and installed here.
 - **Source:** B0 fix 5 in `docs/advisor/handoff-workflow-optimisation.md`; `docs/TODO-HISTORY.md`
   item 8 and "Review state" (ledgers are shared git-tracked files).
+- **New defect for the broker handoff (2026-10-01):** `sandbox_edit` does not preserve file mode
+  (`verify-workflow.sh` went `100755` → `100644`; `chmod` in the sandbox is "Operation not
+  permitted"; `sandbox_discard` refuses from `SANDBOX_ACTIVE`). Material for executables
+  (`docs/TODO-HISTORY.md` "2026-10-01 — CORRECTION: sandbox_edit is targeted"). Add it to agent-sandbox-integration's TODO by name.
 - **Note:** the host commit tool also rejects multi-line messages (`routing-guard-keys.md` Debt);
   the `ROUTED:` trailer sits on the subject line until that is fixed in the host tooling.
 
@@ -197,8 +206,18 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 - **Source:** `odd/tasks/routing-guard-keys.md` T7c "Implementation order" 2.
 
 ### Q20. Routing guard — advisory findings of `review-10d26170c9d40efc` not covered by Q03
-- **Status:** PLANNED; whether later guard commits already fixed any of them is **status
-  unverified**: confirm by reading the cited locations in `systematic-routing-guard.ts`.
+- **Status:** PLANNED. Verified 2026-10-01 against `systematic-routing-guard.ts` at `069cc4b` (no
+  later guard commit fixes any of them):
+  - R2-003: undetermined. Only its id and line are recorded; the review text is needed to act.
+  - R3-child-regex-format: OPEN (`:904`, strict `id="(ses_...)"` match).
+  - R3-console-warning-dedup: OPEN. `host_review_start` `:778-783` and skill-load `:971-976`
+    bypass dedup. The specialist case `:860` is Q03's R3-specialist-warning-dedup; fix all three
+    together.
+  - R3-copy-path-gap: probably fixed by `15a5b20` (`:793-797`). Unconfirmed until the copy tools'
+    destination field is checked against `targetPath` (`:720-727`).
+  - R3-systematic-apply-marker-gap: OPEN. `sandbox_apply` is excluded from `pathKnown`, and
+    `patchTrackerPath` at `:805` is dead code.
+  - R4-001 (verifier factory): treated as OPEN per the tracker; the verifier code was not read.
 - **Prerequisites:** Q03.
 - **Source:** `odd/tasks/routing-guard-keys.md` review `review-10d26170c9d40efc`.
 - **Findings:** R2-003 (tracker wording, `routing-guard-keys.md:133`); R3-child-regex-format;
@@ -206,8 +225,13 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   (verifier, partially fixed: factory required but not invoked).
 
 ### Q21. Routing guard — advisory follow-ups of `review-16c862492747259a` not covered by Q03
-- **Status:** PLANNED; R3-missing-key-tests, R3-unawaited-key-io and R4-001 (nested inheritance)
-  are **status unverified** (not recorded as fixed): confirm against the guard source.
+- **Status:** PLANNED. All three verified OPEN on 2026-10-01 at `069cc4b`:
+  - R3-missing-key-tests: no guard test file exists. Handle it in the same test unit as Q03's
+    stage assertions.
+  - R3-unawaited-key-io: `void refreshWorkflowKeyActivity` `:718` and `void mintWorkflowKey`
+    `:1003`. The marker writes `:740/908/985` are Q03's race.
+  - R4-001: `getWorkflowKeyStatus` `:430-499` and `refreshWorkflowKeyActivity` `:362-390` go
+    only one parent level, while marker lookup walks 3 levels (`:281-318`).
 - **Prerequisites:** Q03 (R3-unawaited-key-io overlaps the Q03 marker-write race; handle together).
 - **Source:** `odd/tasks/routing-guard-keys.md` "Advisory follow-ups".
 - **Findings:** R3-missing-key-tests (assertions for key expiry, inheritance, parent refresh,

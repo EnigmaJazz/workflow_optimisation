@@ -106,9 +106,19 @@ scripts is the practice to avoid, not the condition to accommodate. This reverse
 item 10: the contract's first rule is file size discipline, and the patch technique is its escape
 hatch.
 
+**Correction 2026-10-01.** The "whole-body" premise above is retracted (`CLAIM-RETRACTIONS.md`,
+`docs/TODO-HISTORY.md` "2026-10-01 — CORRECTION: sandbox_edit is targeted"). `sandbox_edit` takes
+`oldString`/`newString` and edits large files in place, up to the 512 KB cap. Small files stay the
+coding standard, for readability and testability rather than as a tooling constraint. The worker
+rules are queue item Q12.
+
 ## 11. Split `verify-workflow.sh` into smaller files
 `verify-workflow.sh` is 4,770 lines — the file that cannot be whole-body edited, that times out on
 reads, and that made every one of today's repair cycles expensive. Split it.
+
+**Correction 2026-10-01:** the tooling no longer forces the split (targeted edits and large reads
+both work). It remains worthwhile for readability and testability, and it precedes B3, which adds
+verifier checks.
 
 Options to weigh when implementing:
 - A thin runner that invokes per-area check scripts: each independently runnable and testable, with

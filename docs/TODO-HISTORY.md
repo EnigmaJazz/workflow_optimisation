@@ -247,3 +247,35 @@ rather than a whole-file read. `sandbox_edit` still requires the whole body to b
 files still need patches — but that is an OUTPUT limit in the caller, not a tool fault.
 
 Item 10 (worker sandbox rules) should be updated with this revision when it is implemented.
+## 2026-10-01 — CORRECTION: sandbox_edit is targeted, not whole-body; two claims retracted
+Verified against the installed plugin source (`sandbox-tools.ts`) and empirically:
+
+- Its arguments are `oldString` / `newString` / optional `replaceAll`. The tool description reads
+  "replacing only the specified text. oldString must occur exactly once unless replaceAll is true.
+  Refuses an empty oldString, no match, multiple matches without replaceAll." There is no
+  whole-body requirement.
+- A targeted one-character edit on `verify-workflow.sh` (~235 KB, ~4,800 lines) SUCCEEDED:
+  `1 file changed, 1 insertion(+), 1 deletion(-)`.
+
+**Retracted claims:**
+1. "`sandbox_edit` cannot edit this file" — wrong; targeted edits work at this size.
+2. "The original silent no-op was caused by an incomplete body" — unsupported. The tool refuses on
+   no-match or multi-match, so an incomplete body cannot yield a silent write. **The original
+   silent no-op remains UNEXPLAINED and is an open question, not a cause.** Both belong in
+   `CLAIM-RETRACTIONS.md` as mechanisms claimed without reading the tool's code.
+
+**New real finding:** `sandbox_edit` does not preserve the file mode — `verify-workflow.sh` went
+from `100755` to `100644` during the probe. `chmod` inside the sandbox returned
+"Operation not permitted", and `sandbox_discard` refused with "cannot discard result from state
+SANDBOX_ACTIVE". For an executable script this is material, since the verifier runs it. The host
+file was untouched because nothing was applied. This belongs in the handoff for the broker project.
+
+**Revised item 10 rule:**
+- `sandbox_read` is fine to use;
+- `sandbox_edit` for targeted changes at any file size up to the 512 KB cap;
+- `sandbox_write` only for files the caller can produce whole;
+- patches when changes span many separate places.
+
+Item 11 (splitting `verify-workflow.sh`) remains worthwhile for readability and testability, but is
+no longer forced by the tooling. The 512 KB silent-truncation cap and the ~219 KB write-back limit
+were both fixed; today's successful large read confirms the reply now arrives intact.
