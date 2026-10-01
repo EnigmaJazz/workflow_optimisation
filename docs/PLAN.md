@@ -32,6 +32,9 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
 11. gentle-ai v4 upgrade (planned; owner-triggered): decisions, then docs/agents/verifier/guard
     changes on one gated branch, then the runbook (queue Q29-Q34).
 
+12. OpenCode V2 upgrade (planned; owner-triggered; after the gentle-ai v4 upgrade): probe side by
+    side, port plugins dual-mode, verifier V2 mode, change set and runbook (queue Q40-Q47).
+
 ## Layers
 - **Execution spine** — tiny fix: direct. Everything beyond trivial and not SDD: **ODD** (tracker
   plus Magic Context mirror plus delegation plus the review boundary). SDD when selected.
@@ -131,6 +134,19 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
   - an in-flight SDD preflight (Q39). Apply refuses while any open OpenSpec, Magic Context or
     Engram SDD change lacks an owner disposition: finish on 3.7.0 first, convert to ODD, or
     abandon.
+
+## OpenCode V2 upgrade path (planned, 2026-10-02)
+- **Why:** OpenChamber 2.x requires OpenCode 2.0.15 or newer.
+- **Order:** gentle-ai v4 first (native review on V2 needs it), then a V2-compatible Systematic
+  release (hard blocker), third-party plugin readiness (`~/ai-workspace/OPENCODE-V2-PLUGIN-TASKS.md`) and the agent-sandbox plugin port,
+  and only then V2.
+- **Non-destructive by construction:**
+  - V2 reads V1 config and normalises it in memory without rewriting files.
+  - This repo's plugins go dual-mode (one file exports V2 `Plugin.define` and V1 `server()`).
+  - V2 installs beside V1, and its first run is probed against a scratch copy of the config.
+  - Changes ship as the Q36-style change set with a drift-preserving revert, and the V1 binary
+    stays available for rollback.
+- Queue Q40-Q47.
 
 ## Route for former-SDD work (proposed, v4)
 

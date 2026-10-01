@@ -28,7 +28,7 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 **Current working order (owner, 2026-10-01):** Q35 (Claude Code side, once scope is confirmed) can run any time; Q03 (R2-001 + cross-route stage resolution) → Q25
 (handoff corrections) → Q26 (verifier prose coupling) → Q28 (deployment gating matrix) → the rest
 in listed order; then, when the owner decides to upgrade: Q29 → Q30–Q33 delivered as the Q36 change set (one feature branch,
-gated) → Q34. Every source change then needs the deploy step: verifier mirror, then restart. Q27
+gated) → Q34. OpenCode V2 (Q40-Q47) follows the v4 upgrade. Every source change then needs the deploy step: verifier mirror, then restart. Q27
 waits on an owner decision.
 
 ### Q01. Advisor layer close-out
@@ -725,6 +725,148 @@ Release facts that drive the group:
 - **Record:** a row per change in the project's tracker or `ROUTER-LOG.md` with its disposition.
   The Q36 journal references them.
 - **Gate:** the apply preflight is the enforcement point (Q28).
+
+## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
+Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
+Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).
+
+Verified facts (sources: https://opencode.ai/v2/docs/migrate-v1/,
+https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
+- **V1 plugins do not run on V2.** Entry becomes `export default Plugin.define({id, setup(ctx)})`
+  from `@opencode/plugin`, and hooks move to domains (`ctx.tool.hook("execute.before")`,
+  `ctx.session.hook("prompt"|"context")`, `ctx.agent.transform`, `ctx.event.subscribe`). Dual-mode
+  entries (`{...Plugin.define(...), server(){V1 hooks}}`) run on both V1 (1.18.29+) and V2.
+- **Config:** V2 reads V1 config and normalises it in memory without rewriting files (`agent` →
+  `agents`, `plugin` → `plugins`, `prompt` → `system`, permission arrays, `task` → `subagent`).
+  `subagent_depth` and `compaction.prune` are dropped. `CLAUDE.md` is no longer read, only
+  `AGENTS.md`.
+- **TUI:** `tui.json` is auto-migrated to `~/.config/opencode/cli.json` on first V2 start. V1 TUI
+  plugins need `@opencode/plugin/tui` entrypoints.
+- **Native review on V2 needs gentle-ai v4.** v3.7.0 refuses it. v4 admits it only with the
+  `gentle-ai.opencode-relay/v2-staged` relay, proven only on OpenCode 2.0.19 on macOS. When a
+  review plugin refuses a call, later plugins' hooks are skipped for it.
+- **Third-party readiness** (detail in `~/ai-workspace/OPENCODE-V2-PLUGIN-TASKS.md`):
+  - **Systematic 3.21.0 is V1-only** (peer `@opencode-ai/plugin ^1.1.30`). This is a hard blocker,
+    because the `ce:*` skills and agents depend on it.
+  - `opencode-subagent-statusline` (issue #97), `opencode-sdd-engram-manage` (#52) and
+    `opencode-plugin-auto-update` (#7) are not ready.
+  - `opencode-usage-total`: not yet, inferred.
+  - `@cortexkit/opencode-magic-context` needs upgrading to 0.44.4 and `@cortexkit/aft-opencode`
+    to 0.58.2; both have V2 support.
+
+### Q40. V2 prerequisites and blockers
+- **Status:** BLOCKED.
+- **Prerequisites:**
+  - gentle-ai v4 upgrade complete (Q29-Q39), because native review on V2 needs v4.
+  - A V2-compatible Systematic release (external).
+  - Each third-party plugin either has a V2 release or is retired (`~/ai-workspace/OPENCODE-V2-PLUGIN-TASKS.md`).
+  - The agent-sandbox-integration V2 port (Q47).
+- **Description:** track each blocker with its evidence link, and re-check upstream before
+  scheduling. Owner decides the target V2 version: at least 2.0.15 (OpenChamber); gentle-ai's
+  review proof is on 2.0.19; latest is 2.0.21.
+
+### Q41. Side-by-side V2 probe (non-destructive; answers the unverified behaviour)
+- **Status:** READY once V2 can be installed beside V1 (it ships an `opencode2` binary; confirm the
+  install channel).
+- **Prerequisites:** none. Run against a scratch COPY of the config (separate `XDG_CONFIG_HOME`),
+  never the live one.
+- **Description.** Probe and record:
+  - whether `plugin` (V1 key) and global `~/.config/opencode/plugins/*.ts` auto-load still work;
+  - `{file:...}` prompt includes;
+  - `mode`, `hidden`, `variant` and the `tools` maps;
+  - the `permission.task` → `subagent` mapping and `host_*`/`sandbox_*` tool-id permissions;
+  - whether `opencode agent list`, `opencode debug agent <name>` and `opencode run --format json`
+    exist, and their output shape (the verifier depends on all three);
+  - tool-call refusal by throwing from `execute.before`;
+  - `tui.json` + `tui.jsonc` → `cli.json` migration (including the herdr entry);
+  - the V2 event fields the guard reads (`input`, task output with `ses_` ids, command parts).
+  Results feed Q42-Q45.
+
+### Q42. Port this repo's plugins to dual-mode (V1 + V2)
+- **Status:** PLANNED.
+- **Prerequisites:** Q41.
+- **Description.** Each file exports `Plugin.define({id, setup})` plus `server()` with the
+  current V1 hooks, so one file works before and after the switch:
+  - `astra-sol-upgrade.ts` (`config` hook mutating `config.agent` and `permission.task`): becomes
+    `ctx.agent.transform`, or define the `-astra` aliases statically in config.
+  - `systematic-routing-guard.ts`: `chat.message` → `session.hook("prompt")`,
+    `tool.execute.before/after` → `tool.hook(...)` (`event.input` replaces `output.args`;
+    re-verify `output.output` parsing of child `ses_` ids), `command.execute.before` → command
+    transform. Account for hooks being skipped after another plugin refuses a call (plugin
+    order).
+  - `workflow-health-check.ts`: `experimental.chat.system.transform` → `session.hook("context")`.
+    Keep the `WORKFLOW_HEALTH_CHECK_PROBE` recursion guard.
+  - Tests: stage-table assertions (Q03) run against both entrypoints.
+
+### Q43. Config for V2 (`global-config/opencode.json`, `tui.json` → `cli.json`)
+- **Status:** PLANNED.
+- **Prerequisites:** Q41, Q40 (plugin list).
+- **Description:**
+  - Keep V1-compatible keys while dual-running (V2 normalises them in memory). Move to native
+    V2 keys only after V1 is retired.
+  - Decide on the dropped `subagent_depth: 3` (V2 has no equivalent) and `compaction.prune`.
+  - Update the plugin list per `~/ai-workspace/OPENCODE-V2-PLUGIN-TASKS.md`: upgrade magic-context and aft; remove sdd-engram-manage,
+    gentle-logo, the auto-update local build (it rewrites `plugins` → `plugin`) and statusline
+    until #97 is fixed.
+  - Add a canonical `global-config/cli.json` and retire `tui.json` handling once V2 is the
+    runtime.
+
+### Q44. Verifier V2 mode (`verify-workflow.sh`)
+- **Status:** PLANNED.
+- **Prerequisites:** Q41, Q42, Q43; Q04 and Q26 strongly preferred.
+- **Description.** Select the mode by the `opencode --version` major.
+  - Runtime probes `:4437` (`agent list`), `:4518` (`debug agent`) and `:4650`/`:4657`/`:4696`
+    (`run`) are adapted per Q41.
+  - JS helpers `:1872-1955` parse the V2 permission arrays (renamed actions).
+  - `check_plugin_loads` (`:200-262`) also asserts a V2 `id` + `setup`.
+  - `tui.json` recovery (`:114-125`, `:577-724`) gains `cli.json`.
+  - `:2847` "OpenCode V2 native review remains unavailable and fails closed" and the `:2841` v8
+    relay text are replaced by the v4 V2 relay declaration check.
+  - The auto-update pins (`:150`, `:3213-3236`) and rate-limit-fallback checks (`:131-146`,
+    `:2399`, `:2427-2430`) follow Q43.
+  - Re-pin the digest.
+
+### Q45. Workflow documents for V2
+- **Status:** PLANNED.
+- **Prerequisites:** Q41, gentle-ai v4 (Q29-Q39).
+- **Description:**
+  - `WORKFLOW.md:142`, `:165` ("OpenCode V1 v8 review work"; "V2 native review remains
+    unavailable") and the `asi-review-*` relay lane text (`:173-177`): rewrite for gentle-ai v4's
+    V2 relay. Owner decision: the reviews stay on in-OpenCode agents (decided), but the relay
+    mechanism changes to gentle-ai's managed V2 review transport.
+  - Note that V2 reads `AGENTS.md` only, never `CLAUDE.md`.
+  - Update the routing-guard and plugin-order notes for the refusal-skips-later-hooks limitation.
+
+### Q46. OpenCode V2 change set and runbook (non-destructive, reversible)
+- **Status:** PLANNED.
+- **Prerequisites:** Q36 tool (reuse it with an `upgrade/opencode-v2/` profile); Q40-Q45.
+- **Description.** The same declarative operations, `expect_before`, write-ahead journal and
+  drift-preserving revert as Q36.
+- **Runbook:**
+  1. Preflight: Q40 blockers cleared, `~/ai-workspace/OPENCODE-V2-PLUGIN-TASKS.md` items done or retired, verifier passing on V1.
+  2. Back up the live config.
+  3. Install V2 beside V1.
+  4. Apply the change set (dual-mode plugins, config ops).
+  5. First V2 start (journal the `cli.json` migration).
+  6. Verifier in V2 mode.
+  7. OpenChamber check (plugin loaded status), then `--behavioral` and dispatch checks.
+- **Rollback:**
+  - V2 never rewrites `opencode.json`, and the plugins are dual-mode, so V1 stays runnable.
+  - Revert the journal (drift preserved).
+  - Switch back to the V1 binary.
+  - `cli.json` is left in place (V1 ignores it).
+
+### Q47. Cross-project and out-of-repo plugin work for V2
+- **Status:** PLANNED, external.
+- **Prerequisites:** none to file.
+- **Description:**
+  - **agent-sandbox-integration owns** `sandbox-tools.ts` (about 40 `tool({...})` definitions →
+    `ctx.tool.transform` with JSON Schema; `chat.params`), `reviewer-relay-transport.ts` and
+    `lib/reviewer-relay-core.ts` (`event`, system/messages transforms, `tool.execute.*`) and
+    `routing-guard.ts`. Add these to its TODO by name.
+  - **Other local plugins** (nono, codecast, herdr, `use-grep-tool`, rate-limit-fallback fork,
+    auto-update local build, gentle-logo, `sdd-task-result-artifacts`) are tracked in `~/ai-workspace/OPENCODE-V2-PLUGIN-TASKS.md`, with
+    per-plugin tasks, verification and rollback.
 
 ## Done
 
