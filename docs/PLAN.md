@@ -27,6 +27,10 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
    routing-guard stage work.
 9. Engram as the inter-agent communication channel: evaluation first, then adoption as a
    canonical MCP with a scoped `WORKFLOW.md` policy (Magic Context stays main memory).
+10. Deployment gating matrix (Q28): every workflow rule gets an enforcement point or an
+    advisory-only record.
+11. gentle-ai v4 upgrade (planned; owner-triggered): decisions, then docs/agents/verifier/guard
+    changes on one gated branch, then the runbook (queue Q29-Q34).
 
 ## Layers
 - **Execution spine** — tiny fix: direct. Everything beyond trivial and not SDD: **ODD** (tracker
@@ -50,6 +54,9 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
 - The orchestrator is read-only: every mutation and every execution is delegated.
 - Verification must execute what it validates; a build or parse check proves syntax only.
 - Tracking is a precondition for progress, not an afterthought.
+- A workflow rule is not deployed until it has an enforcement point (a routing-guard stage or
+  check, a verifier check, or a native gentle-ai gate) or is explicitly recorded as advisory-only
+  with the reason. Prose alone is not deployment (owner, 2026-10-01; queue Q28).
 
 ## Recorded design decisions
 - `ce:review` is owed for small and substantial features and for bug fixes, not for global
@@ -75,6 +82,12 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
 - 2026-10-01 (amends the line above): external hosts ALSO give a post-code advisory review, after
   the work-unit commit and before the mandatory `ce:review` and native review. It is advisory
   evidence only and never a gentle-ai lens.
+- 2026-10-01: interim post-code advisory rule. Until the external lane is active, the registered
+  `advisor-*` agents give the post-code advisory review of a non-trivial unit, only when the route
+  does not run `ce:review` (which already is an advisory multi-persona review). Evidence only,
+  recorded with step `post-code`. `post-code-pair` takes over once the external lane is active.
+- 2026-10-01: deployment gating. All workflow changes must be correctly gated when deployed; see
+  the Constraints bullet and queue Q28 (gating matrix).
 
 ## Memory and inter-agent communication (direction, 2026-10-01)
 - **Magic Context is the main memory:** durable project memory and the ODD tracker mirror.
@@ -88,6 +101,37 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
   - `WORKFLOW.md` states clearly what goes where, with no duplication between the two stores.
   - An Engram message is evidence, never approval.
 - **Until then** the current rule stands: ODD work does not invoke `mem_*`.
+
+## Route for former-SDD work (proposed, v4)
+
+Proposal only; the owner confirms or changes it in queue Q29a. gentle-ai v4.0.0 removes SDD, so
+the class that used to offer SDD needs a route built from the ODD spine and the `ce:*` skills.
+
+**Substantial design-heavy feature** (material product or design ambiguity):
+1. ODD spine: feature document `odd/tasks/<feature>.md` created before any source write.
+2. `ce:brainstorm` produces the requirements doc (`docs/brainstorms/`).
+3. `ce:plan` produces the plan (`docs/plans/`); design decisions are recorded in the feature
+   document.
+4. Pre-code advice: interim `advisor-*` set; external `pair-default` once active. Consequential
+   findings are resolved before coding.
+5. `ce:work` task by task, each closing with a work-unit commit.
+6. Per-commit RDD assessment.
+7. Post-code advisory review: interim only when `ce:review` is not run; external `post-code-pair`
+   once active.
+8. `ce:review`.
+9. Native gentle-ai review (`asi-review-*`) when due.
+10. `ce:compound` captures learnings.
+
+SDD artifact mapping:
+
+| SDD artifact | Replacement |
+|---|---|
+| proposal, spec | requirements doc (`ce:brainstorm`) |
+| design | plan (`ce:plan`) plus feature-document decisions |
+| tasks | feature-document checklist |
+| archive | ODD progress record plus `ce:compound` |
+
+Guard stages: requirements, plan, tracker, review, namespaced by route (depends on Q03).
 
 ## Tracking contract
 The orchestrator maintains `docs/TODO.md`, this plan, and an in-agent todo list, plus the

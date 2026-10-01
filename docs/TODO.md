@@ -26,8 +26,10 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 ## Queue (in order)
 
 **Current working order (owner, 2026-10-01):** Q03 (R2-001 + cross-route stage resolution) → Q25
-(handoff corrections) → Q26 (verifier prose coupling) → the rest in listed order. Every source
-change then needs the deploy step: verifier mirror, then restart. Q27 waits on an owner decision.
+(handoff corrections) → Q26 (verifier prose coupling) → Q28 (deployment gating matrix) → the rest
+in listed order; then, when the owner decides to upgrade: Q29 → Q30–Q33 (one feature branch,
+gated) → Q34. Every source change then needs the deploy step: verifier mirror, then restart. Q27
+waits on an owner decision.
 
 ### Q01. Advisor layer close-out
 - **Status:** IN PROGRESS. Registration fixes landed (`c01a73f`, `c5a326b`, `8570dc6`). Verifier
@@ -227,7 +229,7 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
   - Replace the current "do not invoke `mem_*`" rule with this scoped rule.
 
 ### Q15. Routing guard T7 — `workflow-sdd-secure` phase-agent gating
-- **Status:** PLANNED.
+- **Status:** PLANNED; obsolete on v4 (see Q33).
 - **Prerequisites:** Q03.
 - **Source:** `odd/tasks/routing-guard-keys.md` T7c "Implementation order" 3.
 
@@ -357,6 +359,186 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
   - a narrow advisor-side `sandbox_discard` grant;
   - withdraw the mutation tools and route all execution through structured test requests.
   Record the choice in `WORKFLOW.md` and `docs/ADVISOR-HANDOFF.md`.
+
+### Q28. Deployment gating matrix
+- **Status:** READY.
+- **Prerequisites:** none for the matrix itself. Implementing the gates depends on Q03, Q07, Q26.
+- **Source:** owner requirement, 2026-10-01: "All changes to workflow will ultimately have to be
+  correctly gated when deployed." `docs/PLAN.md` Constraints.
+- **Description:** a table mapping every workflow rule to its enforcement point (routing-guard
+  stage or check, verifier check, native gentle-ai gate) and a status: enforced, planned, or
+  advisory-only (with the reason). At minimum these rules:
+  - pre-code advice record (interim and `pair-default`);
+  - post-code advisory review (interim when no `ce:review`; `post-code-pair`);
+  - `ce:review` before the native review where owed;
+  - native review lanes only `asi-review-*`, and no `externalLenses: true`;
+  - ODD tracker before the first source write;
+  - external sessions only user-opened;
+  - Engram channel scope (once adopted).
+
+  Each gap becomes a named follow-up item in this file.
+
+## gentle-ai v4 upgrade (PLANNED — implement when the owner decides to upgrade)
+
+Source for the whole group: `gh release view v4.0.0 -R Gentleman-Programming/gentle-ai` (released
+2026-10-01; repo docs at tag v4.0.0). Installed: 3.7.0 via Homebrew (`/home/linuxbrew/.linuxbrew/bin/gentle-ai`);
+OpenCode 1.18.33 (V1). Route proposal: `docs/PLAN.md` "Route for former-SDD work".
+
+Release facts that drive the group:
+- SDD and OpenSpec are removed: no `/sdd-*`, profiles or phases. Removed subcommands:
+  `sdd-status`, `sdd-continue`, `sdd-attempt`, `sdd-archive-compose`, `sdd-task-result`,
+  `sdd-preflight-hook`. Removed flags: `install --sdd-mode`, `sync --sdd-mode`,
+  `sync --sdd-profile-strategy`. `sync --strict-tdd` is rejected and a saved `strict_tdd` is
+  ignored (test-first guidance is installed by default).
+- One managed orchestrator prompt per runtime. OpenCode generic agents: `gentle-ai-explore`
+  (read-only mapper), `gentle-ai-worker` (implementation writer), `gentle-ai-verify` (read-only
+  verifier). `review-risk|resilience|readability|reliability`, `jd-fix-agent`, `jd-judge-a`,
+  `jd-judge-b` are re-provisioned. The legacy `__managed_by` marker is removed by a JSONC-aware
+  cleanup.
+- Delegation uses an evidence budget instead of file counts: inline only within one parallel batch
+  (at most 3 calls, about 10k tokens); more than about 5 sequential lookups or long-session mapping
+  goes to one read-only explorer returning at most about 2k tokens with `path:line`. The writer
+  rule for 2+ non-trivial files is unchanged.
+- v4 ODD mirrors the feature document to Engram under `odd/<feature>/tasks`; our recipe mirrors to
+  Magic Context.
+- `sync` exits non-zero when it cannot detect the OpenCode version. The OpenCode review plugin
+  refuses on PATH `gentle-ai` binary skew. V2-only managed plugins (`@opencode/plugin`) do not
+  apply on V1; note them for a later OpenCode V2 move.
+- `review assess` judges added lines; STATUS returns a runnable `review recover` command;
+  Engram, Context7 and Persona writers target the effective settings file. Go module path is `/v4`:
+  a v3 self-upgrade cannot cross to v4 on Go installs; `brew upgrade gentle-ai` is fine.
+
+### Q29. Decisions before upgrading (owner)
+- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Prerequisites:** none.
+- **Source:** v4.0.0 release notes; `docs/PLAN.md` "Route for former-SDD work (proposed, v4)",
+  "Memory and inter-agent communication".
+- **Description:** decisions only; record each in `docs/PLAN.md` Recorded design decisions.
+  - (a) Route for former-SDD work: confirm or change the proposed route in `docs/PLAN.md`.
+  - (b) ODD tracker mirror store: keep Magic Context (owner direction; Engram is only the
+    inter-agent channel) and override or disable v4's Engram `odd/<feature>/tasks` mirror, or
+    accept v4's mirror. Tie to Q14.
+  - (c) `gentle-orchestrator` prompt: keep the user-owned prompt, or adopt v4's managed prompt and
+    re-apply the local overlays.
+  - (d) Agent allocation: map `sdd-apply`/`sdd-apply-local` write paths, `sdd-explore`,
+    `sdd-verify`, `sdd-research`, and our `explore`/`general` to `gentle-ai-explore`,
+    `gentle-ai-worker`, `gentle-ai-verify`. Keep the `asi-review-*` relay lanes and `advisor-*`.
+    Keep model and family diversity (verifier of at least 3 families for the 4R set; Judgment Day
+    diversity). Keep the Astra aliases working.
+
+### Q30. Workflow documents
+- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Prerequisites:** Q29.
+- **Source:** v4.0.0 release notes. `WORKFLOW.md` :7, :11, :35, :39, :86, :100 (Substantial feature
+  row), :105-111 (Classification and SDD Selection Rules), :123, :125 (`sdd-verify` verifies
+  `sdd-apply`), :127-134 (Context and SDD Artifact Backend; `gentle-ai.sdd-status/v2`), :140
+  `host_sdd_*`, :144, :146, :150-155 (Optional SDD Research), :157, :162, :186-187
+  (`sdd-archive-compose`), :196-201 (precondition rows), :212, :223-226 (UI lane in SDD), :241,
+  :271-273 (Astra rows sdd-design/spec/verify), :297, :302, :321, :418; file-count rules :52-58
+  (esp. :55); TDD-mode forwarding :66. `global-config/AGENTS.md` :49-59 and :236. Skills and
+  `docs/PLAN.md` :20, :32-33, :63, :120.
+- **Description:**
+  - Delete the SDD sections, rows and the `workflow-sdd-secure/` skill (`SKILL.md`,
+    `references/sdd-magic-adapter.md`).
+  - Rewrite Task Classes and the selection rules to the Q29a route.
+  - Replace file-count delegation with the evidence budget.
+  - Retitle the "Gentle AI 3.5.0" headings to version-neutral or 4.x.
+  - Remove TDD-mode-selection assumptions (test-first is the default; still forward the runner).
+  - Remove the `user:host-sdd-runtime-boundaries` block (`host_sdd_status`, `host_sdd_continue`)
+    and the `workflow-sdd-secure` routing line in `AGENTS.md`.
+  - Update the Astra table.
+  - Skills: `workflow-route/SKILL.md` :3, :13, :14, :18, :20, :22;
+    `workflow-route/references/session-decisions.md` :9, :11-12, :17 (`sdd-apply-local`/`sdd-apply`
+    write path), :34, :38, :50-52, :58, :80, :85, :88; `workflow-odd-secure/SKILL.md` :8, :11
+    (file-count triggers), :12, :14; `workflow-odd-secure/references/odd-and-review.md` :3-8, :19,
+    :33, :40, :56-57; `workflow-systematic/SKILL.md` :13;
+    `workflow-systematic/references/specialists.md` :20.
+  - Update the session-decisions write path to the Q29d agents.
+  - Update `docs/PLAN.md` at the cited lines.
+
+### Q31. Agent allocation (`global-config/opencode.json`, `tui.json`, `systematic.jsonc` if needed)
+- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Prerequisites:** Q29.
+- **Source:** v4.0.0 release notes. `global-config/opencode.json`: `gentle-orchestrator` :522
+  ("Gentle AI SDD Orchestrator"), :647 (local prompt "# Gentle AI — SDD Orchestrator
+  Instructions"); `permission.task` sdd-* :546-555, :594; `host_sdd_*` permissions :622-629,
+  :643-644, :2133, :2158-2173; agents `sdd-apply` :1117, `sdd-apply-local` :1165, `sdd-archive`
+  :1213, `sdd-design` :1261, `sdd-explore` :1309, `sdd-init` :1357, `sdd-onboard` :1405,
+  `sdd-propose` :1453, `sdd-spec` :1501, `sdd-tasks` :1549, `sdd-verify` :1597, `sdd-research`
+  :1749 (prompts `{file:./prompts/sdd/sdd-*.md}` plus the "USER-OWNED MAGIC CONTEXT SDD ADAPTER");
+  `asi-review-*` :595-600, :1809-2013; `jd-*` :537-539, :672, :720, :770.
+  `global-config/tui.json` :6 `opencode-sdd-engram-manage`.
+- **Description:**
+  - Remove the `sdd-*` agents, their `permission.task` entries and the `host_sdd_*` permissions.
+  - Add and allow the v4 generic agents per Q29d, with explicit models.
+  - Reconcile the re-provisioned `review-*` and `jd-*` agents with our definitions.
+  - Retitle the `gentle-orchestrator` description and prompt per Q29c.
+  - Drop `opencode-sdd-engram-manage` from `tui.json`.
+  - Engram MCP per Q14b.
+  - Remove the `./prompts/sdd/` prompt files no agent references.
+
+### Q32. Verifier (`verify-workflow.sh`)
+- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Prerequisites:** Q29, Q31. Q26 strongly preferred, Q04 preferred.
+- **Source:** v4.0.0 release notes; `verify-workflow.sh` line refs below (read-only mapping,
+  2026-10-01).
+- **Description:** the verifier will FAIL on v4. Remove or replace:
+  - §1: `:3380-3383` `gentle-ai sdd-archive-compose --help`; `:3399-3423` required
+    `$SKILLS_DIR/sdd-research|sdd-verify|sdd-archive/SKILL.md` and `commands/sdd-research.md`.
+  - §6: `:4277-4278` and `:765` require `workflow-sdd-secure` files.
+  - §7: `:4108`, `:4118`, `:4132` grep `WORKFLOW.md` for "## Context and SDD Artifact Backend",
+    "Optional SDD Research and Diagnostics — Gentle AI 3.5.0", "gentle-ai sdd-archive-compose";
+    `:4333`, `:4339`, `:4349`, `:4357` routing-contract SDD strings; `:2788-2793`, `:2870`,
+    `:2889`, `:2904` embedded SDD strings.
+  - §9: `:352-355` required agents `sdd-research`, `sdd-apply-local`; `:2273` writer/reviewer pair
+    `sdd-apply`/`sdd-verify`; `:2641-2643` `host_sdd_*` permission asserts; `:2663-2679` `sdd-*`
+    writer and `SDD_RESEARCH_*` checks; `:2699`, `:2767`; `:2916-2919`
+    `MAGIC_CONTEXT_SDD_OVERRIDE_MISSING`; `:2950-2958` runtime probes; `:3108-3126` GitHub MCP
+    reader lists that include sdd agents; `:4448-4456` probe list; `:4617`.
+  - Section 0 AGENTS recovery: `:861-862`, `:941-952`, `:1268`, `:4202-4248` (host-sdd block).
+  - Version: the floor at `:3343-3349` is 3.5.0 and passes on 4.0.0; move it to 4.0.0 and replace
+    the `GENTLE_AI_V3_5_SYNC_*` codes (`:3366-3372`, read `~/.gentle-ai/state.json`) with
+    `GENTLE_AI_V4_*`.
+  - "Gentle AI 3.5.0" heading pins: `:4073` (`WORKFLOW.md:74`), `:4118` (`WORKFLOW.md:150`),
+    `:4121` (`WORKFLOW.md:50`), `:2813-2815`, `:2866`, `:2872`, `:4316`, `:4321`: replace.
+  - File-count delegation pins `:2774`, `:2823`, `:4125`, `:4318`: update to evidence-budget
+    wording, ideally via Q26 anchors.
+  - Add checks: no `sdd-*` agent or `host_sdd_*` grant present; v4 generic agents registered with
+    the expected tools; `gentle-ai sync` exit status handled; review plugin binary-skew awareness.
+  - Re-pin `VERIFY_SCRIPT_SHA256` (`:76` and the health plugin) after the edits.
+
+### Q33. Guard and plugins
+- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Prerequisites:** Q29; Q03 (route namespacing).
+- **Source:** v4.0.0 release notes. `systematic-routing-guard.ts` :219 (skill list contains
+  `workflow-sdd-secure`), :505 (`host_sdd_` prefix); `workflow-health-check.ts` :8, :40 (comments);
+  `astra-sol-upgrade.ts` :42, :57-70 (depend on `jd-fix-agent`/`gentle-orchestrator` names).
+- **Description:**
+  - Remove `workflow-sdd-secure` from the guard skill list (:219) and the `host_sdd_` prefix
+    handling (:505).
+  - Close Q15 as obsolete.
+  - ROUTE_STAGES for the Q29a route: requirements, plan, tracker, review, namespaced by route
+    (relates to Q03 cross-route namespacing and Q18).
+  - Update the comments in `workflow-health-check.ts`.
+  - Confirm `astra-sol-upgrade.ts` still resolves its agent names after Q31.
+
+### Q34. Upgrade procedure (runbook)
+- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Prerequisites:** Q29-Q33 on one gated branch.
+- **Source:** v4.0.0 release notes; Q24 (sync overwrites the live config).
+- **Description:**
+  1. Confirm the install method (`command -v gentle-ai`; Homebrew formula present, so
+     `brew upgrade gentle-ai`).
+  2. `gentle-ai sync --dry-run` first.
+  3. Upgrade the binary.
+  4. `gentle-ai sync`; expect it to overwrite managed agents and prompts, and handle a non-zero
+     exit when it cannot detect the OpenCode version.
+  5. Apply Q30-Q33 from the branch.
+  6. Run the verifier (recovery plus checks).
+  7. Restart OpenCode.
+  8. `verify-workflow.sh --behavioral`.
+  9. Dispatch checks: `advisor-*`, the v4 generic agents, `asi-review-*`.
+  10. Rollback: keep the v3.7.0 binary and the verifier backup in `backups/workflow-recovery/`.
 
 ## Done
 
