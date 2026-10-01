@@ -633,12 +633,18 @@ Release facts that drive the group:
     - Revert refuses a missing journal, or one that fails its checksum or schema, and changes
       nothing.
     - Both tools take a lock so two runs cannot interleave.
+  - **Contents (owner, 2026-10-01):** the set includes
+    - the `host_sdd_*` → `deny` operations and the matching verifier change, as one unit (Q37);
+    - the strict-TDD removals (Q38);
+    - the in-flight SDD preflight (Q39). Apply refuses while any in-flight SDD change lacks a
+      recorded disposition.
   - **Tests:** a fixture tree covering clean apply, already-applied, conflict-skip, interrupted
     apply then resume, revert, revert-with-drift-preserved, revert of a conflict-skipped
     operation (no-op), and a missing or corrupt journal (refused).
 
-### Q37. Deny the `host_sdd_*` tools now (optional pre-upgrade step)
-- **Status:** READY; awaiting owner go-ahead to apply before the upgrade rather than with it.
+### Q37. Deny the `host_sdd_*` tools (merged into the Q36 change set)
+- **Status:** MERGED into Q36 (owner, 2026-10-01: "this should be part of the script"). Not
+  applied early. The details below define the Q36 operations and preflight.
 - **Prerequisites:** none. It is a global tooling change, routed as source change, then native
   review, then verifier mirror and restart.
 - **Source:** owner, 2026-10-01; current grants listed in Q31.
@@ -656,6 +662,69 @@ Release facts that drive the group:
     `gentle-ai sdd-status` on 3.7.0 for each registered project, and look for active
     `openspec/changes/*` or Magic Context `SDD_ARTIFACT` keys. If any are found, stop and ask
     the owner.
+
+### Q38. Remove strict-TDD references (v4 retires `strict_tdd`)
+- **Status:** PLANNED, gated by "owner decides to upgrade"; delivered in the Q36 change set.
+- **Prerequisites:** Q29c (the orchestrator prompt decision decides how its block is removed).
+- **Source:** v4.0.0 release notes (`sync --strict-tdd` rejected; a saved `strict_tdd` enables
+  nothing; test-first guidance installed by default). Read-only survey 2026-10-01.
+- **Description.** Remove or rewrite:
+  - `global-config/opencode.json:647`, the `gentle-orchestrator` prompt's "Strict TDD Forwarding
+    (MANDATORY)" block, which reads `strict_tdd: true` from the SDD init record and injects
+    "STRICT TDD MODE IS ACTIVE".
+  - `WORKFLOW.md:66` and `global-config/skills/workflow-odd-secure/references/odd-and-review.md:19`:
+    "Forward resolved TDD mode, its source, and exact test runner". Rewrite to: test-first by
+    default for runnable deterministic behaviour changes, and forward the exact test runner.
+  - `global-config/skills/workflow-odd-secure/SKILL.md:14`: "TDD mode and runner" becomes
+    "test runner".
+  - `~/.claude/CLAUDE.md:550` and the ODD paragraph "Resolve effective TDD on/off …": same
+    rewrite. These sit in gentle-ai-managed blocks, so v4 sync may supersede them; check after
+    sync.
+  - The gentle-ai-managed `sdd-*` skills, prompts and commands that carry strict-TDD files, under
+    `~/.config/opencode/{skills,prompts/sdd,commands}` and `~/.claude/skills`
+    (`sdd-apply/strict-tdd.md`, `sdd-verify/strict-tdd-verify.md`, …). v4 sync retires the
+    managed SDD assets. Verify that it did, and remove only provably managed leftovers. Never
+    touch user-owned files.
+  - Saved `strict_tdd` keys in SDD init records (Magic Context, Engram): leave them. They are
+    inert on v4, and v4 preserves persisted SDD keys.
+  - **Gate:** a verifier check fails if `strict_tdd`, `--strict-tdd` or "STRICT TDD MODE"
+    reappears in the canonical config, the workflow docs or the skills.
+
+### Q39. SDD changes in flight at upgrade time
+- **Status:** PLANNED, gated by "owner decides to upgrade". It is a preflight of the Q36 apply.
+- **Prerequisites:** none to inventory. Each disposition needs the owner and runs in that
+  project's repository.
+- **Source:** v4.0.0 removes SDD commands and phases but preserves user-owned files and persisted
+  SDD keys, so in-flight changes survive with no tooling to continue them. Survey 2026-10-01.
+- **Inventory today (unarchived `openspec/changes/*`):**
+  - agent-sandbox-integration: `role-based-subagents`, `agent-host-tools`,
+    `reviewer-relay-transport`
+  - opencode-workspace/vision: `mock-ui-test`
+  - peak-redir: `peak-hour-routing`
+  - sdd-quality/mini-sdd: `local-apply-test`
+
+  Some may be stale. Magic Context `SDD_ARTIFACT key=` records (OpenCode) and Engram `sdd/*`
+  topics (Claude Code) were not enumerated here.
+- **Preflight (in the Q36 apply):** enumerate in-flight changes on 3.7.0, using
+  `gentle-ai sdd-status` per registered project, non-archived `openspec/changes/*`, Magic Context
+  `SDD_ARTIFACT` keys and Engram `sdd/*` topics. Write the list to the journal. Refuse to apply
+  while any change lacks a recorded disposition.
+- **Disposition per change (owner chooses one):**
+  1. **Finish on 3.7.0 first** (preferred when near done): complete apply, verify and archive
+     before upgrading.
+  2. **Convert to ODD** (the former-SDD route in `docs/PLAN.md`):
+     - proposal and spec → `docs/brainstorms/<change>.md` (requirements);
+     - design → `docs/plans/<change>.md`, plus decisions in the feature document;
+     - tasks → `odd/tasks/<change>.md` checklist, keeping checked state and stable IDs;
+     - apply-progress and verify results → the feature document's Progress section and
+       evidence.
+     Keep the original OpenSpec folder read-only and link it from the feature document. Resume
+     under ODD after the upgrade.
+  3. **Abandon:** move it to the archive marked abandoned, with a one-line reason in the
+     project's ledger.
+- **Record:** a row per change in the project's tracker or `ROUTER-LOG.md` with its disposition.
+  The Q36 journal references them.
+- **Gate:** the apply preflight is the enforcement point (Q28).
 
 ## Done
 

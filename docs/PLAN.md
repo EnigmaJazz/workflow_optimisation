@@ -125,7 +125,12 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
 - **Process:** `apply.sh --dry-run`, then `apply.sh`, then the verifier. Rollback is
   `revert.sh --dry-run <journal>`, then `revert.sh <journal>`, then the verifier. Repo-tracked
   sources also ride one feature branch, so `git revert` is the repo-level rollback.
-- Queue Q36. `host_sdd_*` deny is part of the set (Q31/Q32) and may land early (Q37).
+- Queue Q36. The set includes:
+  - `host_sdd_*` deny, with its verifier change as one unit (Q37, merged; not applied early);
+  - the strict-TDD removals (Q38);
+  - an in-flight SDD preflight (Q39). Apply refuses while any open OpenSpec, Magic Context or
+    Engram SDD change lacks an owner disposition: finish on 3.7.0 first, convert to ODD, or
+    abandon.
 
 ## Route for former-SDD work (proposed, v4)
 
