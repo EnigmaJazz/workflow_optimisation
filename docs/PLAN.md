@@ -90,7 +90,10 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
   the Constraints bullet and queue Q28 (gating matrix).
 
 ## Memory and inter-agent communication (direction, 2026-10-01)
-- **Magic Context is the main memory:** durable project memory and the ODD tracker mirror.
+- **Magic Context is the default memory pathway throughout (owner decision, 2026-10-01):**
+  durable project memory and the ODD tracker mirror, on every runtime that has it. Mandatory
+  Engram instructions are removed everywhere (queue Q35). Where Magic Context is unavailable
+  (Claude Code), the ODD tracker file is the durable record.
 - **Engram is the candidate inter-agent communication channel:** handoffs, evidence references,
   and requests and answers between agents. Adopt it only after the evaluation (queue Q14a) and
   the owner's decision.
@@ -100,7 +103,9 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
   - Engram tools are granted per agent, with first-pass independence preserved.
   - `WORKFLOW.md` states clearly what goes where, with no duplication between the two stores.
   - An Engram message is evidence, never approval.
-- **Until then** the current rule stands: ODD work does not invoke `mem_*`.
+- **Until then** the current rule stands: ODD work does not invoke `mem_*`. Even after adoption,
+  Engram is never mandatory and never a memory pathway; it is only a scoped opt-in channel.
+- **v4:** override or disable v4's Engram tracker mirror (Q29b decided).
 
 ## Route for former-SDD work (proposed, v4)
 

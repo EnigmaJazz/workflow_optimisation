@@ -25,7 +25,7 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 
 ## Queue (in order)
 
-**Current working order (owner, 2026-10-01):** Q03 (R2-001 + cross-route stage resolution) → Q25
+**Current working order (owner, 2026-10-01):** Q35 (Claude Code side, once scope is confirmed) can run any time; Q03 (R2-001 + cross-route stage resolution) → Q25
 (handoff corrections) → Q26 (verifier prose coupling) → Q28 (deployment gating matrix) → the rest
 in listed order; then, when the owner decides to upgrade: Q29 → Q30–Q33 (one feature branch,
 gated) → Q34. Every source change then needs the deploy step: verifier mirror, then restart. Q27
@@ -415,9 +415,12 @@ Release facts that drive the group:
   "Memory and inter-agent communication".
 - **Description:** decisions only; record each in `docs/PLAN.md` Recorded design decisions.
   - (a) Route for former-SDD work: confirm or change the proposed route in `docs/PLAN.md`.
-  - (b) ODD tracker mirror store: keep Magic Context (owner direction; Engram is only the
-    inter-agent channel) and override or disable v4's Engram `odd/<feature>/tasks` mirror, or
-    accept v4's mirror. Tie to Q14.
+  - (b) DECIDED (owner, 2026-10-01): Magic Context remains the default memory pathway
+    throughout, and mandatory Engram instructions are removed.
+    - On upgrade, override or disable v4's Engram `odd/<feature>/tasks` mirror; the ODD tracker
+      mirror stays Magic Context.
+    - Engram is at most the opt-in inter-agent channel (Q14).
+    - See Q35 for removal and enforcement.
   - (c) `gentle-orchestrator` prompt: keep the user-owned prompt, or adopt v4's managed prompt and
     re-apply the local overlays.
   - (d) Agent allocation: map `sdd-apply`/`sdd-apply-local` write paths, `sdd-explore`,
@@ -539,6 +542,31 @@ Release facts that drive the group:
   8. `verify-workflow.sh --behavioral`.
   9. Dispatch checks: `advisor-*`, the v4 generic agents, `asi-review-*`.
   10. Rollback: keep the v3.7.0 binary and the verifier backup in `backups/workflow-recovery/`.
+
+### Q35. Remove mandatory Engram instructions everywhere (Magic Context is the default memory)
+- **Status:** READY. Owner decision 2026-10-01.
+- **Prerequisites:** none for the OpenCode side (already done). Claude Code side: owner confirms
+  the scope of edits to `~/.claude` (outside this repo).
+- **Source:** owner decision; read-only survey 2026-10-01.
+- **Description:**
+  - **OpenCode: already enforced.** `WORKFLOW.md:129` makes Magic Context mandatory. The
+    verifier fails on `LEGACY_ENGRAM_PROTOCOL_REAPPEARED` (`verify-workflow.sh:4388`) and on
+    `ENGRAM_UNEXPECTEDLY_ENABLED` (`:3086`). Keep both checks through Q32 and the v4 upgrade. Q14b
+    must not reintroduce a mandatory protocol, only a scoped opt-in channel.
+  - **Claude Code: still mandatory.** Remove:
+    - the gentle-ai-managed `<!-- gentle-ai:engram-protocol -->` block in `~/.claude/CLAUDE.md`
+      (lines 536-564 today);
+    - the ODD lines that require an Engram mirror of the tracker (`:579`, `:620-622`, and the
+      resume steps that call `mem_*`);
+    - the Engram plugin's SessionStart "ACTIVE PROTOCOL … MANDATORY" injection. Disable it, or
+      keep the plugin's tools available without the mandatory hook.
+    Claude Code has no Magic Context tools, so the ODD tracker file itself is the durable record
+    there.
+  - **Enforcement (per the deployment-gating constraint, Q28):** gentle-ai sync rewrites the
+    CLAUDE.md block. Add a check (in the verifier, or a Claude Code-side health check) that fails
+    when `<!-- gentle-ai:engram-protocol -->` or a mandatory Engram hook reappears, and relates to
+    Q24 (sync drift).
+  - **v4:** apply the same rule to v4's managed orchestrator prompts (Q29b, Q30).
 
 ## Done
 
