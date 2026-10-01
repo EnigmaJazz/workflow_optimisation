@@ -10,18 +10,22 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
 1. Advisor layer: registration, then the mandatory advice policy (interim lane). Close out the
    registration (verifier mirror, restart, dispatch each advisor once), then the B0/B1/B2 policy
    unit: advice mandatory for every non-trivial change, met by the registered advisors.
-2. Guard fixes (R2-001 first, with automated assertions for the stage table and gates). Subject to
-   the advice mandate; they need the verifier mirror and a restart to take effect.
-3. Split `verify-workflow.sh`, before the external lane adds verifier checks.
-4. Workflow policy: classes, ODD/SDD/advisor layers, the impact axis (how much advice), and the
+2. Guard fixes in the stage-resolution path: R2-001's inverted predicate and the cross-route stage
+   satisfaction (markers must be namespaced by route), with automated assertions for the stage
+   table and gates. Subject to the advice mandate; they need the verifier mirror and a restart to
+   take effect.
+3. `docs/ADVISOR-HANDOFF.md` corrections (the sandbox project builds against it), then the
+   verifier's prose coupling (stable anchors instead of prose literals).
+4. Split `verify-workflow.sh`, before the external lane adds verifier checks.
+5. Workflow policy: classes, ODD/SDD/advisor layers, the impact axis (how much advice), and the
    per-project impact-surface declaration.
-5. External advisor lane: activate after agent-sandbox-integration plan A is installed (B3), then
+6. External advisor lane: activate after agent-sandbox-integration plan A is installed (B3), then
    the routing-guard advice stage (B4) and the advisor handoff document (B5).
-6. Tracking contract in the recipe.
-7. Reconcile drift and close the gaps found by the options inventory; emergency fix route;
+7. Tracking contract in the recipe.
+8. Reconcile drift and close the gaps found by the options inventory; emergency fix route;
    worker contract; guard against gentle-ai sync overwriting the live config; remaining
    routing-guard stage work.
-8. Engram as the inter-agent communication channel: evaluation first, then adoption as a
+9. Engram as the inter-agent communication channel: evaluation first, then adoption as a
    canonical MCP with a scoped `WORKFLOW.md` policy (Magic Context stays main memory).
 
 ## Layers

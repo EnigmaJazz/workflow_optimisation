@@ -279,3 +279,52 @@ file was untouched because nothing was applied. This belongs in the handoff for 
 Item 11 (splitting `verify-workflow.sh`) remains worthwhile for readability and testability, but is
 no longer forced by the tooling. The 512 KB silent-truncation cap and the ~219 KB write-back limit
 were both fixed; today's successful large read confirms the reply now arrives intact.
+## 2026-10-01 — mode-preservation defect fixed and verified
+Re-ran the probe after a fix landed:
+
+- `verify-workflow.sh` mode before: `-rwxr-xr-x`; after: `-rwxr-xr-x` — unchanged.
+- `git diff` contains NO `old mode` / `new mode` lines (previously it showed 100755 → 100644).
+- The diff hunk is exactly the intended one-character change.
+
+So `sandbox_edit` now performs a targeted, mode-preserving edit. Combined with the earlier
+`sandbox_read` fix, all three sandbox faults from this stretch are closed and verified:
+
+1. `sandbox_read` — no longer times out at any size.
+2. `sandbox_edit` — targeted (`oldString`/`newString`), works to the 512 KB cap.
+3. Mode preservation — executable bits now survive an edit.
+
+The mode defect can be dropped from the handoff's request list; it was reported and has been
+resolved. Still open and unexplained: the ORIGINAL silent no-op on a whole-file write, which no
+longer has a candidate cause and should be recorded as an open question in `CLAIM-RETRACTIONS.md`
+rather than re-explained.
+## 2026-10-01 — Advisor dispatch verification PASSED; new guard defects found
+All five advisors registered and dispatched successfully on bounded tasks. Each read real files and
+cited line numbers. None fabricated evidence: all five reported that `sandbox_finish` is not
+registered on their surface rather than quoting a refusal that could not exist. Tool surface
+confirmed — the four workspace tools present, every host-returning tool absent.
+
+Findings from that single pass, to act on:
+
+- **Cross-route stage satisfaction (advisor-design, observed).** `ROUTE_STAGES` is keyed by route
+  name, but the key is never threaded into stage satisfaction: the resolver receives only
+  `stage.id` and matches route-agnostic marker filenames, so any route sharing a stage id or skill
+  marker cross-satisfies another. The legacy `artifact-odd-${stageID}` fallback is appended for
+  every stage of every route, so an ODD-era marker already satisfies `workflow-systematic` stages.
+  Markers should be namespaced by route and the route passed into the ancestor walk. This is a
+  gating hole, alongside R2-001's inverted predicate — item 12 now covers both.
+- **Advisor worker lifecycle (advisor-integration, observed).** The granted mutation tools activate
+  a single-lifecycle worker that an advisor can never finish or tear down: mutable-but-unexportable
+  state. Decide who owns export/teardown on the advisor's behalf.
+- **`docs/ADVISOR-HANDOFF.md` corrections (advisor-integration, observed).** It frames
+  `sandbox_finish`/`apply` as permission-denied when they are simply not registered; it omits that
+  the read tools require an active worker; and "cannot return results" overstates it — `sandbox_bash`
+  output and `sandbox_diff` return in-tool, only the persisted export needs `finish`.
+- **Verifier prose coupling (advisor-maintainability, observed).** ~15 hardcoded prose literals must
+  appear in `WORKFLOW.md`/`AGENTS.md` or the run fails, so routine documentation edits break the
+  verifier. Also quantified item 11: 4,772 lines, only 13 functions, all ending by line 1231 —
+  everything after is one top-level body; 16 numbered section markers give natural seams, and
+  section numbers are cited externally so numbering and order must be preserved. Any split must
+  re-pin the digest in the same change.
+- **Isolation caveat (advisor-security, observed).** The granted tools do not reach the host, but
+  that is a designed-in boundary, not a proven one, because the isolation guarantees remain
+  unverified.

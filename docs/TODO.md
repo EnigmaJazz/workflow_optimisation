@@ -25,6 +25,10 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 
 ## Queue (in order)
 
+**Current working order (owner, 2026-10-01):** Q03 (R2-001 + cross-route stage resolution) → Q25
+(handoff corrections) → Q26 (verifier prose coupling) → the rest in listed order. Every source
+change then needs the deploy step: verifier mirror, then restart. Q27 waits on an owner decision.
+
 ### Q01. Advisor layer close-out
 - **Status:** IN PROGRESS. Registration fixes landed (`c01a73f`, `c5a326b`, `8570dc6`). Verifier
   ran on 2026-10-01: exit 0, "All checks passed (self-repairs applied)". It recovered the gentle-ai
@@ -35,6 +39,10 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   servers (started 17:26 and 18:07) use the config they loaded at start.
 - **Source:** `docs/TODO-HISTORY.md` "Advisor registration — verifier findings" and "PRIORITY
   CHANGE"; `docs/advisor/handoff-workflow-optimisation.md` "Where this slots in" 1.
+- **Advisor dispatch verification PASSED (2026-10-01):** all five registered and dispatched on
+  bounded tasks. Each read real files and cited line numbers. The tool surface was confirmed: the
+  four workspace tools are present and every host-returning tool is absent. Findings → Q03, Q25,
+  Q26, Q27 (`docs/TODO-HISTORY.md` "2026-10-01 — Advisor dispatch verification PASSED").
 - **Remaining:** after the restart, run `verify-workflow.sh --behavioral` and a plain re-run (the
   cache-prune check was skipped because config was repaired). Then dispatch each of the five
   `advisor-*` agents once on a bounded task and confirm registration, successful reads, denied host
@@ -55,8 +63,20 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 - **Prerequisites:** Q02 (advice record before coding).
 - **Source:** `docs/TODO-HISTORY.md` "12. Guard review findings"; `odd/tasks/routing-guard-keys.md`
   review `review-84383b2e59dc8844`.
-- **Findings, in fix order:**
-  - R2-001 (real defect): `allowsSpecialists` is inverted; fix first.
+- **Findings, in fix order.** R2-001 and the cross-route defect are both in the stage-resolution
+  path; fix them together.
+  - R2-001 (real defect, live): `allowsSpecialists` is inverted; fix first.
+  - Cross-route stage satisfaction (advisor-design, 2026-10-01; latent): the stage-resolution path
+    carries no route, so a stage is satisfied by a marker from any route.
+    - Markers are written as `artifact-${stage.id}` (`systematic-routing-guard.ts:742`).
+    - `hasRouteStageArtifactInAncestorChain` (`:281-301`) receives only `stageID`; `ROUTE_STAGES`'
+      route key is never threaded in.
+    - The legacy `artifact-odd-${stageID}` fallback applies to every route.
+    - Verified latent, not live: the only legacy markers on disk are `artifact-odd-tracker` (23),
+      and no `workflow-systematic` stage has id `tracker`. It becomes live once two routes share a
+      stage id (risk for Q15 and Q18).
+    - Fix: namespace markers by route, pass the route into the ancestor walk, and scope the legacy
+      fallback to `workflow-odd-secure`.
   - R3-patch-stage-marker-gap: patch path extraction recognises only `odd/tasks/*.md`.
   - R3-child-marker-merge-excl: `COPYFILE_EXCL` stops a re-dispatched child updating a parent marker.
   - R3-marker-write-race and R4-001 (resilience): unawaited marker writes cause false warnings.
@@ -153,8 +173,7 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   a targeted read); `sandbox_edit` for targeted `oldString`/`newString` changes at any size up to
   the 512 KB cap; `sandbox_write` only for files the caller can produce whole; patches when a
   change spans many separate places. Verify with `sandbox_bash git diff` and treat a success
-  return as unverified until readback. Check the file mode after `sandbox_edit` on an executable
-  (see Q13 file-mode defect). The earlier "whole-body" rule is retracted. The original silent
+  return as unverified until readback. The file-mode defect is fixed (`docs/TODO-HISTORY.md` "2026-10-01 — mode-preservation defect fixed and verified"). The earlier "whole-body" rule is retracted. The original silent
   no-op is still UNEXPLAINED (open question). File-size discipline stays a coding standard.
 
 ### Q13. Cross-project items (old item 8) — agent-sandbox-integration
@@ -165,10 +184,8 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   and installed here.
 - **Source:** B0 fix 5 in `docs/advisor/handoff-workflow-optimisation.md`; `docs/TODO-HISTORY.md`
   item 8 and "Review state" (ledgers are shared git-tracked files).
-- **New defect for the broker handoff (2026-10-01):** `sandbox_edit` does not preserve file mode
-  (`verify-workflow.sh` went `100755` → `100644`; `chmod` in the sandbox is "Operation not
-  permitted"; `sandbox_discard` refuses from `SANDBOX_ACTIVE`). Material for executables
-  (`docs/TODO-HISTORY.md` "2026-10-01 — CORRECTION: sandbox_edit is targeted"). Add it to agent-sandbox-integration's TODO by name.
+- **File-mode defect: FIXED and verified (2026-10-01).** `sandbox_edit` now preserves the
+  executable bit; `git diff` shows no mode change (`docs/TODO-HISTORY.md` "2026-10-01 — mode-preservation defect fixed and verified"). Drop it from the handoff's request list.
 - **Note:** the host commit tool also rejects multi-line messages (`routing-guard-keys.md` Debt);
   the `ROUTED:` trailer sits on the subject line until that is fixed in the host tooling.
 
@@ -290,6 +307,48 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
   loaded the drift. Make it detectable or self-correcting: run the verifier after every
   gentle-ai sync (`WORKFLOW.md` "After Updates"), and/or have the health plugin flag drift at
   OpenCode start.
+
+### Q25. `docs/ADVISOR-HANDOFF.md` corrections
+- **Status:** READY.
+- **Prerequisites:** none. Small and factual. It matters because the sandbox project builds against
+  this document.
+- **Source:** advisor-integration (`docs/TODO-HISTORY.md` "2026-10-01 — Advisor dispatch verification PASSED").
+- **Description:**
+  - `sandbox_finish` and `sandbox_apply` are not registered on the advisor surface; they are not
+    permission-denied. Say so.
+  - State that the read tools require an active worker.
+  - Replace "cannot return results": `sandbox_bash` output and `sandbox_diff` return in-tool; only
+    the persisted export needs `finish`.
+  - Keep the isolation caveat (advisor-security): the boundary is designed in, not proven, until
+    the isolation guarantees are verified.
+  - Drop the file-mode defect if listed (fixed).
+
+### Q26. Verifier prose coupling
+- **Status:** READY.
+- **Prerequisites:** none. Do it with or before Q04; the split must preserve whatever contract
+  replaces the literals.
+- **Source:** advisor-maintainability (`docs/TODO-HISTORY.md` "2026-10-01 — Advisor dispatch verification PASSED").
+- **Description:**
+  - About 15 hardcoded prose literals must appear in `WORKFLOW.md`/`AGENTS.md` or the verifier
+    fails, so routine doc edits break it.
+  - Replace prose matching with stable machine markers (e.g. `<!-- workflow:anchor ... -->`) or a
+    single declared anchor list, so wording can change freely.
+  - Inputs for Q04: 4,772 lines and only 13 functions, all ending by line 1231; the rest is one
+    top-level body. The 16 numbered section markers are the natural seams, and section numbers are
+    cited externally, so numbering and order are preserved. Any split re-pins the digest in the
+    same change.
+
+### Q27. Advisor worker lifecycle — owner decision
+- **Status:** BLOCKED on an owner decision.
+- **Prerequisites:** owner decides who owns export and teardown of an advisor's workspace.
+- **Source:** advisor-integration (`docs/TODO-HISTORY.md` "2026-10-01 — Advisor dispatch verification PASSED"); design gap introduced by the workspace-tool split
+  (`8570dc6`).
+- **Description:** the granted mutation tools activate a single-lifecycle worker that an advisor
+  can never finish or tear down: it is mutable but cannot be exported. Options to decide between:
+  - the orchestrator tears down (discards) every advisor worker after the advice is recorded;
+  - a narrow advisor-side `sandbox_discard` grant;
+  - withdraw the mutation tools and route all execution through structured test requests.
+  Record the choice in `WORKFLOW.md` and `docs/ADVISOR-HANDOFF.md`.
 
 ## Done
 
