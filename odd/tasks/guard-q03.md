@@ -58,8 +58,14 @@ tests/routing-guard`. The suite refuses to run against a real HOME.
 - 2026-10-02: Native review lineage `review-5a92897d9da43815` (medium, 1,168 lines, 4 paths) resumed after capture stopped at the 30-minute limit and completed **APPROVED, acknowledged, authority burned**.
   - R3-001 (reliability WARNING, test-suite concurrency): FIXED by installing the `console.warn` spy once per file via `beforeAll`/`afterAll`.
   - R3-002 (suggestion, misleading test name): FIXED by dispatching `mystery-writer`.
-  - R3-003 (suggestion, unexercised 2 s write timeout): OPEN GAP; not exercised and no test added.
+  - R3-003 (suggestion, unexercised 2 s write timeout): initially OPEN GAP; subsequently addressed by the post-code timeout seam and task-result hook test recorded below.
 - 2026-10-02: Deploy complete: verifier mirrored, `secure-opencode` and `ai-proxy` restarted, and all checks passed.
+- Advisory record (task T4, step `post-code`): advisor `advisor-testing`, model `opencode-go/kimi-k2.7-code`. Findings and resolutions:
+  1. R3-001: the spy fix is correct only under Bun's default sequential intra-file execution. `describe.sequential` is undefined here while `describe.concurrent` exists, so the original hazard was largely theoretical; the `consoleCount` assertions in `describe("6. warning de-duplication")` are vulnerable only under `--concurrent`. Removed the failed outer `describe("routing guard", ...)` wrapper and left the inner suites/assertions intact.
+  2. The file-log fix was partial: once-per-process reporting hides ongoing failures. Changed reporting to de-duplicate by resolved log path plus error code, so signature changes report again while identical repeats stay quiet; added an ENOTDIR failure-path test.
+  3. R3-003: two workable timeout test options were identified. Used a configurable `SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS` seam (default 2000 ms, clamped to at least 10 ms) and a test that verifies a never-resolving write chain is bounded by the configured timeout, with no marker created.
+  4. Removed the leftover outer wrapper and the unreachable `catch` in `boxed`; the Promise race's work branch catches rejection and the timer branch resolves.
+  This is advisory evidence only, never approval. The pre-code advice step was missed for this unit.
 - Route/trigger evidence: `route: delegated`; specialist `general` (sandbox writer); trigger: secure ODD policy (every project mutation is delegated).
 - The review lens confirmed the intended fixes are present: route-namespaced stage markers with legacy fallback, unique stage ids, three-ancestor inheritance with a visited set, and cycle/four-hop coverage.
 

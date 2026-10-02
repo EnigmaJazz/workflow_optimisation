@@ -86,12 +86,21 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true })
 })
 
-describe("routing guard", () => {
 describe("0. state-root seam", () => {
   test("all guard state lands under SYSTEMATIC_ROUTING_GUARD_STATE_ROOT", async () => {
     await before("host_git_commit", "ses_seam", { message: "x" })
     expect(existsSync(logFile())).toBe(true)
     expect(logCount("ses_seam")).toBe(1)
+  })
+
+  test("reports a failed file-log append without failing the gate hook", async () => {
+    mkdirSync(join(root, ".local/share/opencode"), { recursive: true })
+    writeFileSync(join(root, ".local/share/opencode/logs"), "not a directory")
+
+    await before("host_git_commit", "ses_log_failure", {})
+    await before("host_git_commit", "ses_log_failure", {})
+
+    expect(consoleCount("file log append failed")).toBe(1)
   })
 })
 
@@ -357,6 +366,25 @@ describe("4. awaited writes", () => {
     expect(readFileSync(join(sessionDir("ses_w3child"), ".parent"), "utf8")).toBe("ses_w3")
     expect(JSON.parse(readFileSync(join(sessionDir("ses_w3child"), "inherited.key"), "utf8")).inherited_from).toBe("ses_w3")
   })
+
+  test("task-result hook times out a hung write chain", async () => {
+    const originalTimeout = process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS
+    process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS = "20"
+    guard.setTaskWriteFileForTests(() => new Promise(() => {}))
+    const started = Date.now()
+    try {
+      await after("task", "ses_timeout", { subagent_type: "general" }, 'task id="ses_timeoutchild" done')
+      const elapsed = Date.now() - started
+      expect(elapsed).toBeGreaterThanOrEqual(10)
+      expect(elapsed).toBeLessThan(500)
+      expect(hasFile("ses_timeoutchild", ".parent")).toBe(false)
+      expect(hasFile("ses_timeoutchild", "inherited.key")).toBe(false)
+    } finally {
+      guard.setTaskWriteFileForTests(null)
+      if (originalTimeout === undefined) delete process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS
+      else process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS = originalTimeout
+    }
+  })
 })
 
 describe("5. key inheritance (up to three ancestors)", () => {
@@ -457,5 +485,4 @@ describe("6. warning de-duplication", () => {
     expect(consoleCount("specialist general")).toBe(1)
     expect(consoleCount("specialist mystery-writer")).toBe(1)
   })
-})
 })

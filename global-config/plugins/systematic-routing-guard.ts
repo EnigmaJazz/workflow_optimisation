@@ -41,7 +41,7 @@
 import { appendFile, copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
 import { constants, existsSync } from "node:fs"
 import { homedir } from "node:os"
-import { join } from "node:path"
+import { join, resolve } from "node:path"
 import type { Plugin } from "@opencode-ai/plugin"
 
 type WorkKind = "implementation" | "review" | "research" | "utility" | "unknown"
@@ -212,12 +212,22 @@ const ROUTING_GATE_TOOLS = new Set([
 ])
 // State root is read at each use (never fixed at import) so tests can redirect it.
 const stateRoot = (): string => process.env.SYSTEMATIC_ROUTING_GUARD_STATE_ROOT ?? homedir()
-let fileLogFailureReported = false
+const reportedFileLogFailures = new Set<string>()
+let taskWriteFile = writeFile
+
+/** Test seam for exercising hung task-result persistence without changing gate behavior. */
+export function setTaskWriteFileForTests(write: typeof writeFile | null): void {
+  taskWriteFile = write ?? writeFile
+}
 const routingGateOffFile = (): string => join(stateRoot(), ".config/opencode/routing-guard-off")
 const routingGateLogDir = (): string => join(stateRoot(), ".local/share/opencode/logs")
 const routingGateLogFile = (): string => join(routingGateLogDir(), "routing-guard.log")
 const routingKeyRoot = (): string => join(stateRoot(), ".local/share/opencode/routing-keys")
-const WRITE_TIMEOUT_MS = 2000
+// Override only for bounded timeout tests; clamp invalid or unsafe-small values to 10 ms.
+const writeTimeoutMs = (): number => {
+  const configured = Number(process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS ?? 2000)
+  return Number.isFinite(configured) ? Math.max(10, configured) : 2000
+}
 const MAX_INHERITANCE_HOPS = 3
 const ROUTING_KEY_REFRESH_INTERVAL_MS = 60 * 1000
 const ADAPTER_WORKFLOW_SKILLS = new Set([
@@ -271,16 +281,11 @@ function skillMarkerName(raw: string): string {
 /** Await a write chain for at most WRITE_TIMEOUT_MS; errors are swallowed. */
 async function boxed(work: Promise<unknown>): Promise<void> {
   let timer: ReturnType<typeof setTimeout> | undefined
-  try {
-    await Promise.race([
-      work.catch(() => undefined),
-      new Promise<void>((resolve) => { timer = setTimeout(resolve, WRITE_TIMEOUT_MS) }),
-    ])
-  } catch {
-    // Never block a tool call.
-  } finally {
-    if (timer) clearTimeout(timer)
-  }
+  await Promise.race([
+    work.catch(() => undefined),
+    new Promise<void>((resolve) => { timer = setTimeout(resolve, writeTimeoutMs()) }),
+  ])
+  if (timer) clearTimeout(timer)
 }
 
 export const ROUTE_STAGES: Record<string, readonly RouteStage[]> = {
@@ -540,11 +545,16 @@ async function logInactiveWorkflowWarning(
     await appendFile(routingGateLogFile(), `${new Date().toISOString()} ${line}\n`, "utf8")
   } catch (error) {
     // Logging must never block or fail the tool call.
-    if (!fileLogFailureReported) {
-      fileLogFailureReported = true
+    const logPath = resolve(routingGateLogFile())
+    const code = error && typeof error === "object" && "code" in error
+      ? String((error as NodeJS.ErrnoException).code)
+      : "unknown"
+    const signature = `${logPath}\u0000${code}`
+    if (!reportedFileLogFailures.has(signature)) {
+      reportedFileLogFailures.add(signature)
       try {
         console.warn(
-          `[systematic-routing-guard] file log append failed at ${routingGateLogFile()}: ${error instanceof Error ? error.message : String(error)}`,
+          `[systematic-routing-guard] file log append failed at ${logPath} (${code}): ${error instanceof Error ? error.message : String(error)}`,
         )
       } catch {
         // Reporting a logging failure must never fail the tool call.
@@ -939,7 +949,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
           if (!directory) return
           await boxed((async () => {
             await mkdir(directory, { recursive: true })
-            await writeFile(join(directory, ".parent"), input.sessionID, "utf8")
+            await taskWriteFile(join(directory, ".parent"), input.sessionID, "utf8")
             try {
               const parentDirectory = routingKeySessionDirectory(input.sessionID)
               if (parentDirectory) {
@@ -970,7 +980,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
                 .map((file) => rm(join(directory, file), { force: true })),
             )
             const mintedAt = Date.now()
-            await writeFile(
+            await taskWriteFile(
               join(directory, "inherited.key"),
               JSON.stringify({ inherited_from: input.sessionID, minted_at: mintedAt, last_active: mintedAt }),
               "utf8",
