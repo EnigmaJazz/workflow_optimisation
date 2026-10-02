@@ -99,6 +99,8 @@ Runner: `python3 -m unittest tests/test_changeset.py -v`.
   order). RED before: 69 tests, 0 passing (68 failures, 1 error). GREEN: 69 OK, 4 consecutive
   runs all OK (no flakiness). `tests/test_plugin_cache_integrity.py` still OK. No spec or test
   edits were needed. Route: delegated writer. Commit `beca30f`.
+- 2026-10-02: Review fixes: array-element json_delete revert via before_parent/after_parent; journal
+  discovery fails closed (invalid_journal naming the bad path). 72 tests OK x3.
 
 ## Next step
 T4: native review of the T3 commit; record the outcome.

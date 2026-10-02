@@ -318,6 +318,10 @@ def json_apply(op, text):
         new = _checked(splice_delete(text, parent, idx))
         extra = {"before": cur, "target": ABSENT, "member_text": text[it.ks:it.node.e],
                  "member_indent": line_indent(text, it.ks), "member_index": idx}
+        if parent.kind == "arr":
+            before_parent = json.loads(text[parent.s:parent.e])
+            extra["before_parent"] = before_parent
+            extra["after_parent"] = before_parent[:idx] + before_parent[idx + 1:]
     if new is None:
         return "conflict", "splice_invalid", None, None
     return "applied", None, new, extra
@@ -349,6 +353,20 @@ def json_revert(r, text):
         if jeq(cur, r["target"]):
             new = _checked(text[:node.s] + r["before_text"] + text[node.e:])
         elif jeq(cur, r["before"]):
+            return "already_reverted", None, None
+        else:
+            return "drift", "value_changed", None
+    elif parent.kind == "arr" and "before_parent" in r:  # json_delete of an array element
+        cur = json.loads(text[parent.s:parent.e])
+        if jeq(cur, r["after_parent"]):
+            node = root
+            for tok in tokens[:-2]:
+                node = node.items[_index(node, tok)].node
+            container = node if len(tokens) >= 2 else parent
+            ind = line_indent(text, parent.s)
+            ser = serialise(text, container, r["before_parent"], ind)
+            new = _checked(text[:parent.s] + ser + text[parent.e:])
+        elif jeq(cur, r["before_parent"]):
             return "already_reverted", None, None
         else:
             return "drift", "value_changed", None
@@ -554,7 +572,7 @@ def load_journal(path):
 
 
 def list_journals(set_journal_dir):
-    """Apply and revert journals of a set, parsed leniently."""
+    """Apply and revert journals of a set; any unloadable journal refuses (fails closed)."""
     applies, reverts = [], []
     try:
         names = os.listdir(set_journal_dir)
@@ -566,8 +584,8 @@ def list_journals(set_journal_dir):
             continue
         try:
             j = load_journal(jpath)
-        except Refuse:
-            continue
+        except Refuse as e:
+            raise Refuse("invalid_journal", f"{jpath}: {e.detail}")
         j["path"] = jpath
         j["name"] = name
         (reverts if j["header"]["kind"] == "revert" else applies).append(j)
