@@ -1,4 +1,4 @@
-# Change-set tool — specification (v1.1)
+# Change-set tool — specification (v1.2)
 
 Status: specification for queue Q36. The implementation is `scripts/changeset.py`, and the
 acceptance tests are `tests/test_changeset.py`. Where this document and the tests disagree, the
@@ -13,6 +13,10 @@ v1.1 (2026-10-02) folds in two reviews and the `advisor-design` advice:
 - missing parent is a conflict;
 - file modes;
 - a per-set lock.
+
+v1.2 records the implementation's choices for cases the spec left open: relative paths are
+invalid, no-op ops are `already_applied`, torn final journal lines are tolerated, the report gains
+`detail`/`error`, and dry run evaluates against an overlay.
 
 ## 1. Purpose
 
@@ -56,7 +60,8 @@ python3 scripts/changeset.py status --set <dir> [--allow-root <dir>]...
 - `id` matches `^[a-z0-9][a-z0-9._-]{0,63}$`.
 - `ops` is a non-empty array. Ops run in array order, and each op sees the file state left by
   the ops before it.
-- `file` is a path; `~` expands to `$HOME`.
+- `file` is an absolute path, or one starting with `~` (which expands to `$HOME`). A relative
+  `file` makes the set invalid.
 - **Invalid set:** an unknown `schema`, unknown `op`, missing required field, invalid `id`, or a
   `content_file` that does not resolve inside the set directory (section 10). The tool refuses
   (exit 3, `refused: invalid_set`) before touching any file.
@@ -111,6 +116,8 @@ For each op, the tool reads the current state (the bytes of the file) and classi
   otherwise.
 - **`file_remove`:** a present file applies when its SHA-256 equals `expect_sha256`. An absent
   file is `already_applied`, and anything else is `conflict`.
+- **No-op ops:** an op whose `expect_before` already equals its target evaluates as
+  `already_applied` and never writes.
 - **Conflicts:** a conflicting op is skipped and the run continues with the next op. A conflict
   never changes any byte of any file.
 
@@ -240,9 +247,17 @@ the race testable; production never sets it.
   while a newer apply journal for the same set exists that has an `applied` outcome or an
   `unknown`-eligible intent, unless a sealed revert journal whose `reverts` names it already
   exists. Revert the newest journal first.
-- **Refusal (exit 3, nothing touched):** a missing journal; a journal whose lines do not parse;
-  an unknown journal schema; or a sealed journal whose seal `sha256` does not match. An unsealed
-  journal is accepted.
+- **Refusal (exit 3, nothing touched):** a missing journal; a journal with a line that does not
+  parse; an unknown journal schema; or a sealed journal whose seal `sha256` does not match. An
+  unsealed journal is accepted.
+  - **Exception, a torn final line:** an unparseable LAST line with no trailing newline is a torn
+    write from a crash, and is ignored.
+    - Safe for a torn intent: the intent is written and fsynced before its write, so a torn
+      intent means the write never happened.
+    - Safe for a torn outcome: the op then has an intent without an outcome, and the
+      intent-without-outcome rules apply.
+    - Safe for a torn seal: the journal is then unsealed.
+  - An unparseable line that ends in a newline is never torn; it refuses with `invalid_journal`.
 - Revert writes its own journal (`<journal-root>/<set-id>/revert-<timestamp>-<pid>/`), with
   `kind: "revert"` and `reverts` set, and takes the set's lock.
 
@@ -255,6 +270,9 @@ The report always includes:
 - `verify`: `{"before": exit code|null, "after": exit code|null}`;
 - `refused`: a reason string, or null.
 
+On a refusal the report may add `detail` (for example the newer journal for
+`newer_journal_not_reverted`); on exit 1 it adds `error`.
+
 | Exit | Meaning |
 |---|---|
 | 0 | every op `applied`/`already_applied` (or `reverted`/`already_reverted`), or nothing to revert |
@@ -265,7 +283,9 @@ The report always includes:
 ## 8. Dry run
 
 `--dry-run` evaluates and reports outcomes exactly as a real run would, but writes nothing: no
-file, no journal, no lock file, and no directory. `--verify-cmd` is not run.
+file, no journal, no lock file, and no directory. `--verify-cmd` is not run. Dry run and `status`
+evaluate against an in-memory overlay, so a later op on the same file sees the earlier ops'
+results, as in a real run.
 
 ## 9. Verification gate
 
