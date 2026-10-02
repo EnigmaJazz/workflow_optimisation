@@ -44,10 +44,10 @@ Mode: off (no configured project TDD). Runner: fork — `bun test` (new), `bun r
 
 ## Tasks
 - [x] T0 — Advice record (mandate). Route: OpenCode `advisor-*` dispatch (owner, TUI).
-- [ ] T1 — Plugin fork: baseline commit of existing edits; no-op when
+- [x] T1 — Plugin fork: baseline commit of existing edits; no-op when
   `WORKFLOW_HEALTH_CHECK_PROBE=1` or `OPENCODE_AUTO_UPDATE_DISABLED=true`; test; build.
   Route: delegated writer.
-- [ ] T2 — Verifier: completeness guard on pin preservation; incomplete-dir detection and
+- [x] T2 — Verifier: completeness guard on pin preservation; incomplete-dir detection and
   quarantine; re-pin digest. Route: delegated writer (same).
 - [ ] T3 — Verify end to end: verifier run, OpenCode restart, Magic Context loads, verifier clean;
   then commit the preserved pin change. Route: parent, owner restarts OpenCode.
@@ -88,6 +88,15 @@ Mode: off (no configured project TDD). Runner: fork — `bun test` (new), `bun r
   `gentle-orchestrator` Task). The advisor could not read the plugin source (permission denied)
   and reasoned from tracker citations.
 
+- 2026-10-02: T1 done in the fork (commits 9f7b120 baseline, eab2992 guard). `src/guard.ts` exports
+  `isAutoUpdateDisabled` and `resolveIntervalHours` (default 24). `bun test` 7 pass; typecheck and
+  build clean; built `dist/index.js` imported with the probe env returned in 6 ms and left
+  `.auto-update.json` untouched.
+- 2026-10-02: T2 done: `scripts/plugin-cache-integrity.py` (check-pin, scan), 12 unittest
+  cases pass; verifier pin preservation now requires a complete package (otherwise
+  `AUTO_UPDATED_PIN_INCOMPLETE_NOT_PRESERVED` warning and the canonical pin is restored by the
+  existing overlay rewrite); new check 2c quarantines idle incomplete packages; digest re-pinned.
+
 ## Advice record (T0, advisor-integration, model opencode-go/deepseek-v4.1-flash)
 Summary of findings and resolution:
 1. Quarantine needs mutual exclusion with a live install. **Accepted, adjusted.** The
@@ -112,4 +121,4 @@ Summary of findings and resolution:
 7. Verify the probe guard against the built `dist/`, not only `src/`. **Accepted.**
 
 ## Next step
-T1 and T2, one delegated writer.
+T3: verifier run, OpenCode restart, confirm Magic Context loads.

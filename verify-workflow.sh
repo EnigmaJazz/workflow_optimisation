@@ -147,6 +147,8 @@ FALLBACK_EXCLUSION_SOURCE="$PLUGINS_DIR/opencode-rate-limit-fallback-mapped/src/
 SANDBOX_INTEGRATION_REPO="${WORKFLOW_VERIFY_SANDBOX_REPO:-}"
 OLD_TIERING_PLUGIN_ACTIVE="$PLUGINS_DIR/systematic-model-tiering.ts"
 AUTO_UPDATE_LOCK="$OPENCODE_CONFIG_DIR/.auto-update.lock"
+PLUGIN_CACHE_INTEGRITY_HELPER="$WORKSPACE/scripts/plugin-cache-integrity.py"
+PLUGIN_QUARANTINE_DIR="$WORKSPACE/backups/plugin-quarantine"
 LOCAL_AUTO_UPDATE_REF="${WORKFLOW_VERIFY_LOCAL_AUTO_UPDATE_REF:-file:///home/james/.local/share/opencode-plugin-auto-update-local/dist/index.js}"
 SECURE_OPENCODE_SERVICE="${WORKFLOW_VERIFY_SECURE_OPENCODE_SERVICE:-secure-opencode.service}"
 SECURE_RUNTIME_WITNESS="${WORKFLOW_VERIFY_SECURE_RUNTIME_WITNESS:-$WORKSPACE/.atl/secure-opencode-runtime-witness.json}"
@@ -320,7 +322,7 @@ PY_CACHE_APPROVAL
 }
 
 recover_opencode_config() {
-  python3 - "$OPENCODE_CONFIG_FILE" "$OPENCODE_CONFIG_SOURCE" "$RECOVERY_BACKUP_ROOT" "$RECOVERY_RUN_ID" "$LOCAL_AUTO_UPDATE_REF" <<'PY_RECOVER_OPENCODE'
+  python3 - "$OPENCODE_CONFIG_FILE" "$OPENCODE_CONFIG_SOURCE" "$RECOVERY_BACKUP_ROOT" "$RECOVERY_RUN_ID" "$LOCAL_AUTO_UPDATE_REF" "$PLUGIN_CACHE_INTEGRITY_HELPER" "$OPENCODE_CACHE_DIR/packages" <<'PY_RECOVER_OPENCODE'
 from copy import deepcopy
 import json
 import os
@@ -328,6 +330,7 @@ from pathlib import Path
 import re
 import shutil
 import stat
+import subprocess
 import sys
 import tempfile
 from urllib.parse import unquote, urlparse
@@ -337,6 +340,8 @@ source = Path(sys.argv[2])
 backup_root = Path(sys.argv[3])
 run_id = sys.argv[4]
 local_auto_update_ref = sys.argv[5]
+integrity_helper = sys.argv[6]
+packages_cache_root = sys.argv[7]
 auto_update_identity = "opencode-plugin-auto-update"
 
 parsed_local_ref = urlparse(local_auto_update_ref)
@@ -397,6 +402,18 @@ def semver_core(ref, identity):
         return None
     match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:[-+].*)?", ref[len(identity) + 1:])
     return tuple(map(int, match.groups())) if match else None
+
+def pin_is_complete(ref):
+    # A newer deployed pin is only trustworthy when its package is fully
+    # installed in the OpenCode cache (an interrupted install leaves no package.json).
+    try:
+        proc = subprocess.run(
+            [sys.executable, integrity_helper, "check-pin",
+             "--cache-root", packages_cache_root, "--spec", ref],
+            capture_output=True, text=True, timeout=30)
+        return proc.returncode == 0
+    except Exception:
+        return False
 
 def safe_same_or_newer(current_ref, canonical_ref, identity):
     current_version = semver_core(current_ref, identity)
@@ -466,6 +483,7 @@ for key, value in canonical.items():
     merged[key] = deepcopy(value)
 
 preserved_pins = []
+unpreserved_pins = []
 canonical_plugins = canonical.get("plugin")
 current_plugins = current.get("plugin") if target_valid else None
 if isinstance(canonical_plugins, list) and isinstance(current_plugins, list):
@@ -485,15 +503,26 @@ if isinstance(canonical_plugins, list) and isinstance(current_plugins, list):
             effective_plugins.append(local_auto_update_ref)
         elif (identity in auto_updated_plugin_packages and len(candidates) == 1 and
                 safe_same_or_newer(candidates[0], canonical_ref, identity)):
-            effective_plugins.append(candidates[0])
-            if candidates[0] != canonical_ref:
+            if candidates[0] == canonical_ref:
+                effective_plugins.append(candidates[0])
+            elif pin_is_complete(candidates[0]):
+                effective_plugins.append(candidates[0])
                 preserved_pins.append(candidates[0])
+            else:
+                # Incomplete install: keep the canonical pin; the overlay
+                # rewrite below restores it to the live config.
+                effective_plugins.append(deepcopy(canonical_ref))
+                unpreserved_pins.append(candidates[0])
         else:
             effective_plugins.append(deepcopy(canonical_ref))
     merged["plugin"] = effective_plugins
 
 owned_clean = target_valid and all(current.get(key) == merged.get(key) for key in canonical)
 pin_detail = ""
+for ref in unpreserved_pins:
+    print(f"!! AUTO_UPDATED_PIN_INCOMPLETE_NOT_PRESERVED: {ref}", file=sys.stderr)
+if unpreserved_pins:
+    pin_detail += "; AUTO_UPDATED_PIN_INCOMPLETE_NOT_PRESERVED: " + ", ".join(unpreserved_pins)
 if preserved_pins:
     pin_detail = "; preserved auto-update pins: " + ", ".join(preserved_pins)
 # Reconcile the canonical source with pins the auto-updater advanced: the
@@ -3662,6 +3691,66 @@ else
       fi
     fi
   fi
+fi
+
+# --- 2c. Incomplete plugin package directories (interrupted installs) ---
+echo "--- 2c. Plugin package integrity ---"
+if [ ! -f "$PLUGIN_CACHE_INTEGRITY_HELPER" ]; then
+  fail "PLUGIN_PACKAGE_INTEGRITY_HELPER_MISSING: $PLUGIN_CACHE_INTEGRITY_HELPER"
+else
+  PLUGIN_INTEGRITY_RESULT="$(
+    python3 - "$PLUGIN_CACHE_INTEGRITY_HELPER" "$OPENCODE_CACHE_DIR/packages" "$AUTO_UPDATE_LOCK" "$PLUGIN_QUARANTINE_DIR" "$OPENCODE_CONFIG_FILE" "$TUI_CONFIG_FILE" <<'PY_PLUGIN_INTEGRITY' 2>&1
+import json
+import re
+import subprocess
+import sys
+
+helper, cache_root, lock, quarantine, *configs = sys.argv[1:]
+exact = re.compile(r"^(?:@[^/@]+/)?[^/@]+@\d+\.\d+\.\d+(?:[+-][0-9A-Za-z.+-]+)?$")
+specs = []
+for path in configs:
+    try:
+        with open(path, encoding="utf-8") as handle:
+            plugins = json.load(handle).get("plugin", [])
+    except Exception:
+        continue
+    for ref in plugins if isinstance(plugins, list) else []:
+        if isinstance(ref, str) and exact.match(ref) and ref not in specs:
+            specs.append(ref)
+if not specs:
+    print("ok\tno exact-version plugin specs configured")
+    raise SystemExit(0)
+cmd = [sys.executable, helper, "scan", "--cache-root", cache_root, "--lock", lock,
+       "--quarantine-dir", quarantine, "--min-age-seconds", "600", "--apply"]
+for spec in specs:
+    cmd += ["--spec", spec]
+proc = subprocess.run(cmd, capture_output=True, text=True)
+try:
+    results = json.loads(proc.stdout)["results"]
+except Exception:
+    print(f"error\thelper failed (exit {proc.returncode}): {proc.stderr.strip() or proc.stdout.strip()}")
+    raise SystemExit(0)
+problems = 0
+for item in results:
+    if item.get("action") == "quarantined":
+        print(f"quarantined\t{item['spec']}\t{item['quarantined_to']}")
+        problems += 1
+    elif item.get("action") == "deferred":
+        print(f"deferred\t{item['spec']}\t{item['reason']}; {item['detail']}")
+        problems += 1
+if not problems:
+    print(f"ok\t{len(results)} configured plugin package(s) complete or not yet installed")
+PY_PLUGIN_INTEGRITY
+  )"
+  while IFS=$'\t' read -r state spec detail; do
+    case "$state" in
+      ok)          echo "   ok: $spec" ;;
+      quarantined) fail "PLUGIN_PACKAGE_INCOMPLETE_QUARANTINED: $spec -> $detail; restart OpenCode to reinstall" ;;
+      deferred)    fail "PLUGIN_PACKAGE_INCOMPLETE: $spec ($detail)" ;;
+      error)       fail "PLUGIN_PACKAGE_INTEGRITY_CHECK_FAILED: $spec" ;;
+      *)           [ -n "$state" ] && fail "PLUGIN_PACKAGE_INTEGRITY_CHECK_FAILED: unexpected output $state" ;;
+    esac
+  done <<< "$PLUGIN_INTEGRITY_RESULT"
 fi
 
 # --- 3. Systematic bundled skills / obsolete symlinks ---
