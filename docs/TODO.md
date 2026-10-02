@@ -496,27 +496,40 @@ Release facts that drive the group:
   Engram, Context7 and Persona writers target the effective settings file. Go module path is `/v4`:
   a v3 self-upgrade cannot cross to v4 on Go installs; `brew upgrade gentle-ai` is fine.
 
-### Q29. Decisions before upgrading (owner)
+### Q29. Decisions before upgrading (owner) — ALL DECIDED 2026-10-02
 - **Status:** PLANNED, gated by "owner decides to upgrade".
 - **Prerequisites:** none.
 - **Source:** v4.0.0 release notes; `docs/PLAN.md` "Route for former-SDD work (proposed, v4)",
   "Memory and inter-agent communication".
 - **Description:** decisions only; record each in `docs/PLAN.md` Recorded design decisions.
-  - (a) Route for former-SDD work: confirm or change the proposed route in `docs/PLAN.md`.
+  - (a) DECIDED (owner, 2026-10-02): the full former-SDD route in `docs/PLAN.md` (ODD doc → `ce:brainstorm` → `ce:plan` → advice → `ce:work` → post-code advice → `ce:review` → native review → `ce:compound`).
   - (b) DECIDED (owner, 2026-10-01): Magic Context remains the default memory pathway
     throughout, and mandatory Engram instructions are removed.
     - On upgrade, override or disable v4's Engram `odd/<feature>/tasks` mirror; the ODD tracker
       mirror stays Magic Context.
     - Engram is at most the opt-in inter-agent channel (Q14).
     - See Q35 for removal and enforcement.
-  - (c) `gentle-orchestrator` prompt: keep the user-owned prompt, or adopt v4's managed prompt and
-    re-apply the local overlays.
-  - (d) Agent allocation: map `sdd-apply`/`sdd-apply-local` write paths, `sdd-explore`,
-    `sdd-verify`, `sdd-research`, and our `explore`/`general` to `gentle-ai-explore`,
-    `gentle-ai-worker`, `gentle-ai-verify`. Keep the `asi-review-*` relay lanes and `advisor-*`.
-    Keep model and family diversity (verifier of at least 3 families for the 4R set; Judgment Day
-    diversity). Keep the Astra aliases working.
+  - (c) DECIDED (owner, 2026-10-02): keep a user-owned `gentle-orchestrator` prompt, rebuilt from
+    v4's managed OpenCode prompt (`internal/assets/opencode/orchestrator.md` at v4.0.0) as the base,
+    with our secure rules in marked blocks so upstream changes show as diffs. The verifier keeps
+    restoring it after every sync.
+  - (d) DECIDED (owner, 2026-10-02): agent mapping, keeping the proven cross-family
+    writer/verifier pair:
 
+    | role | agent | model (from) |
+    |---|---|---|
+    | explore | `gentle-ai-explore` | deepseek-v4.1-flash (our `explore`) |
+    | write, cloud | `gentle-ai-worker` | deepseek-v4.1-flash (`sdd-apply`) |
+    | write, local | `gentle-ai-worker-local` (ours) | kinver/professional (`sdd-apply-local`) |
+    | verify | `gentle-ai-verify` | gpt-6.1-sol (`sdd-verify`) |
+    | execution fallback | `general` | gpt-6-luna (unchanged) |
+    | retired | `sdd-*` | — |
+
+    The definitions are user-owned, with sandbox tools, the search contract and the Magic Context
+    adapter carried over. The per-session write-path choice (`session-decisions.md:11-17`) maps
+    to `gentle-ai-worker` vs `gentle-ai-worker-local`. The verifier's writer/verifier diversity
+    check (`verify-workflow.sh:2273`) moves to the `gentle-ai-worker`/`gentle-ai-verify` pair.
+    Keep `asi-review-*`, `advisor-*`, `jd-*` and Astra aliases, re-checking family diversity.
 ### Q30. Workflow documents
 - **Status:** PLANNED, gated by "owner decides to upgrade".
 - **Prerequisites:** Q29.

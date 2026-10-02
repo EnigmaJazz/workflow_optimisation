@@ -165,9 +165,9 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
     stays available for rollback.
 - Queue Q40-Q47.
 
-## Route for former-SDD work (proposed, v4)
+## Route for former-SDD work (DECIDED 2026-10-02, v4)
 
-Proposal only; the owner confirms or changes it in queue Q29a. gentle-ai v4.0.0 removes SDD, so
+Owner decision 2026-10-02 (Q29a): the full route below, chosen over a lighter variant without `ce:brainstorm`, so each stage has a durable artifact the guard can gate. gentle-ai v4.0.0 removes SDD, so
 the class that used to offer SDD needs a route built from the ODD spine and the `ce:*` skills.
 
 **Substantial design-heavy feature** (material product or design ambiguity):
