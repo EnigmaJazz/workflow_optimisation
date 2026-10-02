@@ -92,10 +92,24 @@ external-lens lineage (§4). The broker records the lineage as external-lens in 
 ### `host_review_capture_result` (existing): extra argument
 
 `inputFromAdvisorResponse: "<id>"`. For an external-lens lineage this is the **only** accepted
-input; a free-form `input` is refused. The broker:
-1. reads the current `collect` transition from gentle-ai;
-2. checks that lineage, target, lens, order and subject hash match the stored response;
-3. runs `capture-result --preflight`, then the real capture with the stored bytes.
+input: a free-form `input`/`inputJson` and any `agent` are refused. With it, the caller sends
+**only** `projectDir` and the id; every other capture field is refused, because the broker
+supplies it. The broker:
+1. reads the current `collect` input for the response's lens from gentle-ai;
+2. checks its target, order and subject hash against the stored response, refusing it as stale
+   otherwise;
+3. takes the current revision and repository context from that fresh input;
+4. relays each (lineage, lens) at most once;
+5. runs `capture-result --preflight`, then the real capture, with the stored result.
+
+Implemented in `broker/src/advisor-relay.ts`, and verified live 2026-10-02.
+
+> **workflow_optimisation position (owner, 2026-10-01; restated 2026-10-02):** this path is not
+> used. Native gentle-ai review stays on the in-OpenCode `asi-review-*` lanes, and external hosts
+> give advisory responses only, never lens results. See the handoff amendment "reviews stay in
+> OpenCode". The divergence is being raised with agent-sandbox-integration under queue Q50; until
+> both sides agree, this repo does not request `review-lens`, `externalLenses`, or
+> `inputFromAdvisorResponse`.
 
 ## 4. External-lens lineages (verified against gentle-ai 3.7.0, 2026-10-01)
 

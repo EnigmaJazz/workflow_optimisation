@@ -438,6 +438,14 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
   - records `pair-default`/`post-code-pair` group use.
   Until it is agreed, this repo's copy stays as published, and the handoff amendments state the
   divergence.
+- **Incident 2026-10-02 11:28:** an external sync overwrote both `docs/advisor/` files here. It
+  deleted the three owner amendments, and added the external-lens capture path as "implemented in
+  `broker/src/advisor-relay.ts`, verified live". Owner resolution:
+  - the amendments are restored;
+  - the contract keeps the sandbox side's implementation text, annotated "not used by
+    workflow_optimisation".
+  Raise it in the Q50 proposal, and ask agent-sandbox-integration not to sync over this repo's
+  copies. These files diverge by design until the contract is agreed.
 
 ### Q51. Scripted advisor dispatch is unreliable
 - **Status:** READY.
