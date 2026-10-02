@@ -24,7 +24,7 @@ tests/routing-guard`. The suite refuses to run against a real HOME.
 ## Tasks
 - [x] T1 — Design `docs/specs/routing-guard-q03.md`. Route: inline (strong model).
 - [x] T2 — Acceptance suite; RED observed. Route: inline (strong model).
-- [ ] T3 — Advice record on the design (owner TUI dispatch; Q51 open).
+- [x] T3 — Advice record on the design (owner TUI dispatch; Q51 open).
 - [ ] T4 — Implement to GREEN. Route: delegated writer.
 - [ ] T5 — Native review; verifier mirror; owner restart; verifier pass.
 
@@ -36,5 +36,23 @@ tests/routing-guard`. The suite refuses to run against a real HOME.
   root); fixed with a positive-control probe in every absence test. Final: 37 tests, 0 pass,
   37 fail.
 
+- 2026-10-02: T3 advice (`advisor-integration`, owner TUI). 10 findings; all settled in design
+  rev. 2 and the tests:
+  1. Bounded the awaited chains with a 2 s time box.
+  2-3. The seam covers all four `homedir()` uses, via accessors read at each use.
+  4. The read-only exemption is an exact declared set from real agents plus structural patterns;
+     loose matching is dropped.
+  5. Stage writer lists cover every legitimate writer; only undeclared writers get "not
+     allowed". Three-place policy consistency goes to Q28.
+  6. Legacy unnamespaced markers count only while the stage id is unique (pure
+     `stageMarkerNames`, tested with a synthetic collision table).
+  7. Migration premise verified on disk: 25 `artifact-tracker`, 23 `artifact-odd-tracker`, no
+     Systematic artifact markers.
+  8. Refresh touches valid keys only.
+  9. One bootstrap warning per multi-path patch.
+  10. The V2 hook-skipping scope is noted for Q42.
+  Added from my own on-disk check: qualified skill names are canonicalised (`systematic:ce:plan`
+  gives `skill-ce-plan`). Suite: 43 tests, 0 pass, 43 fail.
+
 ## Next step
-T3.
+T4: delegated implementation to GREEN.

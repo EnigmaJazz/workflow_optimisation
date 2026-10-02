@@ -135,18 +135,42 @@ describe("1. specialist rule: deny by default", () => {
     await probe()
   })
 
-  test("unlisted writer after the tracker exists warns 'not allowed'", async () => {
+  test("undeclared writer after the tracker exists warns 'not allowed'", async () => {
     seedKey("ses_s5", ODD)
     marker("ses_s5", `artifact-${ODD}-tracker`)
-    await dispatch("ses_s5", "frontend-apply")
-    expect(logCount(`${ODD} specialist frontend-apply is not allowed at tracker stage`)).toBe(1)
+    await dispatch("ses_s5", "mystery-writer")
+    expect(logCount(`${ODD} specialist mystery-writer is not allowed at tracker stage`)).toBe(1)
+  })
+
+  test("every declared writer is allowed once the tracker exists", async () => {
+    seedKey("ses_s5b", ODD)
+    marker("ses_s5b", `artifact-${ODD}-tracker`)
+    for (const name of ["general", "systematic-implementer", "frontend-dev", "frontend-dev-premium",
+      "frontend-apply", "frontend-apply-local", "jd-fix-agent", "pr-comment-resolver",
+      "bug-reproduction-validator", "design-iterator", "sdd-apply", "sdd-apply-local",
+      "gentle-ai-worker", "gentle-ai-worker-local"]) {
+      await dispatch("ses_s5b", name)
+    }
+    expect(logCount("specialist")).toBe(0)
+    await probe()
+  })
+
+  test("real writers are NOT exempt: they warn before the tracker exists", async () => {
+    seedKey("ses_s5c", ODD)
+    for (const name of ["pr-comment-resolver", "bug-reproduction-validator", "sdd-apply", "design-iterator"]) {
+      await dispatch("ses_s5c", name)
+      expect(logCount(`specialist ${name} dispatched before tracker`)).toBe(1)
+    }
   })
 
   test("read-only specialists are exempt", async () => {
     seedKey("ses_s6", ODD)
-    for (const name of ["explore", "gentle-ai-explore", "gentle-ai-verify", "correctness-reviewer",
-      "review-refuter", "review-risk", "asi-review-risk", "advisor-design", "jd-judge-a",
-      "repo-research-analyst", "sdd-research"]) {
+    for (const name of ["explore", "gentle-ai-explore", "gentle-ai-verify", "sdd-explore", "sdd-verify",
+      "sdd-research", "vision", "architecture-strategist", "spec-flow-analyzer", "git-history-analyzer",
+      "issue-intelligence-analyst", "pattern-recognition-specialist", "deployment-verification-agent",
+      "repo-research-analyst", "best-practices-researcher", "framework-docs-researcher",
+      "learnings-researcher", "correctness-reviewer", "review-refuter", "review-risk",
+      "asi-review-risk", "asi-review-validator", "advisor-design", "jd-judge-a", "jd-judge-b"]) {
       await dispatch("ses_s6", name)
     }
     expect(logCount("specialist")).toBe(0)
@@ -182,12 +206,34 @@ describe("2. route-namespaced stage markers", () => {
     await probe()
   })
 
-  test("a legacy ODD-style marker never satisfies another route's stage", async () => {
+  test("an artifact-odd-* marker never satisfies another route's stage", async () => {
     seedKey("ses_m5", SYS)
     marker("ses_m5", "artifact-odd-plan")
-    marker("ses_m5", "artifact-plan")
     await dispatch("ses_m5", "general")
     expect(logCount(`${SYS} specialist general dispatched before plan stage artifact exists`)).toBe(1)
+  })
+
+  test("a legacy unnamespaced marker counts while its stage id is unique across routes", async () => {
+    seedKey("ses_m5b", SYS)
+    marker("ses_m5b", "artifact-plan")
+    await dispatch("ses_m5b", "general")
+    expect(logCount(`${SYS} specialist general dispatched before plan`)).toBe(0)
+    await probe()
+  })
+
+  test("stageMarkerNames drops the legacy name once two routes share a stage id", () => {
+    const table = {
+      "workflow-odd-secure": [{ id: "tracker" }, { id: "plan" }],
+      "workflow-systematic": [{ id: "plan" }, { id: "review" }],
+    }
+    const sys = guard.stageMarkerNames("workflow-systematic", "plan", table)
+    expect(sys).toContain("artifact-workflow-systematic-plan")
+    expect(sys).not.toContain("artifact-plan")
+    expect(sys).not.toContain("artifact-odd-plan")
+    const odd = guard.stageMarkerNames("workflow-odd-secure", "tracker", table)
+    expect(odd).toEqual(expect.arrayContaining(["artifact-workflow-odd-secure-tracker", "artifact-tracker", "artifact-odd-tracker"]))
+    const review = guard.stageMarkerNames("workflow-systematic", "review", table)
+    expect(review).toContain("artifact-review")
   })
 
   test("a skill marker satisfies its stage (skills are route-agnostic)", async () => {
@@ -251,6 +297,17 @@ describe("3. written-path extraction", () => {
     expect(logCount(`${ODD} bootstrap: write to src/a.ts before tracker stage artifact exists`)).toBe(1)
   })
 
+  test("bootstrap: a multi-file patch warns once, listing the non-tracker paths in order", async () => {
+    seedKey("ses_p5m", ODD)
+    const patch = [
+      "diff --git a/src/a.ts b/src/a.ts", "--- a/src/a.ts", "+++ b/src/a.ts", "@@ -1 +1 @@", "-a", "+b",
+      "diff --git a/src/b.ts b/src/b.ts", "--- a/src/b.ts", "+++ b/src/b.ts", "@@ -1 +1 @@", "-a", "+b", "",
+    ].join("\n")
+    await before("sandbox_apply_patch", "ses_p5m", { patch })
+    expect(logCount(`${ODD} bootstrap: write to src/a.ts, src/b.ts before tracker stage artifact exists`)).toBe(1)
+    expect(logCount("bootstrap")).toBe(1)
+  })
+
   test("bootstrap: a patch that writes the tracker does not warn", async () => {
     seedKey("ses_p6", ODD)
     const patch = "diff --git a/odd/tasks/t.md b/odd/tasks/t.md\n--- /dev/null\n+++ b/odd/tasks/t.md\n@@ -0,0 +1 @@\n+t\n"
@@ -279,6 +336,12 @@ describe("4. awaited writes", () => {
   test("loading a Systematic skill writes its skill marker before the hook returns", async () => {
     await after("skill", "ses_w2", { name: "ce:plan" }, "loaded")
     expect(hasFile("ses_w2", "skill-ce-plan")).toBe(true)
+  })
+
+  test("a qualified skill name is canonicalised to the same marker", async () => {
+    await after("skill", "ses_w2q", { name: "systematic:ce:plan" }, "loaded")
+    expect(hasFile("ses_w2q", "skill-ce-plan")).toBe(true)
+    expect(hasFile("ses_w2q", "skill-systematic-ce-plan")).toBe(false)
   })
 
   test("task completion links the child before the hook returns", async () => {
@@ -382,8 +445,8 @@ describe("6. warning de-duplication", () => {
   test("different failures for the same tool are not suppressed by each other", async () => {
     seedKey("ses_d5", ODD)
     await dispatch("ses_d5", "general")
-    await dispatch("ses_d5", "frontend-apply")
+    await dispatch("ses_d5", "mystery-writer")
     expect(consoleCount("specialist general")).toBe(1)
-    expect(consoleCount("specialist frontend-apply")).toBe(1)
+    expect(consoleCount("specialist mystery-writer")).toBe(1)
   })
 })
