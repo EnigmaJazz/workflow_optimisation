@@ -2187,8 +2187,8 @@
   },
   "plugin": [
     "@fro.bot/systematic@3.21.0",
-    "@cortexkit/opencode-magic-context@0.44.2",
-    "@cortexkit/aft-opencode@0.58.0",
+    "@cortexkit/opencode-magic-context@0.44.4",
+    "@cortexkit/aft-opencode@0.58.2",
     "file:///home/james/.config/opencode/plugins/opencode-rate-limit-fallback-mapped/index.ts",
     "file:///home/james/.local/share/opencode-plugin-auto-update-local/dist/index.js",
     "opencode-usage-total@0.3.0"
