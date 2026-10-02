@@ -52,6 +52,18 @@ Runner: `python3 -m unittest tests/test_changeset.py -v`.
   script matched the expected conflict exit); fixed by requiring a JSON report on every CLI call
   (spec section 7). Second run: 0 passes.
 
+- 2026-10-02: native review (4 lenses, high risk, range `9424d69..0e65178`) APPROVED and
+  acknowledged, authority burned. 8 advisory findings; folded in before implementation:
+  - R4-001: the lock becomes `fcntl.flock`, removing the stale-lock race; tests now hold a real
+    flock from a separate process.
+  - R4-002: reverting after a resume is specified.
+  - R2-002: the outcome vocabulary, including `unknown`, is listed.
+  - R3: stronger dry-run assertion; new tests for pointer escapes, a missing parent and multi-line
+    indentation; a conflict-only revert test.
+  - R2-001: missing blank line before Q30 restored.
+  Not acted on: R2-003, tracker wording (the tracker is updated as status changes). Suite: 54
+  tests, all RED, 0 vacuous passes.
+
 ## Next step
 T3: advice record on the spec (owner TUI dispatch, Q51 open), then a delegated implementation to
 GREEN.

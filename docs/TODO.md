@@ -530,6 +530,7 @@ Release facts that drive the group:
     to `gentle-ai-worker` vs `gentle-ai-worker-local`. The verifier's writer/verifier diversity
     check (`verify-workflow.sh:2273`) moves to the `gentle-ai-worker`/`gentle-ai-verify` pair.
     Keep `asi-review-*`, `advisor-*`, `jd-*` and Astra aliases, re-checking family diversity.
+
 ### Q30. Workflow documents
 - **Status:** PLANNED, gated by "owner decides to upgrade".
 - **Prerequisites:** Q29.

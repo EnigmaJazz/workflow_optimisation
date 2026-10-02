@@ -60,8 +60,11 @@ equality for JSON values, and byte-for-byte equality for text.
 | `file_create` | `file`, `content_file` | Create `file` with the bytes of `<set>/<content_file>` |
 | `file_remove` | `file`, `expect_sha256` | Move `file` into the journal directory |
 
-- **`path`** is an RFC 6901 JSON Pointer, for example `/agent/gentle-orchestrator/prompt` or
-  `/plugin/1`. The parent of the target must exist.
+- **`path`** is an RFC 6901 JSON Pointer, including the `~1` (`/`) and `~0` (`~`) escapes, for
+  example `/agent/gentle-orchestrator/prompt` or `/plugin/1`.
+  - For `json_set`, the parent of the target must exist; a missing parent is a `conflict`.
+  - For `json_delete`, a missing parent means the target is already absent, so the outcome is
+    `already_applied`.
 - **`expect_before` for `json_set`** may be `{"$absent": true}`, meaning the member must not
   exist yet. The op then adds it, which is only valid where the parent is an object.
 - **JSON files** are plain JSON. JSONC is out of scope in v1, and a file that fails to parse as
@@ -72,6 +75,13 @@ equality for JSON values, and byte-for-byte equality for text.
   of a marker is a conflict.
 
 ## 4. Evaluating an op
+
+The full outcome vocabulary:
+- apply and status: `applied`, `already_applied`, `conflict`;
+- revert: `reverted`, `already_reverted`, `drift`, `unknown`.
+
+`unknown` is used only by revert, for an op whose journal has an `intent` line but no `outcome`
+line.
 
 For each op, the tool reads the current state and classifies it:
 
@@ -108,10 +118,13 @@ renamed over the target. The original mode bits are preserved.
 
 ## 5. Journal, lock and resume
 
-- **Lock:** `<journal-root>/.lock`, created with `O_CREAT|O_EXCL`, containing the PID.
-  - If the lock exists and its PID is alive, refuse (exit 3, `refused: lock_held`).
-  - If the PID is dead, remove the stale lock, report `stale_lock_cleared: true`, and continue.
-  - The lock is released on every exit path.
+- **Lock:** an exclusive, non-blocking `fcntl.flock` on `<journal-root>/.lock` (created if
+  missing; the holder writes its PID into it for diagnostics only).
+  - If the flock is held by another process, refuse (exit 3, `refused: lock_held`).
+  - The file's existence or content never decides anything. The kernel releases the flock when
+    its holder exits or crashes, so there is no stale-lock state and no check-then-remove race.
+    (Superseded design: an `O_EXCL` file with stale-PID removal, rejected in review R4-001.)
+  - The flock is released on every exit path. The lock file may remain.
 - **Journal:** one directory per run, `<journal-root>/<set-id>/<UTC timestamp>-<pid>/`,
   containing `journal.jsonl` plus copies of removed files under `removed/`.
 - **Line types** in `journal.jsonl`, each one JSON object followed by `\n`, flushed and `fsync`ed
@@ -129,6 +142,10 @@ renamed over the target. The original mode bits are preserved.
 - **Resume:** re-running `apply` after an interrupted run starts a new journal. Ops that already
   took effect evaluate as `already_applied`, and the rest apply normally. The interrupted journal
   is left as it is.
+- **Reverting after a resume:** each journal reverts only the ops it recorded as `applied`. To undo
+  a resumed apply, revert the newest journal first, then the interrupted one. Reverting the
+  interrupted journal alone reports the resumed run's later effects as `drift` (or `unknown` for
+  its in-flight op) and leaves them as they are.
 
 ## 6. Revert
 

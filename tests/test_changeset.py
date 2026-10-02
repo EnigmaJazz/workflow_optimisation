@@ -178,6 +178,44 @@ class JsonSet(Case):
         self.assertEqual(stat.S_IMODE(self.target.stat().st_mode), 0o600)
 
 
+class JsonPointerAndIndent(Case):
+    def test_pointer_escapes(self):
+        f = self.root / "p.json"
+        f.write_text('{"a/b": {"c~d": "old"}}\n')
+        self.write_set([{"op": "json_set", "file": str(f), "path": "/a~1b/c~0d",
+                         "expect_before": "old", "value": "new"}])
+        code, report, _ = self.apply()
+        self.assertEqual((code, self.outcomes(report)), (0, ["applied"]))
+        self.assertEqual(f.read_text(), '{"a/b": {"c~d": "new"}}\n')
+
+    def test_missing_parent_is_conflict(self):
+        f = self.root / "p.json"
+        f.write_text('{"a": 1}\n')
+        self.write_set([{"op": "json_set", "file": str(f), "path": "/no/such",
+                         "expect_before": {"$absent": True}, "value": 1},
+                        {"op": "json_delete", "file": str(f), "path": "/no/such",
+                         "expect_before": 1}])
+        code, report, _ = self.apply()
+        self.assertEqual((code, self.outcomes(report)), (2, ["conflict", "already_applied"]))
+        self.assertEqual(f.read_text(), '{"a": 1}\n')
+
+    def test_multiline_value_indented_to_target_line(self):
+        f = self.root / "p.json"
+        f.write_text('{\n  "agent": {\n    "x": 1\n  }\n}\n')
+        value = {"model": "m", "tools": {"read": True}}
+        self.write_set([{"op": "json_set", "file": str(f), "path": "/agent/x",
+                         "expect_before": 1, "value": value}])
+        code, _, _ = self.apply()
+        self.assertEqual(code, 0)
+        text = f.read_text()
+        self.assertEqual(json.loads(text), {"agent": {"x": value}})
+        self.assertTrue(text.startswith('{\n  "agent": {\n    "x": '))
+        self.assertTrue(text.endswith('\n  }\n}\n'))
+        inner = text.split('"x": ', 1)[1].rsplit('\n  }\n}', 1)[0].splitlines()[1:]
+        for line in inner:
+            self.assertTrue(line.startswith("    "), f"not indented to target line: {line!r}")
+
+
 class JsonDelete(Case):
     def test_delete_middle_member(self):
         f = self.root / "d.json"
@@ -373,30 +411,41 @@ class Refusals(Case):
         self.assertEqual(code, 3)
         self.assertEqual(real.read_text(), '{"k": "v1"}\n')
 
-    def test_live_lock_refuses(self):
-        self.journals.mkdir(parents=True)
-        (self.journals / ".lock").write_text(str(os.getpid()))
+    def hold_flock(self):
+        # A separate process holds the flock until killed (spec section 5).
+        self.journals.mkdir(parents=True, exist_ok=True)
+        holder = subprocess.Popen(
+            [sys.executable, "-c",
+             "import fcntl,sys,time; f=open(sys.argv[1],'a'); "
+             "fcntl.flock(f, fcntl.LOCK_EX); print('held', flush=True); time.sleep(60)",
+             str(self.journals / ".lock")], stdout=subprocess.PIPE, text=True)
+        self.assertEqual(holder.stdout.readline().strip(), "held")
+        self.addCleanup(holder.kill)
+        return holder
+
+    def test_held_flock_refuses(self):
+        self.hold_flock()
         self.write_set([self.good_op])
         code, report, _ = self.apply()
         self.assertEqual(code, 3)
         self.assertEqual(report["refused"], "lock_held")
         self.assert_untouched()
-        self.assertTrue((self.journals / ".lock").exists())
 
-    def test_stale_lock_is_cleared_and_run_proceeds(self):
+    def test_leftover_lock_file_without_holder_does_not_block(self):
         self.journals.mkdir(parents=True)
         (self.journals / ".lock").write_text(str(dead_pid()))
         self.write_set([self.good_op])
         code, report, _ = self.apply()
         self.assertEqual(code, 0)
-        self.assertTrue(report.get("stale_lock_cleared"))
-        self.assertFalse((self.journals / ".lock").exists())
+        self.assertEqual(self.outcomes(report), ["applied"])
 
-    def test_lock_released_after_run(self):
+    def test_flock_released_after_run(self):
+        import fcntl
         self.write_set([self.good_op])
         code, _, _ = self.apply()
         self.assertEqual(code, 0)
-        self.assertFalse((self.journals / ".lock").exists())
+        with open(self.journals / ".lock", "a") as handle:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)  # raises if still held
 
     def test_verify_cmd_failing_before_refuses(self):
         self.write_set([self.good_op])
@@ -438,7 +487,8 @@ class DryRunAndStatus(Case):
         self.assertTrue(report["dry_run"])
         self.assertEqual(self.outcomes(report), ["applied", "conflict"])
         self.assertEqual(self.f.read_text(), '{"k": "v1", "m": "x"}\n')
-        self.assertFalse(self.journals.exists() and any(self.journals.iterdir()))
+        leftovers = list(self.journals.rglob("*")) if self.journals.exists() else []
+        self.assertEqual(leftovers, [], "dry run must create no lock, journal or directory")
         self.assertEqual(report["verify"], {"before": None, "after": None})
 
     def test_status_is_read_only(self):
@@ -528,6 +578,16 @@ class Revert(Case):
         files = [r["file"] for r in report["results"]]
         self.assertNotIn(str(self.b), files)
         self.assertEqual(self.b.read_text(), '{"k": "w1"}\n')
+
+    def test_revert_of_conflict_only_journal_is_a_clean_no_op(self):
+        self.a.write_text('{\n  "k": "not-v1"\n}\n')
+        self.write_set([self.ops[0]])
+        code, _, _ = self.apply()
+        self.assertEqual(code, 2)
+        code, report, _ = self.revert(self.only_journal())
+        self.assertEqual(code, 0)
+        self.assertEqual(report["results"], [])
+        self.assertEqual(self.a.read_text(), '{\n  "k": "not-v1"\n}\n')
 
     def test_revert_restores_removed_file_and_retires_created_file(self):
         removed = self.root / "old.txt"
