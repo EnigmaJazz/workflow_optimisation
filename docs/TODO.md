@@ -705,14 +705,14 @@ Release facts that drive the group:
     - Markdown (`WORKFLOW.md`, `AGENTS.md`, skills, `~/.claude/CLAUDE.md`): operations keyed by
       an anchor or marked block, with the expected current block text and the replacement.
     - Whole files: add or remove only with the expected hash, e.g. deleting `workflow-sdd-secure`.
-  - **Apply (`upgrade/v4/apply.sh --dry-run | apply`):**
+  - **Apply (`python3 scripts/changeset.py apply --set upgrade/v4 [--dry-run]`):**
     - For each operation, apply it only when the current value equals `expect_before`.
     - If it already equals the target, record it as already applied (idempotent).
     - Otherwise report a conflict and skip that operation. Never overwrite.
     - Write a journal under `backups/upgrade-v4/<timestamp>/` with, per operation, the before
       value, the applied value and the outcome.
     - Finish by running the verifier: mirror, checks, digest re-pin as committed.
-  - **Revert (`upgrade/v4/revert.sh --dry-run | revert <journal>`):**
+  - **Revert (`python3 scripts/changeset.py revert --journal <journal> [--dry-run]`):**
     - Restore an operation's before value only when the current value still equals what apply
       wrote.
     - Anything changed since (gentle-ai sync, other sessions, manual edits) is reported as drift

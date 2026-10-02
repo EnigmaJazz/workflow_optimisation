@@ -142,8 +142,9 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
 - **Revert** restores the before value only where the current value still equals what apply
   wrote. Later drift from gentle-ai sync, other sessions or hand edits is reported, never
   overwritten.
-- **Process:** `apply.sh --dry-run`, then `apply.sh`, then the verifier. Rollback is
-  `revert.sh --dry-run <journal>`, then `revert.sh <journal>`, then the verifier. Repo-tracked
+- **Process:** `scripts/changeset.py apply --dry-run`, then `apply`, with the verifier as
+  `--verify-cmd`. Rollback is `scripts/changeset.py revert --dry-run`, then `revert`, newest
+  journal first (spec: `docs/specs/changeset-tool.md`). Repo-tracked
   sources also ride one feature branch, so `git revert` is the repo-level rollback.
 - Queue Q36. The set includes:
   - `host_sdd_*` deny, with its verifier change as one unit (Q37, merged; not applied early);

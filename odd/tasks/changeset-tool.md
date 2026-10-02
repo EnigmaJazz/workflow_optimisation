@@ -72,6 +72,27 @@ Runner: `python3 -m unittest tests/test_changeset.py -v`.
     absent from the report;
   - add a status/revert check for a missing-parent `json_delete`.
 
+- 2026-10-02: T3 advice record. Owner dispatched `advisor-design` from the TUI; 10 findings.
+  Resolution, folded into spec v1.1 and the tests before implementation:
+  1. TOCTOU between classify and rename: accepted. Compare-and-swap re-read before the rename,
+     `conflict: concurrent_change`, residual window documented, `CHANGESET_TEST_BEFORE_COMMIT`
+     test hook.
+  2. Crash after unlink but before the outcome: accepted. Revert reconciles an `unknown`
+     `file_remove` from the journal copy.
+  3. Revert order is only a convention: accepted. `previous_journal` in the header; revert refuses
+     with `newer_journal_not_reverted`.
+  4. Indentation is not an algorithm: accepted. Exact algorithm (indent unit, `indent=` dumps,
+     line-indent prefix) and an example.
+  5. Insert/delete byte rules: accepted. Exact rules per container shape, with exact-output tests.
+  6. `content_file` traversal: accepted. It must resolve inside the set dir, else `invalid_set`.
+  7. SDD preflight gate missing: declared out of scope. It is caller-supplied via `--verify-cmd`
+     (Q39).
+  8. A missing parent masks typos: accepted. A missing parent is `conflict` for set and delete.
+  9. Modes and parents: accepted. `file_create` `mode` (default 0644); modes kept on remove and
+     restore; no directory creation.
+  10. Global lock: accepted. Per-set flock; `status` documented as best-effort.
+  Also: `docs/PLAN.md`/`docs/TODO.md` now name `scripts/changeset.py` (not `apply.sh`/`revert.sh`).
+  The deferred test-hygiene items are applied. Suite: 69 tests, all RED, 0 vacuous passes.
+
 ## Next step
-T3: advice record on the spec (owner TUI dispatch, Q51 open), then a delegated implementation to
-GREEN.
+T3: delegated implementation of `scripts/changeset.py` to GREEN (cheaper writer), then T4.

@@ -1,8 +1,18 @@
-# Change-set tool — specification (v1)
+# Change-set tool — specification (v1.1)
 
 Status: specification for queue Q36. The implementation is `scripts/changeset.py`, and the
 acceptance tests are `tests/test_changeset.py`. Where this document and the tests disagree, the
 tests win, and this document is corrected in the same change.
+
+v1.1 (2026-10-02) folds in two reviews and the `advisor-design` advice:
+- a compare-and-swap write;
+- reconciling an interrupted `file_remove`;
+- enforced revert order;
+- exact JSON splice and indent rules;
+- `content_file` containment;
+- missing parent is a conflict;
+- file modes;
+- a per-set lock.
 
 ## 1. Purpose
 
@@ -10,6 +20,9 @@ Apply a declared set of edits to files outside git (live OpenCode and Claude Cod
 gentle-ai-managed blocks), and revert them later, without overwriting anything another actor
 changed in between: gentle-ai sync, other sessions, or hand edits. Repo-tracked files do not use
 this tool; they ride git branches.
+
+**Out of scope:** preflight policy gates such as the in-flight SDD check (queue Q39). The caller
+supplies them through `--verify-cmd` (section 9), which must exit 0 before any write.
 
 ## 2. Command line
 
@@ -20,14 +33,14 @@ python3 scripts/changeset.py status --set <dir> [--allow-root <dir>]...
 ```
 
 - `--set <dir>` holds `changeset.json` and any content files it references.
-- `--journal-root <dir>` holds journals and the lock. Production uses
+- `--journal-root <dir>` holds the journals and the per-set locks. Production uses
   `<repo>/backups/changesets`.
-- `--allow-root <dir>` can be repeated. Every target path must resolve, after `~` expansion and
-  symlink resolution, to a path inside one of the allowed roots. If none is given, the allowed
-  roots are `~/.config/opencode` and `~/.claude`.
+- `--allow-root <dir>` can be repeated. Every target path must resolve inside one of the allowed
+  roots (section 10). If none is given, the allowed roots are `~/.config/opencode` and
+  `~/.claude`.
 - `--verify-cmd <cmd>` is a shell command run with `/bin/sh -c`.
-- **Output:** exactly one JSON object on stdout (the report, section 7). Diagnostics go to
-  stderr.
+- **Output:** exactly one JSON object on stdout (the report, section 7), including on refusal.
+  Diagnostics go to stderr.
 
 ## 3. Change-set file (`changeset.json`)
 
@@ -44,8 +57,9 @@ python3 scripts/changeset.py status --set <dir> [--allow-root <dir>]...
 - `ops` is a non-empty array. Ops run in array order, and each op sees the file state left by
   the ops before it.
 - `file` is a path; `~` expands to `$HOME`.
-- An unknown `schema`, unknown `op`, missing required field, or invalid `id` makes the whole set
-  invalid. The tool refuses (exit 3) before touching any file.
+- **Invalid set:** an unknown `schema`, unknown `op`, missing required field, invalid `id`, or a
+  `content_file` that does not resolve inside the set directory (section 10). The tool refuses
+  (exit 3, `refused: invalid_set`) before touching any file.
 
 ### 3.1 Operation types
 
@@ -57,22 +71,24 @@ equality for JSON values, and byte-for-byte equality for text.
 | `json_set` | `file`, `path`, `expect_before`, `value` | Set the value at `path` |
 | `json_delete` | `file`, `path`, `expect_before` | Remove the member or element at `path` |
 | `block_replace` | `file`, `begin`, `end`, `expect_before`, `value` | Replace the text strictly between the `begin` and `end` marker lines |
-| `file_create` | `file`, `content_file` | Create `file` with the bytes of `<set>/<content_file>` |
+| `file_create` | `file`, `content_file`, optional `mode` | Create `file` with the bytes of `<set>/<content_file>`, mode `mode` (octal string, default `"0644"`) |
 | `file_remove` | `file`, `expect_sha256` | Move `file` into the journal directory |
 
 - **`path`** is an RFC 6901 JSON Pointer, including the `~1` (`/`) and `~0` (`~`) escapes, for
   example `/agent/gentle-orchestrator/prompt` or `/plugin/1`.
-  - For `json_set`, the parent of the target must exist; a missing parent is a `conflict`.
-  - For `json_delete`, a missing parent means the target is already absent, so the outcome is
-    `already_applied`.
+  - The parent of the target must exist for both `json_set` and `json_delete`. A missing parent
+    is a `conflict`, so a pointer typo can never pass as success.
+  - For `json_delete`, a missing member under an existing parent is `already_applied`.
 - **`expect_before` for `json_set`** may be `{"$absent": true}`, meaning the member must not
-  exist yet. The op then adds it, which is only valid where the parent is an object.
+  exist yet. The op then inserts it, which is only valid where the parent is an object.
 - **JSON files** are plain JSON. JSONC is out of scope in v1, and a file that fails to parse as
   JSON is a conflict for that op.
 - **`block_replace`:** `begin` and `end` are whole lines without their newline, and each must
   occur exactly once in the file, `begin` before `end`. The block is everything after the
   `begin` line's newline, up to the start of the `end` line. Zero, or more than one, occurrence
   of a marker is a conflict.
+- **`file_create`** never creates directories. If the parent directory is missing, the outcome is
+  `conflict`.
 
 ## 4. Evaluating an op
 
@@ -80,98 +96,155 @@ The full outcome vocabulary:
 - apply and status: `applied`, `already_applied`, `conflict`;
 - revert: `reverted`, `already_reverted`, `drift`, `unknown`.
 
-`unknown` is used only by revert, for an op whose journal has an `intent` line but no `outcome`
-line.
+`unknown` is used only by revert (section 6).
 
-For each op, the tool reads the current state and classifies it:
+For each op, the tool reads the current state (the bytes of the file) and classifies it:
 
 | Current state | Outcome | Write? |
 |---|---|---|
-| equals `expect_before` | `applied` | yes |
-| already equals the target (`value`; `$absent` after a delete; created bytes; file gone after a remove) | `already_applied` | no |
-| anything else, including a missing file or a parse failure | `conflict` | no |
+| equals `expect_before` | `applied` | yes (section 4.2) |
+| already equals the target (`value`; member absent after a delete; created bytes; file gone after a remove) | `already_applied` | no |
+| anything else, including a missing file, missing parent or a parse failure | `conflict` | no |
 
-`file_create` treats an absent file as applying. If the file exists, the outcome is
-`already_applied` when its bytes equal the content, and `conflict` otherwise.
+- **`file_create`:** an absent file (with an existing parent directory) applies. If the file
+  exists, the outcome is `already_applied` when its bytes equal the content, and `conflict`
+  otherwise.
+- **`file_remove`:** a present file applies when its SHA-256 equals `expect_sha256`. An absent
+  file is `already_applied`, and anything else is `conflict`.
+- **Conflicts:** a conflicting op is skipped and the run continues with the next op. A conflict
+  never changes any byte of any file.
 
-`file_remove` treats a present file as applying when its SHA-256 equals `expect_sha256`, an
-absent file as `already_applied`, and anything else as `conflict`.
+### 4.1 Byte rules for JSON edits
 
-A conflicting op is skipped and the run continues with the next op. A conflict never changes
-any byte of any file.
+`json_set`, `json_delete` and `block_replace` change only the bytes defined below. Every other
+byte of the file stays identical, including key order, trailing newline and formatting.
 
-### 4.1 Byte preservation
+**Terms**
+- **Container:** the object or array that is the target's parent.
+- **Multi-line container:** its opening and closing brackets are on different lines.
+- **Indent unit:** the leading whitespace of the first line of the file that has any, made of
+  spaces or tabs. If no line has leading whitespace, two spaces.
+- **Line indent:** the leading whitespace of the line on which a given member or element begins.
 
-`json_set`, `json_delete` and `block_replace` change only the bytes of the target. Every byte
-outside the edited value or member span (JSON) or the block (text) stays identical, including
-indentation, key order, trailing newline and other formatting.
+**Serialising a new value**
+- In a single-line container, and for any scalar or empty array or object:
+  `json.dumps(value, ensure_ascii=False)`.
+- Otherwise: `json.dumps(value, ensure_ascii=False, indent=<indent unit>)`, with every line after
+  the first prefixed by the line indent of the target (for insertion, the line indent of the
+  container's last member).
+- Example: setting `/agent/x` in `{\n  "agent": {\n    "x": 1\n  }\n}\n` to
+  `{"model": "m"}` gives `{\n  "agent": {\n    "x": {\n      "model": "m"\n    }\n  }\n}\n`.
 
-- New JSON values are serialised with `json.dumps(value, ensure_ascii=False)`, and indented to
-  match the target's line when the value spans several lines.
-- `json_delete` also removes the separating comma and the whitespace that belong only to the
-  removed member or element.
+**Replace** (`json_set` on an existing member or element): only the bytes of the old value
+change, and they become the serialised new value.
 
-### 4.2 Atomic writes
+**Insert** (`json_set` with `$absent`; objects only). Key `k` is serialised with `json.dumps`.
+- Non-empty single-line object: insert `, "k": <value>` immediately after the end of the last
+  member's value. `{"a": 1}` becomes `{"a": 1, "b": 2}`.
+- Non-empty multi-line object: insert `,` immediately after the end of the last member's value,
+  then `\n` + that member's line indent + `"k": <value>`. `{\n  "a": 1\n}` becomes
+  `{\n  "a": 1,\n  "b": 2\n}`.
+- Empty object: replace the whole interior with `"k": <value>`. `{}` and `{ }` both become
+  `{"b": 2}`.
 
-Each changed file is written to a temporary file in the same directory, flushed, `fsync`ed, and
-renamed over the target. The original mode bits are preserved.
+**Delete** (`json_delete`; members and elements alike):
+- Not the last of several: remove from the start of the member (its key's opening quote) or
+  element, up to the start of the next one. That removes its value, its comma, and the whitespace
+  after the comma. `{\n  "a": 1,\n  "b": 2,\n  "c": 3\n}` with `/b` removed becomes
+  `{\n  "a": 1,\n  "c": 3\n}`; `["x", "y", "z"]` with `/1` removed becomes `["x", "z"]`.
+- The last of several: remove from the comma after the previous member's value, up to the end of
+  the removed value. `{\n  "a": 1,\n  "c": 3\n}` with `/c` removed becomes `{\n  "a": 1\n}`.
+- The only member or element: replace the interior with `""` in a single-line container, or with
+  `"\n"` followed by the closing bracket's line indent in a multi-line one. `{\n  "a": 1\n}`
+  becomes `{\n}`.
+
+### 4.2 Writes: atomic and compare-and-swap
+
+1. Read the target's bytes, B0. All classification uses B0.
+2. Build the new bytes and write them to a temporary file in the same directory. Set the mode,
+   flush and `fsync`.
+3. Re-read the target. If its bytes differ from B0, delete the temporary file, write nothing, and
+   record the outcome `conflict` with reason `concurrent_change`.
+4. Otherwise rename the temporary file over the target.
+
+A concurrent writer can still change the file in the short window between steps 3 and 4. Other
+actors take no lock, so that window cannot be closed; it is documented as a residual risk.
+
+**Test hook:** when the environment variable `CHANGESET_TEST_BEFORE_COMMIT` is set, step 3 first
+runs it with `/bin/sh -c "$CHANGESET_TEST_BEFORE_COMMIT" sh <target-path>`. It exists only to make
+the race testable; production never sets it.
+
+**Modes:**
+- Replacing an existing file keeps its mode bits.
+- `file_create` uses the op's `mode`.
+- The `removed/` copy and a restored file keep the original mode (`shutil.copy2` semantics).
+- Ownership is never changed.
 
 ## 5. Journal, lock and resume
 
-- **Lock:** an exclusive, non-blocking `fcntl.flock` on `<journal-root>/.lock` (created if
-  missing; the holder writes its PID into it for diagnostics only).
-  - If the flock is held by another process, refuse (exit 3, `refused: lock_held`).
-  - The file's existence or content never decides anything. The kernel releases the flock when
-    its holder exits or crashes, so there is no stale-lock state and no check-then-remove race.
-    (Superseded design: an `O_EXCL` file with stale-PID removal, rejected in review R4-001.)
+- **Lock:** an exclusive, non-blocking `fcntl.flock` on `<journal-root>/<set-id>/.lock`, one lock
+  per set. The file is created if missing; the holder writes its PID into it for diagnostics only.
+  - If another process holds the flock, refuse (exit 3, `refused: lock_held`).
+  - The file's existence or content never decides anything, and the report never carries
+    `stale_lock_cleared`. The kernel releases the flock when its holder exits or crashes.
+  - Different sets do not block each other; section 4.2's compare-and-swap protects a file two
+    sets both touch.
   - The flock is released on every exit path. The lock file may remain.
 - **Journal:** one directory per run, `<journal-root>/<set-id>/<UTC timestamp>-<pid>/`,
   containing `journal.jsonl` plus copies of removed files under `removed/`.
 - **Line types** in `journal.jsonl`, each one JSON object followed by `\n`, flushed and `fsync`ed
   before the tool proceeds:
-  - `{"type":"header","schema":"workflow-changeset-journal/v1","set_id":…,"set_sha256":…,"started":…}`
+  - `{"type":"header","schema":"workflow-changeset-journal/v1","kind":"apply"|"revert","set_id":…,"set_sha256":…,"started":…,"previous_journal":<path|null>,"reverts":<path|null>}`
+    - `previous_journal` is the newest existing apply journal for the same set, sealed or not, at
+      start.
+    - `reverts` is set only on revert journals.
   - `{"type":"intent","index":i,"op":…,"file":…,"before":…,"target":…}`, written BEFORE the
     file write. `before` and `target` are the values or text involved. For `file_remove`, the
-    journal also records the path of the copy under `removed/`.
-  - `{"type":"outcome","index":i,"outcome":"applied|already_applied|conflict","reason":…}`,
-    written after the write.
+    intent also records the path of the copy under `removed/` and the original mode.
+  - `{"type":"outcome","index":i,"outcome":…,"reason":…}`, written after the write.
   - `{"type":"seal","ops":n,"sha256":<sha256 of all preceding lines>}`, the last line, written
     only after every op has an outcome.
-- **Ordering for `file_remove`:** copy the file into `removed/` (and `fsync`) first, then write
-  the intent, then unlink the original. A crash between these steps loses nothing.
-- **Resume:** re-running `apply` after an interrupted run starts a new journal. Ops that already
-  took effect evaluate as `already_applied`, and the rest apply normally. The interrupted journal
-  is left as it is.
-- **Reverting after a resume:** each journal reverts only the ops it recorded as `applied`. To undo
-  a resumed apply, revert the newest journal first, then the interrupted one. Reverting the
-  interrupted journal alone reports the resumed run's later effects as `drift` (or `unknown` for
-  its in-flight op) and leaves them as they are.
+- **Ordering for `file_remove`:** copy the file into `removed/` (`fsync`ed, mode kept), then write
+  the intent, then unlink the original. A crash between these steps loses nothing; section 6
+  reconciles it.
+- **Resume:** re-running `apply` after an interrupted run starts a new journal whose
+  `previous_journal` names the interrupted one. Ops that already took effect evaluate as
+  `already_applied`, and the rest apply normally. The interrupted journal is left as it is.
 
 ## 6. Revert
 
-`revert --journal <dir>/journal.jsonl` undoes the ops recorded as `applied`, in reverse order.
+`revert --journal <dir>/journal.jsonl` undoes, in reverse order, the ops the journal recorded as
+`applied`.
 
 | Current state | Outcome | Write? |
 |---|---|---|
-| equals what apply wrote (`target`) | `reverted` | restore `before` |
+| equals what apply wrote (`target`) | `reverted` | restore `before` (section 4.2 compare-and-swap) |
 | already equals `before` | `already_reverted` | no |
 | anything else | `drift` | no; reported and left as it is |
 
-- Ops whose outcome was `already_applied` or `conflict` are not reverted; apply wrote nothing for
-  them.
-- `file_remove` revert: if the original path is absent, move the journal copy back. If the path
-  exists, the outcome is `already_reverted` when its SHA-256 equals the copy's, and `drift`
-  otherwise.
-- `file_create` revert: if the file's bytes equal the created content, move it into the revert
+- **Not reverted:** ops whose outcome was `already_applied` or `conflict`; apply wrote nothing for
+  them. A journal with only such ops reverts cleanly (exit 0, empty `results`).
+- **`file_remove`:** if the original path is absent, copy the journal copy back with its mode. If
+  the path exists, the outcome is `already_reverted` when its SHA-256 equals the copy's, and
+  `drift` otherwise.
+- **`file_create`:** if the file's bytes equal the created content, move it into the revert
   journal directory (never delete). If the file is absent, the outcome is `already_reverted`;
   otherwise it is `drift`.
+- **Intent without outcome** (interrupted apply):
+  - A `file_remove` is reconciled. If the original path is absent and the journal copy's SHA-256
+    equals `expect_sha256`, the copy is restored (`reverted`). If the original is present, the
+    outcome is `already_reverted`.
+  - Every other op is reported `unknown` and not touched, because whether its write happened
+    cannot be proven.
+- **Enforced order:** revert refuses (exit 3, `refused: newer_journal_not_reverted`, naming it)
+  while a newer apply journal for the same set exists that has an `applied` outcome or an
+  `unknown`-eligible intent, unless a sealed revert journal whose `reverts` names it already
+  exists. Revert the newest journal first.
 - **Refusal (exit 3, nothing touched):** a missing journal; a journal whose lines do not parse;
-  an unknown journal schema; or a sealed journal whose seal `sha256` does not match.
-  - An unsealed journal, from an interrupted apply, is accepted. Only ops with an `applied`
-    outcome line are reverted. An intent with no outcome line is reported as `unknown` and not
-    touched.
-- Revert writes its own journal (`<journal-root>/<set-id>/revert-<timestamp>-<pid>/`), with the
-  same line types, and takes the same lock.
+  an unknown journal schema; or a sealed journal whose seal `sha256` does not match. An unsealed
+  journal is accepted.
+- Revert writes its own journal (`<journal-root>/<set-id>/revert-<timestamp>-<pid>/`), with
+  `kind: "revert"` and `reverts` set, and takes the set's lock.
 
 ## 7. Report and exit codes
 
@@ -184,30 +257,38 @@ The report always includes:
 
 | Exit | Meaning |
 |---|---|
-| 0 | every op `applied`/`already_applied` (or `reverted`/`already_reverted`) |
+| 0 | every op `applied`/`already_applied` (or `reverted`/`already_reverted`), or nothing to revert |
 | 2 | finished, but at least one `conflict`, `drift` or `unknown` |
-| 3 | refused before any file write: invalid set or journal, lock held, path outside the allowed roots, `--verify-cmd` failed before the run |
+| 3 | refused before any file write: `invalid_set`, `invalid_journal`, `lock_held`, `path_outside_allowed_roots`, `verify_failed`, `newer_journal_not_reverted` |
 | 1 | internal error |
 
 ## 8. Dry run
 
 `--dry-run` evaluates and reports outcomes exactly as a real run would, but writes nothing: no
-file, no journal, no lock. `--verify-cmd` is not run.
+file, no journal, no lock file, and no directory. `--verify-cmd` is not run.
 
 ## 9. Verification gate
 
 With `--verify-cmd`, the command runs before any write. A non-zero exit refuses the run (exit 3,
 `refused: verify_failed`, `verify.before` set). After the run, the command runs again and
 `verify.after` records its exit code. A failing post-run check does not change the outcomes; it
-is reported. In production the command is `bash verify-workflow.sh`.
+is reported.
+
+In production the command is the verifier, plus any preflight the caller needs (for example the
+Q39 in-flight SDD check).
 
 ## 10. Path safety
 
 Before anything is written, every `file` in the set is resolved: `~` expanded, then
-`os.path.realpath` (for a file that does not exist yet, the realpath of its parent). Any target
-outside every allowed root refuses the whole run (exit 3, `refused: path_outside_allowed_roots`).
+`os.path.realpath` (for a file that does not exist yet, the realpath of its parent joined with the
+name).
+- Any target outside every allowed root refuses the whole run (exit 3,
+  `refused: path_outside_allowed_roots`).
+- Every `content_file` must resolve (realpath) inside the set directory. Otherwise the set is
+  invalid (exit 3, `refused: invalid_set`).
 
 ## 11. `status`
 
-Read-only. It evaluates every op as `apply` would and reports, without lock, journal or writes,
-in the same report format with `command: "status"`. The exit code follows section 7.
+Read-only and best-effort. It evaluates every op as `apply` would and reports, in the same
+format with `command: "status"`, without lock, journal or writes. It may observe a concurrent
+apply mid-run. The exit code follows section 7.

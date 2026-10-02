@@ -4,6 +4,7 @@ Every test drives the CLI exactly as production does and inspects files, the
 journal and the JSON report. Run: python3 -m unittest tests/test_changeset.py -v
 """
 
+import fcntl
 import hashlib
 import json
 import os
@@ -21,12 +22,6 @@ SCRIPT = REPO / "scripts" / "changeset.py"
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
-
-
-def dead_pid() -> int:
-    proc = subprocess.Popen([sys.executable, "-c", "pass"])
-    proc.wait()
-    return proc.pid
 
 
 class Case(unittest.TestCase):
@@ -170,6 +165,22 @@ class JsonSet(Case):
         self.assertEqual(self.outcomes(report), ["conflict"])
         self.assertFalse(self.target.exists())
 
+    def test_concurrent_change_before_commit_is_conflict(self):
+        intruder = '{"agent": {"x": {"model": "changed-by-sync"}}}\n'
+        hook = f"printf '%s' '{intruder}' > \"$1\""
+        self.write_set([self.op()])
+        env = dict(os.environ, CHANGESET_TEST_BEFORE_COMMIT=hook)
+        proc = subprocess.run([sys.executable, str(SCRIPT), "apply", "--set", str(self.set_dir),
+                               "--journal-root", str(self.journals), "--allow-root", str(self.root)],
+                              capture_output=True, text=True, timeout=60, env=env)
+        report = json.loads(proc.stdout)
+        self.assertEqual(proc.returncode, 2)
+        self.assertEqual(report["results"][0]["outcome"], "conflict")
+        self.assertEqual(report["results"][0]["reason"], "concurrent_change")
+        self.assertEqual(self.target.read_text(), intruder)
+        leftovers = [p.name for p in self.root.iterdir() if p.name != "cfg.json"]
+        self.assertEqual(leftovers, [], "temporary file must be removed")
+
     def test_mode_bits_preserved(self):
         os.chmod(self.target, 0o600)
         self.write_set([self.op()])
@@ -196,8 +207,10 @@ class JsonPointerAndIndent(Case):
                         {"op": "json_delete", "file": str(f), "path": "/no/such",
                          "expect_before": 1}])
         code, report, _ = self.apply()
-        self.assertEqual((code, self.outcomes(report)), (2, ["conflict", "already_applied"]))
+        self.assertEqual((code, self.outcomes(report)), (2, ["conflict", "conflict"]))
         self.assertEqual(f.read_text(), '{"a": 1}\n')
+        code, report, _ = self.run_cli("status", "--set", str(self.set_dir))
+        self.assertEqual((code, self.outcomes(report)), (2, ["conflict", "conflict"]))
 
     def test_multiline_value_indented_to_target_line(self):
         f = self.root / "p.json"
@@ -216,7 +229,58 @@ class JsonPointerAndIndent(Case):
             self.assertTrue(line.startswith("    "), f"not indented to target line: {line!r}")
 
 
+class JsonInsertExact(Case):
+    def insert(self, text, key="b", value=2):
+        f = self.root / "i.json"
+        f.write_text(text)
+        self.write_set([{"op": "json_set", "file": str(f), "path": "/" + key,
+                         "expect_before": {"$absent": True}, "value": value}])
+        code, report, _ = self.apply()
+        self.assertEqual((code, self.outcomes(report)), (0, ["applied"]))
+        return f.read_text()
+
+    def test_single_line_object(self):
+        self.assertEqual(self.insert('{"a": 1}\n'), '{"a": 1, "b": 2}\n')
+
+    def test_multi_line_object(self):
+        self.assertEqual(self.insert('{\n  "a": 1\n}\n'), '{\n  "a": 1,\n  "b": 2\n}\n')
+
+    def test_multi_line_object_with_object_value(self):
+        self.assertEqual(self.insert('{\n  "a": 1\n}\n', value={"n": 2}),
+                         '{\n  "a": 1,\n  "b": {\n    "n": 2\n  }\n}\n')
+
+    def test_empty_object(self):
+        self.assertEqual(self.insert('{}\n'), '{"b": 2}\n')
+        self.assertEqual(self.insert('{ }\n'), '{"b": 2}\n')
+
+    def test_replace_with_object_matches_spec_example(self):
+        f = self.root / "r.json"
+        f.write_text('{\n  "agent": {\n    "x": 1\n  }\n}\n')
+        self.write_set([{"op": "json_set", "file": str(f), "path": "/agent/x",
+                         "expect_before": 1, "value": {"model": "m"}}])
+        code, _, _ = self.apply()
+        self.assertEqual(code, 0)
+        self.assertEqual(f.read_text(),
+                         '{\n  "agent": {\n    "x": {\n      "model": "m"\n    }\n  }\n}\n')
+
+
 class JsonDelete(Case):
+    def test_delete_only_member(self):
+        f = self.root / "d.json"
+        f.write_text('{\n  "a": 1\n}\n')
+        self.write_set([{"op": "json_delete", "file": str(f), "path": "/a", "expect_before": 1}])
+        code, _, _ = self.apply()
+        self.assertEqual(code, 0)
+        self.assertEqual(f.read_text(), '{\n}\n')
+
+    def test_delete_only_element_single_line(self):
+        f = self.root / "d.json"
+        f.write_text('{"p": ["x"]}\n')
+        self.write_set([{"op": "json_delete", "file": str(f), "path": "/p/0", "expect_before": "x"}])
+        code, _, _ = self.apply()
+        self.assertEqual(code, 0)
+        self.assertEqual(f.read_text(), '{"p": []}\n')
+
     def test_delete_middle_member(self):
         f = self.root / "d.json"
         f.write_text('{\n  "a": 1,\n  "b": 2,\n  "c": 3\n}\n')
@@ -330,6 +394,27 @@ class FileOps(Case):
         self.assertEqual((code, self.outcomes(report)), (2, ["conflict"]))
         self.assertEqual(target.read_bytes(), b"someone else\n")
 
+    def test_create_never_makes_directories(self):
+        (self.set_dir / "content.txt").write_bytes(b"hello\n")
+        target = self.root / "missing-dir" / "new.txt"
+        self.write_set([{"op": "file_create", "file": str(target), "content_file": "content.txt"}])
+        code, report, _ = self.apply()
+        self.assertEqual((code, self.outcomes(report)), (2, ["conflict"]))
+        self.assertFalse(target.parent.exists())
+
+    def test_create_mode_default_and_explicit(self):
+        (self.set_dir / "content.txt").write_bytes(b"hello\n")
+        plain = self.root / "plain.txt"
+        script = self.root / "run.sh"
+        self.write_set([
+            {"op": "file_create", "file": str(plain), "content_file": "content.txt"},
+            {"op": "file_create", "file": str(script), "content_file": "content.txt", "mode": "0755"},
+        ])
+        code, _, _ = self.apply()
+        self.assertEqual(code, 0)
+        self.assertEqual(stat.S_IMODE(plain.stat().st_mode), 0o644)
+        self.assertEqual(stat.S_IMODE(script.stat().st_mode), 0o755)
+
     def test_remove_moves_into_journal_never_deletes(self):
         target = self.root / "old.txt"
         target.write_bytes(b"retire me\n")
@@ -374,7 +459,7 @@ class Refusals(Case):
         self.write_set([self.good_op, {"op": "rm_rf", "file": str(self.f)}])
         code, report, _ = self.apply()
         self.assertEqual(code, 3)
-        self.assertIsNotNone(report["refused"])
+        self.assertEqual(report["refused"], "invalid_set")
         self.assert_untouched()
 
     def test_unknown_schema_refuses(self):
@@ -411,16 +496,24 @@ class Refusals(Case):
         self.assertEqual(code, 3)
         self.assertEqual(real.read_text(), '{"k": "v1"}\n')
 
-    def hold_flock(self):
-        # A separate process holds the flock until killed (spec section 5).
-        self.journals.mkdir(parents=True, exist_ok=True)
+    def lock_path(self, set_id="test-set"):
+        return self.journals / set_id / ".lock"
+
+    def hold_flock(self, set_id="test-set"):
+        # A separate process holds the per-set flock until stopped (spec section 5).
+        self.lock_path(set_id).parent.mkdir(parents=True, exist_ok=True)
         holder = subprocess.Popen(
             [sys.executable, "-c",
              "import fcntl,sys,time; f=open(sys.argv[1],'a'); "
              "fcntl.flock(f, fcntl.LOCK_EX); print('held', flush=True); time.sleep(60)",
-             str(self.journals / ".lock")], stdout=subprocess.PIPE, text=True)
+             str(self.lock_path(set_id))], stdout=subprocess.PIPE, text=True)
+
+        def stop():
+            holder.kill()
+            holder.wait()
+            holder.stdout.close()
+        self.addCleanup(stop)
         self.assertEqual(holder.stdout.readline().strip(), "held")
-        self.addCleanup(holder.kill)
         return holder
 
     def test_held_flock_refuses(self):
@@ -432,20 +525,37 @@ class Refusals(Case):
         self.assert_untouched()
 
     def test_leftover_lock_file_without_holder_does_not_block(self):
-        self.journals.mkdir(parents=True)
-        (self.journals / ".lock").write_text(str(dead_pid()))
+        self.lock_path().parent.mkdir(parents=True)
+        self.lock_path().write_text("leftover content is never interpreted")
         self.write_set([self.good_op])
         code, report, _ = self.apply()
         self.assertEqual(code, 0)
         self.assertEqual(self.outcomes(report), ["applied"])
+        self.assertNotIn("stale_lock_cleared", report)
 
     def test_flock_released_after_run(self):
-        import fcntl
         self.write_set([self.good_op])
         code, _, _ = self.apply()
         self.assertEqual(code, 0)
-        with open(self.journals / ".lock", "a") as handle:
+        with open(self.lock_path(), "a") as handle:
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)  # raises if still held
+
+    def test_lock_is_per_set(self):
+        self.hold_flock(set_id="other-set")
+        self.write_set([self.good_op])
+        code, report, _ = self.apply()
+        self.assertEqual((code, self.outcomes(report)), (0, ["applied"]))
+
+    def test_content_file_outside_set_dir_is_invalid_set(self):
+        secret = self.outside / "secret.txt"
+        secret.write_bytes(b"do not copy\n")
+        target = self.root / "copied.txt"
+        self.write_set([{"op": "file_create", "file": str(target),
+                         "content_file": "../outside/secret.txt"}])
+        code, report, _ = self.apply()
+        self.assertEqual(code, 3)
+        self.assertEqual(report["refused"], "invalid_set")
+        self.assertFalse(target.exists())
 
     def test_verify_cmd_failing_before_refuses(self):
         self.write_set([self.good_op])
@@ -589,6 +699,54 @@ class Revert(Case):
         self.assertEqual(report["results"], [])
         self.assertEqual(self.a.read_text(), '{\n  "k": "not-v1"\n}\n')
 
+    def test_revert_restores_removed_file_mode(self):
+        removed = self.root / "tool.sh"
+        removed.write_bytes(b"#!/bin/sh\n")
+        os.chmod(removed, 0o755)
+        self.write_set([{"op": "file_remove", "file": str(removed),
+                         "expect_sha256": sha256(b"#!/bin/sh\n")}])
+        self.apply()
+        code, _, _ = self.revert(self.only_journal())
+        self.assertEqual(code, 0)
+        self.assertEqual(stat.S_IMODE(removed.stat().st_mode), 0o755)
+
+    def test_interrupted_file_remove_is_restored_by_revert(self):
+        removed = self.root / "old.txt"
+        removed.write_bytes(b"keep me\n")
+        self.write_set([{"op": "file_remove", "file": str(removed),
+                         "expect_sha256": sha256(b"keep me\n")}])
+        self.apply()
+        journal = self.only_journal()
+        rows = [json.loads(l) for l in journal.read_text().splitlines()]
+        kept = [r for r in rows if r["type"] in ("header", "intent")]   # crash after unlink
+        journal.write_text("".join(json.dumps(r) + "\n" for r in kept))
+        self.assertFalse(removed.exists())
+        code, report, _ = self.revert(journal)
+        self.assertEqual(code, 0)
+        self.assertEqual(self.outcomes(report), ["reverted"])
+        self.assertEqual(removed.read_bytes(), b"keep me\n")
+
+    def test_older_journal_refused_until_newer_reverted(self):
+        self.write_set([self.ops[0]])
+        self.apply()
+        first = self.only_journal()
+        self.write_set(self.ops)            # second run applies op on b
+        self.apply()
+        journals = sorted(p for p in self.journal_files() if not p.parent.name.startswith("revert-"))
+        second = [p for p in journals if p != first][0]
+        header = json.loads(second.read_text().splitlines()[0])
+        self.assertEqual(Path(header["previous_journal"]).resolve(), first.resolve())
+        code, report, _ = self.revert(first)
+        self.assertEqual(code, 3)
+        self.assertEqual(report["refused"], "newer_journal_not_reverted")
+        self.assertEqual(json.loads(self.a.read_text()), {"k": "v2"})
+        code, _, _ = self.revert(second)
+        self.assertEqual(code, 0)
+        code, _, _ = self.revert(first)
+        self.assertEqual(code, 0)
+        self.assertEqual(self.a.read_text(), '{\n  "k": "v1"\n}\n')
+        self.assertEqual(self.b.read_text(), '{"k": "w1"}\n')
+
     def test_revert_restores_removed_file_and_retires_created_file(self):
         removed = self.root / "old.txt"
         removed.write_bytes(b"keep me\n")
@@ -622,8 +780,9 @@ class Revert(Case):
         self.apply()
         journal = self.only_journal()
         journal.write_text(journal.read_text() + "{not json\n")
-        code, _, _ = self.revert(journal)
+        code, report, _ = self.revert(journal)
         self.assertEqual(code, 3)
+        self.assertEqual(report["refused"], "invalid_journal")
         self.assertEqual(json.loads(self.a.read_text()), {"k": "v2"})
 
     def test_tampered_seal_refuses(self):
