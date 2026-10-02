@@ -6,7 +6,7 @@ wide-blast-radius changes cannot take a light route. Preference is explicit: ove
 structure is cheaper than repeatedly repairing changes.
 
 ## Sequence
-The queue with statuses and prerequisites is `docs/TODO.md`; this sequence matches its order.
+The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is the execution order; the steps below are the plan-level narrative, and where they differ, the TODO phases govern.
 1. Advisor layer: registration, then the mandatory advice policy (interim lane). Close out the
    registration (verifier mirror, restart, dispatch each advisor once), then the B0/B1/B2 policy
    unit: advice mandatory for every non-trivial change, met by the registered advisors.
@@ -30,7 +30,7 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
 10. Deployment gating matrix (Q28): every workflow rule gets an enforcement point or an
     advisory-only record.
 11. gentle-ai v4 upgrade (planned; owner-triggered): decisions, then docs/agents/verifier/guard
-    changes on one gated branch, then the runbook (queue Q29-Q34).
+    changes on one gated branch, then the runbook (queue Q29-Q39).
 
 12. OpenCode V2 upgrade (planned; owner-triggered; after the gentle-ai v4 upgrade): probe side by
     side, port plugins dual-mode, verifier V2 mode, change set and runbook (queue Q40-Q47).

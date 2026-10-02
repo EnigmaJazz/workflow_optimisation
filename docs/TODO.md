@@ -25,7 +25,22 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 
 ## Queue (in order)
 
-**Current working order (owner, 2026-10-01):** Q35 (Claude Code side, once scope is confirmed) can run any time; Q03 (R2-001 + cross-route stage resolution) → Q25
+**Phases (2026-10-02).** Q-numbers are stable IDs; the phases give the execution order, and
+`docs/PLAN.md` Sequence follows them.
+- **Phase 1, guard and handoff fixes:** Q01 close-out, then Q03 (absorbs the overlapping Q20 and
+  Q21 findings), then Q25. Q35 can run at any time.
+- **Phase 2, verifier and gating foundations:** Q26, then Q28, then Q04, plus Q48 (rule now; lint
+  after Q26).
+- **Phase 3, recipe and policy:** Q05, Q09, the Q10 items, Q12, Q14, Q24, Q50, then the remaining
+  READY and PLANNED items in listed order (Q11, Q13, Q15-Q23).
+- **Phase 4, gentle-ai v4 upgrade (owner-triggered):** Q29, then Q30-Q33 and Q35-Q39 delivered as
+  the Q36 change set, then Q34. Q49 runs throughout.
+- **Phase 5, OpenCode V2 upgrade (owner-triggered, after Phase 4):** Q40-Q47.
+
+Every source change needs the deploy step: verifier mirror, then restart. Q27 waits on an owner
+decision.
+
+**Previous working order (owner, 2026-10-01; superseded by the phases above):** Q35 (Claude Code side, once scope is confirmed) can run any time; Q03 (R2-001 + cross-route stage resolution) → Q25
 (handoff corrections) → Q26 (verifier prose coupling) → Q28 (deployment gating matrix) → the rest
 in listed order; then, when the owner decides to upgrade: Q29 → Q30–Q33 delivered as the Q36 change set, built late on stacked branches (Q48, Q49) (one feature branch,
 gated) → Q34. OpenCode V2 (Q40-Q47) follows the v4 upgrade. Every source change then needs the deploy step: verifier mirror, then restart. Q27
@@ -45,7 +60,9 @@ waits on an owner decision.
   bounded tasks. Each read real files and cited line numbers. The tool surface was confirmed: the
   four workspace tools are present and every host-returning tool is absent. Findings → Q03, Q25,
   Q26, Q27 (`docs/TODO-HISTORY.md` "2026-10-01 — Advisor dispatch verification PASSED").
-- **Remaining:** after the restart, run `verify-workflow.sh --behavioral` and a plain re-run (the
+- **Restart observed 2026-10-02:** both OpenCode servers started at 05:46:18 and 05:46:42. The
+  five-advisor dispatch verification already PASSED on 2026-10-01 (above).
+- **Remaining:** run `verify-workflow.sh --behavioral` and a plain re-run (the
   cache-prune check was skipped because config was repaired). Then dispatch each of the five
   `advisor-*` agents once on a bounded task and confirm registration, successful reads, denied host
   mutations, and the assigned model observed.
@@ -85,6 +102,30 @@ waits on an owner decision.
   - R3-specialist-warning-dedup: specialist warnings bypass `warningKey` deduplication.
   - R3-stage-logic-untested: add automated assertions for the stage table and its gates (the
     recurring finding across two reviews).
+- **Absorbed from Q20 and Q21 (2026-10-02; same file and code path, so edit and review once):**
+  - R3-console-warning-dedup (Q20): `host_review_start` `:778-783` and skill-load `:971-976` pass
+    `warnConsole=true` unconditionally. Fix with R3-specialist-warning-dedup `:860`.
+  - R3-copy-path-gap (Q20), now CONFIRMED OPEN.
+    - `sandbox_copy_out` takes `{workerPath, hostTarget}` (agent-sandbox-integration
+      `sandbox-tools.ts:478`).
+    - The guard's `targetPath` (`:720-727`) prefers `workerPath`, so it checks the sandbox SOURCE
+      rather than the host destination.
+    - Fix: resolve `hostTarget` first for `sandbox_copy_out`. `sandbox_copy_in`
+      (`{hostSource, workerPath}`) is already correct, because there `workerPath` is the
+      destination.
+    - Impact is low: copy-out targets are allowlisted external paths.
+  - R3-unawaited-key-io (Q21): `void refreshWorkflowKeyActivity` `:718` and `void mintWorkflowKey`
+    `:1003`. Fix with the marker-write race.
+  - R4-001 nested inheritance (Q21).
+    - `getWorkflowKeyStatus` `:430-499` and `refreshWorkflowKeyActivity` `:362-390` walk one
+      parent level only.
+    - It is live in practice: `subagent_depth` is 3 and `frontend-dev` may dispatch
+      `frontend-apply`.
+    - Walk the same 3-level ancestor chain as `hasRouteStageArtifactInAncestorChain`.
+  - R3-missing-key-tests (Q21): key expiry, inheritance, parent refresh and bootstrap-ordering
+    assertions, in the same test suite as the stage assertions.
+- **Size:** expected above the ~400-line planning heuristic (advisory only), because it is one
+  coherent fix unit for one file.
 
 ### Q04. Split `verify-workflow.sh` (old item 11)
 - **Status:** READY. Ordered before B3 because B3 adds verifier checks.
@@ -259,22 +300,21 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
   later guard commit fixes any of them):
   - R2-003: undetermined. Only its id and line are recorded; the review text is needed to act.
   - R3-child-regex-format: OPEN (`:904`, strict `id="(ses_...)"` match).
-  - R3-console-warning-dedup: OPEN. `host_review_start` `:778-783` and skill-load `:971-976`
-    bypass dedup. The specialist case `:860` is Q03's R3-specialist-warning-dedup; fix all three
-    together.
-  - R3-copy-path-gap: probably fixed by `15a5b20` (`:793-797`). Unconfirmed until the copy tools'
-    destination field is checked against `targetPath` (`:720-727`).
+  - R3-console-warning-dedup: MOVED to Q03 (2026-10-02).
+  - R3-copy-path-gap: MOVED to Q03, and confirmed OPEN (2026-10-02): copy-out checks
+    `workerPath` (the source), not `hostTarget`.
   - R3-systematic-apply-marker-gap: OPEN. `sandbox_apply` is excluded from `pathKnown`, and
     `patchTrackerPath` at `:805` is dead code.
   - R4-001 (verifier factory): treated as OPEN per the tracker; the verifier code was not read.
 - **Prerequisites:** Q03.
 - **Source:** `odd/tasks/routing-guard-keys.md` review `review-10d26170c9d40efc`.
-- **Findings:** R2-003 (tracker wording, `routing-guard-keys.md:133`); R3-child-regex-format;
-  R3-console-warning-dedup; R3-copy-path-gap; R3-systematic-apply-marker-gap; R4-001
+- **Findings remaining here:** R2-003 (tracker wording, `routing-guard-keys.md:133`);
+  R3-child-regex-format; R3-systematic-apply-marker-gap; R4-001
   (verifier, partially fixed: factory required but not invoked).
 
 ### Q21. Routing guard — advisory follow-ups of `review-16c862492747259a` not covered by Q03
-- **Status:** PLANNED. All three verified OPEN on 2026-10-01 at `069cc4b`:
+- **Status:** MOVED to Q03 (2026-10-02). All three were verified OPEN on 2026-10-01 at `069cc4b`
+  and are now fixed as part of Q03. Kept here for traceability:
   - R3-missing-key-tests: no guard test file exists. Handle it in the same test unit as Q03's
     stage assertions.
   - R3-unawaited-key-io: `void refreshWorkflowKeyActivity` `:718` and `void mintWorkflowKey`
@@ -383,6 +423,22 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
 
   Each gap becomes a named follow-up item in this file.
 
+### Q50. Propose the interface-contract amendment to agent-sandbox-integration
+- **Status:** READY.
+- **Prerequisites:** none. The contract changes only by agreement of both sides
+  (`docs/advisor/interface-contract.md` intro).
+- **Source:** external review, 2026-10-02 (finding 4); owner decisions recorded in the handoff
+  amendments.
+- **Description:** send agent-sandbox-integration a proposed contract revision that:
+  - withdraws the `review-lens` request kind, §4 external-lens lineages,
+    `host_review_start externalLenses` and `host_review_capture_result inputFromAdvisorResponse`
+    from this side's needs;
+  - adds an `advisory-review` request kind for the post-code advisory review (same mechanics as
+    `pre-code-advice`, with a commit or `resultRef` snapshot);
+  - records `pair-default`/`post-code-pair` group use.
+  Until it is agreed, this repo's copy stays as published, and the handoff amendments state the
+  divergence.
+
 ## gentle-ai v4 upgrade (PLANNED — implement when the owner decides to upgrade)
 
 Source for the whole group: `gh release view v4.0.0 -R Gentleman-Programming/gentle-ai` (released
@@ -444,7 +500,8 @@ Release facts that drive the group:
   (`sdd-archive-compose`), :196-201 (precondition rows), :212, :223-226 (UI lane in SDD), :241,
   :271-273 (Astra rows sdd-design/spec/verify), :297, :302, :321, :418; file-count rules :52-58
   (esp. :55); TDD-mode forwarding :66. `global-config/AGENTS.md` :49-59 and :236. Skills and
-  `docs/PLAN.md` :20, :32-33, :63, :120.
+  `docs/PLAN.md`: every SDD mention (regenerate the list with `rg -n SDD docs/PLAN.md` when the
+  work starts; line numbers drift).
 - **Description:**
   - Delete the SDD sections, rows and the `workflow-sdd-secure/` skill (`SKILL.md`,
     `references/sdd-magic-adapter.md`).

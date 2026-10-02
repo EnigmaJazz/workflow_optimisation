@@ -180,19 +180,3 @@ The review is approved, acknowledged, and closed.
 | R4-001 | resilience | WARNING | `systematic-routing-guard.ts:979-980` |
 
 R2-001 is a real logic defect and the priority — `allowsSpecialists` is treated as the set to warn about rather than the set permitted to proceed, so listed specialists are warned while unlisted ones bypass the check. R3-patch-stage-marker-gap and R3-child-marker-merge-excl are logic gaps; R3-marker-write-race and R4-001 are unawaited marker writes producing false warnings; R3-stage-logic-untested is the recurring theme — the stage logic has no automated assertions.
-
-## Native review review-84383b2e59dc8844 (approved, authority burned)
-
-The review is approved, acknowledged, and closed.
-
-| ID | Lens | Severity | Location |
-|---|---|---|---|
-| R2-001 | readability | WARNING | `systematic-routing-guard.ts:849-850` |
-| R3-child-marker-merge-excl | reliability | WARNING | `systematic-routing-guard.ts:921-925` |
-| R3-marker-write-race | reliability | WARNING | `systematic-routing-guard.ts:740-743` |
-| R3-patch-stage-marker-gap | reliability | WARNING | `systematic-routing-guard.ts:731` |
-| R3-specialist-warning-dedup | reliability | SUGGESTION | `systematic-routing-guard.ts:972-977` |
-| R3-stage-logic-untested | reliability | WARNING | `systematic-routing-guard.ts:227-260` |
-| R4-001 | resilience | WARNING | `systematic-routing-guard.ts:979-980` |
-
-R2-001 is a real logic defect and the priority — `allowsSpecialists` is treated as the set to warn about rather than the set permitted to proceed, so listed specialists are warned while unlisted ones bypass the check. R3-patch-stage-marker-gap and R3-child-marker-merge-excl are logic gaps; R3-marker-write-race and R4-001 are unawaited marker writes producing false warnings; R3-stage-logic-untested is the recurring theme — the stage logic has no automated assertions.
