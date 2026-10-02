@@ -138,3 +138,14 @@ Range `d314d7a..c6a938f` (488 lines). 8 advisory findings. Resolution:
 - [ ] T4 — Shell-level integration test for the verifier's §2c mapping (quarantined, deferred
   and error helper outputs to `fail` codes) and the pin-preservation fallback. Best done with the
   Q04 verifier split, where check sections become runnable in isolation.
+
+## T3 progress
+- 2026-10-02: verifier run after the fix. The probe guard held (`.auto-update.json` mtime unchanged
+  across all probe runs). §2c reported `ok: 4 configured plugin package(s) complete or not yet
+  installed`. `MAGIC_CONTEXT_CONFIGURED_VERSION_NOT_INSTALLED` is gone. The only failure was the
+  expected `SECURE_OPENCODE_RESTART_REQUIRED`.
+- Pin change committed as `83e0e58`, after `check-pin` confirmed magic-context 0.44.4 and aft
+  0.58.2 complete. It is the same 4-line change approved under `review-dc42e8f206b3d4e6`; RDD
+  assess from `9424d69`: medium, under budget. Revert `83e0e58` if the post-restart check fails.
+- Remaining: owner restarts OpenCode (both servers), re-runs the verifier, and confirms the
+  `ctx_*` tools and memory checks pass.
