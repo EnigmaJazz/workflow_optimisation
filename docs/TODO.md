@@ -439,6 +439,33 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
   Until it is agreed, this repo's copy stays as published, and the handoff amendments state the
   divergence.
 
+### Q51. Scripted advisor dispatch is unreliable
+- **Status:** READY.
+- **Prerequisites:** none.
+- **Source:** `odd/tasks/auto-update-partial-install.md` T0 (2026-10-02).
+- **Description:**
+  - `opencode run --agent advisor-*` silently falls back to the default primary agent ("is a
+    subagent, not a primary agent"). The advisor never receives the brief.
+  - A run that asks `gentle-orchestrator` to dispatch the advisor by Task stalled at instance
+    `init` for 900 s, with no session created. A 4 s run just before it had completed. The cause
+    is unknown.
+  - Needed for any automated advice record, including the verifier's.
+  - Investigate with `--print-logs --log-level DEBUG`, and with concurrent and sequential runs.
+  - Until fixed, the advice step is dispatched from the TUI.
+
+### Q52. Auto-update partial-install follow-ups
+- **Status:** PLANNED.
+- **Prerequisites:** Q04 for T4.
+- **Source:** `odd/tasks/auto-update-partial-install.md` (DONE except T4); reviews
+  `review-f0d7d1d1572a4195` and the follow-up review.
+- **Description:**
+  - T4: shell-level integration test for the verifier's §2c mapping and the pin-preservation
+    fallback.
+  - Comment at `verify-workflow.sh` §2c noting that the quiet period comes from the helper's
+    `QUIET_PERIOD_SECONDS`.
+  - Plugin fork: the lock is not atomic (`lock.ts` read-then-write), and the history log's
+    "Updated X" regex never matches. Both are owned by the local fork.
+
 ## gentle-ai v4 upgrade (PLANNED — implement when the owner decides to upgrade)
 
 Source for the whole group: `gh release view v4.0.0 -R Gentleman-Programming/gentle-ai` (released

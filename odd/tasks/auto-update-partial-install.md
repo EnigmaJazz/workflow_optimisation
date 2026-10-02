@@ -49,7 +49,7 @@ Mode: off (no configured project TDD). Runner: fork — `bun test` (new), `bun r
   Route: delegated writer.
 - [x] T2 — Verifier: completeness guard on pin preservation; incomplete-dir detection and
   quarantine; re-pin digest. Route: delegated writer (same).
-- [ ] T3 — Verify end to end: verifier run, OpenCode restart, Magic Context loads, verifier clean;
+- [x] T3 — Verify end to end: verifier run, OpenCode restart, Magic Context loads, verifier clean;
   then commit the preserved pin change. Route: parent, owner restarts OpenCode.
 
 ## Acceptance criteria
@@ -149,3 +149,11 @@ Range `d314d7a..c6a938f` (488 lines). 8 advisory findings. Resolution:
   assess from `9424d69`: medium, under budget. Revert `83e0e58` if the post-restart check fails.
 - Remaining: owner restarts OpenCode (both servers), re-runs the verifier, and confirms the
   `ctx_*` tools and memory checks pass.
+- 2026-10-02: T3 DONE. Owner restarted `ai-proxy.service` (port 18900 server, now started 09:26:14)
+  and `secure-opencode.service` (port 4096, 09:44:33), then re-ran the verifier: all checks passed
+  (owner report). Confirmed independently: both server start times, `.auto-update.json`
+  unchanged since 07:46:54, and no quarantine entries. Acceptance 1, 2 and 4 met; 3 is covered by
+  the helper's fixture tests (12 pass). Open: T4 (shell-level integration test, with Q04).
+
+## Status
+DONE except T4, which is queued with Q04.
