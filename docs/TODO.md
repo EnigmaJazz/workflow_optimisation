@@ -77,7 +77,9 @@ waits on an owner decision.
   advisors); external lane written as PLANNED; tracker protocol for advisory evidence.
 
 ### Q03. Guard review findings — fix unit (old item 12)
-- **Status:** READY. Subject to the advice mandate (Q02). The guard is live and warn-only, so
+- **Status:** IMPLEMENTED 2026-10-02 (`da10378`, 43 tests GREEN; design `docs/specs/routing-guard-q03.md`;
+  tracker `odd/tasks/guard-q03.md`). Native review `review-5a92897d9da43815` is mid-flight and the
+  deploy is pending. See `docs/HANDOFF-2026-10-02.md`. Previous status: READY. Subject to the advice mandate (Q02). The guard is live and warn-only, so
   any fix needs the verifier mirror and a restart to take effect.
 - **Prerequisites:** Q02 (advice record before coding).
 - **Source:** `docs/TODO-HISTORY.md` "12. Guard review findings"; `odd/tasks/routing-guard-keys.md`

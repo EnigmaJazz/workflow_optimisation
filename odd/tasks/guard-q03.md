@@ -55,5 +55,7 @@ tests/routing-guard`. The suite refuses to run against a real HOME.
   gives `skill-ce-plan`). Suite: 43 tests, 0 pass, 43 fail.
 - 2026-10-02: T4 done. RED 0 pass/43 fail, GREEN 43 pass (3 runs), build and load check OK, python unittests OK.
 
-## Next step
-T5: native review; verifier mirror; owner restart; verifier pass.
+
+## Status
+Implementation done (43/43 GREEN). The review (resume) and the deploy (verifier mirror, owner
+restart, verifier pass) are handed off to the OpenCode agents.
