@@ -5,7 +5,7 @@
 // Two isolation layers: a throwaway HOME for the process (bun's homedir() reads HOME at start),
 // and SYSTEMATIC_ROUTING_GUARD_STATE_ROOT per test (design section 0).
 
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test"
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from "bun:test"
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
@@ -63,22 +63,30 @@ async function probe() {
   expect(logCount("ses_probe")).toBeGreaterThan(0)
 }
 
+beforeAll(() => {
+  warnSpy = spyOn(console, "warn").mockImplementation(() => {})
+})
+
+afterAll(() => {
+  warnSpy.mockRestore()
+})
+
 beforeEach(async () => {
+  warnSpy.mockClear()
   root = mkdtempSync(join(tmpdir(), "guard-test-"))
   process.env.SYSTEMATIC_ROUTING_GUARD_STATE_ROOT = root
   process.env.SYSTEMATIC_ROUTING_GUARD_MODE = "warn"
-  warnSpy = spyOn(console, "warn").mockImplementation(() => {})
   guard = await import(GUARD)
   hooks = await guard.default({} as any)
 })
 
 afterEach(() => {
-  warnSpy.mockRestore()
   delete process.env.SYSTEMATIC_ROUTING_GUARD_STATE_ROOT
   delete process.env.SYSTEMATIC_ROUTING_GUARD_MODE
   rmSync(root, { recursive: true, force: true })
 })
 
+describe("routing guard", () => {
 describe("0. state-root seam", () => {
   test("all guard state lands under SYSTEMATIC_ROUTING_GUARD_STATE_ROOT", async () => {
     await before("host_git_commit", "ses_seam", { message: "x" })
@@ -123,8 +131,8 @@ describe("1. specialist rule: deny by default", () => {
 
   test("unknown agent names are treated as writers", async () => {
     seedKey("ses_s3", ODD)
-    await dispatch("ses_s3", "gentle-ai-worker")
-    expect(logCount("specialist gentle-ai-worker dispatched before tracker")).toBe(1)
+    await dispatch("ses_s3", "mystery-writer")
+    expect(logCount("specialist mystery-writer dispatched before tracker")).toBe(1)
   })
 
   test("listed writer after the tracker exists does not warn", async () => {
@@ -449,4 +457,5 @@ describe("6. warning de-duplication", () => {
     expect(consoleCount("specialist general")).toBe(1)
     expect(consoleCount("specialist mystery-writer")).toBe(1)
   })
+})
 })

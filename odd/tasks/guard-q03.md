@@ -26,7 +26,7 @@ tests/routing-guard`. The suite refuses to run against a real HOME.
 - [x] T2 — Acceptance suite; RED observed. Route: inline (strong model).
 - [x] T3 — Advice record on the design (owner TUI dispatch; Q51 open).
 - [x] T4 — Implement to GREEN. Route: delegated writer.
-- [ ] T5 — Native review; verifier mirror; owner restart; verifier pass.
+- [x] T5 — Native review; verifier mirror; owner restart; verifier pass.
 
 ## Progress
 - 2026-10-02: the map of the guard (read-only explorer) established the testability constraints:
@@ -55,5 +55,13 @@ tests/routing-guard`. The suite refuses to run against a real HOME.
   gives `skill-ce-plan`). Suite: 43 tests, 0 pass, 43 fail.
 - 2026-10-02: T4 done. RED 0 pass/43 fail, GREEN 43 pass (3 runs), build and load check OK, python unittests OK.
 
+- 2026-10-02: Native review lineage `review-5a92897d9da43815` (medium, 1,168 lines, 4 paths) resumed after capture stopped at the 30-minute limit and completed **APPROVED, acknowledged, authority burned**.
+  - R3-001 (reliability WARNING, test-suite concurrency): FIXED by installing the `console.warn` spy once per file via `beforeAll`/`afterAll`.
+  - R3-002 (suggestion, misleading test name): FIXED by dispatching `mystery-writer`.
+  - R3-003 (suggestion, unexercised 2 s write timeout): OPEN GAP; not exercised and no test added.
+- 2026-10-02: Deploy complete: verifier mirrored, `secure-opencode` and `ai-proxy` restarted, and all checks passed.
+- Route/trigger evidence: `route: delegated`; specialist `general` (sandbox writer); trigger: secure ODD policy (every project mutation is delegated).
+- The review lens confirmed the intended fixes are present: route-namespaced stage markers with legacy fallback, unique stage ids, three-ancestor inheritance with a visited set, and cycle/four-hop coverage.
+
 ## Next step
-T5: native review; verifier mirror; owner restart; verifier pass.
+Q27: owner decision on the advisor sandbox lifecycle gap, tracked in `docs/ADVISOR-HANDOFF.md`.
