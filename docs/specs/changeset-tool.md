@@ -1,4 +1,4 @@
-# Change-set tool — specification (v1.2)
+# Change-set tool — specification (v1.3)
 
 Status: specification for queue Q36. The implementation is `scripts/changeset.py`, and the
 acceptance tests are `tests/test_changeset.py`. Where this document and the tests disagree, the
@@ -17,6 +17,9 @@ v1.1 (2026-10-02) folds in two reviews and the `advisor-design` advice:
 v1.2 records the implementation's choices for cases the spec left open: relative paths are
 invalid, no-op ops are `already_applied`, torn final journal lines are tolerated, the report gains
 `detail`/`error`, and dry run evaluates against an overlay.
+
+v1.3 (implementation review): a middle-array-element delete is now revertible, and journal
+discovery fails closed.
 
 ## 1. Purpose
 
@@ -234,6 +237,12 @@ the race testable; production never sets it.
 - **`file_remove`:** if the original path is absent, copy the journal copy back with its mode. If
   the path exists, the outcome is `already_reverted` when its SHA-256 equals the copy's, and
   `drift` otherwise.
+- **`json_delete` of an array element:** the index alone cannot identify the removed element
+  after the delete, because later elements shift. So the intent records the parent array's full
+  value before and after (`before_parent`, `after_parent`). Revert restores the element only when
+  the current parent array equals `after_parent`, by replacing the parent array's bytes with the
+  serialised `before_parent`. It is `already_reverted` when the parent equals `before_parent`,
+  and `drift` otherwise.
 - **`file_create`:** if the file's bytes equal the created content, move it into the revert
   journal directory (never delete). If the file is absent, the outcome is `already_reverted`;
   otherwise it is `drift`.
@@ -258,6 +267,11 @@ the race testable; production never sets it.
       intent-without-outcome rules apply.
     - Safe for a torn seal: the journal is then unsealed.
   - An unparseable line that ends in a newline is never torn; it refuses with `invalid_journal`.
+- **Journal discovery fails closed.** Both the revert-order check and apply's `previous_journal`
+  lookup read every journal of the set. If any of them fails to load (it does not parse, has an
+  unknown schema or a bad seal; a torn final line is still tolerated), the run refuses with
+  `invalid_journal`, and `detail` names the bad journal. An operator must inspect it and move it
+  aside. It is never skipped silently.
 - Revert writes its own journal (`<journal-root>/<set-id>/revert-<timestamp>-<pid>/`), with
   `kind: "revert"` and `reverts` set, and takes the set's lock.
 

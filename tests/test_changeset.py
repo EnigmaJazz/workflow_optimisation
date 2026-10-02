@@ -747,6 +747,45 @@ class Revert(Case):
         self.assertEqual(self.a.read_text(), '{\n  "k": "v1"\n}\n')
         self.assertEqual(self.b.read_text(), '{"k": "w1"}\n')
 
+    def test_revert_of_middle_array_delete_restores_exact_bytes(self):
+        f = self.root / "arr.json"
+        original = '{"p": ["x", "y", "z"]}\n'
+        f.write_text(original)
+        self.write_set([{"op": "json_delete", "file": str(f), "path": "/p/1", "expect_before": "y"}])
+        self.apply()
+        self.assertEqual(f.read_text(), '{"p": ["x", "z"]}\n')
+        code, report, _ = self.revert(self.only_journal())
+        self.assertEqual((code, self.outcomes(report)), (0, ["reverted"]))
+        self.assertEqual(f.read_text(), original)
+
+    def test_revert_of_middle_array_delete_reports_drift_when_array_changed(self):
+        f = self.root / "arr.json"
+        f.write_text('{"p": ["x", "y", "z"]}\n')
+        self.write_set([{"op": "json_delete", "file": str(f), "path": "/p/1", "expect_before": "y"}])
+        self.apply()
+        f.write_text('{"p": ["x", "z", "added"]}\n')
+        code, report, _ = self.revert(self.only_journal())
+        self.assertEqual((code, self.outcomes(report)), (2, ["drift"]))
+        self.assertEqual(f.read_text(), '{"p": ["x", "z", "added"]}\n')
+
+    def test_corrupt_newer_journal_fails_closed(self):
+        self.write_set([self.ops[0]])
+        self.apply()
+        first = self.only_journal()
+        self.write_set(self.ops)
+        self.apply()
+        second = [p for p in self.journal_files()
+                  if p != first and not p.parent.name.startswith("revert-")][0]
+        second.write_text(second.read_text() + "{corrupt\n")
+        code, report, _ = self.revert(first)
+        self.assertEqual(code, 3)
+        self.assertEqual(report["refused"], "invalid_journal")
+        self.assertIn(str(second.parent.name), json.dumps(report.get("detail")))
+        self.assertEqual(json.loads(self.a.read_text()), {"k": "v2"})
+        code, report, _ = self.apply()
+        self.assertEqual(code, 3)
+        self.assertEqual(report["refused"], "invalid_journal")
+
     def test_revert_restores_removed_file_and_retires_created_file(self):
         removed = self.root / "old.txt"
         removed.write_bytes(b"keep me\n")
