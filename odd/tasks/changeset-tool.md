@@ -31,7 +31,7 @@ Runner: `python3 -m unittest tests/test_changeset.py -v`.
 - [x] T1 — Spec `docs/specs/changeset-tool.md`. Route: inline (strong model, by owner strategy).
 - [x] T2 — Acceptance tests `tests/test_changeset.py`; observe RED (script absent). Route: inline
   (strong model).
-- [ ] T3 — Advice record on the spec (mandate), then implement `scripts/changeset.py` to GREEN.
+- [x] T3 — Advice record on the spec (mandate), then implement `scripts/changeset.py` to GREEN.
   Route: delegated writer (cheaper model).
 - [ ] T4 — Native review; record outcome.
 
@@ -94,5 +94,11 @@ Runner: `python3 -m unittest tests/test_changeset.py -v`.
   Also: `docs/PLAN.md`/`docs/TODO.md` now name `scripts/changeset.py` (not `apply.sh`/`revert.sh`).
   The deferred test-hygiene items are applied. Suite: 69 tests, all RED, 0 vacuous passes.
 
+- 2026-10-02: T3 done. `scripts/changeset.py` implemented (stdlib only, hand-written JSON span
+  scanner for byte-exact splicing, CAS writes, flock, write-ahead sealed journal, enforced revert
+  order). RED before: 69 tests, 0 passing (68 failures, 1 error). GREEN: 69 OK, 4 consecutive
+  runs all OK (no flakiness). `tests/test_plugin_cache_integrity.py` still OK. No spec or test
+  edits were needed. Route: delegated writer. Commit `beca30f`.
+
 ## Next step
-T3: delegated implementation of `scripts/changeset.py` to GREEN (cheaper writer), then T4.
+T4: native review of the T3 commit; record the outcome.
