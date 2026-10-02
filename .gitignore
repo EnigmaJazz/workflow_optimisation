@@ -3,3 +3,5 @@
 .sandbox-state/
 # Generated recovery snapshots written by verify-workflow.sh self-heal
 backups/
+# Python bytecode
+__pycache__/

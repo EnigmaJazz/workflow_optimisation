@@ -6,26 +6,49 @@ wide-blast-radius changes cannot take a light route. Preference is explicit: ove
 structure is cheaper than repeatedly repairing changes.
 
 ## Sequence
-1. Finish the open review follow-up on the plugin load check (the queued fixes and the finding
-   record). Nothing else starts until this is done or explicitly parked.
-2. Deploy the already-committed guard work — verifier mirror, then service restart — so the
-   routing gate actually runs and begins producing evidence.
-3. Advisor layer: five read-only advisors with pre-code advice obligations, bound to the
-   triggers below.
-4. Workflow policy: classes, ODD/SDD/advisor layers, the impact axis, and the per-project
-   impact-surface declaration.
-5. Tracking contract in the recipe.
-6. Reconcile drift and close the gaps found by the options inventory.
+The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is the execution order; the steps below are the plan-level narrative, and where they differ, the TODO phases govern.
+1. Advisor layer: registration, then the mandatory advice policy (interim lane). Close out the
+   registration (verifier mirror, restart, dispatch each advisor once), then the B0/B1/B2 policy
+   unit: advice mandatory for every non-trivial change, met by the registered advisors.
+2. Guard fixes in the stage-resolution path: R2-001's inverted predicate and the cross-route stage
+   satisfaction (markers must be namespaced by route), with automated assertions for the stage
+   table and gates. Subject to the advice mandate; they need the verifier mirror and a restart to
+   take effect.
+3. `docs/ADVISOR-HANDOFF.md` corrections (the sandbox project builds against it), then the
+   verifier's prose coupling (stable anchors instead of prose literals).
+4. Split `verify-workflow.sh`, before the external lane adds verifier checks.
+5. Workflow policy: classes, ODD/SDD/advisor layers, the impact axis (how much advice), and the
+   per-project impact-surface declaration.
+6. External advisor lane: activate after agent-sandbox-integration plan A is installed (B3), then
+   the routing-guard advice stage (B4) and the advisor handoff document (B5).
+7. Tracking contract in the recipe.
+8. Reconcile drift and close the gaps found by the options inventory; emergency fix route;
+   worker contract; guard against gentle-ai sync overwriting the live config; remaining
+   routing-guard stage work.
+9. Engram as the inter-agent communication channel: evaluation first, then adoption as a
+   canonical MCP with a scoped `WORKFLOW.md` policy (Magic Context stays main memory).
+10. Deployment gating matrix (Q28): every workflow rule gets an enforcement point or an
+    advisory-only record.
+11. gentle-ai v4 upgrade (planned; owner-triggered): decisions, then docs/agents/verifier/guard
+    changes on one gated branch, then the runbook (queue Q29-Q39).
+
+12. OpenCode V2 upgrade (planned; owner-triggered; after the gentle-ai v4 upgrade): probe side by
+    side, port plugins dual-mode, verifier V2 mode, change set and runbook (queue Q40-Q47).
 
 ## Layers
 - **Execution spine** — tiny fix: direct. Everything beyond trivial and not SDD: **ODD** (tracker
   plus Magic Context mirror plus delegation plus the review boundary). SDD when selected.
-- **Pre-code advice** — mandatory when any trigger holds: multi-part change; behaviour sandbox
-  TDD cannot cover; uncertain requirements or approach; wrong approach means substantial rework;
-  security, permissions, credentials or a consequential architecture decision. Smallest
-  sufficient advisor set.
-- **Post-code review** — focused review of the agreed approach, then the native RDD review.
-- **Impact axis** — raises scrutiny, never lowers it. A heavier route always governs when the
+- **Pre-code advice** — mandatory for every non-trivial change ("trivial" keeps its meaning:
+  trivial document edits; clearly bounded few-line changes with no contract or security effect).
+  Interim lane: the smallest sufficient set of registered advisors, one by default. External
+  lane (after plan A is installed): both external advisors (Claude Code and Antigravity) as an
+  independent group for every non-trivial change, per the policy table in `WORKFLOW.md`.
+- **Post-code review** — an external advisory review of the committed unit against the agreed
+  approach (both hosts, once the external lane is active), then `ce:review` where the route owes
+  it, then the native RDD review. The external review is evidence, never approval.
+- **Impact axis** — decides HOW MUCH advice (the number of advisors, whether a cross-family group
+  is needed, whether both external hosts are consulted once the lane is active); still raises scrutiny and never lowers
+  it. A heavier route always governs when the
   class and the impact disagree.
 
 ## Constraints
@@ -34,6 +57,26 @@ structure is cheaper than repeatedly repairing changes.
 - The orchestrator is read-only: every mutation and every execution is delegated.
 - Verification must execute what it validates; a build or parse check proves syntax only.
 - Tracking is a precondition for progress, not an afterthought.
+- A workflow rule is not deployed until it has an enforcement point (a routing-guard stage or
+  check, a verifier check, or a native gentle-ai gate) or is explicitly recorded as advisory-only
+  with the reason. Prose alone is not deployment (owner, 2026-10-01; queue Q28).
+- **Forward-compatible by default (owner, 2026-10-02; queue Q48).** New and touched work must
+  already hold after the gentle-ai v4 and OpenCode V2 upgrades, so no change is authored twice:
+  - plugins are dual-mode (V2 `Plugin.define` plus V1 `server()`);
+  - headings and checks are version-neutral;
+  - verifier checks use stable anchors (Q26), not prose;
+  - no new dependency on SDD, `host_sdd_*`, `strict_tdd`, or V1-only plugin hooks.
+  Only what cannot be forward-compatible stays upgrade-specific: SDD removal, the V2 review
+  relay, `cli.json`.
+- **One source of truth, stacked upgrade branches (owner, 2026-10-02).**
+  - Repo-tracked changes live only in the canonical repo.
+  - The upgrades are branches stacked as `main` → v4 → V2, rebased as `main` moves.
+  - Live `~/.config/opencode` is regenerated from `global-config/` by the verifier, never edited
+    as a parallel copy.
+  - The Q36 journal covers only what git cannot reach: `~/.claude/CLAUDE.md`, gentle-ai-managed
+    blocks, and plugins owned by other projects.
+  - Upgrade inventories (path:line lists) are plans: regenerate them, and build the change set,
+    when the owner decides to upgrade.
 
 ## Recorded design decisions
 - `ce:review` is owed for small and substantial features and for bug fixes, not for global
@@ -46,6 +89,113 @@ structure is cheaper than repeatedly repairing changes.
 - ODD was omitted from the first draft of the class mapping; it is the default spine for
   non-SDD work beyond trivial, not a class of its own.
 - The advisor layer and the impact axis share one trigger set; they are one mechanism, not two.
+- 2026-10-01 (supersedes the line above): advice is mandatory for every non-trivial change, so the
+  advisor layer no longer has a trigger set. The impact axis decides how much advice (number of
+  advisors, cross-family group, external review lineage) and still only raises scrutiny, never
+  lowers it. Source: user decision recorded in `docs/advisor/handoff-workflow-optimisation.md`
+  (B0 fix 4).
+- 2026-10-01: the external lane's initial state is BOTH hosts for every non-trivial pre-code
+  advice request (`pair-default`), because current usage fits the subscription allowances.
+  Rotation (`default-rotate`) is reserved as the first tightening step.
+- 2026-10-01: native gentle-ai review always uses the in-OpenCode `asi-review-*` agents. External
+  hosts give pre-code advice only, so external-lens review lineages are dropped from the plan.
+- 2026-10-01 (amends the line above): external hosts ALSO give a post-code advisory review, after
+  the work-unit commit and before the mandatory `ce:review` and native review. It is advisory
+  evidence only and never a gentle-ai lens.
+- 2026-10-01: interim post-code advisory rule. Until the external lane is active, the registered
+  `advisor-*` agents give the post-code advisory review of a non-trivial unit, only when the route
+  does not run `ce:review` (which already is an advisory multi-persona review). Evidence only,
+  recorded with step `post-code`. `post-code-pair` takes over once the external lane is active.
+- 2026-10-01: deployment gating. All workflow changes must be correctly gated when deployed; see
+  the Constraints bullet and queue Q28 (gating matrix).
+
+## Memory and inter-agent communication (direction, 2026-10-01)
+- **Memory pathway by runtime (owner decisions, 2026-10-01):**
+  - **OpenCode:** Magic Context is the default memory pathway, holding durable project memory
+    and the ODD tracker mirror.
+  - **Claude Code:** it cannot reach Magic Context, so it uses Engram only, mainly in its
+    advisory role.
+  - **Everywhere:** blanket mandatory-Engram protocol text is removed (queue Q35), and the ODD
+    tracker file is the durable task record.
+- **Engram is the candidate inter-agent communication channel:** handoffs, evidence references,
+  and requests and answers between agents. Adopt it only after the evaluation (queue Q14a) and
+  the owner's decision.
+- **On adoption:**
+  - Engram is added as a canonical MCP in `global-config/opencode.json` and known to the verifier.
+    Otherwise every gentle-ai sync adds it, and every verifier run strips it.
+  - Engram tools are granted per agent, with first-pass independence preserved.
+  - `WORKFLOW.md` states clearly what goes where, with no duplication between the two stores.
+  - An Engram message is evidence, never approval.
+- **Until then** the current rule stands: ODD work does not invoke `mem_*`. Even after adoption,
+  Engram is never mandatory and never a memory pathway; it is only a scoped opt-in channel.
+- **v4:** override or disable v4's Engram tracker mirror (Q29b decided).
+
+## Upgrade change set: non-destructive apply and revert (design, 2026-10-01)
+- Every upgrade change is a declarative operation with an expected-before value. There are no
+  whole-file copies.
+  - JSON: path, `expect_before`, then `set` or `delete`.
+  - Markdown: anchored or marked block, expected text, then replacement.
+  - Whole files: expected hash.
+- **Apply** writes an operation only when the current value matches `expect_before`. It is
+  idempotent when the target is already present, and it skips with a reported conflict
+  otherwise. It journals before and after values per operation.
+- **Revert** restores the before value only where the current value still equals what apply
+  wrote. Later drift from gentle-ai sync, other sessions or hand edits is reported, never
+  overwritten.
+- **Process:** `scripts/changeset.py apply --dry-run`, then `apply`, with the verifier as
+  `--verify-cmd`. Rollback is `scripts/changeset.py revert --dry-run`, then `revert`, newest
+  journal first (spec: `docs/specs/changeset-tool.md`). Repo-tracked
+  sources also ride one feature branch, so `git revert` is the repo-level rollback.
+- Queue Q36. The set includes:
+  - `host_sdd_*` deny, with its verifier change as one unit (Q37, merged; not applied early);
+  - the strict-TDD removals (Q38);
+  - an in-flight SDD preflight (Q39). Apply refuses while any open OpenSpec, Magic Context or
+    Engram SDD change lacks an owner disposition: finish on 3.7.0 first, convert to ODD, or
+    abandon.
+
+## OpenCode V2 upgrade path (planned, 2026-10-02)
+- **Why:** OpenChamber 2.x requires OpenCode 2.0.15 or newer.
+- **Order:** gentle-ai v4 first (native review on V2 needs it), then a V2-compatible Systematic
+  release (hard blocker), third-party plugin readiness (`~/ai-workspace/OPENCODE-V2-PLUGIN-TASKS.md`) and the agent-sandbox plugin port,
+  and only then V2.
+- **Non-destructive by construction:**
+  - V2 reads V1 config and normalises it in memory without rewriting files.
+  - This repo's plugins go dual-mode (one file exports V2 `Plugin.define` and V1 `server()`).
+  - V2 installs beside V1, and its first run is probed against a scratch copy of the config.
+  - Changes ship as the Q36-style change set with a drift-preserving revert, and the V1 binary
+    stays available for rollback.
+- Queue Q40-Q47.
+
+## Route for former-SDD work (DECIDED 2026-10-02, v4)
+
+Owner decision 2026-10-02 (Q29a): the full route below, chosen over a lighter variant without `ce:brainstorm`, so each stage has a durable artifact the guard can gate. gentle-ai v4.0.0 removes SDD, so
+the class that used to offer SDD needs a route built from the ODD spine and the `ce:*` skills.
+
+**Substantial design-heavy feature** (material product or design ambiguity):
+1. ODD spine: feature document `odd/tasks/<feature>.md` created before any source write.
+2. `ce:brainstorm` produces the requirements doc (`docs/brainstorms/`).
+3. `ce:plan` produces the plan (`docs/plans/`); design decisions are recorded in the feature
+   document.
+4. Pre-code advice: interim `advisor-*` set; external `pair-default` once active. Consequential
+   findings are resolved before coding.
+5. `ce:work` task by task, each closing with a work-unit commit.
+6. Per-commit RDD assessment.
+7. Post-code advisory review: interim only when `ce:review` is not run; external `post-code-pair`
+   once active.
+8. `ce:review`.
+9. Native gentle-ai review (`asi-review-*`) when due.
+10. `ce:compound` captures learnings.
+
+SDD artifact mapping:
+
+| SDD artifact | Replacement |
+|---|---|
+| proposal, spec | requirements doc (`ce:brainstorm`) |
+| design | plan (`ce:plan`) plus feature-document decisions |
+| tasks | feature-document checklist |
+| archive | ODD progress record plus `ce:compound` |
+
+Guard stages: requirements, plan, tracker, review, namespaced by route (depends on Q03).
 
 ## Tracking contract
 The orchestrator maintains `docs/TODO.md`, this plan, and an in-agent todo list, plus the
@@ -94,9 +244,19 @@ scripts is the practice to avoid, not the condition to accommodate. This reverse
 item 10: the contract's first rule is file size discipline, and the patch technique is its escape
 hatch.
 
+**Correction 2026-10-01.** The "whole-body" premise above is retracted (`CLAIM-RETRACTIONS.md`,
+`docs/TODO-HISTORY.md` "2026-10-01 — CORRECTION: sandbox_edit is targeted"). `sandbox_edit` takes
+`oldString`/`newString` and edits large files in place, up to the 512 KB cap. Small files stay the
+coding standard, for readability and testability rather than as a tooling constraint. The worker
+rules are queue item Q12.
+
 ## 11. Split `verify-workflow.sh` into smaller files
 `verify-workflow.sh` is 4,770 lines — the file that cannot be whole-body edited, that times out on
 reads, and that made every one of today's repair cycles expensive. Split it.
+
+**Correction 2026-10-01:** the tooling no longer forces the split (targeted edits and large reads
+both work). It remains worthwhile for readability and testability, and it precedes B3, which adds
+verifier checks.
 
 Options to weigh when implementing:
 - A thin runner that invokes per-area check scripts: each independently runnable and testable, with

@@ -174,6 +174,7 @@ The provider's continuation names its agent with the plain installed names (`pro
 2. A reviewer reply stating the required `GENTLE_AI_REVIEW_CONTEXT` block was not supplied is a **TRANSPORT-LANE FAILURE**, not a review finding. Do not record it as an outcome, adjudicate it, or count it as a lens result; re-dispatch through the mapped `asi-review-*` lane.
 3. Never dispatch a review Task to the plain `review-*` names while the installed transport is loaded: two transports cannot own one Task.
 4. Never grant review lanes to implementation workers or isolated reviewers.
+5. No exceptions for external advisors (owner, 2026-10-01): native gentle-ai review always uses the in-OpenCode `asi-review-*` relay lanes. External hosts give pre-code advice only and never supply review lenses.
 - Native authority owns frozen candidate/lenses, binding, capture admission, refutation, one bounded correction, validation, and closure.
 - **Grouped OpenCode 4R:** when STATUS returns independent canonical four-lens work, launch fresh isolated reviewer slots concurrently/grouped in **Risk, Resilience, Readability, Reliability** order. Grouping changes scheduling only.
 - The final admitted reviewer/refuter/targeted-validator capture closes causal review work. Approved authority produces an exact `review.acknowledge-approved` continuation.
@@ -243,7 +244,7 @@ implementation path, regardless of task class:
 
 All Systematic skills required by the workflow must be discoverable from the active Systematic package/registry. Current Systematic registers its bundled skills directly; obsolete compatibility symlinks under `~/.config/opencode/skills/` are removed rather than recreated. `verify-workflow.sh` section 3 checks the active bundled skills and cleans stale Systematic symlinks:
 
-Systematic v3.18.4's workflow-guard result is authoritative. A replay of the same completion `callID` must retain its original terminal `reasonCode`; `invalid-transition`, `guard-unavailable`, `finalization-failed`, and `failed-operation` are failures, not ready/success states. Metadata-only replay must never overwrite the host's own failure sentinel or evidence text.
+Systematic v3.18.4+ (verified in the installed 3.21.0) workflow-guard result is authoritative. A replay of the same completion `callID` must retain its original terminal `reasonCode`; `invalid-transition`, `guard-unavailable`, `finalization-failed`, and `failed-operation` are failures, not ready/success states. Metadata-only replay must never overwrite the host's own failure sentinel or evidence text.
 
 **Workflow skills (orchestrator):**
 - `ce-brainstorm` — requirements elicitation for substantial features
@@ -406,41 +407,50 @@ the Sandbox Tool Contract (global AGENTS.md). Critical for orchestration:
 
 ## Pre-code advice (advisors)
 
-- Advice is mandatory when any of these holds: the change affects multiple parts of the system; sandbox TDD cannot test the relevant behaviour; requirements or approach are uncertain; a wrong approach means substantial rework; or security, permissions, credentials, or a consequential architecture decision is involved.
-- Select the smallest sufficient set: one advisor usually suffices. Add testing or security only for a distinct necessary question; a single integration advisor may cover cross-component behaviour and deployment.
-- Supply a compact plan, relevant code, constraints, and this question: "What is wrong or missing in this approach, what should change before implementation, and what evidence supports that?"
-- Resolve consequential findings before coding; briefly record the chosen approach and required checks.
-- Trivial document edits and clearly bounded few-line changes get no advisory call unless a trigger applies; a small diff does not excuse a consequential contract or security change.
-- First-pass advisors must not see one another's answers. Use parallel calls for distinct questions against frozen evidence, and sequential calls only when a later question depends on a finding.
-- Consensus requires different model families. Several sessions of one model are valid specialist advice but never multi-model consensus. Never decide by majority vote.
-- Model fallback: prefer Go routes; use Luna for moderate work when Go is unsuitable; use Sol only for unresolved consequential questions. Do not place GLM 5.3 Flash in an advisor's initial fallback chain.
+Advice is **mandatory for every non-trivial change**. "Trivial" keeps its meaning: trivial document edits, and clearly bounded few-line changes with no contract or security effect. A small diff does not excuse a consequential contract or security change. The mandate exists to exercise the process as much as possible; it can be tightened later. The impact axis (`docs/PLAN.md`) decides how much advice, never whether.
+
+- Ask this question, with a compact plan, the relevant code and the constraints: "What is wrong or missing in this approach, what should change before implementation, and what evidence supports that?"
+- Resolve consequential findings before coding; record the chosen approach and required checks briefly.
+- First-pass advisors must not see one another's answers; use parallel calls for distinct questions against frozen evidence, sequential only when a later question depends on a finding.
+- Consensus requires different model families; several sessions of one model are valid specialist advice but never multi-model consensus. Never decide by majority vote.
+- Model fallback: prefer Go routes; Luna for moderate work when Go is unsuitable; Sol only for unresolved consequential questions. Do not place GLM 5.3 Flash in an advisor's initial fallback chain.
 - A failed or exhausted advisor is a missing opinion, never an approval; report a blocked mandatory gate rather than proceeding.
-- This layer runs before planning and implementation; ODD or SDD remains the execution spine beneath it.
-- Registered advisors and assigned models: `advisor-design`, `advisor-integration`, and `advisor-security` on `opencode-go/deepseek-v4.1-flash`; `advisor-testing` on `opencode-go/kimi-k2.7-code`; `advisor-maintainability` on `opencode-go/mimo-v2.6-flash`.
+- This layer runs BEFORE planning and implementation; ODD or SDD remains the execution spine beneath it.
 
-## Pre-code advice (advisors)
+### Interim lane (active)
 
-Advisory review is mandatory when any of the following holds: the change affects multiple parts of the system; sandbox TDD cannot test the relevant behaviour; requirements or approach are uncertain; a wrong approach would mean substantial rework; or security, permissions, credentials, or a consequential architecture decision is involved.
+Use the smallest sufficient set of registered `advisor-*` subagents: one by default. Impact decides when to add a second model family (the Go advisors span DeepSeek, Kimi and MiMo). Add testing or security only for a distinct necessary question; a single integration advisor may cover cross-component behaviour and deployment. These advisors are automated and raise no subscription issue.
 
-Select the smallest sufficient set: one advisor usually suffices. Add testing or security only for a distinct necessary question; a single integration advisor may cover cross-component behaviour and deployment.
+**Interim post-code advisory review (owner, 2026-10-01).** The registered `advisor-*` subagents also review a non-trivial unit after its work-unit commit and before the native review, but only when the route does not run `ce:review` for that unit, because `ce:review` already provides the advisory multi-persona review. When `ce:review` runs, make no interim post-code advisor call. The same rules apply as for pre-code advice: the smallest sufficient set, evidence only, never approval. Record it under the task ID with step `post-code`. Once the external lane is active, `post-code-pair` applies as written below.
 
-Supply a compact plan, the relevant code, the constraints, and this question: "What is wrong or missing in this approach, what should change before implementation, and what evidence supports that?"
+Registered advisors and their models: `advisor-design`, `advisor-integration`, and `advisor-security` on `opencode-go/deepseek-v4.1-flash`; `advisor-testing` on `opencode-go/kimi-k2.7-code`; `advisor-maintainability` on `opencode-go/mimo-v2.6-flash`.
 
-Resolve consequential findings before coding; record the chosen approach and required checks briefly.
+### External lane (PLANNED — activated by B3)
 
-Trivial document edits and clearly bounded few-line changes get no advisory call unless a trigger applies; a small diff does not excuse a consequential contract or security change.
+Not in force until the external lane is installed and its permissions are granted (`docs/TODO.md` Q06). Once active, every non-trivial change also gets **both** external advisors (Claude Code and Antigravity) as one independent group. This is the initial state (owner decision, 2026-10-01: current usage fits the subscription allowances). The orchestrator records the rule that applied as `selection.rule`.
 
-First-pass advisors must not see one another's answers; use parallel calls for distinct questions against frozen evidence, sequential only when a later question depends on a finding.
+| Rule id | When | Host |
+|---|---|---|
+| `pair-default` | every non-trivial pre-code advice request (initial state) | a group of both hosts, independent first pass |
+| `post-code-pair` | every non-trivial unit's post-code advisory review, after its work-unit commit and before `ce:review` (where owed) and the native review | a group of both hosts, independent first pass |
+| `user-override` | the user overrides when opening the session, with a reason | recorded by the broker, never chosen by the orchestrator |
+| `default-rotate` | RESERVED, not in force: the first tightening step if usage outgrows the allowances | `rotate` (alternates hosts per project) |
 
-Consensus requires different model families; several sessions of one model are valid specialist advice but never multi-model consensus. Never decide by majority vote.
+The former `consequential-pair` rule is subsumed by `pair-default`. The external lane covers pre-code advice and the post-code advisory review; it never supplies native review lenses.
 
-Model fallback: prefer Go routes; Luna for moderate work when Go is unsuitable; Sol only for unresolved consequential questions. Do not place GLM 5.3 Flash in an advisor's initial fallback chain.
+- **No external review lenses.** Native gentle-ai review always uses the in-OpenCode `asi-review-*` relay lanes (`### 4R review lane routing (mandatory)`). Do not start a review with `externalLenses: true`.
+- **Post-code advisory review (owner, 2026-10-01).** After a non-trivial unit's work-unit commit, both hosts review the committed snapshot against the agreed approach (rule `post-code-pair`). This happens BEFORE the mandatory reviews: `ce:review` where the route owes it, then the native gentle-ai review. Resolve or record consequential findings before those start. The external review is advisory evidence only: it never approves, never stands in for `ce:review` or the native review, and never feeds gentle-ai as a lens result.
+- **Subscription rule.** External sessions are opened and prompted only by the user. No queue watcher, script or OpenCode agent launches or prompts them.
+- **Throughput.** Every non-trivial unit then waits for the user to open sessions twice per host: pre-code advice and post-code advisory review, four in all. That is intentional while testing. The first tightening step, if usage approaches the allowances, is `default-rotate`.
 
-A failed or exhausted advisor is a missing opinion, never an approval; report a blocked mandatory gate rather than proceeding.
+### Advisory evidence in the ODD tracker
 
-This layer runs BEFORE planning and implementation; ODD or SDD remains the execution spine beneath it.
+A non-trivial unit records its advice under its task ID in `odd/tasks/<feature>.md`. A unit lacking an advice record is reported as a blocked gate, never silently skipped.
 
-Registered advisors and their models: `advisor-design`, `advisor-integration`, `advisor-security` on `opencode-go/deepseek-v4.1-flash`; `advisor-testing` on `opencode-go/kimi-k2.7-code`; `advisor-maintainability` on `opencode-go/mimo-v2.6-flash`.
+- **Interim lane:** record each advisor dispatch, its model and a summary of its answer. Record the interim post-code advisory review the same way with step `post-code` (only where `ce:review` is not run), before the native review entry.
+- **External lane (PLANNED):** on asking, record `advice pending: <id>` with `selection.rule`, where `binding.task` is `odd/tasks/<feature>.md#T<n>`, and mirror it. On resume, call `host_advisor_get` and record the status, `resolvedHost`, any override, the snapshot commit, the evidence manifest hash and how each finding was resolved. The post-code advisory review is recorded the same way with step `post-code`, before the `ce:review` and native review entries.
+- **Follow-ups** are new requests carrying `parentId`. Recorded responses are never edited.
+- An advisory response is evidence, never approval.
 
 ### Structured test requests
 

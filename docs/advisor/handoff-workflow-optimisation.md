@@ -25,6 +25,48 @@ WORKFLOW.md policy, the verifier and gentle-ai's review authority.
    Consequential questions go to both hosts as an independent group. The orchestrator records
    the rule; the user may override when opening the session, and the override is recorded.
 
+**Amendment (owner, 2026-10-01): pair by default.** This supersedes decision 4's default
+rotation.
+- Every non-trivial pre-code advice request goes to both hosts as one independent group:
+  rule `pair-default`, replacing `default-rotate` and subsuming `consequential-pair`. This is the
+  initial state because current usage fits the subscription allowances. `default-rotate` is
+  reserved as the first tightening step.
+- Review lenses are unchanged: `rotate` per lens, exactly one host per lens, because the broker
+  refuses a second relay of a lens per lineage (`interface-contract.md` §7).
+- That also retires the old "`consequential-pair` lenses get both" clause, which the contract
+  could not satisfy.
+- Acceptance 2 becomes: every non-trivial unit has a `pair-default` group with two independent
+  responses.
+- Mechanism impact on plan A: none. `group` and per-host requests already exist; the broker
+  simply sees two requests per unit.
+
+**Amendment (owner, 2026-10-01): reviews stay in OpenCode.**
+- Native gentle-ai review always uses the in-OpenCode `asi-review-*` relay lanes. External
+  advisors give `pre-code-advice` only.
+- Withdrawn from this side's plan:
+  - the `review-lens-external` rule;
+  - the external-lens review definition and its relay-rule exception (B1);
+  - the review-lens bullet in B2;
+  - the `host_review_capture_result` verifier check (B3);
+  - the free-form-input warning (B4).
+- workflow_optimisation will not request the `review-lens` kind,
+  `host_review_start externalLenses`, or `host_review_capture_result inputFromAdvisorResponse`
+  (interface contract §2–§4). Plan A may defer or drop them. Changing the contract needs both
+  sides' agreement.
+
+**Amendment (owner, 2026-10-01): external post-code advisory review.**
+- After a non-trivial unit's work-unit commit, both hosts review the committed snapshot (rule
+  `post-code-pair`). This runs BEFORE the mandatory `ce:review` (where owed) and the native
+  gentle-ai review.
+- It is advisory evidence only: no lens result, no approval.
+- **Contract request to the sandbox side:** add an advisory request kind for this, proposed
+  `advisory-review`. Its mechanics match `pre-code-advice` (immutable bound response, `group`
+  independence, evidence manifest), with a commit or `resultRef` snapshot and the review
+  question. Until it is agreed, workflow_optimisation uses `pre-code-advice` with
+  `binding.step: "post-code"`.
+- Acceptance 2 adds: every non-trivial unit has a `post-code-pair` group with two independent
+  responses, recorded before its `ce:review` or native review starts.
+
 **Preserve the work under way:**
 - the five registered `advisor-*` subagents and their verifier fixes (TODO "Advisor
   registration — verifier findings");
