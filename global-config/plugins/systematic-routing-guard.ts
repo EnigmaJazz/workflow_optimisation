@@ -212,6 +212,7 @@ const ROUTING_GATE_TOOLS = new Set([
 ])
 // State root is read at each use (never fixed at import) so tests can redirect it.
 const stateRoot = (): string => process.env.SYSTEMATIC_ROUTING_GUARD_STATE_ROOT ?? homedir()
+let fileLogFailureReported = false
 const routingGateOffFile = (): string => join(stateRoot(), ".config/opencode/routing-guard-off")
 const routingGateLogDir = (): string => join(stateRoot(), ".local/share/opencode/logs")
 const routingGateLogFile = (): string => join(routingGateLogDir(), "routing-guard.log")
@@ -537,8 +538,18 @@ async function logInactiveWorkflowWarning(
   try {
     await mkdir(routingGateLogDir(), { recursive: true })
     await appendFile(routingGateLogFile(), `${new Date().toISOString()} ${line}\n`, "utf8")
-  } catch {
+  } catch (error) {
     // Logging must never block or fail the tool call.
+    if (!fileLogFailureReported) {
+      fileLogFailureReported = true
+      try {
+        console.warn(
+          `[systematic-routing-guard] file log append failed at ${routingGateLogFile()}: ${error instanceof Error ? error.message : String(error)}`,
+        )
+      } catch {
+        // Reporting a logging failure must never fail the tool call.
+      }
+    }
   }
 }
 
