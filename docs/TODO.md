@@ -692,8 +692,9 @@ Release facts that drive the group:
   - **v4:** apply the same rule to v4's managed orchestrator prompts (Q29b, Q30).
 
 ### Q36. Non-destructive change set for the v4 upgrade: apply and revert without clobbering drift
-- **Status:** PLANNED (design in `docs/PLAN.md` "Upgrade change set"). Build it with Q30-Q33; it
-  is how they are delivered.
+- **Status:** TOOL DONE 2026-10-02: `scripts/changeset.py`, spec `docs/specs/changeset-tool.md`
+  v1.3, 72 tests, three native reviews approved (tracker `odd/tasks/changeset-tool.md`; follow-up
+  T5). The v4 change-set CONTENT is authored at upgrade time (Q30-Q33), per the build-late rule.
 - **Prerequisites:** Q29 (the changes to encode); Q26 (stable anchors make markdown edits
   addressable).
 - **Source:** owner, 2026-10-01: build it all non-destructively, with a simple process to insert

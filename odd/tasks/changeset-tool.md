@@ -33,7 +33,7 @@ Runner: `python3 -m unittest tests/test_changeset.py -v`.
   (strong model).
 - [x] T3 — Advice record on the spec (mandate), then implement `scripts/changeset.py` to GREEN.
   Route: delegated writer (cheaper model).
-- [ ] T4 — Native review; record outcome.
+- [x] T4 — Native review; record outcome.
 
 ## Acceptance criteria
 1. Every behaviour in the spec has at least one test.
@@ -102,5 +102,7 @@ Runner: `python3 -m unittest tests/test_changeset.py -v`.
 - 2026-10-02: Review fixes: array-element json_delete revert via before_parent/after_parent; journal
   discovery fails closed (invalid_journal naming the bad path). 72 tests OK x3.
 
-## Next step
-T4: native review of the T3 commit; record the outcome.
+
+## Status
+Tool DONE (T1-T4). T5 queued. Change-set CONTENT for gentle-ai v4 (Q30-Q33) is authored at upgrade
+time, per the build-late constraint.
