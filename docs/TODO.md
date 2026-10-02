@@ -27,7 +27,7 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 
 **Current working order (owner, 2026-10-01):** Q35 (Claude Code side, once scope is confirmed) can run any time; Q03 (R2-001 + cross-route stage resolution) → Q25
 (handoff corrections) → Q26 (verifier prose coupling) → Q28 (deployment gating matrix) → the rest
-in listed order; then, when the owner decides to upgrade: Q29 → Q30–Q33 delivered as the Q36 change set (one feature branch,
+in listed order; then, when the owner decides to upgrade: Q29 → Q30–Q33 delivered as the Q36 change set, built late on stacked branches (Q48, Q49) (one feature branch,
 gated) → Q34. OpenCode V2 (Q40-Q47) follows the v4 upgrade. Every source change then needs the deploy step: verifier mirror, then restart. Q27
 waits on an owner decision.
 
@@ -867,6 +867,34 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - **Other local plugins** (nono, codecast, herdr, `use-grep-tool`, rate-limit-fallback fork,
     auto-update local build, gentle-logo, `sdd-task-result-artifacts`) are tracked in `~/ai-workspace/OPENCODE-V2-PLUGIN-TASKS.md`, with
     per-plugin tasks, verification and rollback.
+
+### Q48. Forward-compatibility rule and lint
+- **Status:** READY.
+- **Prerequisites:** none for the rule; the lint is easiest after Q26 (anchors).
+- **Source:** owner, 2026-10-02 (`docs/PLAN.md` Constraints).
+- **Description:**
+  - Add the forward-compatible-by-default rule to `WORKFLOW.md` (global tooling section) and to
+    the delegation brief for writers.
+  - Add a verifier check (advisory-only until Q28 lists it as enforced) that flags NEW
+    occurrences on a branch relative to `main`:
+    - SDD agents, skills or `host_sdd_*` grants;
+    - `strict_tdd`;
+    - V1-only plugin entrypoints without a V2 `Plugin.define` in this repo's plugins;
+    - new "Gentle AI 3.x" or "OpenCode V1" literal headings.
+  - Existing occurrences stay until their upgrade item removes them.
+
+### Q49. Upgrade readiness dry-run (detect drift between main and the upgrade branches early)
+- **Status:** PLANNED.
+- **Prerequisites:** Q36 apply tool (`--dry-run`), and the upgrade branches once they exist.
+- **Source:** owner, 2026-10-02.
+- **Description:**
+  - A read-only mode (verifier flag or a standalone script) that:
+    - test-rebases the v4 and V2 branches onto current `main` in a throwaway worktree under the
+      home directory, never `/tmp` (CodeGraph worktree rule);
+    - runs the change-set `apply --dry-run` against the current live files.
+  - Reports rebase conflicts and conflict-skipped operations, and changes nothing.
+  - Run it after each merged work unit that touches `global-config/`, `WORKFLOW.md`, skills or
+    the verifier.
 
 ## Done
 

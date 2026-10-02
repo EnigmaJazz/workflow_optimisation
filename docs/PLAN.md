@@ -60,6 +60,23 @@ The queue with statuses and prerequisites is `docs/TODO.md`; this sequence match
 - A workflow rule is not deployed until it has an enforcement point (a routing-guard stage or
   check, a verifier check, or a native gentle-ai gate) or is explicitly recorded as advisory-only
   with the reason. Prose alone is not deployment (owner, 2026-10-01; queue Q28).
+- **Forward-compatible by default (owner, 2026-10-02; queue Q48).** New and touched work must
+  already hold after the gentle-ai v4 and OpenCode V2 upgrades, so no change is authored twice:
+  - plugins are dual-mode (V2 `Plugin.define` plus V1 `server()`);
+  - headings and checks are version-neutral;
+  - verifier checks use stable anchors (Q26), not prose;
+  - no new dependency on SDD, `host_sdd_*`, `strict_tdd`, or V1-only plugin hooks.
+  Only what cannot be forward-compatible stays upgrade-specific: SDD removal, the V2 review
+  relay, `cli.json`.
+- **One source of truth, stacked upgrade branches (owner, 2026-10-02).**
+  - Repo-tracked changes live only in the canonical repo.
+  - The upgrades are branches stacked as `main` → v4 → V2, rebased as `main` moves.
+  - Live `~/.config/opencode` is regenerated from `global-config/` by the verifier, never edited
+    as a parallel copy.
+  - The Q36 journal covers only what git cannot reach: `~/.claude/CLAUDE.md`, gentle-ai-managed
+    blocks, and plugins owned by other projects.
+  - Upgrade inventories (path:line lists) are plans: regenerate them, and build the change set,
+    when the owner decides to upgrade.
 
 ## Recorded design decisions
 - `ce:review` is owed for small and substantial features and for bug fixes, not for global
