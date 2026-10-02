@@ -210,9 +210,14 @@ const ROUTING_GATE_TOOLS = new Set([
   "host_plan_append",
   "host_register_project",
 ])
-const ROUTING_GATE_OFF_FILE = join(homedir(), ".config/opencode/routing-guard-off")
-const ROUTING_GATE_LOG_FILE = join(homedir(), ".local/share/opencode/logs/routing-guard.log")
-const ROUTING_KEY_ROOT = join(homedir(), ".local/share/opencode/routing-keys")
+// State root is read at each use (never fixed at import) so tests can redirect it.
+const stateRoot = (): string => process.env.SYSTEMATIC_ROUTING_GUARD_STATE_ROOT ?? homedir()
+const routingGateOffFile = (): string => join(stateRoot(), ".config/opencode/routing-guard-off")
+const routingGateLogDir = (): string => join(stateRoot(), ".local/share/opencode/logs")
+const routingGateLogFile = (): string => join(routingGateLogDir(), "routing-guard.log")
+const routingKeyRoot = (): string => join(stateRoot(), ".local/share/opencode/routing-keys")
+const WRITE_TIMEOUT_MS = 2000
+const MAX_INHERITANCE_HOPS = 3
 const ROUTING_KEY_REFRESH_INTERVAL_MS = 60 * 1000
 const ADAPTER_WORKFLOW_SKILLS = new Set([
   "workflow-odd-secure",
@@ -227,11 +232,61 @@ type RouteStage = {
   allowsSpecialists?: readonly string[]
 }
 
-const ROUTE_STAGES: Record<string, readonly RouteStage[]> = {
+// Every legitimate writer in this setup; anything else is flagged once the stage artifact exists.
+const SPECIALIST_WRITERS: readonly string[] = ["general", "systematic-implementer", "frontend-dev", "frontend-dev-premium", "frontend-apply", "frontend-apply-local", "jd-fix-agent", "pr-comment-resolver", "bug-reproduction-validator", "design-iterator", "sdd-apply", "sdd-apply-local", "gentle-ai-worker", "gentle-ai-worker-local"]
+
+// Anchored on purpose: under deny-by-default a loose match would let a writer through.
+export const READ_ONLY_SPECIALIST_PATTERNS: readonly RegExp[] = [
+  /^(?:explore|gentle-ai-explore|gentle-ai-verify|sdd-explore|sdd-verify|sdd-research|vision|architecture-strategist|spec-flow-analyzer|git-history-analyzer|issue-intelligence-analyst|pattern-recognition-specialist|deployment-verification-agent|repo-research-analyst|best-practices-researcher|framework-docs-researcher|learnings-researcher)$/,
+  /^review-/,
+  /^asi-review-/,
+  /^advisor-/,
+  /^jd-judge-/,
+  /reviewer$/,
+]
+
+const isReadOnlySpecialist = (name: string): boolean =>
+  READ_ONLY_SPECIALIST_PATTERNS.some((pattern) => pattern.test(name))
+
+/** Ordered artifact marker names for a stage: namespaced, legacy (only while unique), odd legacy. */
+export function stageMarkerNames(
+  route: string,
+  stageId: string,
+  routeStages: Record<string, readonly { id: string }[]>,
+): string[] {
+  const names = [`artifact-${route}-${stageId}`]
+  const routesWithId = Object.values(routeStages).filter((stages) => stages.some((stage) => stage.id === stageId))
+  if (routesWithId.length <= 1) names.push(`artifact-${stageId}`)
+  if (route === "workflow-odd-secure") names.push(`artifact-odd-${stageId}`)
+  return names
+}
+
+/** Strip a leading `systematic:` qualifier, then sanitise, so qualified and bare names agree. */
+function skillMarkerName(raw: string): string {
+  const bare = raw.trim().replace(/^systematic:/, "")
+  return bare.replace(/[^a-zA-Z0-9_-]/g, "-")
+}
+
+/** Await a write chain for at most WRITE_TIMEOUT_MS; errors are swallowed. */
+async function boxed(work: Promise<unknown>): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    await Promise.race([
+      work.catch(() => undefined),
+      new Promise<void>((resolve) => { timer = setTimeout(resolve, WRITE_TIMEOUT_MS) }),
+    ])
+  } catch {
+    // Never block a tool call.
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
+
+export const ROUTE_STAGES: Record<string, readonly RouteStage[]> = {
   "workflow-odd-secure": [{
     id: "tracker",
     artifactPattern: /^odd\/tasks\/[^/]+\.md$/,
-    allowsSpecialists: ["general", "systematic-implementer"],
+    allowsSpecialists: SPECIALIST_WRITERS,
   }],
   "workflow-systematic": [
     {
@@ -245,7 +300,7 @@ const ROUTE_STAGES: Record<string, readonly RouteStage[]> = {
       artifactPattern: /^docs\/plans\/[^/]+\.md$/,
       skillMarkers: ["ce-plan"],
       gatesSkillLoads: ["ce-work"],
-      allowsSpecialists: ["general", "systematic-implementer"],
+      allowsSpecialists: SPECIALIST_WRITERS,
     },
     {
       id: "review",
@@ -269,7 +324,7 @@ type WorkflowKeyStatus = "valid" | "missing" | "expired"
 
 function routingKeySessionDirectory(sessionID: string): string | null {
   if (!/^[a-zA-Z0-9_-]+$/.test(sessionID)) return null
-  return join(ROUTING_KEY_ROOT, sessionID)
+  return join(routingKeyRoot(), sessionID)
 }
 
 function routingKeyFile(sessionID: string, skillName: string): string | null {
@@ -280,11 +335,15 @@ function routingKeyFile(sessionID: string, skillName: string): string | null {
 
 async function hasRouteStageArtifactInAncestorChain(
   sessionID: string,
-  stageID: string,
-  skillMarkers: readonly string[] = [],
+  route: string,
+  stage: RouteStage,
 ): Promise<boolean> {
   const visited = new Set<string>()
   let currentSessionID: string | null = sessionID
+  const markerNames = [
+    ...stageMarkerNames(route, stage.id, ROUTE_STAGES),
+    ...(stage.skillMarkers ?? []).map((skillName) => `skill-${skillName}`),
+  ]
 
   for (let depth = 0; currentSessionID && depth <= 3; depth++) {
     if (visited.has(currentSessionID)) return false
@@ -293,11 +352,6 @@ async function hasRouteStageArtifactInAncestorChain(
     const directory = routingKeySessionDirectory(currentSessionID)
     if (!directory) return false
     try {
-      const markerNames = [
-        `artifact-${stageID}`,
-        `artifact-odd-${stageID}`,
-        ...skillMarkers.map((skillName) => `skill-${skillName}`),
-      ]
       if (markerNames.some((markerName) => existsSync(join(directory, markerName)))) return true
     } catch {
       // Marker inspection must never block or fail a tool call.
@@ -335,60 +389,20 @@ async function refreshWorkflowKeyActivity(
   lastRefreshBySession.set(sessionID, now)
 
   try {
-    const directory = routingKeySessionDirectory(sessionID)
-    if (!directory) return
-    const files = await readdir(directory)
-    for (const file of files) {
-      if (!/^workflow-[a-zA-Z0-9_-]+\.key$/.test(file)) continue
+    // Refresh only the VALID key the inheritance walk finds; an expired key is never revived.
+    const { valid } = await walkWorkflowKeys(sessionID)
+    for (const { path, key } of valid) {
       try {
-        const path = join(directory, file)
-        const content = await readFile(path, "utf8")
-        const key = JSON.parse(content) as { skill?: unknown; minted_at?: unknown; last_active?: unknown; specialists?: unknown }
-        if (typeof key.skill !== "string" || !key.skill.startsWith("workflow-")) continue
-        if (typeof key.minted_at !== "number") continue
-        await writeFile(
-          path,
-          JSON.stringify({ ...key, last_active: now }),
-          "utf8",
-        )
+        await writeFile(path, JSON.stringify({ ...key, last_active: now }), "utf8")
       } catch {
-        // Ignore unreadable or malformed key files.
+        // Ignore unwritable key files.
       }
     }
   } catch {
     // Key activity refresh must never block or fail a tool call.
   }
-
-  try {
-    const directory = routingKeySessionDirectory(sessionID)
-    if (!directory) return
-    const inheritedContent = await readFile(join(directory, "inherited.key"), "utf8")
-    const inherited = JSON.parse(inheritedContent) as { inherited_from?: unknown }
-    if (typeof inherited.inherited_from !== "string") return
-    const parentDirectory = routingKeySessionDirectory(inherited.inherited_from)
-    if (!parentDirectory) return
-    const parentFiles = await readdir(parentDirectory)
-    for (const file of parentFiles) {
-      if (!/^workflow-[a-zA-Z0-9_-]+\.key$/.test(file)) continue
-      try {
-        const path = join(parentDirectory, file)
-        const content = await readFile(path, "utf8")
-        const key = JSON.parse(content) as { skill?: unknown; minted_at?: unknown; last_active?: unknown; specialists?: unknown }
-        if (typeof key.skill !== "string" || !key.skill.startsWith("workflow-")) continue
-        if (typeof key.minted_at !== "number") continue
-        await writeFile(
-          path,
-          JSON.stringify({ ...key, last_active: now }),
-          "utf8",
-        )
-      } catch {
-        // Ignore unreadable or malformed parent key files.
-      }
-    }
-  } catch {
-    // Parent key activity refresh must never block or fail a tool call.
-  }
 }
+
 
 async function mintWorkflowKey(
   sessionID: string,
@@ -427,75 +441,71 @@ async function mintWorkflowKey(
   }
 }
 
+/**
+ * Walk the session and up to three inherited ancestors (visited set; a cycle stops the walk).
+ * The first session holding a valid key wins; its valid key files are returned for refresh.
+ */
+async function walkWorkflowKeys(
+  sessionID: string,
+  requiredSkill?: string,
+): Promise<{ status: WorkflowKeyStatus; valid: Array<{ path: string; key: Record<string, unknown> }> }> {
+  const visited = new Set<string>()
+  let foundExpired = false
+  let current: string | null = sessionID
+  try {
+    for (let hop = 0; current && hop <= MAX_INHERITANCE_HOPS; hop++) {
+      if (visited.has(current)) break
+      visited.add(current)
+      const directory = routingKeySessionDirectory(current)
+      if (!directory) break
+      let files: string[]
+      try {
+        files = await readdir(directory)
+      } catch {
+        break
+      }
+      const valid: Array<{ path: string; key: Record<string, unknown> }> = []
+      let inheritedFrom: string | null = null
+      for (const file of files) {
+        if (file === "inherited.key") {
+          try {
+            const inherited = JSON.parse(await readFile(join(directory, file), "utf8")) as { inherited_from?: unknown }
+            if (typeof inherited.inherited_from === "string") inheritedFrom = inherited.inherited_from
+          } catch {
+            // Ignore unreadable or malformed inherited keys.
+          }
+          continue
+        }
+        if (!/^workflow-[a-zA-Z0-9_-]+\.key$/.test(file)) continue
+        try {
+          const path = join(directory, file)
+          const key = JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>
+          if (
+            typeof key.skill !== "string" ||
+            (requiredSkill ? key.skill !== requiredSkill : !ADAPTER_WORKFLOW_SKILLS.has(key.skill))
+          ) continue
+          if (typeof key.minted_at !== "number") continue
+          const lastActive = typeof key.last_active === "number" ? key.last_active : key.minted_at
+          if (Date.now() - lastActive <= ACTIVE_TTL_MS) valid.push({ path, key })
+          else foundExpired = true
+        } catch {
+          // Ignore unreadable or malformed key files.
+        }
+      }
+      if (valid.length > 0) return { status: "valid", valid }
+      current = inheritedFrom
+    }
+  } catch {
+    // Key inspection must never block or fail a tool call.
+  }
+  return { status: foundExpired ? "expired" : "missing", valid: [] }
+}
+
 async function getWorkflowKeyStatus(
   sessionID: string,
   requiredSkill?: string,
 ): Promise<WorkflowKeyStatus> {
-  try {
-    const directory = routingKeySessionDirectory(sessionID)
-    if (!directory) return "missing"
-    const files = await readdir(directory)
-    let foundExpired = false
-    let inheritedFrom: string | null = null
-    for (const file of files) {
-      if (file === "inherited.key") {
-        try {
-          const content = await readFile(join(directory, file), "utf8")
-          const inherited = JSON.parse(content) as { inherited_from?: unknown }
-          if (typeof inherited.inherited_from === "string") inheritedFrom = inherited.inherited_from
-        } catch {
-          // Ignore unreadable or malformed inherited keys.
-        }
-        continue
-      }
-      if (!/^workflow-[a-zA-Z0-9_-]+\.key$/.test(file)) continue
-      try {
-        const content = await readFile(join(directory, file), "utf8")
-        const key = JSON.parse(content) as { skill?: unknown; minted_at?: unknown; last_active?: unknown }
-        if (
-          typeof key.skill !== "string" ||
-          (requiredSkill ? key.skill !== requiredSkill : !ADAPTER_WORKFLOW_SKILLS.has(key.skill))
-        ) continue
-        if (typeof key.minted_at !== "number") continue
-        const lastActive = typeof key.last_active === "number" ? key.last_active : key.minted_at
-        if (Date.now() - lastActive <= ACTIVE_TTL_MS) return "valid"
-        foundExpired = true
-      } catch {
-        // Ignore unreadable or malformed key files.
-      }
-    }
-    if (inheritedFrom) {
-      const parentDirectory = routingKeySessionDirectory(inheritedFrom)
-      if (!parentDirectory) return foundExpired ? "expired" : "missing"
-      try {
-        const parentFiles = await readdir(parentDirectory)
-        let parentFoundExpired = false
-        for (const file of parentFiles) {
-          if (!/^workflow-[a-zA-Z0-9_-]+\.key$/.test(file)) continue
-          try {
-            const content = await readFile(join(parentDirectory, file), "utf8")
-            const key = JSON.parse(content) as { skill?: unknown; minted_at?: unknown; last_active?: unknown }
-            if (
-              typeof key.skill !== "string" ||
-              (requiredSkill ? key.skill !== requiredSkill : !ADAPTER_WORKFLOW_SKILLS.has(key.skill))
-            ) continue
-            if (typeof key.minted_at !== "number") continue
-            const lastActive = typeof key.last_active === "number" ? key.last_active : key.minted_at
-            if (Date.now() - lastActive <= ACTIVE_TTL_MS) return "valid"
-            parentFoundExpired = true
-          } catch {
-            // Ignore unreadable or malformed parent key files.
-          }
-        }
-        return parentFoundExpired || foundExpired ? "expired" : "missing"
-      } catch {
-        return foundExpired ? "expired" : "missing"
-      }
-    }
-    return foundExpired ? "expired" : "missing"
-  } catch {
-    return "missing"
-  }
+  return (await walkWorkflowKeys(sessionID, requiredSkill)).status
 }
 
 function isRoutingGateTool(tool: string): boolean {
@@ -508,7 +518,7 @@ function isRoutingGateTool(tool: string): boolean {
 
 function isRoutingGateDisabled(): boolean {
   try {
-    return existsSync(ROUTING_GATE_OFF_FILE)
+    return existsSync(routingGateOffFile())
   } catch {
     return false
   }
@@ -525,8 +535,8 @@ async function logInactiveWorkflowWarning(
   if (warnConsole) console.warn(line)
 
   try {
-    await mkdir(join(homedir(), ".local/share/opencode/logs"), { recursive: true })
-    await appendFile(ROUTING_GATE_LOG_FILE, `${new Date().toISOString()} ${line}\n`, "utf8")
+    await mkdir(routingGateLogDir(), { recursive: true })
+    await appendFile(routingGateLogFile(), `${new Date().toISOString()} ${line}\n`, "utf8")
   } catch {
     // Logging must never block or fail the tool call.
   }
@@ -696,13 +706,49 @@ function routingViolationMessage(
     .join(" ")
 }
 
+/** Paths a tool call writes; null when the path cannot be known (sandbox_apply, sandbox_bash). */
+function writtenPaths(tool: string, args: Record<string, unknown> | undefined): string[] | null {
+  if (!args) return null
+  switch (tool) {
+    case "sandbox_write":
+    case "sandbox_edit":
+      return typeof args.path === "string" ? [args.path] : null
+    case "sandbox_copy_in":
+      return typeof args.workerPath === "string" ? [args.workerPath] : null
+    case "sandbox_copy_out":
+      return typeof args.hostTarget === "string" ? [args.hostTarget] : null
+    case "sandbox_apply_patch": {
+      if (typeof args.patch !== "string") return null
+      const paths: string[] = []
+      for (const line of args.patch.split("\n")) {
+        const match = /^\+\+\+ (.+?)\s*$/.exec(line.replace(/\r$/, ""))
+        if (!match) continue
+        const target = match[1].split("\t")[0].trim()
+        if (!target || target === "/dev/null") continue
+        paths.push(target.replace(/^b\//, ""))
+      }
+      return paths
+    }
+    default:
+      return null
+  }
+}
+
 export const SystematicRoutingGuardPlugin: Plugin = async () => {
   const mode = guardMode()
   const activeBySession = new Map<string, ActiveWorkflow>()
   const lastKeyRefreshBySession = new Map<string, number>()
   let warnedModelStrip = false
   let warnedQualifiedRewrite = false
-  const warnedInactiveWorkflow = new Set<string>()
+  // One de-dup set for every console warning: sessionID + tool + failure text.
+  const warnedConsole = new Set<string>()
+
+  const warn = async (tool: string, sessionID: string, failure: string): Promise<void> => {
+    const warningKey = `${sessionID}\u0000${tool}\u0000${failure}`
+    const toConsole = !warnedConsole.has(warningKey)
+    if (toConsole) warnedConsole.add(warningKey)
+    await logInactiveWorkflowWarning(tool, sessionID, failure, toConsole)
+  }
 
   return {
     /**
@@ -715,41 +761,29 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
     },
 
     "tool.execute.before": async (input, output) => {
-      void refreshWorkflowKeyActivity(input.sessionID, lastKeyRefreshBySession)
+      // Refresh before the status check: it must see the refreshed key.
+      await boxed(refreshWorkflowKeyActivity(input.sessionID, lastKeyRefreshBySession))
       const args = output.args as Record<string, unknown> | undefined
-      const targetPath =
-        typeof args?.path === "string"
-          ? args.path
-          : typeof args?.workerPath === "string"
-            ? args.workerPath
-            : typeof args?.hostTarget === "string"
-              ? args.hostTarget
-              : null
-      const patchText = input.tool === "sandbox_apply_patch" && typeof args?.patch === "string"
-        ? args.patch
-        : null
-      const patchTrackerPath = patchText?.match(/odd\/tasks\/[^/\s"'`]+\.md/)?.[0]
-      const routeStages = Object.values(ROUTE_STAGES).flat()
-      const writtenStages = routeStages.filter((stage) =>
-        (typeof targetPath === "string" && stage.artifactPattern?.test(targetPath)) ||
-        (typeof patchTrackerPath === "string" && stage.artifactPattern?.test(patchTrackerPath)),
-      )
-      if (writtenStages.length > 0) {
+      const paths = writtenPaths(input.tool, args)
+      const stagesWritten: Array<{ route: string; stage: RouteStage }> = []
+      for (const [route, stages] of Object.entries(ROUTE_STAGES)) {
+        for (const stage of stages) {
+          if (paths?.some((path) => stage.artifactPattern?.test(path))) stagesWritten.push({ route, stage })
+        }
+      }
+      if (stagesWritten.length > 0) {
         const directory = routingKeySessionDirectory(input.sessionID)
         if (directory) {
-          void mkdir(directory, { recursive: true })
-            .then(() => Promise.all(writtenStages.map((stage) =>
-              writeFile(join(directory, `artifact-${stage.id}`), new Date().toISOString(), "utf8"),
-            )))
-            .catch(() => {
-              // Artifact observation must never block or fail a tool call.
-            })
+          await boxed(
+            mkdir(directory, { recursive: true }).then(() => Promise.all(stagesWritten.map(({ route, stage }) =>
+              writeFile(join(directory, `artifact-${route}-${stage.id}`), new Date().toISOString(), "utf8"),
+            ))),
+          )
         }
       }
       if (mode !== "off" && isRoutingGateTool(input.tool) && !isRoutingGateDisabled()) {
         const activeWorkflow = getActiveWorkflow(activeBySession, input.sessionID)
         const keyStatus = await getWorkflowKeyStatus(input.sessionID)
-        const warningKey = `${input.sessionID}\u0000${input.tool}`
         if (keyStatus !== "valid") {
           const failures = [
             keyStatus === "missing"
@@ -757,9 +791,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
               : "workflow key status: expired (workflow key expired)",
             activeWorkflow ? "in-memory activation present (context only)" : "in-memory activation absent (context only)",
           ]
-          const warnConsole = !warnedInactiveWorkflow.has(warningKey)
-          if (warnConsole) warnedInactiveWorkflow.add(warningKey)
-          await logInactiveWorkflowWarning(input.tool, input.sessionID, failures.join("; "), warnConsole)
+          await warn(input.tool, input.sessionID, failures.join("; "))
           // Future block behavior could throw here; this rollout is warning-only.
         }
 
@@ -769,17 +801,12 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
               const reviewStage = ROUTE_STAGES["workflow-systematic"].find((stage) => stage.id === "review")
               if (
                 reviewStage &&
-                !(await hasRouteStageArtifactInAncestorChain(
-                  input.sessionID,
-                  reviewStage.id,
-                  reviewStage.skillMarkers,
-                ))
+                !(await hasRouteStageArtifactInAncestorChain(input.sessionID, "workflow-systematic", reviewStage))
               ) {
-                await logInactiveWorkflowWarning(
+                await warn(
                   input.tool,
                   input.sessionID,
                   `workflow-systematic review started before ${reviewStage.id} stage artifact exists`,
-                  true,
                 )
               }
             }
@@ -789,30 +816,19 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
         }
 
         // The guard is project-blind: in a multi-project session, a marker cannot satisfy a stage for the other project. A true fix needs a verified session-project source.
-        if (FILE_MUTATING_TOOLS.has(input.tool)) {
-          const pathKnown =
-            input.tool === "sandbox_write" ||
-            input.tool === "sandbox_edit" ||
-            input.tool === "sandbox_copy_in" ||
-            input.tool === "sandbox_copy_out"
-          if (pathKnown && typeof targetPath === "string") {
-            for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
-              if (routeSkill !== "workflow-odd-secure") continue
-              if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
-              for (const stage of stages) {
-                const targetsStage =
-                  stage.artifactPattern?.test(targetPath) ||
-                  (typeof patchTrackerPath === "string" && stage.artifactPattern?.test(patchTrackerPath))
-                if (
-                  targetsStage ||
-                  await hasRouteStageArtifactInAncestorChain(input.sessionID, stage.id, stage.skillMarkers)
-                ) continue
-
-                const failure = `${routeSkill} bootstrap: write to ${targetPath} before ${stage.id} stage artifact exists`
-                const warnConsole = !warnedInactiveWorkflow.has(warningKey)
-                if (warnConsole) warnedInactiveWorkflow.add(warningKey)
-                await logInactiveWorkflowWarning(input.tool, input.sessionID, failure, warnConsole)
-              }
+        if (FILE_MUTATING_TOOLS.has(input.tool) && paths && paths.length > 0) {
+          for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
+            if (routeSkill !== "workflow-odd-secure") continue
+            if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
+            for (const stage of stages) {
+              // A call that writes the stage artifact itself counts as writing it.
+              if (paths.some((path) => stage.artifactPattern?.test(path))) continue
+              if (await hasRouteStageArtifactInAncestorChain(input.sessionID, routeSkill, stage)) continue
+              await warn(
+                input.tool,
+                input.sessionID,
+                `${routeSkill} bootstrap: write to ${paths.join(", ")} before ${stage.id} stage artifact exists`,
+              )
             }
           }
         }
@@ -849,20 +865,25 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       }
 
       const dispatchedType = typeof args.subagent_type === "string" ? args.subagent_type : null
-      if (mode !== "off" && dispatchedType && dispatchedType !== "explore" && !dispatchedType.endsWith("reviewer")) {
+      if (mode !== "off" && dispatchedType && !isReadOnlySpecialist(dispatchedType)) {
         try {
           for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
             if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
             for (const stage of stages) {
-              if (!stage.allowsSpecialists?.includes(dispatchedType)) continue
-              if (await hasRouteStageArtifactInAncestorChain(input.sessionID, stage.id, stage.skillMarkers)) continue
-
-              await logInactiveWorkflowWarning(
-                "task",
-                input.sessionID,
-                `${routeSkill} specialist ${dispatchedType} dispatched before ${stage.id} stage artifact exists`,
-                true,
-              )
+              if (!stage.allowsSpecialists) continue
+              if (!(await hasRouteStageArtifactInAncestorChain(input.sessionID, routeSkill, stage))) {
+                await warn(
+                  "task",
+                  input.sessionID,
+                  `${routeSkill} specialist ${dispatchedType} dispatched before ${stage.id} stage artifact exists`,
+                )
+              } else if (!stage.allowsSpecialists.includes(dispatchedType)) {
+                await warn(
+                  "task",
+                  input.sessionID,
+                  `${routeSkill} specialist ${dispatchedType} is not allowed at ${stage.id} stage`,
+                )
+              }
             }
           }
         } catch {
@@ -905,48 +926,45 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
           if (!childSessionID || childSessionID === input.sessionID) return
           const directory = routingKeySessionDirectory(childSessionID)
           if (!directory) return
-          void mkdir(directory, { recursive: true })
-            .then(async () => {
-              await writeFile(join(directory, ".parent"), input.sessionID, "utf8")
-              try {
-                const parentDirectory = routingKeySessionDirectory(input.sessionID)
-                if (parentDirectory) {
-                  await mkdir(parentDirectory, { recursive: true })
-                  const childEntries = await readdir(directory, { withFileTypes: true })
-                  const observedMarkers = childEntries
-                    .filter((entry) => entry.isFile() && /^(artifact-|skill-)/.test(entry.name))
-                    .slice(0, 64)
-                  await Promise.all(observedMarkers.map(async (entry) => {
-                    try {
-                      await copyFile(
-                        join(directory, entry.name),
-                        join(parentDirectory, entry.name),
-                        constants.COPYFILE_EXCL,
-                      )
-                    } catch {
-                      // Marker merge must not overwrite parent state or fail the task result hook.
-                    }
-                  }))
-                }
-              } catch {
-                // Marker enumeration and merge are best-effort and never affect key inheritance.
+          await boxed((async () => {
+            await mkdir(directory, { recursive: true })
+            await writeFile(join(directory, ".parent"), input.sessionID, "utf8")
+            try {
+              const parentDirectory = routingKeySessionDirectory(input.sessionID)
+              if (parentDirectory) {
+                await mkdir(parentDirectory, { recursive: true })
+                const childEntries = await readdir(directory, { withFileTypes: true })
+                const observedMarkers = childEntries
+                  .filter((entry) => entry.isFile() && /^(artifact-|skill-)/.test(entry.name))
+                  .slice(0, 64)
+                await Promise.all(observedMarkers.map(async (entry) => {
+                  try {
+                    await copyFile(
+                      join(directory, entry.name),
+                      join(parentDirectory, entry.name),
+                      constants.COPYFILE_EXCL,
+                    )
+                  } catch {
+                    // Marker merge must not overwrite parent state or fail the task result hook.
+                  }
+                }))
               }
-              const files = await readdir(directory)
-              await Promise.all(
-                files
-                  .filter((file) => /^workflow-[a-zA-Z0-9_-]+\.key$/.test(file))
-                  .map((file) => rm(join(directory, file), { force: true })),
-              )
-              const mintedAt = Date.now()
-              await writeFile(
-                join(directory, "inherited.key"),
-                JSON.stringify({ inherited_from: input.sessionID, minted_at: mintedAt, last_active: mintedAt }),
-                "utf8",
-              )
-            })
-            .catch(() => {
-              // Parentage persistence must never block or fail a tool call.
-            })
+            } catch {
+              // Marker enumeration and merge are best-effort and never affect key inheritance.
+            }
+            const files = await readdir(directory)
+            await Promise.all(
+              files
+                .filter((file) => /^workflow-[a-zA-Z0-9_-]+\.key$/.test(file))
+                .map((file) => rm(join(directory, file), { force: true })),
+            )
+            const mintedAt = Date.now()
+            await writeFile(
+              join(directory, "inherited.key"),
+              JSON.stringify({ inherited_from: input.sessionID, minted_at: mintedAt, last_active: mintedAt }),
+              "utf8",
+            )
+          })())
         } catch {
           // Malformed task results must never block or fail a tool call.
         }
@@ -956,7 +974,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       const args = ((output.args ?? input.args) as Record<string, unknown> | undefined)
       const rawName = args?.name
       if (typeof rawName === "string") {
-        const sanitizedName = rawName.replace(/[^a-zA-Z0-9_-]/g, "-")
+        const sanitizedName = skillMarkerName(rawName)
         const canonicalName = canonicalSkillName(rawName)
         if (
           !ADAPTER_WORKFLOW_SKILLS.has(canonicalName ?? "") &&
@@ -967,12 +985,11 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
               if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
               for (const stage of stages) {
                 if (!stage.gatesSkillLoads?.includes(sanitizedName)) continue
-                if (await hasRouteStageArtifactInAncestorChain(input.sessionID, stage.id, stage.skillMarkers)) continue
-                await logInactiveWorkflowWarning(
+                if (await hasRouteStageArtifactInAncestorChain(input.sessionID, routeSkill, stage)) continue
+                await warn(
                   input.tool,
                   input.sessionID,
                   `${routeSkill} skill ${sanitizedName} loaded before ${stage.id} stage artifact exists`,
-                  true,
                 )
               }
             }
@@ -982,11 +999,10 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
         }
         const directory = routingKeySessionDirectory(input.sessionID)
         if (directory) {
-          void mkdir(directory, { recursive: true })
-            .then(() => writeFile(join(directory, `skill-${sanitizedName}`), new Date().toISOString(), "utf8"))
-            .catch(() => {
-              // Skill observation must never block or fail a tool call.
-            })
+          await boxed(
+            mkdir(directory, { recursive: true })
+              .then(() => writeFile(join(directory, `skill-${sanitizedName}`), new Date().toISOString(), "utf8")),
+          )
         }
       }
       const content = typeof output.output === "string" ? output.output : ""
@@ -1000,7 +1016,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       const loadedSkillName = canonicalSkillName(rawName)
       const activeWorkflow = getActiveWorkflow(activeBySession, input.sessionID)
       if (loadedSkillName?.startsWith("workflow-")) {
-        void mintWorkflowKey(input.sessionID, loadedSkillName, activeWorkflow ? [...activeWorkflow.targets] : [])
+        await boxed(mintWorkflowKey(input.sessionID, loadedSkillName, activeWorkflow ? [...activeWorkflow.targets] : []))
       }
     },
 

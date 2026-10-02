@@ -25,7 +25,7 @@ tests/routing-guard`. The suite refuses to run against a real HOME.
 - [x] T1 — Design `docs/specs/routing-guard-q03.md`. Route: inline (strong model).
 - [x] T2 — Acceptance suite; RED observed. Route: inline (strong model).
 - [x] T3 — Advice record on the design (owner TUI dispatch; Q51 open).
-- [ ] T4 — Implement to GREEN. Route: delegated writer.
+- [x] T4 — Implement to GREEN. Route: delegated writer.
 - [ ] T5 — Native review; verifier mirror; owner restart; verifier pass.
 
 ## Progress
@@ -53,6 +53,7 @@ tests/routing-guard`. The suite refuses to run against a real HOME.
   10. The V2 hook-skipping scope is noted for Q42.
   Added from my own on-disk check: qualified skill names are canonicalised (`systematic:ce:plan`
   gives `skill-ce-plan`). Suite: 43 tests, 0 pass, 43 fail.
+- 2026-10-02: T4 done. RED 0 pass/43 fail, GREEN 43 pass (3 runs), build and load check OK, python unittests OK.
 
 ## Next step
-T4: delegated implementation to GREEN.
+T5: native review; verifier mirror; owner restart; verifier pass.
