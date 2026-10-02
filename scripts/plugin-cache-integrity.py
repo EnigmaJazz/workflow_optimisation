@@ -14,6 +14,11 @@ import sys
 import time
 from pathlib import Path
 
+# An incomplete package dir is quarantined only after this quiet period, so a
+# dir OpenCode is still installing into (no lock covers its cache install) is
+# never moved mid-install. Single source for the verifier and the tests.
+QUIET_PERIOD_SECONDS = 600
+
 
 def split_spec(spec):
     at = spec.rfind("@")
@@ -105,7 +110,7 @@ def main(argv=None):
     s.add_argument("--spec", action="append", default=[])
     s.add_argument("--lock", required=True)
     s.add_argument("--quarantine-dir", required=True)
-    s.add_argument("--min-age-seconds", type=int, default=600)
+    s.add_argument("--min-age-seconds", type=int, default=QUIET_PERIOD_SECONDS)
     s.add_argument("--apply", action="store_true")
     s.set_defaults(fn=cmd_scan)
     args = p.parse_args(argv)

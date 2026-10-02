@@ -524,7 +524,7 @@ for ref in unpreserved_pins:
 if unpreserved_pins:
     pin_detail += "; AUTO_UPDATED_PIN_INCOMPLETE_NOT_PRESERVED: " + ", ".join(unpreserved_pins)
 if preserved_pins:
-    pin_detail = "; preserved auto-update pins: " + ", ".join(preserved_pins)
+    pin_detail += "; preserved auto-update pins: " + ", ".join(preserved_pins)
 # Reconcile the canonical source with pins the auto-updater advanced: the
 # deployed pin is the reviewed floor, so write the newer version back into the
 # canonical file. Textual and format-preserving; idempotent when already equal.
@@ -3721,7 +3721,7 @@ if not specs:
     print("ok\tno exact-version plugin specs configured")
     raise SystemExit(0)
 cmd = [sys.executable, helper, "scan", "--cache-root", cache_root, "--lock", lock,
-       "--quarantine-dir", quarantine, "--min-age-seconds", "600", "--apply"]
+       "--quarantine-dir", quarantine, "--apply"]
 for spec in specs:
     cmd += ["--spec", spec]
 proc = subprocess.run(cmd, capture_output=True, text=True)

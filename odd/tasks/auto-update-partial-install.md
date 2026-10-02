@@ -122,3 +122,19 @@ Summary of findings and resolution:
 
 ## Next step
 T3: verifier run, OpenCode restart, confirm Magic Context loads.
+
+## Native review review-f0d7d1d1572a4195 (high risk, four lenses; approved, authority burned)
+Range `d314d7a..c6a938f` (488 lines). 8 advisory findings. Resolution:
+- R2/R3 pycache committed: fixed. Removed `tests/__pycache__/*.pyc`; `__pycache__/` gitignored.
+- R2/R3 pin-detail overwrite: fixed. `pin_detail =` became `+=`, so the not-preserved detail
+  survives when preserved pins also exist.
+- R2 magic number: fixed. `QUIET_PERIOD_SECONDS = 600` is a named constant in the helper, and the
+  verifier relies on the helper default instead of repeating 600.
+- R2/R3 deferred-reason key: not a defect. Both keys exist, and the R3 finding itself concludes
+  "this is fine".
+- R3 no shell integration test: accepted gap, queued as T4.
+- Verifier digest re-pinned after the follow-up edit.
+
+- [ ] T4 — Shell-level integration test for the verifier's §2c mapping (quarantined, deferred
+  and error helper outputs to `fail` codes) and the pin-preservation fallback. Best done with the
+  Q04 verifier split, where check sections become runnable in isolation.
