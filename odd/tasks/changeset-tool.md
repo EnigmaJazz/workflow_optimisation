@@ -64,6 +64,14 @@ Runner: `python3 -m unittest tests/test_changeset.py -v`.
   Not acted on: R2-003, tracker wording (the tracker is updated as status changes). Suite: 54
   tests, all RED, 0 vacuous passes.
 
+- 2026-10-02: follow-up review of `0e7854e` APPROVED and acknowledged, authority burned. Six
+  test-hygiene findings are deferred into the T3 implementation slice, so one review covers them:
+  - hold_flock: register cleanup before the readline assertion, then kill, wait and close stdout;
+  - module-level `import fcntl`;
+  - drop the dead-PID content in the leftover-lock test, and assert `stale_lock_cleared` is
+    absent from the report;
+  - add a status/revert check for a missing-parent `json_delete`.
+
 ## Next step
 T3: advice record on the spec (owner TUI dispatch, Q51 open), then a delegated implementation to
 GREEN.
