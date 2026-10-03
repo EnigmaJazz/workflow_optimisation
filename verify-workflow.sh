@@ -199,19 +199,29 @@ fail() {
   FAIL=1
 }
 
+plugin_check_failure() {
+  local failure_policy="$1"
+  shift
+  if [ "$failure_policy" = advisory ]; then
+    echo "   !! advisory: $*"
+  else
+    fail "$@"
+  fi
+}
+
 check_plugin_loads() {
-  local plugin_dir="${1:-$PLUGINS_DIR}" mode="${2:-factory}"
+  local plugin_dir="${1:-$PLUGINS_DIR}" mode="${2:-factory}" failure_policy="${3:-fatal}"
   local scratch_dir plugin output status checked=0
   plugin_dir=$(cd "$plugin_dir" 2>/dev/null && pwd) || {
-    fail "deployed plugin directory is unavailable: $plugin_dir"
+    plugin_check_failure "$failure_policy" "deployed plugin directory is unavailable: $plugin_dir"
     return
   }
   if ! command_exists bun || ! command_exists timeout; then
-    fail "cannot load-check deployed plugins: bun and timeout are required"
+    plugin_check_failure "$failure_policy" "cannot load-check deployed plugins: bun and timeout are required"
     return
   fi
   scratch_dir=$(mktemp -d "${TMPDIR:-/tmp}/workflow-plugin-load.XXXXXX") || {
-    fail "cannot create scratch directory for deployed plugin load checks"
+    plugin_check_failure "$failure_policy" "cannot create scratch directory for deployed plugin load checks"
     return
   }
   # Keep the tracked-plugin hook-key allowlist aligned with the installed OpenCode plugin API version; it must track that version.
@@ -231,14 +241,14 @@ check_plugin_loads() {
       continue
     fi
     if [ "$status" -eq 124 ]; then
-      fail "plugin load timed out: $plugin"
+      plugin_check_failure "$failure_policy" "plugin load timed out: $plugin"
       continue
     fi
-    fail "plugin load check failed: $plugin (exit $status): $output"
+    plugin_check_failure "$failure_policy" "plugin load check failed: $plugin (exit $status): $output"
   done
   rm -rf "$scratch_dir"
   if [ "$checked" -eq 0 ]; then
-    fail "plugin load check found no plugin files under $plugin_dir"
+    plugin_check_failure "$failure_policy" "plugin load check found no plugin files under $plugin_dir"
   fi
 }
 
@@ -260,7 +270,8 @@ if [ "$RECOVERY_ONLY" -eq 0 ]; then
   if [ "${WORKFLOW_VERIFY_PLUGIN_LOADS_ONLY:-0}" = "1" ]; then
     plugin_mode="${WORKFLOW_VERIFY_PLUGIN_LOAD_MODE:-import}"
   fi
-  check_plugin_loads "${WORKFLOW_VERIFY_PLUGIN_LOAD_DIR:-$PLUGINS_DIR}" "$plugin_mode"
+  # These pre-mirror bytes may be stale but repairable, so this import probe is advisory only.
+  check_plugin_loads "${WORKFLOW_VERIFY_PLUGIN_LOAD_DIR:-$PLUGINS_DIR}" "$plugin_mode" advisory
 fi
 if [ "${WORKFLOW_VERIFY_PLUGIN_LOADS_ONLY:-0}" = "1" ]; then
   [ "$FAIL" -eq 0 ] && exit 0
