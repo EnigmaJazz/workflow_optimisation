@@ -68,6 +68,8 @@ tests/routing-guard`. The suite refuses to run against a real HOME.
   This is advisory evidence only, never approval. The pre-code advice step was missed for this unit.
 - Route/trigger evidence: `route: delegated`; specialist `general` (sandbox writer); trigger: secure ODD policy (every project mutation is delegated).
 - The review lens confirmed the intended fixes are present: route-namespaced stage markers with legacy fallback, unique stage ids, three-ancestor inheritance with a visited set, and cycle/four-hop coverage.
+- 2026-10-03: Silent-gate investigation outcome: hook registration was PROVEN by hand-run import (`default` is callable and `tool.execute.before` is present); `opencode --version 1.18.34` rules out a V1/V2 mismatch; `ACTIVE_TTL_MS` is 30 minutes, matching the docs. The contradiction remains unresolved: a warning was owed, but the file-log mtime proves `warn()` never ran. This unit adds load/registration/key-status observability and real loader assertions, including the deployed mirror and routing-guard suite.
+- Route/trigger evidence: `route: delegated`; specialist `general`; trigger: secure ODD policy.
 
 ## Next step
 Q27: owner decision on the advisor sandbox lifecycle gap, tracked in `docs/ADVISOR-HANDOFF.md`.

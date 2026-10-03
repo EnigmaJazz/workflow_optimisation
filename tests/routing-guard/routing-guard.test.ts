@@ -398,6 +398,13 @@ describe("5. key inheritance (up to three ancestors)", () => {
     await probe()
   })
 
+  test("logs valid key status once per session and status", async () => {
+    seedKey("ses_k_valid_status", ODD)
+    await before("host_git_commit", "ses_k_valid_status", {})
+    await before("host_git_commit", "ses_k_valid_status", {})
+    expect(warnSpy.mock.calls.filter((call: unknown[]) => String(call[0]).includes("workflow key status=valid"))).toHaveLength(1)
+  })
+
   test("a grandchild inherits the root key through two hops", async () => {
     seedKey("ses_root", ODD)
     seedInherited("ses_kid", "ses_root")

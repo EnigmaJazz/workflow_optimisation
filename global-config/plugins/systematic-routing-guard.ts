@@ -44,6 +44,15 @@ import { homedir } from "node:os"
 import { join, resolve } from "node:path"
 import type { Plugin } from "@opencode-ai/plugin"
 
+try {
+  console.warn("[systematic-routing-guard] module imported")
+} catch {
+  // Module-load observability must never affect plugin loading.
+}
+
+let reportedRegistration = false
+const reportedKeyStatuses = new Set<string>()
+
 type WorkKind = "implementation" | "review" | "research" | "utility" | "unknown"
 type GuardMode = "block" | "warn" | "off"
 
@@ -757,6 +766,14 @@ function writtenPaths(tool: string, args: Record<string, unknown> | undefined): 
 
 export const SystematicRoutingGuardPlugin: Plugin = async () => {
   const mode = guardMode()
+  if (!reportedRegistration) {
+    reportedRegistration = true
+    try {
+      console.warn(`[systematic-routing-guard] plugin registered mode=${mode} stateRoot=${resolve(stateRoot())}`)
+    } catch {
+      // Registration observability must never affect plugin loading.
+    }
+  }
   const activeBySession = new Map<string, ActiveWorkflow>()
   const lastKeyRefreshBySession = new Map<string, number>()
   let warnedModelStrip = false
@@ -805,6 +822,15 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       if (mode !== "off" && isRoutingGateTool(input.tool) && !isRoutingGateDisabled()) {
         const activeWorkflow = getActiveWorkflow(activeBySession, input.sessionID)
         const keyStatus = await getWorkflowKeyStatus(input.sessionID)
+        const keyStatusLogKey = `${input.sessionID}\u0000${keyStatus}`
+        if (!reportedKeyStatuses.has(keyStatusLogKey)) {
+          reportedKeyStatuses.add(keyStatusLogKey)
+          try {
+            console.warn(`[systematic-routing-guard] workflow key status=${keyStatus}`)
+          } catch {
+            // Key-status observability must never affect a tool call.
+          }
+        }
         if (keyStatus !== "valid") {
           const failures = [
             keyStatus === "missing"

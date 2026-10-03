@@ -220,25 +220,17 @@ check_plugin_loads() {
       *.bak*|*.disabled) continue ;;
     esac
     checked=$((checked + 1))
-    output=$(cd "$scratch_dir" && PLUGIN_LOAD_CHECK_PATH="$plugin" timeout 8s bun --no-install -e 'const m = await import(process.env.PLUGIN_LOAD_CHECK_PATH); const usable = Object.values(m).some((v) => (typeof v === "function") || (v !== null && typeof v === "object")); if (!usable) { console.error("plugin exports no factory: " + process.env.PLUGIN_LOAD_CHECK_PATH); process.exit(3) }' 2>&1)
+    output=$(cd "$scratch_dir" && PLUGIN_LOAD_CHECK_PATH="$plugin" timeout 8s bun --no-install -e 'const path = process.env.PLUGIN_LOAD_CHECK_PATH; const knownHooks = new Set(["chat.message", "tool.execute.before", "tool.execute.after", "command.execute.before", "config", "experimental.chat.system.transform"]); let m; try { m = await import(path) } catch (error) { console.error("plugin import failed: " + String(error)); process.exit(3) } const factories = Object.entries(m).filter(([, value]) => typeof value === "function"); if (factories.length === 0) { console.error("plugin has no exported function: " + path); process.exit(4) } let passed = false; const errors = []; for (const [name, factory] of factories) { try { const result = await factory({}); if (result && typeof result === "object" && [...knownHooks].some(key => Object.prototype.hasOwnProperty.call(result, key))) passed = true } catch (error) { errors.push(name + ": " + String(error)) } } if (passed) { console.log("plugin factory hook found"); process.exit(0) } console.error("no exported factory returned an object containing a known OpenCode hook key" + (errors.length ? "; factory errors: " + errors.join(" | ") : "")); process.exit(5)' 2>&1)
     status=$?
     if [ "$status" -eq 0 ]; then
       echo "   OK plugin load: ${plugin##*/}"
-      continue
-    fi
-    if [ "$status" -eq 3 ]; then
-      fail "plugin exports no factory: $plugin"
       continue
     fi
     if [ "$status" -eq 124 ]; then
       fail "plugin load timed out: $plugin"
       continue
     fi
-    if [[ "$output" =~ SyntaxError|syntax[[:space:]]error|Export[[:space:]]named.*not[[:space:]]found|does[[:space:]]not[[:space:]]provide[[:space:]]an[[:space:]]export|not[[:space:]]exported[[:space:]]by|Cannot[[:space:]]find[[:space:]](package|module)|Could[[:space:]]not[[:space:]]resolve|Module[[:space:]]not[[:space:]]found ]]; then
-      fail "plugin cannot load: $plugin: $output"
-    else
-      echo "   INFO plugin import error (non-load-blocking): $plugin (exit $status): $output"
-    fi
+    fail "plugin load check failed: $plugin (exit $status): $output"
   done
   rm -rf "$scratch_dir"
   if [ "$checked" -eq 0 ]; then
@@ -3899,6 +3891,22 @@ else
       fail "could not re-mirror systematic-routing-guard.ts"
     fi
   fi
+fi
+
+# Validate the deployed plugin bytes through the same factory/hook load check.
+check_plugin_loads "$PLUGINS_DIR"
+
+routing_guard_test_home=$(mktemp -d) || {
+  fail "could not create isolated HOME for routing-guard tests"
+  routing_guard_test_home=""
+}
+if [ -n "$routing_guard_test_home" ]; then
+  if (cd "$WORKSPACE" && env HOME="$routing_guard_test_home" bun test tests/routing-guard); then
+    echo "   OK routing guard tests"
+  else
+    fail "routing guard test suite failed"
+  fi
+  rm -rf "$routing_guard_test_home"
 fi
 
 # Astra is exposed through derived aliases rather than a Systematic profile or
