@@ -576,27 +576,7 @@ async function logInactiveWorkflowWarning(
   const line = `[systematic-routing-guard] ${message} (session: ${sessionID})`
   if (warnConsole) console.warn(line)
 
-  try {
-    await mkdir(routingGateLogDir(), { recursive: true })
-    await appendFile(routingGateLogFile(), `${new Date().toISOString()} ${line}\n`, "utf8")
-  } catch (error) {
-    // Logging must never block or fail the tool call.
-    const logPath = resolve(routingGateLogFile())
-    const code = error && typeof error === "object" && "code" in error
-      ? String((error as NodeJS.ErrnoException).code)
-      : "unknown"
-    const signature = `${logPath}\u0000${code}`
-    if (!reportedFileLogFailures.has(signature)) {
-      reportedFileLogFailures.add(signature)
-      try {
-        console.warn(
-          `[systematic-routing-guard] file log append failed at ${logPath} (${code}): ${error instanceof Error ? error.message : String(error)}`,
-        )
-      } catch {
-        // Reporting a logging failure must never fail the tool call.
-      }
-    }
-  }
+  await appendRoutingLog(line)
 }
 
 function canonicalSkillName(raw: unknown): string | null {

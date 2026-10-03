@@ -98,19 +98,24 @@ describe("0. state-root seam", () => {
   })
 
   test("de-duplicates failed file-log warnings by path and error code", async () => {
-    const roots = [root, mkdtempSync(join(tmpdir(), "guard-log-failure-"))]
-    for (const failureRoot of roots) {
-      mkdirSync(join(failureRoot, ".local/share/opencode"), { recursive: true })
-      rmSync(join(failureRoot, ".local/share/opencode/logs"), { recursive: true, force: true })
-      writeFileSync(join(failureRoot, ".local/share/opencode/logs"), "not a directory")
-      root = failureRoot
-      process.env.SYSTEMATIC_ROUTING_GUARD_STATE_ROOT = failureRoot
-      await before("host_git_commit", `ses_log_failure_${roots.indexOf(failureRoot)}`, {})
-      await before("host_git_commit", `ses_log_failure_${roots.indexOf(failureRoot)}`, {})
-    }
+    const originalRoot = root
+    const roots = [originalRoot, mkdtempSync(join(tmpdir(), "guard-log-failure-"))]
+    try {
+      for (const [index, failureRoot] of roots.entries()) {
+        mkdirSync(join(failureRoot, ".local/share/opencode"), { recursive: true })
+        rmSync(join(failureRoot, ".local/share/opencode/logs"), { recursive: true, force: true })
+        writeFileSync(join(failureRoot, ".local/share/opencode/logs"), "not a directory")
+        process.env.SYSTEMATIC_ROUTING_GUARD_STATE_ROOT = failureRoot
+        await before("host_git_commit", `ses_log_failure_${index}`, {})
+        await before("host_git_commit", `ses_log_failure_${index}`, {})
+      }
 
-    expect(consoleCount("file log append failed")).toBe(2)
-    for (const failureRoot of roots) rmSync(failureRoot, { recursive: true, force: true })
+      expect(consoleCount("file log append failed")).toBe(2)
+    } finally {
+      root = originalRoot
+      process.env.SYSTEMATIC_ROUTING_GUARD_STATE_ROOT = originalRoot
+      for (const failureRoot of roots.slice(1)) rmSync(failureRoot, { recursive: true, force: true })
+    }
   })
 
   test("a failed append cannot reject the logging hook", async () => {
