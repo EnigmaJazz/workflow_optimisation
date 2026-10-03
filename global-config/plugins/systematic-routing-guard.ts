@@ -1084,3 +1084,4 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
 }
 
 export default SystematicRoutingGuardPlugin
+void logObservedLine("[systematic-routing-guard] module evaluated").catch(() => undefined)
