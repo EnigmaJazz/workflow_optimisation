@@ -44,14 +44,7 @@ import { homedir } from "node:os"
 import { join, resolve } from "node:path"
 import type { Plugin } from "@opencode-ai/plugin"
 
-try {
-  console.warn("[systematic-routing-guard] module imported")
-} catch {
-  // Module-load observability must never affect plugin loading.
-}
-
 let reportedRegistration = false
-const reportedKeyStatuses = new Set<string>()
 
 type WorkKind = "implementation" | "review" | "research" | "utility" | "unknown"
 type GuardMode = "block" | "warn" | "off"
@@ -232,6 +225,40 @@ const routingGateOffFile = (): string => join(stateRoot(), ".config/opencode/rou
 const routingGateLogDir = (): string => join(stateRoot(), ".local/share/opencode/logs")
 const routingGateLogFile = (): string => join(routingGateLogDir(), "routing-guard.log")
 const routingKeyRoot = (): string => join(stateRoot(), ".local/share/opencode/routing-keys")
+
+async function appendRoutingLog(line: string): Promise<void> {
+  try {
+    await mkdir(routingGateLogDir(), { recursive: true })
+    await appendFile(routingGateLogFile(), `${new Date().toISOString()} ${line}\n`, "utf8")
+  } catch (error) {
+    const logPath = resolve(routingGateLogFile())
+    const code = error && typeof error === "object" && "code" in error
+      ? String((error as NodeJS.ErrnoException).code)
+      : "unknown"
+    const signature = `${logPath}\u0000${code}`
+    if (!reportedFileLogFailures.has(signature)) {
+      reportedFileLogFailures.add(signature)
+      try {
+        console.warn(
+          `[systematic-routing-guard] file log append failed at ${logPath} (${code}): ${error instanceof Error ? error.message : String(error)}`,
+        )
+      } catch {
+        // Reporting a logging failure must never fail the tool call.
+      }
+    }
+  }
+}
+
+async function logObservedLine(line: string): Promise<void> {
+  try {
+    console.warn(line)
+  } catch {
+    // Observability must never affect plugin loading or a tool call.
+  }
+  await appendRoutingLog(line)
+}
+
+void logObservedLine("[systematic-routing-guard] module imported")
 // Override only for bounded timeout tests; clamp invalid or unsafe-small values to 10 ms.
 const writeTimeoutMs = (): number => {
   const configured = Number(process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS ?? 2000)
@@ -768,11 +795,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
   const mode = guardMode()
   if (!reportedRegistration) {
     reportedRegistration = true
-    try {
-      console.warn(`[systematic-routing-guard] plugin registered mode=${mode} stateRoot=${resolve(stateRoot())}`)
-    } catch {
-      // Registration observability must never affect plugin loading.
-    }
+    await logObservedLine(`[systematic-routing-guard] plugin registered mode=${mode} stateRoot=${resolve(stateRoot())}`)
   }
   const activeBySession = new Map<string, ActiveWorkflow>()
   const lastKeyRefreshBySession = new Map<string, number>()
@@ -780,6 +803,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
   let warnedQualifiedRewrite = false
   // One de-dup set for every console warning: sessionID + tool + failure text.
   const warnedConsole = new Set<string>()
+  const reportedKeyStatuses = new Set<string>()
 
   const warn = async (tool: string, sessionID: string, failure: string): Promise<void> => {
     const warningKey = `${sessionID}\u0000${tool}\u0000${failure}`
@@ -826,7 +850,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
         if (!reportedKeyStatuses.has(keyStatusLogKey)) {
           reportedKeyStatuses.add(keyStatusLogKey)
           try {
-            console.warn(`[systematic-routing-guard] workflow key status=${keyStatus}`)
+            await logObservedLine(`[systematic-routing-guard] workflow key status=${keyStatus} (session: ${input.sessionID})`)
           } catch {
             // Key-status observability must never affect a tool call.
           }

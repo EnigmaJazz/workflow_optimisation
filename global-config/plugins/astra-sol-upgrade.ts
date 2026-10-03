@@ -96,4 +96,3 @@ export const AstraSolUpgradePlugin: Plugin = async () => ({
     }
   },
 })
-

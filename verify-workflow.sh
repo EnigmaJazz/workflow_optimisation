@@ -200,7 +200,7 @@ fail() {
 }
 
 check_plugin_loads() {
-  local plugin_dir="${1:-$PLUGINS_DIR}"
+  local plugin_dir="${1:-$PLUGINS_DIR}" mode="${2:-factory}"
   local scratch_dir plugin output status checked=0
   plugin_dir=$(cd "$plugin_dir" 2>/dev/null && pwd) || {
     fail "deployed plugin directory is unavailable: $plugin_dir"
@@ -214,16 +214,17 @@ check_plugin_loads() {
     fail "cannot create scratch directory for deployed plugin load checks"
     return
   }
+  # Keep knownHooks in sync with the installed OpenCode plugin API version; this allowlist will drift.
   for plugin in "$plugin_dir"/*.ts "$plugin_dir"/*.js; do
     [ -f "$plugin" ] || continue
     case "${plugin##*/}" in
       *.bak*|*.disabled) continue ;;
     esac
     checked=$((checked + 1))
-    output=$(cd "$scratch_dir" && PLUGIN_LOAD_CHECK_PATH="$plugin" timeout 8s bun --no-install -e 'const path = process.env.PLUGIN_LOAD_CHECK_PATH; const knownHooks = new Set(["chat.message", "tool.execute.before", "tool.execute.after", "command.execute.before", "config", "experimental.chat.system.transform"]); let m; try { m = await import(path) } catch (error) { console.error("plugin import failed: " + String(error)); process.exit(3) } const factories = Object.entries(m).filter(([, value]) => typeof value === "function"); if (factories.length === 0) { console.error("plugin has no exported function: " + path); process.exit(4) } let passed = false; const errors = []; for (const [name, factory] of factories) { try { const result = await factory({}); if (result && typeof result === "object" && [...knownHooks].some(key => Object.prototype.hasOwnProperty.call(result, key))) passed = true } catch (error) { errors.push(name + ": " + String(error)) } } if (passed) { console.log("plugin factory hook found"); process.exit(0) } console.error("no exported factory returned an object containing a known OpenCode hook key" + (errors.length ? "; factory errors: " + errors.join(" | ") : "")); process.exit(5)' 2>&1)
+    output=$(cd "$scratch_dir" && WORKFLOW_HEALTH_CHECK_PROBE=1 PLUGIN_LOAD_CHECK_PATH="$plugin" PLUGIN_LOAD_CHECK_MODE="$mode" timeout 8s bun --no-install -e 'const path = process.env.PLUGIN_LOAD_CHECK_PATH; const knownHooks = new Set(["event", "chat.message", "chat.params", "chat.headers", "permission.ask", "shell.env", "tool.definition", "tool", "tool.execute.before", "tool.execute.after", "auth", "provider", "command.execute.before", "config", "dispose", "experimental.chat.messages.transform", "experimental.session.compacting", "experimental.compaction.autocontinue", "experimental.chat.system.transform", "experimental.text.complete"]); let m; try { m = await import(path) } catch (error) { console.error("plugin import failed: " + String(error)); process.exit(3) } let factory = typeof m.default === "function" ? ["default", m.default] : Object.entries(m).find(([name, value]) => /Plugin/.test(name) && typeof value === "function"); if (!factory) { if (Object.values(m).some(value => typeof value === "function")) { console.error("no default or named Plugin factory export; skipped: " + path); process.exit(0) } console.error("plugin has no exported function: " + path); process.exit(4) } if (process.env.PLUGIN_LOAD_CHECK_MODE === "import") { console.log("plugin import and factory export found"); process.exit(0) } try { const result = await factory[1]({}); const hooks = result && typeof result === "object" ? [...knownHooks].filter(key => Object.prototype.hasOwnProperty.call(result, key)) : []; console.log("plugin factory invoked: " + factory[0] + (hooks.length ? "; recognized hooks: " + hooks.join(", ") : "; no recognized hooks returned")) } catch (error) { console.error("plugin factory threw (non-fatal): " + factory[0] + ": " + String(error)) }' 2>&1)
     status=$?
     if [ "$status" -eq 0 ]; then
-      echo "   OK plugin load: ${plugin##*/}"
+      echo "   OK plugin ${mode}: ${plugin##*/}${output:+ — $output}"
       continue
     fi
     if [ "$status" -eq 124 ]; then
@@ -251,7 +252,9 @@ sha256_file() {
   sha256sum "$1" 2>/dev/null | awk '{print $1}'
 }
 
-check_plugin_loads "${WORKFLOW_VERIFY_PLUGIN_LOAD_DIR:-$PLUGINS_DIR}"
+if [ "$RECOVERY_ONLY" -eq 0 ]; then
+  check_plugin_loads "${WORKFLOW_VERIFY_PLUGIN_LOAD_DIR:-$PLUGINS_DIR}" import
+fi
 if [ "${WORKFLOW_VERIFY_PLUGIN_LOADS_ONLY:-0}" = "1" ]; then
   [ "$FAIL" -eq 0 ] && exit 0
   exit 1

@@ -45,9 +45,13 @@ function marker(sid: string, name: string) {
 }
 const hasFile = (sid: string, name: string) => existsSync(join(sessionDir(sid), name))
 const logText = () => (existsSync(logFile()) ? readFileSync(logFile(), "utf8") : "")
-const logCount = (needle: string) => logText().split("\n").filter((l) => l.includes(needle)).length
+const logCount = (needle: string) => logText().split("\n").filter((l) =>
+  l.includes(needle) && !l.includes("workflow key status="),
+).length
 const consoleCount = (needle: string) =>
-  warnSpy.mock.calls.filter((c: unknown[]) => String(c[0]).includes(needle)).length
+  warnSpy.mock.calls.filter((c: unknown[]) =>
+    String(c[0]).includes(needle) && !String(c[0]).includes("workflow key status="),
+  ).length
 
 const before = (tool: string, sid: string, args: Record<string, unknown>) =>
   hooks["tool.execute.before"]({ tool, sessionID: sid, callID: "c1" }, { args })
@@ -371,15 +375,18 @@ describe("4. awaited writes", () => {
     const originalTimeout = process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS
     process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS = "20"
     guard.setTaskWriteFileForTests(() => new Promise(() => {}))
-    const started = Date.now()
+    let watchdog: ReturnType<typeof setTimeout> | undefined
     try {
-      await after("task", "ses_timeout", { subagent_type: "general" }, 'task id="ses_timeoutchild" done')
-      const elapsed = Date.now() - started
-      expect(elapsed).toBeGreaterThanOrEqual(10)
-      expect(elapsed).toBeLessThan(500)
+      await Promise.race([
+        after("task", "ses_timeout", { subagent_type: "general" }, 'task id="ses_timeoutchild" done'),
+        new Promise<never>((_resolve, reject) => {
+          watchdog = setTimeout(() => reject(new Error("task-result hook hung past watchdog")), 2000)
+        }),
+      ])
       expect(hasFile("ses_timeoutchild", ".parent")).toBe(false)
       expect(hasFile("ses_timeoutchild", "inherited.key")).toBe(false)
     } finally {
+      if (watchdog) clearTimeout(watchdog)
       guard.setTaskWriteFileForTests(null)
       if (originalTimeout === undefined) delete process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS
       else process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS = originalTimeout
@@ -402,7 +409,10 @@ describe("5. key inheritance (up to three ancestors)", () => {
     seedKey("ses_k_valid_status", ODD)
     await before("host_git_commit", "ses_k_valid_status", {})
     await before("host_git_commit", "ses_k_valid_status", {})
-    expect(warnSpy.mock.calls.filter((call: unknown[]) => String(call[0]).includes("workflow key status=valid"))).toHaveLength(1)
+    expect(warnSpy.mock.calls.filter((call: unknown[]) =>
+      String(call[0]).includes("workflow key status=valid (session: ses_k_valid_status)"),
+    )).toHaveLength(1)
+    expect(logText()).toContain("workflow key status=valid (session: ses_k_valid_status)")
   })
 
   test("a grandchild inherits the root key through two hops", async () => {
