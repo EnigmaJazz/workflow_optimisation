@@ -3922,6 +3922,18 @@ fi
 # Astra is exposed through derived aliases rather than a Systematic profile or
 # copied agent definitions. The reviewed local plugin must remain byte-identical
 # to its deployed mirror so Systematic/Gentle AI prompts can continue to update.
+# Plugin loading intentionally stays non-recursive (see check_plugin_loads); mirror
+# the plugin library tree recursively so imported helpers are deployed but never
+# treated as standalone plugins. A missing source lib directory is valid.
+PLUGIN_LIBRARY_SOURCE="$WORKSPACE/global-config/plugins/lib"
+if [ -d "$PLUGIN_LIBRARY_SOURCE" ]; then
+  if mkdir -p "$PLUGINS_DIR/lib" && cp -R "$PLUGIN_LIBRARY_SOURCE/." "$PLUGINS_DIR/lib/"; then
+    echo "   ok: plugin library tree mirrored recursively"
+  else
+    fail "could not mirror plugin library tree from $PLUGIN_LIBRARY_SOURCE"
+  fi
+fi
+
 if [ ! -f "$ASTRA_PLUGIN_SOURCE" ]; then
   fail "Astra Sol-upgrade plugin source missing: $ASTRA_PLUGIN_SOURCE"
 else
