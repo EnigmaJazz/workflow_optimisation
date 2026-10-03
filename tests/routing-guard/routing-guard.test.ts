@@ -9,6 +9,12 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, spyOn, te
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
+import {
+  READ_ONLY_SPECIALIST_PATTERNS,
+  ROUTE_STAGES,
+  setTaskWriteFileForTests,
+  stageMarkerNames,
+} from "../../global-config/plugins/lib/routing-guard-helpers"
 
 if (!homedir().startsWith(tmpdir()) && !homedir().startsWith("/tmp")) {
   throw new Error(`refusing to run against a real HOME (${homedir()}): use HOME="$(mktemp -d)" bun test tests/routing-guard`)
@@ -129,8 +135,16 @@ describe("0. state-root seam", () => {
 })
 
 describe("7. exported stage table", () => {
+  test("plugin exports only its factory functions", () => {
+    const functionExports = Object.entries(guard)
+      .filter(([, value]) => typeof value === "function")
+      .map(([name]) => name)
+      .sort()
+    expect(functionExports).toEqual(["SystematicRoutingGuardPlugin", "default"])
+  })
+
   test("ROUTE_STAGES is exported and well formed", () => {
-    const stages = guard.ROUTE_STAGES as Record<string, Array<Record<string, unknown>>>
+    const stages = ROUTE_STAGES as Record<string, Array<Record<string, unknown>>>
     expect(Object.keys(stages).sort()).toEqual([ODD, SYS])
     for (const [route, list] of Object.entries(stages)) {
       const ids = list.map((s) => s.id)
@@ -145,7 +159,7 @@ describe("7. exported stage table", () => {
   })
 
   test("READ_ONLY_SPECIALIST_PATTERNS is exported", () => {
-    expect(Array.isArray(guard.READ_ONLY_SPECIALIST_PATTERNS)).toBe(true)
+    expect(Array.isArray(READ_ONLY_SPECIALIST_PATTERNS)).toBe(true)
   })
 })
 
@@ -267,13 +281,13 @@ describe("2. route-namespaced stage markers", () => {
       "workflow-odd-secure": [{ id: "tracker" }, { id: "plan" }],
       "workflow-systematic": [{ id: "plan" }, { id: "review" }],
     }
-    const sys = guard.stageMarkerNames("workflow-systematic", "plan", table)
+    const sys = stageMarkerNames("workflow-systematic", "plan", table)
     expect(sys).toContain("artifact-workflow-systematic-plan")
     expect(sys).not.toContain("artifact-plan")
     expect(sys).not.toContain("artifact-odd-plan")
-    const odd = guard.stageMarkerNames("workflow-odd-secure", "tracker", table)
+    const odd = stageMarkerNames("workflow-odd-secure", "tracker", table)
     expect(odd).toEqual(expect.arrayContaining(["artifact-workflow-odd-secure-tracker", "artifact-tracker", "artifact-odd-tracker"]))
-    const review = guard.stageMarkerNames("workflow-systematic", "review", table)
+    const review = stageMarkerNames("workflow-systematic", "review", table)
     expect(review).toContain("artifact-review")
   })
 
@@ -394,7 +408,7 @@ describe("4. awaited writes", () => {
   test("task-result hook times out a hung write chain", async () => {
     const originalTimeout = process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS
     process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS = "20"
-    guard.setTaskWriteFileForTests(() => new Promise(() => {}))
+    setTaskWriteFileForTests(() => new Promise(() => {}))
     let watchdog: ReturnType<typeof setTimeout> | undefined
     try {
       await Promise.race([
@@ -407,7 +421,7 @@ describe("4. awaited writes", () => {
       expect(hasFile("ses_timeoutchild", "inherited.key")).toBe(false)
     } finally {
       if (watchdog) clearTimeout(watchdog)
-      guard.setTaskWriteFileForTests(null)
+      setTaskWriteFileForTests(null)
       if (originalTimeout === undefined) delete process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS
       else process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS = originalTimeout
     }

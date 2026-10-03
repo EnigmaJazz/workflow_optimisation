@@ -43,6 +43,13 @@ import { constants, existsSync } from "node:fs"
 import { homedir } from "node:os"
 import { join, resolve } from "node:path"
 import type { Plugin } from "@opencode-ai/plugin"
+import {
+  ROUTE_STAGES,
+  READ_ONLY_SPECIALIST_PATTERNS,
+  stageMarkerNames,
+  taskWriteFile,
+  type RouteStage,
+} from "./lib/routing-guard-helpers"
 
 let reportedRegistration = false
 
@@ -215,12 +222,6 @@ const ROUTING_GATE_TOOLS = new Set([
 // State root is read at each use (never fixed at import) so tests can redirect it.
 const stateRoot = (): string => process.env.SYSTEMATIC_ROUTING_GUARD_STATE_ROOT ?? homedir()
 const reportedFileLogFailures = new Set<string>()
-let taskWriteFile = writeFile
-
-/** Test seam for exercising hung task-result persistence without changing gate behavior. */
-export function setTaskWriteFileForTests(write: typeof writeFile | null): void {
-  taskWriteFile = write ?? writeFile
-}
 const routingGateOffFile = (): string => join(stateRoot(), ".config/opencode/routing-guard-off")
 const routingGateLogDir = (): string => join(stateRoot(), ".local/share/opencode/logs")
 const routingGateLogFile = (): string => join(routingGateLogDir(), "routing-guard.log")
@@ -271,42 +272,8 @@ const ADAPTER_WORKFLOW_SKILLS = new Set([
   "workflow-sdd-secure",
   "workflow-systematic",
 ])
-type RouteStage = {
-  id: string
-  artifactPattern?: RegExp
-  skillMarkers?: readonly string[]
-  gatesSkillLoads?: readonly string[]
-  allowsSpecialists?: readonly string[]
-}
-
-// Every legitimate writer in this setup; anything else is flagged once the stage artifact exists.
-const SPECIALIST_WRITERS: readonly string[] = ["general", "systematic-implementer", "frontend-dev", "frontend-dev-premium", "frontend-apply", "frontend-apply-local", "jd-fix-agent", "pr-comment-resolver", "bug-reproduction-validator", "design-iterator", "sdd-apply", "sdd-apply-local", "gentle-ai-worker", "gentle-ai-worker-local"]
-
-// Anchored on purpose: under deny-by-default a loose match would let a writer through.
-export const READ_ONLY_SPECIALIST_PATTERNS: readonly RegExp[] = [
-  /^(?:explore|gentle-ai-explore|gentle-ai-verify|sdd-explore|sdd-verify|sdd-research|vision|architecture-strategist|spec-flow-analyzer|git-history-analyzer|issue-intelligence-analyst|pattern-recognition-specialist|deployment-verification-agent|repo-research-analyst|best-practices-researcher|framework-docs-researcher|learnings-researcher)$/,
-  /^review-/,
-  /^asi-review-/,
-  /^advisor-/,
-  /^jd-judge-/,
-  /reviewer$/,
-]
-
 const isReadOnlySpecialist = (name: string): boolean =>
   READ_ONLY_SPECIALIST_PATTERNS.some((pattern) => pattern.test(name))
-
-/** Ordered artifact marker names for a stage: namespaced, legacy (only while unique), odd legacy. */
-export function stageMarkerNames(
-  route: string,
-  stageId: string,
-  routeStages: Record<string, readonly { id: string }[]>,
-): string[] {
-  const names = [`artifact-${route}-${stageId}`]
-  const routesWithId = Object.values(routeStages).filter((stages) => stages.some((stage) => stage.id === stageId))
-  if (routesWithId.length <= 1) names.push(`artifact-${stageId}`)
-  if (route === "workflow-odd-secure") names.push(`artifact-odd-${stageId}`)
-  return names
-}
 
 /** Strip a leading `systematic:` qualifier, then sanitise, so qualified and bare names agree. */
 function skillMarkerName(raw: string): string {
@@ -324,34 +291,6 @@ async function boxed(work: Promise<unknown>): Promise<void> {
   if (timer) clearTimeout(timer)
 }
 
-export const ROUTE_STAGES: Record<string, readonly RouteStage[]> = {
-  "workflow-odd-secure": [{
-    id: "tracker",
-    artifactPattern: /^odd\/tasks\/[^/]+\.md$/,
-    allowsSpecialists: SPECIALIST_WRITERS,
-  }],
-  "workflow-systematic": [
-    {
-      id: "requirements",
-      artifactPattern: /^docs\/brainstorms\/[^/]+\.md$/,
-      skillMarkers: ["ce-brainstorm"],
-      gatesSkillLoads: ["ce-plan"],
-    },
-    {
-      id: "plan",
-      artifactPattern: /^docs\/plans\/[^/]+\.md$/,
-      skillMarkers: ["ce-plan"],
-      gatesSkillLoads: ["ce-work"],
-      allowsSpecialists: SPECIALIST_WRITERS,
-    },
-    {
-      id: "review",
-      artifactPattern: /^\.context\/systematic\/ce-review\/[^/]+\/review-summary\.json$/,
-      skillMarkers: ["ce-review"],
-      gatesSkillLoads: [],
-    },
-  ],
-}
 // sandbox_bash remains unable to be path-gated because its argv can execute arbitrary commands.
 const FILE_MUTATING_TOOLS = new Set([
   "sandbox_write",

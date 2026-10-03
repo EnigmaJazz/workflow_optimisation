@@ -121,5 +121,20 @@ tests/routing-guard`. The suite refuses to run against a real HOME.
 - `/home/james/` denial candidates: `verify-workflow.sh:1475` and `:1832` call `fs.readdirSync(current, ...)` inside the Systematic-agent inventory walkers; their roots are the selected Systematic package's `agents` directory (`ACTIVE_ROOT/agents`), chosen from configured/cache package roots, not the home root itself. They could reach `/home/james/` only if that selected package-agent path were redirected to the home root (for example by abnormal configuration/symlinking); no such redirection is evidenced here. `tests/routing-guard/routing-guard.test.ts:13-14` calls `homedir()` only for the throw-on-real-HOME safety check and contains no directory listing or readdir; with an unset/real HOME it aborts before tests, while with the prescribed temporary HOME it does not target `/home/james/`. The service-specific emitter of the denial therefore remains unresolved; no cause is asserted.
 - Digest verification/re-pin: `sha256sum verify-workflow.sh` returned `d2e2187106bf464bf735e045aa0ab354a83dccbc7975349e1b0c5630a9413775`; the existing `VERIFY_SCRIPT_SHA256` is identical, so no constant change was needed.
 
+## Confirmed loader defect and corrective change (2026-10-03)
+
+- The four function-valued exports in `global-config/plugins/systematic-routing-guard.ts` were `setTaskWriteFileForTests`, `stageMarkerNames`, `SystematicRoutingGuardPlugin`, and `default`. OpenCode treats exported functions as plugin factories; calling the helper `stageMarkerNames({})` fails because its required `routeStages` argument is undefined, so the plugin factory was never entered. `stageMarkerNames` was added as an export by commit `da10378` at 2026-10-02 11:55; the guard last worked at 15:26 that day.
+- Control: `workflow-health-check.ts` exports only its factory and default, and its factory enters successfully.
+- Fix: moved `stageMarkerNames`, `setTaskWriteFileForTests`, `READ_ONLY_SPECIALIST_PATTERNS`, `ROUTE_STAGES`, `RouteStage`, and the mutable test write seam into `global-config/plugins/lib/routing-guard-helpers.ts`. The top-level plugin now imports those helpers and exports only `SystematicRoutingGuardPlugin` and `default`. The verifier's `global-config/plugins/*.ts` / `*.js` scan is non-recursive, so the helper under `lib/` is not a plugin entrypoint.
+- Verifier false-green: `check_plugin_loads` previously selected `default` or one named `*Plugin` factory but did not reject additional function-valued exports. It now fails for the three mirrored plugins when function exports exceed `default` plus at most one named `*Plugin`; other plugins remain report-only for this contract.
+- Separate fault: the observed nono diagnostic (`validating nono profile… $ cargo install nono-cli … v0.79.0 … nono v0.73.0`, installed 0.74.0, `[nono] Session stopped.` at 2026-10-02 15:48 and 16:34) explains the `/home/james/` AccessDenied separately; it is not the routing-guard loader defect.
+- Verification: `bash -n verify-workflow.sh` exited 0; isolated `bun test tests/routing-guard` reported 48 pass / 0 fail. Import and factory modes each reported `OK` for all three mirrored plugins. The routing guard's function-valued export names printed verbatim as:
+  ```text
+  SystematicRoutingGuardPlugin
+  default
+  ```
+  `sha256sum verify-workflow.sh` and `VERIFY_SCRIPT_SHA256` both read `8ce44ef51d0b53c3d23cd6adbf0fe92a9f19048ff420628b81fd3f4b661181c5`.
+- Reviewability receipt: 192 authored changed lines including the new helper (115 additions, 77 deletions); generated/binary path inventory: no changed generated or binary files. The sandbox already contained an unrelated untracked `ses_efd5e0419ffeSmSayI9Pay69az.bundle`; it is not part of this change. Authored patch byte count remains to be read from the complete exported candidate.
+
 ## Next step
 Q27: owner decision on the advisor sandbox lifecycle gap, tracked in `docs/ADVISOR-HANDOFF.md`. Second-lineage deploy remains held pending a decision on the blocked review.
