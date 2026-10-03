@@ -772,6 +772,7 @@ function writtenPaths(tool: string, args: Record<string, unknown> | undefined): 
 }
 
 export const SystematicRoutingGuardPlugin: Plugin = async () => {
+  console.warn("[systematic-routing-guard] factory entered")
   const mode = guardMode()
   if (!reportedRegistration) {
     reportedRegistration = true
