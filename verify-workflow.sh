@@ -221,7 +221,7 @@ check_plugin_loads() {
       *.bak*|*.disabled) continue ;;
     esac
     checked=$((checked + 1))
-    output=$(cd "$scratch_dir" && WORKFLOW_HEALTH_CHECK_PROBE=1 PLUGIN_LOAD_CHECK_PATH="$plugin" PLUGIN_LOAD_CHECK_MODE="$mode" timeout 8s bun --no-install -e 'const path = process.env.PLUGIN_LOAD_CHECK_PATH; const knownHooks = new Set(["event", "chat.message", "chat.params", "chat.headers", "permission.ask", "shell.env", "tool.definition", "tool", "tool.execute.before", "tool.execute.after", "auth", "provider", "command.execute.before", "config", "dispose", "experimental.chat.messages.transform", "experimental.session.compacting", "experimental.compaction.autocontinue", "experimental.chat.system.transform", "experimental.text.complete"]); let m; try { m = await import(path) } catch (error) { console.error("plugin import failed: " + String(error)); process.exit(3) } let factory = typeof m.default === "function" ? ["default", m.default] : Object.entries(m).find(([name, value]) => /Plugin/.test(name) && typeof value === "function"); if (!factory) { if (Object.values(m).some(value => typeof value === "function")) { console.error("no default or named Plugin factory export; skipped: " + path); process.exit(0) } console.error("plugin has no exported function: " + path); process.exit(4) } if (process.env.PLUGIN_LOAD_CHECK_MODE === "import") { console.log("plugin import and factory export found"); process.exit(0) } try { const result = await factory[1]({}); const hooks = result && typeof result === "object" ? [...knownHooks].filter(key => Object.prototype.hasOwnProperty.call(result, key)) : []; console.log("plugin factory invoked: " + factory[0] + (hooks.length ? "; recognized hooks: " + hooks.join(", ") : "; no recognized hooks returned")) } catch (error) { console.error("plugin factory threw (non-fatal): " + factory[0] + ": " + String(error)) }' 2>&1)
+    output=$(cd "$scratch_dir" && WORKFLOW_HEALTH_CHECK_PROBE=1 PLUGIN_LOAD_CHECK_PATH="$plugin" PLUGIN_LOAD_CHECK_MODE="$mode" timeout 8s bun --no-install -e 'const path = process.env.PLUGIN_LOAD_CHECK_PATH; const knownHooks = new Set(["event", "chat.message", "chat.params", "chat.headers", "permission.ask", "shell.env", "tool.definition", "tool", "tool.execute.before", "tool.execute.after", "auth", "provider", "command.execute.before", "config", "dispose", "experimental.chat.messages.transform", "experimental.session.compacting", "experimental.compaction.autocontinue", "experimental.chat.system.transform", "experimental.text.complete"]); let m; try { m = await import(path) } catch (error) { console.error("plugin import failed: " + String(error)); process.exit(3) } let factory = typeof m.default === "function" ? ["default", m.default] : Object.entries(m).find(([name, value]) => /Plugin/.test(name) && typeof value === "function"); if (!factory) { console.error("plugin has no default or named Plugin factory export: " + path); process.exit(4) } if (process.env.PLUGIN_LOAD_CHECK_MODE === "import") { console.log("plugin import and factory export found"); process.exit(0) } try { const result = await factory[1]({}); const hooks = result && typeof result === "object" ? [...knownHooks].filter(key => Object.prototype.hasOwnProperty.call(result, key)) : []; if (!hooks.length) { console.error("plugin factory returned no recognized hooks: " + factory[0]); process.exit(5) } console.log("plugin factory invoked: " + factory[0] + "; recognized hooks: " + hooks.join(", ")) } catch (error) { console.error("plugin factory threw (non-fatal): " + factory[0] + ": " + String(error)) }' 2>&1)
     status=$?
     if [ "$status" -eq 0 ]; then
       echo "   OK plugin ${mode}: ${plugin##*/}${output:+ — $output}"
@@ -253,7 +253,11 @@ sha256_file() {
 }
 
 if [ "$RECOVERY_ONLY" -eq 0 ]; then
-  check_plugin_loads "${WORKFLOW_VERIFY_PLUGIN_LOAD_DIR:-$PLUGINS_DIR}" import
+  plugin_mode=import
+  if [ "${WORKFLOW_VERIFY_PLUGIN_LOADS_ONLY:-0}" = "1" ]; then
+    plugin_mode="${WORKFLOW_VERIFY_PLUGIN_LOAD_MODE:-import}"
+  fi
+  check_plugin_loads "${WORKFLOW_VERIFY_PLUGIN_LOAD_DIR:-$PLUGINS_DIR}" "$plugin_mode"
 fi
 if [ "${WORKFLOW_VERIFY_PLUGIN_LOADS_ONLY:-0}" = "1" ]; then
   [ "$FAIL" -eq 0 ] && exit 0

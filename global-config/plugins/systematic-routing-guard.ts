@@ -258,7 +258,7 @@ async function logObservedLine(line: string): Promise<void> {
   await appendRoutingLog(line)
 }
 
-void logObservedLine("[systematic-routing-guard] module imported")
+void logObservedLine("[systematic-routing-guard] module imported").catch(() => undefined)
 // Override only for bounded timeout tests; clamp invalid or unsafe-small values to 10 ms.
 const writeTimeoutMs = (): number => {
   const configured = Number(process.env.SYSTEMATIC_ROUTING_GUARD_WRITE_TIMEOUT_MS ?? 2000)

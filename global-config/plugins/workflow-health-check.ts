@@ -90,7 +90,7 @@ const VERIFY_TIMEOUT_MS = 300_000
 // Pinned sha256 digest of the reviewed verify-workflow.sh. Keep this assignment
 // on one line: verify-workflow.sh deliberately parses this source line to confirm
 // that the reviewed plugin and verifier are bound to one another.
-const VERIFY_SCRIPT_SHA256 = "8029dbc3ffbe3cd507fd8a454dc673576a88ad523d17f8a7f59d580f557ba19e";
+const VERIFY_SCRIPT_SHA256 = "f207d1d9930a117b700a5e5feacdf531bd09ace1efb3cd7179babd19dffc6417";
 
 type HealthState = "clean" | "repaired" | "failed"
 
@@ -196,11 +196,9 @@ export const WorkflowHealthCheckPlugin: Plugin = async () => {
   // still load the rest of the normal OpenCode/plugin stack so Systematic's
   // effective agent overlays can be inspected; only this health-check launch is
   // suppressed.
-  if (process.env.WORKFLOW_HEALTH_CHECK_PROBE === "1") {
-    return {}
-  }
+  const isProbe = process.env.WORKFLOW_HEALTH_CHECK_PROBE === "1"
 
-  if (!checkStarted) {
+  if (!isProbe && !checkStarted) {
     checkStarted = true
 
     // Keep OpenCode startup responsive. The verifier is local-only; failures

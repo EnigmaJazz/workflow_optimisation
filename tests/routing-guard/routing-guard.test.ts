@@ -97,14 +97,29 @@ describe("0. state-root seam", () => {
     expect(logCount("ses_seam")).toBe(1)
   })
 
-  test("reports a failed file-log append without failing the gate hook", async () => {
+  test("de-duplicates failed file-log warnings by path and error code", async () => {
+    const roots = [root, mkdtempSync(join(tmpdir(), "guard-log-failure-"))]
+    for (const failureRoot of roots) {
+      mkdirSync(join(failureRoot, ".local/share/opencode"), { recursive: true })
+      rmSync(join(failureRoot, ".local/share/opencode/logs"), { recursive: true, force: true })
+      writeFileSync(join(failureRoot, ".local/share/opencode/logs"), "not a directory")
+      root = failureRoot
+      process.env.SYSTEMATIC_ROUTING_GUARD_STATE_ROOT = failureRoot
+      await before("host_git_commit", `ses_log_failure_${roots.indexOf(failureRoot)}`, {})
+      await before("host_git_commit", `ses_log_failure_${roots.indexOf(failureRoot)}`, {})
+    }
+
+    expect(consoleCount("file log append failed")).toBe(2)
+    for (const failureRoot of roots) rmSync(failureRoot, { recursive: true, force: true })
+  })
+
+  test("a failed append cannot reject the logging hook", async () => {
+    const logs = join(root, ".local/share/opencode/logs")
+    rmSync(logs, { recursive: true, force: true })
     mkdirSync(join(root, ".local/share/opencode"), { recursive: true })
-    writeFileSync(join(root, ".local/share/opencode/logs"), "not a directory")
+    writeFileSync(logs, "not a directory")
 
-    await before("host_git_commit", "ses_log_failure", {})
-    await before("host_git_commit", "ses_log_failure", {})
-
-    expect(consoleCount("file log append failed")).toBe(1)
+    await expect(before("host_git_commit", "ses_log_rejection", {})).resolves.toBeUndefined()
   })
 })
 
