@@ -71,5 +71,13 @@ tests/routing-guard`. The suite refuses to run against a real HOME.
 - 2026-10-03: Silent-gate investigation outcome: hook registration was PROVEN by hand-run import (`default` is callable and `tool.execute.before` is present); `opencode --version 1.18.34` rules out a V1/V2 mismatch; `ACTIVE_TTL_MS` is 30 minutes, matching the docs. The contradiction remains unresolved: a warning was owed, but the file-log mtime proves `warn()` never ran. This unit adds load/registration/key-status observability and real loader assertions, including the deployed mirror and routing-guard suite.
 - Route/trigger evidence: `route: delegated`; specialist `general`; trigger: secure ODD policy.
 
+- 2026-10-03: Native review lineage `review-3c273e09d7f4107a` (high, 11 files / 191 lines; risk, resilience, readability, reliability) was **APPROVED**, then **acknowledged** with authority **burned**. The review produced evidence, not delivery authority. Advisory-only; no correction opened. All six findings are non-blocking:
+  - `R3-pyc-tracked` — WARNING, `.gitignore:6`: generated `.pyc` files were staged while `*.pyc` is ignored; contradictory. Follow-up: unstage them (done in this unit).
+  - `R3-timeout-flaky` — WARNING, `tests/routing-guard/routing-guard.test.ts:369-389`: wall-clock bounds in the hung-write timeout test can flake under load. Follow-up owed.
+  - `R3-boxed-defensive` — SUGGESTION, guard plugin `290-300`: `boxed()` no longer wraps `Promise.race` in `try/finally`.
+  - `R3-clamp-coverage` — SUGGESTION, guard plugin `227-231`: clamp inputs (negative/zero/NaN/non-numeric) are untested.
+  - `R3-seam-exported` — SUGGESTION, guard plugin `224-226`: `setTaskWriteFileForTests` is exported from the production surface.
+  - `R3-filelog-no-timeout` — SUGGESTION, guard plugin `552-572`: file-log append is not wrapped by `boxed()`; pre-existing.
+
 ## Next step
 Q27: owner decision on the advisor sandbox lifecycle gap, tracked in `docs/ADVISOR-HANDOFF.md`.
