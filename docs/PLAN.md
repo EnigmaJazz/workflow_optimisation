@@ -34,6 +34,11 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
 
 12. OpenCode V2 upgrade (planned; owner-triggered; after the gentle-ai v4 upgrade): probe side by
     side, port plugins dual-mode, verifier V2 mode, change set and runbook (queue Q40-Q47).
+13. Project-manager layer (owner, 2026-10-04; queue Q53-Q61): the orchestrator becomes the
+    strategic front end and dispatches one route-specific project-manager subagent per work
+    unit, which runs the route to completion. Probe first, then the sandbox allowlist
+    (cross-project), a pilot on one route, then the orchestrator slimming, guard ordering,
+    verifier and model changes. Design: `docs/handoffs/2026-10-04-pm-layer-workflow-optimisation.md`.
 
 ## Layers
 - **Execution spine** — tiny fix: direct. Everything beyond trivial and not SDD: **ODD** (tracker

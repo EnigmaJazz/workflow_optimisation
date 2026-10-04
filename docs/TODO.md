@@ -36,6 +36,8 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 - **Phase 4, gentle-ai v4 upgrade (owner-triggered):** Q29, then Q30-Q33 and Q35-Q39 delivered as
   the Q36 change set, then Q34. Q49 runs throughout.
 - **Phase 5, OpenCode V2 upgrade (owner-triggered, after Phase 4):** Q40-Q47.
+- **Project-manager layer (owner, 2026-10-04; runs alongside Phases 2 and 3):** Q53, then Q54
+  (cross-project), Q55, Q56, then Q57-Q60, then Q61.
 
 Every source change needs the deploy step: verifier mirror, then restart. Q27 waits on an owner
 decision.
@@ -474,6 +476,74 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
     `QUIET_PERIOD_SECONDS`.
   - Plugin fork: the lock is not atomic (`lock.ts` read-then-write), and the history log's
     "Updated X" regex never matches. Both are owned by the local fork.
+
+## Project-manager layer (owner decision 2026-10-04)
+
+Source for the whole group: `docs/handoffs/2026-10-04-pm-layer-workflow-optimisation.md`
+(Handover B: design, verified facts, acceptance per item). Tracker: `odd/tasks/pm-layer.md`.
+One PM subagent session per work unit; the orchestrator dispatches only `explore` and `pm-*`.
+
+### Q53. PM layer: probe (go/no-go)
+- **Status:** READY.
+- **Prerequisites:** none.
+- **Description:** temporary `pm-probe` subagent and `subagent_depth` 4; record the eight
+  observations listed in Handover B (nesting, key mint and inheritance, subagent `question`,
+  permission prompts, `task_id` resume, key state after expiry, `ce:plan` load, `ctx_memory`).
+
+### Q54. PM layer: sandbox allowlist (cross-project)
+- **Status:** BLOCKED on agent-sandbox-integration.
+- **Prerequisites:** the owner passes `docs/handoffs/2026-10-04-pm-layer-agent-sandbox-integration.md`
+  (Handover A) across; that project installs the change.
+- **Description:** host mutations are bound to the name `gentle-orchestrator` in the broker and
+  plugin. After install, probe `host_git_commit`, `host_review_start`, an `asi-review-*` relay
+  Task and `host_review_status` from `pm-probe`. Related: Q50 (interface contract).
+
+### Q55. PM layer: handoff contract, agents and writer
+- **Status:** PLANNED.
+- **Prerequisites:** Q53.
+- **Description:** `docs/specs/pm-handoff.md`; `pm-odd`, `pm-systematic`, `pm-sdd` and
+  `odd-apply` in `global-config/opencode.json`; PM prompts within budget; guard data
+  (`SPECIALIST_WRITERS`, `pm-` as coordinator) with tests first; remove `pm-probe`.
+
+### Q56. PM layer: pilot `pm-odd`
+- **Status:** PLANNED.
+- **Prerequisites:** Q54, Q55.
+- **Description:** run global-tooling units here through `pm-odd`, with
+  `gentle-orchestrator-legacy` kept selectable. Ten consecutive units without route escape.
+
+### Q57. PM layer: slim the orchestrator
+- **Status:** PLANNED.
+- **Prerequisites:** Q56. Coordinate with Q29c (user-owned orchestrator prompt).
+- **Description:** new prompt (about 8,000 characters); `permission.task` deny by default with
+  `explore` and `pm-*` allowed; host mutations removed except `host_register_project`; split
+  `global-config/AGENTS.md`; update `WORKFLOW.md`, `workflow-route` and the adapters.
+
+### Q58. PM layer: guard ordering
+- **Status:** PLANNED.
+- **Prerequisites:** Q55. Feeds Q28 (gating matrix).
+- **Description:** PM agent ↔ route key binding; warn when the orchestrator dispatches a writer
+  directly; advice-before-writer and commit-before-review stages. Warning-only; tests first.
+
+### Q59. PM layer: verifier
+- **Status:** PLANNED.
+- **Prerequisites:** Q55; easier after Q26 and Q04.
+- **Description:** replace the 23 single-name `gentle-orchestrator` checks with a coordinator
+  set; permission, depth and family-independence checks; prompt-size budgets; behavioural probes
+  through the orchestrator (Q51); digest re-pin.
+
+### Q60. PM layer: model assignment
+- **Status:** PLANNED. Waits on the external model-assignment advice.
+- **Prerequisites:** Q56.
+- **Description:** PMs on `openai/gpt-6.1-sol`; writers on DeepSeek; move `advisor-design-pre`
+  and `advisor-security-pre` off Sol; fallback chains keep a PM off its writer's family; exclude
+  PMs from the Astra aliases. Owner decision: a cheaper PM for tiny-fix and documentation units.
+
+### Q61. PM layer: remaining routes and close
+- **Status:** PLANNED.
+- **Prerequisites:** Q57, Q58, Q59, Q60.
+- **Description:** move the Systematic and SDD routes to `pm-systematic` and `pm-sdd`; remove
+  `gentle-orchestrator-legacy`; `ce:compound`. For V2, the four-level nesting must be probed in
+  Q41, because V2 has no `subagent_depth` (Q43).
 
 ## gentle-ai v4 upgrade (PLANNED — implement when the owner decides to upgrade)
 
