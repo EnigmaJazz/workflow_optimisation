@@ -38,7 +38,7 @@ task, each assessed against the last reviewed boundary.
 ## Tasks
 - [x] T0 — Plan and the two handovers. Route: inline (Claude Code, advisory; the content is the
   planner's own analysis). Trigger: owner request.
-- [ ] T1 (Q53) — Probe with `pm-probe` and depth 4; record the eight observations. Partial results are recorded below: items 1, 2, 3, 5, 7 and 8 observed; item 4 unobserved and item 6 pending.
+- [x] T1 (Q53) — Probe with `pm-probe` and depth 4; record the eight observations. Probe work is complete; item 4 remains unobserved and its placement is deferred to Q55.
 - [ ] T2 (Q54) — Sandbox allowlist installed (Handover A); probe host mutations from a subagent.
 - [ ] T3 (Q55) — `docs/specs/pm-handoff.md`; PM and `odd-apply` agents; prompts; guard data and
   tests.
@@ -86,13 +86,21 @@ task, each assessed against the last reviewed boundary.
 - **Item 3 PASS** — A subagent `question` call reached the user and returned their answer. A failed relay was not needed.
 - **Item 4 UNOBSERVED** — No ask-gated prompt could be produced from `pm-probe` because its tool grants deny every ask-gated tool by design. This must be tested with the real Q55 PM agents, which hold those grants.
 - **Item 5 PASS** — Resuming the same PM session with `task_id` retained its earlier context: it recalled a recorded token, a memory-write count, the loaded skill, and the user's answer without re-deriving them.
-- **Item 6 PENDING** — Requires the orchestrator key to pass its TTL.
+- **Item 6 PASS (with caveat)** — The expired-key path was exercised. Guard log `~/.local/share/opencode/logs/routing-guard.log` line ~8940 (2026-10-04T21:16:29Z) records `routing gate: task is not authorized … (workflow key status: expired (workflow key expired) …)` for the orchestrating session, i.e. a dispatch made after the 30-minute inactivity TTL had lapsed. Recovery verified in prospect: probe session `ses_ef7397de9ffeudGDGF7zIMF8Wn` started with **no key** (`status=missing`, log line ~8943), loaded `workflow-odd-secure`, which minted its own key (`minted_at` 2026-10-04T21:20:44.548Z), after which its next dispatch logged `status=valid` (line ~8945) with no warning.
+  - **Caveat:** the probe did **not** itself inherit and then lose an inherited key — it had no `.parent` and no `inherited.key` at all, so the specific "inherited orchestrator key expires" scenario was not reproduced in that session. The expired condition is nonetheless directly evidenced by the `status: expired` log lines for the dispatching session.
+- **Finding (warnings are log-only)** — A gated call that trips the gate still succeeds; no warning text is returned in the tool result. The violation is written to the server console and `routing-guard.log` only. Q58 enforcement must read the log rather than the call outcome.
+- **Finding (inheritance is not guaranteed at session start)** — Probe `ses_ef7397de9ffeudGDGF7zIMF8Wn` was a root: no `.parent`, no `inherited.key`, no session directory until it acted. Item 1's probe, by contrast, had `.parent` and `inherited.key`. The parent marker is written when a child dispatches, so a PM must never assume inherited authority on entry and must load its route skill first. This reinforces the design; it does not contradict it.
+- **Finding (key refresh cadence)** — After a dispatch, `last_active` advanced ~15 s after the logged `status=valid` check, consistent with `ROUTING_KEY_REFRESH_INTERVAL_MS = 60_000`. Recorded as an observation; the writing call was not instrumented.
+- **Finding (adapter key is the live one)** — `workflow-route.key` can be stale while `workflow-odd-secure.key` is fresh: the guard refreshes the active adapter key from child activity. Compare adapter keys, not the route key, when assessing TTL. **Note:** file mtimes are local time; the guard log is UTC (a one-hour offset at this time of year).
 - **Item 7 PASS** — `workflow-systematic` and `ce:plan` both loaded in a PM session under the workflow guard with no failure code. The Systematic workflow guard reported `state=waiting, reasonCode=missing-evidence, enforcement=observe`. A repeat skill load neither re-minted a key nor bumped `last_active`; this is recorded as a finding.
 - **Item 8 PASS** — `ctx_memory` write (id 1087), read-back, and `ctx_search` hit all succeeded with no denial or gate.
 - **Finding (item 1/2)** — A Task-dispatched session carries no `.parent` and no `inherited.key` until it dispatches a child of its own; the parent marker is written on the child's dispatch. Q58 must not assume a PM has a parent link on entry.
 - **Finding (item 2)** — `inherited.key` `minted_at` values were not monotonic with chain creation order. This is recorded as an observation only, with no mechanism asserted; investigate before Q58 gates on key state.
 - **Routing-guard log path** for future probe evidence: `~/.local/share/opencode/logs/routing-guard.log`. A plain workflow-key mint writes no line there.
-- **Next step:** Item 6 (TTL/expiry), then decide item 4's placement in Q55.
+- **Item 4 remains UNOBSERVED** — deferred to Q55's PM agents, which hold ask-gated tools.
+- **Next step:** T1 probe work is complete; item 4's placement is deferred to Q55.
+
+- **Retraction (third claim)** — Retracted the assertion that "the parent's adapter key is not being refreshed from child activity." It was falsified by `workflow-odd-secure.key` showing `last_active` matching its own file mtime while `workflow-route.key` was simply stale; see `CLAIM-RETRACTIONS.md`.
 
 ## Next step
-T1 (Q53): item 6 (TTL/expiry), then decide item 4's placement in Q55. T2 waits on the owner passing Handover A across.
+T1 (Q53): probe work complete; item 4's placement is deferred to Q55. T2 waits on the owner passing Handover A across.
