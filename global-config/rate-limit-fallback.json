@@ -348,9 +348,8 @@
         ]
       },
       {
-        "providerID": "deepseek",
-        "modelID": "deepseek-flash",
-        "variant": "max",
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
         "capabilities": [
           "files",
           "tools",
@@ -358,8 +357,9 @@
         ]
       },
       {
-        "providerID": "openrouter",
-        "modelID": "~google/gemini-flash-latest",
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
         "capabilities": [
           "files",
           "tools",
