@@ -4584,11 +4584,11 @@ else
     PROBE_NAMES=(
       gentle-orchestrator general explore
       frontend-dev frontend-dev-premium frontend-dev-premium-astra
-      jd-judge-a jd-judge-a-astra jd-judge-b sdd-research
+      jd-judge-a jd-judge-b sdd-research
       sdd-design sdd-design-astra sdd-spec sdd-spec-astra sdd-verify sdd-verify-astra sdd-apply sdd-explore
       review-risk review-readability review-reliability review-resilience review-refuter review-validator
       asi-review-risk asi-review-resilience asi-review-readability asi-review-reliability asi-review-refuter asi-review-validator
-      review-risk-astra
+      advisor-design-pre-astra advisor-security-pre-astra
       correctness-reviewer testing-reviewer project-standards-reviewer repo-research-analyst adversarial-document-reviewer
       adversarial-document-reviewer-astra adversarial-reviewer adversarial-reviewer-astra
       security-reviewer security-reviewer-astra security-lens-reviewer security-lens-reviewer-astra
