@@ -732,38 +732,6 @@
           "vision"
         ]
       }
-    ],
-    "openrouter": [
-      {
-        "providerID": "deepseek",
-        "modelID": "deepseek-flash",
-        "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "opencode-go",
-        "modelID": "deepseek-v4.1-flash",
-        "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "openrouter",
-        "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      }
     ]
   },
   "fallbackModel": [
