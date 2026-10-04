@@ -192,6 +192,16 @@
   "fallbackModels": {
     "opencode-go/deepseek-v4.1-flash": [
       {
+        "providerID": "opencode-go",
+        "modelID": "mimo-v2.6-flash",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
         "variant": "max",
@@ -222,20 +232,10 @@
         ]
       }
     ],
-    "opencode-go/glm-5.3": [
+    "opencode-go/glm-5.3-flash": [
       {
-        "providerID": "deepseek",
-        "modelID": "deepseek-flash",
-        "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "openai",
-        "modelID": "gpt-6.1-sol",
+        "providerID": "opencode-go",
+        "modelID": "glm-5.2",
         "variant": "high",
         "capabilities": [
           "files",
@@ -243,18 +243,6 @@
           "vision"
         ]
       },
-      {
-        "providerID": "openrouter",
-        "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      }
-    ],
-    "opencode-go/glm-5.3-flash": [
       {
         "providerID": "opencode-go",
         "modelID": "deepseek-v4.1-flash",
@@ -303,9 +291,29 @@
           "tools",
           "vision"
         ]
+      },
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6.1-sol",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
       }
     ],
     "opencode-go/kimi-k2.7-code": [
+      {
+        "providerID": "opencode-go",
+        "modelID": "mimo-v2.6-flash",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
       {
         "providerID": "openrouter",
         "modelID": "~google/gemini-flash-latest",
@@ -339,7 +347,7 @@
     "opencode-go/qwen3.7-plus": [
       {
         "providerID": "opencode-go",
-        "modelID": "glm-5.3-flash",
+        "modelID": "mimo-v2.6-flash",
         "variant": "high",
         "capabilities": [
           "files",
@@ -598,38 +606,6 @@
       }
     ],
     "opencode-go/minimax-m3": [
-      {
-        "providerID": "deepseek",
-        "modelID": "deepseek-flash",
-        "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "openai",
-        "modelID": "gpt-6-luna",
-        "variant": "high",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "openrouter",
-        "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      }
-    ],
-    "opencode-go/mimo-v2.6-pro": [
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",

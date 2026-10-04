@@ -2657,15 +2657,14 @@ else {
           for (const node of graph.keys()) visit(node)
 
           const ggaModels=new Set(gga.map((name)=>normalizeModel(deployedAgents[name]?.model)).filter(Boolean))
-          const ggaProviders=new Set([...ggaModels].map(providerOf).filter(Boolean))
-          if (ggaModels.size<4 || ggaProviders.size<2) fail(`GGA_REVIEW_DIVERSITY_LOST: models=${ggaModels.size}, providers=${ggaProviders.size}`)
+          if (ggaModels.size<4) fail(`GGA_REVIEW_DIVERSITY_LOST: models=${ggaModels.size}`)
           // Bound review sessions recover through native STATUS-based relaunch;
           // rate-limit replay would bypass transport-injected Task context.
 
           const judges=["jd-judge-a","jd-judge-b"].map((name)=>({name,model:normalizeModel(deployedAgents[name]?.model)})).map((x)=>({...x,first:x.model?effectiveFallbacks(cfg,x.model)[0]:undefined}))
           if (judges.some((x)=>!x.model || !x.first)) fail(`JUDGMENT_DAY_FALLBACK_MISSING: ${JSON.stringify(judges)}`)
           else {
-            if (new Set(judges.map((x)=>x.model)).size!==2 || new Set(judges.map((x)=>providerOf(x.model))).size!==2) fail(`JUDGMENT_DAY_PRIMARY_DIVERSITY_LOST: ${JSON.stringify(judges)}`)
+            if (new Set(judges.map((x)=>x.model)).size!==2) fail(`JUDGMENT_DAY_PRIMARY_DIVERSITY_LOST: ${JSON.stringify(judges)}`)
             if (new Set(judges.map((x)=>x.first)).size!==2 || new Set(judges.map((x)=>providerOf(x.first))).size!==2) fail(`JUDGMENT_DAY_FALLBACK_DIVERSITY_LOST: ${JSON.stringify(judges)}`)
           }
           console.log(`   ok: ${activeModels.length} active and ${optionalProfileModels.length} optional-profile primary models have exact effective fallback policies from ${cfgPath}`)

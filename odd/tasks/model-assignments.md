@@ -15,11 +15,11 @@ Verified in the live `~/.config/opencode/opencode.json` (2026-10-03):
 2. The four lenses use four distinct families; validator and refuter use families distinct from all four lenses and from each other.
 3. The two judgment-day judges differ from each other, from the fix agent, and from the writer.
 4. Native review is the only blocking gate; advisors are evidence only.
-5. Gate fails closed: if any lens fails or times out, the gate blocks; never pass on fewer lenses.
-6. Fallbacks preserve diversity and never land on GPT for a review seat; two lenses failing to the same fallback family at once fails closed. GLM is the single lens fallback only.
+5. Gate fails closed: if any lens fails or times out, the gate blocks; never pass on fewer lenses. Malformed lens output counts as a lens failure — retry once, then fall back, then fail closed; never parse it leniently or skip the lens.
+6. Fallbacks preserve diversity and never land on GPT for a review seat; two lenses failing to the same fallback family at once fails closed. GLM is used only on the resilience lens, its relay, its fallback, and `jd-judge-a`.
 7. Keep the barred-model exclusion in every advisor fallback chain.
 8. The orchestrator routes and aggregates mechanically; it never ranks, dismisses, or merges findings because it authored the plan.
-9. Barred from per-commit fan-out seats: `qwen3.8-max`, `kimi-k3`, `grok-4.7`. Grok only on the refuter. No GLM except the lens fallback.
+9. Barred from per-commit fan-out seats: `qwen3.8-max`, `kimi-k3`, `grok-4.7`. Grok only on the refuter.
 
 ## Tasks
 - **T1 Review lens seats and relays — complete.** `review-risk` → `opencode-go/qwen3.7-plus` (high); `review-resilience` → `opencode-go/mimo-v2.6-pro` (high); `review-reliability` → `opencode-go/kimi-k2.7-code` (high, already correct); `review-readability` → `openrouter/~google/gemini-flash-latest` (no variant; moved for provider spread). The six `asi-review-*` relays map one-to-one to their corresponding plain review seats. `review-validator` → `opencode-go/minimax-m3` (high); `review-refuter` → `opencode-go/grok-4.7` (high). Evidence: commit `261c6d0` (`fix(models): move review lenses and judges off the writer's model family`); GPT-exclusion assertion PASS; reviewability receipt: 36 authored changed lines / 21,305 authored patch bytes.
@@ -40,7 +40,9 @@ Verified in the live `~/.config/opencode/opencode.json` (2026-10-03):
 `global-config/opencode.json`, `global-config/tui.json` if needed, `global-config/plugins/systematic-routing-guard.ts`, `global-config/plugins/lib/routing-guard-helpers.ts`, `verify-workflow.sh`, `global-config/plugins/workflow-health-check.ts` (digest pin only), `WORKFLOW.md`, `docs/PLAN.md`, this tracker.
 
 ## Known evidence gaps and follow-ups (record, do not act)
-`opencode-go/minimax-m3` as validator and `opencode-go/mimo-v2.6-pro` on resilience are unproven seats. Kimi occupies several seats (reliability lens, two post-code advisors, one judge) and may produce correlated misses. A future seeded-defect run should measure per-lens recall and pairwise miss-correlation and revise the assignments from its results.
+
+Evidence gaps (do not act): GLM-5.3's quota under per-commit fan-out; `opencode-go/mimo-v2.6-flash` as a lens fallback.
+`opencode-go/minimax-m3` as validator is an unproven seat. Kimi occupies several seats (reliability lens, two post-code advisors, one judge) and may produce correlated misses. A future seeded-defect run should measure per-lens recall and pairwise miss-correlation and revise the assignments from its results.
 
 **Resolved:** `modelFamily()` in `verify-workflow.sh` now recognizes gpt, deepseek, glm, qwen, kimi, mimo, minimax, grok, and gemini; it no longer returns `undefined` for those families.
 
@@ -83,3 +85,17 @@ Recorded by: orchestrator, 2026-10-03. Chain strategy: `stacked-to-main`.
 - **Verified already aligned:** `asi-review-resilience` and `review-resilience` both use `opencode-go/mimo-v2.6-pro` without a variant; the tracker’s `(high)` assignment label is not independent provider-support evidence.
 - **Accepted, not fixed (informational):** Relay model/variant assignments are not compared against their corresponding review lenses by a verifier assertion.
 - **Accepted, not fixed (informational):** The Sol-assigned `advisor-design-pre` and `advisor-security-pre` have selectable Astra aliases.
+
+## T5 Model assignment update
+
+| Agent | Old model / variant | New model / variant |
+|---|---|---|
+| `review-resilience` | `opencode-go/mimo-v2.6-pro` / none | `opencode-go/glm-5.3-flash` / `high` |
+| `asi-review-resilience` | `opencode-go/mimo-v2.6-pro` / none | `opencode-go/glm-5.3-flash` / `high` |
+| `review-readability` | `openrouter/~google/gemini-flash-latest` / none | `opencode-go/deepseek-v4.1-flash` / `max` |
+| `asi-review-readability` | `openrouter/~google/gemini-flash-latest` / none | `opencode-go/deepseek-v4.1-flash` / `max` |
+| `jd-judge-a` | `openrouter/~google/gemini-flash-latest` / none | `opencode-go/glm-5.3-flash` / `high` |
+
+The existing GLM-5.3 fallback-policy chain was renamed to the exact GLM-5.3-flash key and merged with the existing flash chain; the resilience policy now starts with `opencode-go/glm-5.2` (`high`). Risk, reliability, and readability policies start with `opencode-go/mimo-v2.6-flash` (`high`) and contain no GLM targets.
+
+Verifier changes: retain distinct judgment-day models but no longer require distinct providers; retain at least four distinct 4R models but no longer require multiple providers. No other verifier check is changed.

@@ -613,7 +613,7 @@
       "description": "Adversarial code reviewer — blind judge A for judgment-day protocol",
       "hidden": true,
       "mode": "subagent",
-      "model": "openrouter/~google/gemini-flash-latest",
+      "model": "opencode-go/glm-5.3-flash",
       "prompt": "You are a read-only adversarial reviewer. Inspect only the immutable target named by the task, return one independent result, and stop. Do not edit, delegate, or inspect unrelated scope.\n\nReport only real, user-impacting defects. Every severe finding must state whether the candidate introduced, behavior-activated, or worsened the behavior and cite changed-hunk, differential-test, candidate-created-path, or before/after proof. Mark unchanged defects pre-existing or base-only; use unknown when causality cannot be proved.\n\nUse BLOCKER | CRITICAL | WARNING | SUGGESTION. BLOCKER/CRITICAL require concrete causal proof; WARNING/SUGGESTION are non-blocking observations. Each finding includes location, neutral claim, evidence_class, causal_disposition, and concrete proof_refs.\n\nReturn one JSON object and no prose. Use exactly this native result shape:\n\n{\"findings\":[{\"location\":\"path:line or path:start-end\",\"severity\":\"CRITICAL\",\"claim\":\"observable incorrect behavior\",\"evidence_class\":\"deterministic\",\"causal_disposition\":\"introduced\",\"proof_refs\":[\"concrete proof\"]}],\"evidence\":[\"what was inspected\"]}\n\nThis is a judgment-day judge result, not a `gentle-ai review capture-result` lens artifact. Judgment day selects no lenses and records your work as a judge proof, so your result carries no bound artifact subject and no inspection envelope. The only allowed top-level fields are findings and evidence, and the only allowed finding fields are location, severity, claim, evidence_class, causal_disposition, and proof_refs. Never emit summary, skill_resolution, or any other unknown field. Keep orchestration metadata outside the native result JSON; evidence contains only genuine inspection evidence.\n\nReturn {\"findings\":[],\"evidence\":[\"what was inspected\"]} when clean.\n\n<!-- gentle-ai:agent-language-contract -->\n## Artifact Language Contract\n\nGenerated artifacts (code, comments, UI copy, docs, specs, tests, commit messages, memory entries) default to English. If an artifact is explicitly requested in Spanish, use neutral/professional Spanish. Never use regional slang or dialect-specific grammar in any artifact, regardless of the conversation language in your prompt context.\n\nBefore any Write/Edit whose content is an artifact, re-verify these artifact language rules.\n<!-- /gentle-ai:agent-language-contract -->\n",
       "tools": {
         "*": false,
@@ -656,7 +656,8 @@
         "bash": "deny",
         "ctx_memory": "deny",
         "grep": "deny"
-      }
+      },
+      "variant": "high"
     },
     "jd-judge-b": {
       "description": "Adversarial code reviewer — blind judge B for judgment-day protocol",
@@ -712,7 +713,7 @@
       "description": "R2 Readability reviewer — naming, complexity, intention, maintainability, review size, and context clarity",
       "hidden": true,
       "mode": "subagent",
-      "model": "openrouter/~google/gemini-flash-latest",
+      "model": "opencode-go/deepseek-v4.1-flash",
       "permission": {
         "bash": "deny",
         "edit": "deny",
@@ -755,7 +756,8 @@
         "sandbox_grep": false,
         "sandbox_diff": false,
         "grep": false
-      }
+      },
+      "variant": "max"
     },
     "review-refuter": {
       "description": "Batched adversarial refuter — evaluates every BLOCKER/CRITICAL candidate through one assigned lens and returns one verdict per finding",
@@ -860,7 +862,7 @@
       "description": "R4 Resilience reviewer — fallbacks, retry/backoff, graceful degradation, observability, load, rollback, and SLO risks",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/mimo-v2.6-pro",
+      "model": "opencode-go/glm-5.3-flash",
       "permission": {
         "bash": "deny",
         "edit": "deny",
@@ -903,7 +905,8 @@
         "sandbox_grep": false,
         "sandbox_diff": false,
         "grep": false
-      }
+      },
+      "variant": "high"
     },
     "review-risk": {
       "description": "R1 Risk reviewer — security, privilege boundaries, data exposure, dependency risks, and merge-blocking vulnerabilities",
@@ -1740,7 +1743,7 @@
       "description": "Relay reviewer (R4 resilience lens). Provider-materialized prompt only.",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/mimo-v2.6-pro",
+      "model": "opencode-go/glm-5.3-flash",
       "prompt": "Follow only the provider-materialized review prompt. Do not inspect the live worktree, delegate, or edit anything.",
       "tools": {
         "*": false,
@@ -1774,13 +1777,14 @@
         "sandbox_grep": "deny",
         "sandbox_diff": "deny",
         "grep": "deny"
-      }
+      },
+      "variant": "high"
     },
     "asi-review-readability": {
       "description": "Relay reviewer (R2 readability lens). Provider-materialized prompt only.",
       "hidden": true,
       "mode": "subagent",
-      "model": "openrouter/~google/gemini-flash-latest",
+      "model": "opencode-go/deepseek-v4.1-flash",
       "prompt": "Follow only the provider-materialized review prompt. Do not inspect the live worktree, delegate, or edit anything.",
       "tools": {
         "*": false,
@@ -1814,7 +1818,8 @@
         "sandbox_grep": "deny",
         "sandbox_diff": "deny",
         "grep": "deny"
-      }
+      },
+      "variant": "max"
     },
     "asi-review-reliability": {
       "description": "Relay reviewer (R3 reliability lens). Provider-materialized prompt only.",
