@@ -306,9 +306,9 @@
     ],
     "opencode-go/kimi-k2.7-code": [
       {
-        "providerID": "openai",
-        "modelID": "gpt-6-luna",
-        "variant": "high",
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
         "capabilities": [
           "files",
           "tools",
@@ -328,16 +328,6 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "openrouter",
-        "modelID": "deepseek/deepseek-v4.1-flash",
         "variant": "max",
         "capabilities": [
           "files",
