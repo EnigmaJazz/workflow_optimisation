@@ -371,6 +371,10 @@ required_agents = {
     "frontend-dev", "frontend-dev-premium", "sdd-apply-local",
     "asi-review-risk", "asi-review-resilience", "asi-review-readability",
     "asi-review-reliability", "asi-review-refuter", "asi-review-validator",
+    "advisor-design-pre", "advisor-security-pre", "advisor-integration-pre",
+    "advisor-testing-pre", "advisor-maintainability-pre",
+    "advisor-design-post", "advisor-security-post", "advisor-integration-post",
+    "advisor-testing-post", "advisor-maintainability-post",
 }
 
 # These package identities are intentionally version-managed by the reviewed

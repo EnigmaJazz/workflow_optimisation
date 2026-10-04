@@ -22,7 +22,7 @@ Verified in the live `~/.config/opencode/opencode.json` (2026-10-03):
 9. Barred from per-commit fan-out seats: `qwen3.8-max`, `kimi-k3`, `grok-4.7`. Grok only on the refuter. No GLM except the lens fallback.
 
 ## Tasks
-- **T1 Review lens seats and relays — complete.** `review-risk` → `opencode-go/qwen3.7-plus` (high); `review-resilience` → `opencode-go/mimo-v2.6-pro` (high); `review-reliability` → `opencode-go/kimi-k2.7-code` (high, already correct); `review-readability` → `opencode-go/deepseek-v4.1-flash` (high). The six `asi-review-*` relays map one-to-one to their corresponding plain review seats. `review-validator` → `opencode-go/minimax-m3` (high); `review-refuter` → `opencode-go/grok-4.7` (high). Evidence: commit `261c6d0` (`fix(models): move review lenses and judges off the writer's model family`); GPT-exclusion assertion PASS; reviewability receipt: 36 authored changed lines / 21,305 authored patch bytes.
+- **T1 Review lens seats and relays — complete.** `review-risk` → `opencode-go/qwen3.7-plus` (high); `review-resilience` → `opencode-go/mimo-v2.6-pro` (high); `review-reliability` → `opencode-go/kimi-k2.7-code` (high, already correct); `review-readability` → `openrouter/~google/gemini-flash-latest` (no variant; moved for provider spread). The six `asi-review-*` relays map one-to-one to their corresponding plain review seats. `review-validator` → `opencode-go/minimax-m3` (high); `review-refuter` → `opencode-go/grok-4.7` (high). Evidence: commit `261c6d0` (`fix(models): move review lenses and judges off the writer's model family`); GPT-exclusion assertion PASS; reviewability receipt: 36 authored changed lines / 21,305 authored patch bytes.
 - **T2 Judgment day — complete.** `jd-fix-agent` → `openai/gpt-6.1-sol` (medium); `jd-judge-a` → `opencode-go/kimi-k2.7-code` (high); `jd-judge-b` → `opencode-go/qwen3.7-plus` (high). `opencode-go/kimi-k3` and `opencode-go/qwen3.8-max` are documented escalation options for unresolved consequential cases only, never defaults. Evidence: commit `261c6d0` (`fix(models): move review lenses and judges off the writer's model family`); GPT-exclusion assertion PASS; reviewability receipt: 36 authored changed lines / 21,305 authored patch bytes.
 - **T3 Advisor split.** Split into two units; T3b switched routing and retired the five old names.
   - **T3a Add split agents — complete in this unit.** Add `advisor-<x>-pre` and `advisor-<x>-post` as deep copies of their existing source agents, with only model changed and `variant` removed; leave all five `advisor-<x>` definitions unchanged. Pre: design/security `openai/gpt-6.1-sol`; integration `opencode-go/kimi-k2.7-code`; testing `opencode-go/minimax-m3`; maintainability `opencode-go/mimo-v2.6-flash`. Post: design/security `opencode-go/qwen3.7-plus`; integration/testing `opencode-go/kimi-k2.7-code`; maintainability `opencode-go/deepseek-v4.1-flash`. `mimo-v2.6-flash` variant support was unconfirmed, so the copied variant was removed.
@@ -42,7 +42,7 @@ Verified in the live `~/.config/opencode/opencode.json` (2026-10-03):
 ## Known evidence gaps and follow-ups (record, do not act)
 `opencode-go/minimax-m3` as validator and `opencode-go/mimo-v2.6-pro` on resilience are unproven seats. Kimi occupies several seats (reliability lens, two post-code advisors, one judge) and may produce correlated misses. A future seeded-defect run should measure per-lens recall and pairwise miss-correlation and revise the assignments from its results.
 
-**Follow-up:** `modelFamily()` in `verify-workflow.sh` (around lines 1898–1907) recognizes only gpt/deepseek/glm/qwen/kimi and returns `undefined` for mimo/minimax. No current check uses it for advisors, so this remains recorded follow-up work and is not changed here.
+**Resolved:** `modelFamily()` in `verify-workflow.sh` now recognizes gpt, deepseek, glm, qwen, kimi, mimo, minimax, grok, and gemini; it no longer returns `undefined` for those families.
 
 ## Checks
 Per work unit: `bash -n verify-workflow.sh`; the routing-guard test suite under an isolated `HOME`; the changed-agent re-read assertions; and a readback of `global-config/opencode.json` parsing as valid JSON.
@@ -75,3 +75,11 @@ The per-commit cap is 400 authored lines and 100 KiB of authored patch. The patc
 Reviewability: the native review's 200 KiB serialized-input budget is not approached. The reviewer's burden is a repeated shape, verifiable by the fifteen-agent model inventory printed at apply time.
 
 Recorded by: orchestrator, 2026-10-03. Chain strategy: `stacked-to-main`.
+
+## Post-code advisory review
+
+- **Fixed:** The five post-code advisors are excluded from rate-limit fallback replay via `excludeAgents`.
+- **Fixed:** The verifier's `required_agents` set now asserts all ten split advisors exist in the canonical OpenCode config.
+- **Verified already aligned:** `asi-review-resilience` and `review-resilience` both use `opencode-go/mimo-v2.6-pro` without a variant; the tracker’s `(high)` assignment label is not independent provider-support evidence.
+- **Accepted, not fixed (informational):** Relay model/variant assignments are not compared against their corresponding review lenses by a verifier assertion.
+- **Accepted, not fixed (informational):** The Sol-assigned `advisor-design-pre` and `advisor-security-pre` have selectable Astra aliases.
