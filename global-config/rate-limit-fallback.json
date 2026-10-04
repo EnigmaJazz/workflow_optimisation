@@ -514,15 +514,6 @@
       },
       {
         "providerID": "openrouter",
-        "modelID": "~google/gemini-flash-latest",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
         "variant": "max",
         "capabilities": [
