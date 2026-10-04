@@ -37,7 +37,7 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   the Q36 change set, then Q34. Q49 runs throughout.
 - **Phase 5, OpenCode V2 upgrade (owner-triggered, after Phase 4):** Q40-Q47.
 - **Project-manager layer (owner, 2026-10-04; runs alongside Phases 2 and 3):** Q53, then Q54
-  (cross-project), Q55, Q56, then Q57-Q60, then Q61.
+  (cross-project) and Q55 in parallel, then Q56 (needs both), then Q57-Q60, then Q61.
 
 Every source change needs the deploy step: verifier mirror, then restart. Q27 waits on an owner
 decision.

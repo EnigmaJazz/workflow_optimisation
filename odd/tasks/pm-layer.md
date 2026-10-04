@@ -75,6 +75,10 @@ task, each assessed against the last reviewed boundary.
   `verify-workflow.sh`, the OpenCode 1.18.34 binary (Task `task_id`, depth check, child
   permission derivation) and agent-sandbox-integration (`sandbox-tools.ts:64`,
   `broker/src/config.ts:243`, `broker/src/service.ts`). Branch `docs/pm-layer-handovers`.
+- 2026-10-04: T0 committed as `bd7835c`. Assessment from `main`: medium, `slice_budget_reached`.
+  Native review `review-314b7602882be12e` (one lens, reliability): approved and acknowledged;
+  authority burned. One advisory suggestion (Q54 and Q55 can run in parallel) applied to the
+  Phases line in `docs/TODO.md`. Reviewed boundary: `bd7835c`.
 
 ## Next step
 T1 (Q53). T2 waits on the owner passing Handover A across.
