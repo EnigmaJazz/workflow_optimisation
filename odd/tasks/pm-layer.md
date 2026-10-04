@@ -38,7 +38,7 @@ task, each assessed against the last reviewed boundary.
 ## Tasks
 - [x] T0 — Plan and the two handovers. Route: inline (Claude Code, advisory; the content is the
   planner's own analysis). Trigger: owner request.
-- [ ] T1 (Q53) — Probe with `pm-probe` and depth 4; record the eight observations.
+- [ ] T1 (Q53) — Probe with `pm-probe` and depth 4; record the eight observations. Partial results are recorded below: items 1, 2, 3, 5, 7 and 8 observed; item 4 unobserved and item 6 pending.
 - [ ] T2 (Q54) — Sandbox allowlist installed (Handover A); probe host mutations from a subagent.
 - [ ] T3 (Q55) — `docs/specs/pm-handoff.md`; PM and `odd-apply` agents; prompts; guard data and
   tests.
@@ -80,5 +80,19 @@ task, each assessed against the last reviewed boundary.
   authority burned. One advisory suggestion (Q54 and Q55 can run in parallel) applied to the
   Phases line in `docs/TODO.md`. Reviewed boundary: `bd7835c`.
 
+### Q53 probe results
+- **Item 1 PASS** — Four-level chain executed end to end: orchestrator → `pm-probe` (`ses_ef76d56c2ffeiKOhXlYSHVZ3KP`) → `frontend-dev` (`ses_ef76d1349ffeMfRV4Yyur0n4Uq`) → `frontend-apply` (`ses_ef76ceca5ffeil6DlZlHAyGf60`) → `vision` (`ses_ef76cd241ffepugoicm9Up9w7S`). No permission or depth gate fired.
+- **Item 2 PASS** — Loading `workflow-odd-secure` minted `workflow-odd-secure.key` in the PM session (`{"skill":"workflow-odd-secure","specialists":[]}`) and added a `skill-workflow-odd-secure` marker. Every child carried `.parent` and `inherited.key`; `frontend-dev` inherited directly, and the rest transitively.
+- **Item 3 PASS** — A subagent `question` call reached the user and returned their answer. A failed relay was not needed.
+- **Item 4 UNOBSERVED** — No ask-gated prompt could be produced from `pm-probe` because its tool grants deny every ask-gated tool by design. This must be tested with the real Q55 PM agents, which hold those grants.
+- **Item 5 PASS** — Resuming the same PM session with `task_id` retained its earlier context: it recalled a recorded token, a memory-write count, the loaded skill, and the user's answer without re-deriving them.
+- **Item 6 PENDING** — Requires the orchestrator key to pass its TTL.
+- **Item 7 PASS** — `workflow-systematic` and `ce:plan` both loaded in a PM session under the workflow guard with no failure code. The Systematic workflow guard reported `state=waiting, reasonCode=missing-evidence, enforcement=observe`. A repeat skill load neither re-minted a key nor bumped `last_active`; this is recorded as a finding.
+- **Item 8 PASS** — `ctx_memory` write (id 1087), read-back, and `ctx_search` hit all succeeded with no denial or gate.
+- **Finding (item 1/2)** — A Task-dispatched session carries no `.parent` and no `inherited.key` until it dispatches a child of its own; the parent marker is written on the child's dispatch. Q58 must not assume a PM has a parent link on entry.
+- **Finding (item 2)** — `inherited.key` `minted_at` values were not monotonic with chain creation order. This is recorded as an observation only, with no mechanism asserted; investigate before Q58 gates on key state.
+- **Routing-guard log path** for future probe evidence: `~/.local/share/opencode/logs/routing-guard.log`. A plain workflow-key mint writes no line there.
+- **Next step:** Item 6 (TTL/expiry), then decide item 4's placement in Q55.
+
 ## Next step
-T1 (Q53). T2 waits on the owner passing Handover A across.
+T1 (Q53): item 6 (TTL/expiry), then decide item 4's placement in Q55. T2 waits on the owner passing Handover A across.
