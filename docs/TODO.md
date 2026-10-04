@@ -73,8 +73,9 @@ waits on an owner decision.
 - **Prerequisites:** none. The interim lane it defines relies on Q01 verification; until Q01 is
   done an unverified advisor is a missing opinion, not an approval.
 - **Source:** `docs/advisor/handoff-workflow-optimisation.md` B0, B1, B2.
-- **Description:** advice mandatory for every non-trivial change (interim lane: registered
-  advisors); external lane written as PLANNED; tracker protocol for advisory evidence.
+- **Description:** advice mandatory for every non-trivial change (interim pre-code lane:
+  registered `advisor-*-pre` agents); external lane written as PLANNED; tracker protocol for
+  advisory evidence.
 
 ### Q03. Guard review findings — fix unit (old item 12)
 - **Status:** READY. Subject to the advice mandate (Q02). The guard is live and warn-only, so
@@ -170,8 +171,8 @@ waits on an owner decision.
 - **Source:** `docs/advisor/handoff-workflow-optimisation.md` B4.
 - **Description:** optional `advice` stage satisfied only by an observed `host_advisor_get`
   result (`status: submitted`, matching `binding.task`) and, in the interim, an observed
-  `advisor-*` dispatch result. Owner decides whether the stage exists. (The external-lens capture
-  warning was dropped: reviews stay on the in-OpenCode agents.)
+  `advisor-*-pre` or `advisor-*-post` dispatch result. Owner decides whether the stage exists.
+  (The external-lens capture warning was dropped: reviews stay on the in-OpenCode agents.)
 
 ### Q08. B5 — advisor handoff document
 - **Status:** BLOCKED.
@@ -179,7 +180,7 @@ waits on an owner decision.
 - **Source:** `docs/advisor/handoff-workflow-optimisation.md` B5; `docs/ADVISOR-HANDOFF.md` "Requested".
 - **Description:** answer the two "Requested" items with plan A's verified contracts
   (cross-project read-only inspection; workspace isolation) and describe the external lane next
-  to the five registered advisors.
+  to the ten registered split advisors.
 
 ### Q09. Tracking contract in the recipe (old item 6)
 - **Status:** PLANNED.
@@ -408,13 +409,13 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
 - **Description:** a table mapping every workflow rule to its enforcement point (routing-guard
   stage or check, verifier check, native gentle-ai gate) and a status: enforced, planned, or
   advisory-only (with the reason). At minimum these rules:
-  - pre-code advice record (interim and `pair-default`);
-  - post-code advisory review (interim when no `ce:review`; `post-code-pair`). Concrete check for
-    the interim branch: after a non-trivial unit's work-unit commit, before the native review
-    starts, warn if neither a `ce-review` skill marker nor an observed `advisor-*` dispatch with
-    step `post-code` exists for the session. When a `ce-review` marker exists, no advisor
-    dispatch is required. Implementation is a guard stage (with Q03 namespacing and Q07). Until
-    then the rule is advisory-only, recorded here as such;
+  - pre-code advice record (interim `advisor-*-pre` and `pair-default`);
+  - post-code advisory review (interim `advisor-*-post` when no `ce:review`; `post-code-pair`).
+    Concrete check for the interim branch: after a non-trivial unit's work-unit commit, before
+    the native review starts, warn if neither a `ce-review` skill marker nor an observed
+    `advisor-*-post` dispatch with step `post-code` exists for the session. When a `ce-review`
+    marker exists, no advisor dispatch is required. Implementation is a guard stage (with Q03
+    namespacing and Q07). Until then the rule is advisory-only, recorded here as such;
   - `ce:review` before the native review where owed;
   - native review lanes only `asi-review-*`, and no `externalLenses: true`;
   - ODD tracker before the first source write;

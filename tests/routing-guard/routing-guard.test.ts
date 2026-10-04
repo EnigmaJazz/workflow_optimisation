@@ -225,7 +225,7 @@ describe("1. specialist rule: deny by default", () => {
       "issue-intelligence-analyst", "pattern-recognition-specialist", "deployment-verification-agent",
       "repo-research-analyst", "best-practices-researcher", "framework-docs-researcher",
       "learnings-researcher", "correctness-reviewer", "review-refuter", "review-risk",
-      "asi-review-risk", "asi-review-validator", "advisor-design", "jd-judge-a", "jd-judge-b"]) {
+      "asi-review-risk", "asi-review-validator", "advisor-design-pre", "jd-judge-a", "jd-judge-b"]) {
       await dispatch("ses_s6", name)
     }
     expect(logCount("specialist")).toBe(0)

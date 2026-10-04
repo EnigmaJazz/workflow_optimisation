@@ -24,10 +24,12 @@ Verified in the live `~/.config/opencode/opencode.json` (2026-10-03):
 ## Tasks
 - **T1 Review lens seats and relays — complete.** `review-risk` → `opencode-go/qwen3.7-plus` (high); `review-resilience` → `opencode-go/mimo-v2.6-pro` (high); `review-reliability` → `opencode-go/kimi-k2.7-code` (high, already correct); `review-readability` → `opencode-go/deepseek-v4.1-flash` (high). The six `asi-review-*` relays map one-to-one to their corresponding plain review seats. `review-validator` → `opencode-go/minimax-m3` (high); `review-refuter` → `opencode-go/grok-4.7` (high). Evidence: commit `261c6d0` (`fix(models): move review lenses and judges off the writer's model family`); GPT-exclusion assertion PASS; reviewability receipt: 36 authored changed lines / 21,305 authored patch bytes.
 - **T2 Judgment day — complete.** `jd-fix-agent` → `openai/gpt-6.1-sol` (medium); `jd-judge-a` → `opencode-go/kimi-k2.7-code` (high); `jd-judge-b` → `opencode-go/qwen3.7-plus` (high). `opencode-go/kimi-k3` and `opencode-go/qwen3.8-max` are documented escalation options for unresolved consequential cases only, never defaults. Evidence: commit `261c6d0` (`fix(models): move review lenses and judges off the writer's model family`); GPT-exclusion assertion PASS; reviewability receipt: 36 authored changed lines / 21,305 authored patch bytes.
-- **T3 Advisor split.** Split into two units; keep the five old names until routing is switched.
+- **T3 Advisor split.** Split into two units; T3b switched routing and retired the five old names.
   - **T3a Add split agents — complete in this unit.** Add `advisor-<x>-pre` and `advisor-<x>-post` as deep copies of their existing source agents, with only model changed and `variant` removed; leave all five `advisor-<x>` definitions unchanged. Pre: design/security `openai/gpt-6.1-sol`; integration `opencode-go/kimi-k2.7-code`; testing `opencode-go/minimax-m3`; maintainability `opencode-go/mimo-v2.6-flash`. Post: design/security `opencode-go/qwen3.7-plus`; integration/testing `opencode-go/kimi-k2.7-code`; maintainability `opencode-go/deepseek-v4.1-flash`. `mimo-v2.6-flash` variant support was unconfirmed, so the copied variant was removed.
-  - **T3b Routing switch and retirement — pending.** Switch pre-code advice to `-pre`, post-code advisory review to `-post`, then retire the old five advisor entries.
-- **T4 Enforcement surfaces — pending.** Update verifier reviewer/writer family-diversity checks and advisor name lists, routing-guard specialist allow-lists, and `WORKFLOW.md` advisor table; record the orchestrator-never-ranks rule in `WORKFLOW.md`. Re-pin `VERIFY_SCRIPT_SHA256` if the verifier changes.
+  - **T3b Routing switch and retirement — complete.** Switched pre-code advice to `-pre`, post-code advisory review to `-post`, and retired the old five advisor entries. Commit: `502fa74`.
+- **T4 Enforcement surfaces.**
+  - **T4a Verifier and guard enforcement — complete.** Updated verifier reviewer/writer family-diversity checks and advisor name lists, and routing-guard specialist allow-lists. Commit: `aaebc3c`.
+  - **T4b Documentation and test surfaces — this unit.** Update `WORKFLOW.md`, `docs/ADVISOR-HANDOFF.md`, `docs/PLAN.md`, `docs/TODO.md`, and the routing-guard test sample for the pre/post advisor split. No verifier changes in this unit.
 
 ## Acceptance criteria
 - Every changed agent is re-read after editing and asserted against rule 1; the unit fails if any assertion is violated.
@@ -37,8 +39,10 @@ Verified in the live `~/.config/opencode/opencode.json` (2026-10-03):
 ## Authorized scope
 `global-config/opencode.json`, `global-config/tui.json` if needed, `global-config/plugins/systematic-routing-guard.ts`, `global-config/plugins/lib/routing-guard-helpers.ts`, `verify-workflow.sh`, `global-config/plugins/workflow-health-check.ts` (digest pin only), `WORKFLOW.md`, `docs/PLAN.md`, this tracker.
 
-## Known evidence gaps (record, do not act)
+## Known evidence gaps and follow-ups (record, do not act)
 `opencode-go/minimax-m3` as validator and `opencode-go/mimo-v2.6-pro` on resilience are unproven seats. Kimi occupies several seats (reliability lens, two post-code advisors, one judge) and may produce correlated misses. A future seeded-defect run should measure per-lens recall and pairwise miss-correlation and revise the assignments from its results.
+
+**Follow-up:** `modelFamily()` in `verify-workflow.sh` (around lines 1898–1907) recognizes only gpt/deepseek/glm/qwen/kimi and returns `undefined` for mimo/minimax. No current check uses it for advisors, so this remains recorded follow-up work and is not changed here.
 
 ## Checks
 Per work unit: `bash -n verify-workflow.sh`; the routing-guard test suite under an isolated `HOME`; the changed-agent re-read assertions; and a readback of `global-config/opencode.json` parsing as valid JSON.
@@ -49,14 +53,15 @@ Note: the pre-existing `advisor-testing` entry carries `"variant": "medium"` on 
 - [x] T1 lens seats and relays
 - [x] T2 judgment day
 - [x] T3a add the ten split advisor agents (old names retained)
-- [ ] T3b switch routing and retire old five advisor entries
-- [ ] T4 enforcement surfaces
+- [x] T3b switch routing and retire old five advisor entries (commit `502fa74`)
+- [x] T4a verifier and guard enforcement surfaces (commit `aaebc3c`)
+- [ ] T4b documentation and test surfaces (this unit)
 
 ## Route and trigger evidence
 Route: delegated (secure policy — the orchestrator is read-only). Intended specialist: `general` sandbox writer. Trigger: substantial change across `opencode.json`, the guard, the verifier and `WORKFLOW.md`.
 
 ## Next step
-T3b: switch advisor routing to the split names and retire the old five; then complete T4 enforcement surfaces.
+Complete T4b documentation and test surfaces; then verify and record this unit's delivery.
 
 ## Delivery
 Strategy: `ask-on-risk`. Forecast: above the ~400-line planning heuristic because T3 adds ten agent definitions; recompute from the first work-unit receipt and ask before the next commit if the total crosses ~400. Chain strategy: `stacked-to-main` (owner, 2026-10-03).

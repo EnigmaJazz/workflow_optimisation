@@ -40,12 +40,14 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
   plus Magic Context mirror plus delegation plus the review boundary). SDD when selected.
 - **Pre-code advice** — mandatory for every non-trivial change ("trivial" keeps its meaning:
   trivial document edits; clearly bounded few-line changes with no contract or security effect).
-  Interim lane: the smallest sufficient set of registered advisors, one by default. External
-  lane (after plan A is installed): both external advisors (Claude Code and Antigravity) as an
-  independent group for every non-trivial change, per the policy table in `WORKFLOW.md`.
-- **Post-code review** — an external advisory review of the committed unit against the agreed
-  approach (both hosts, once the external lane is active), then `ce:review` where the route owes
-  it, then the native RDD review. The external review is evidence, never approval.
+  Interim lane: the smallest sufficient set of registered `advisor-*-pre` agents, one by
+  default. External lane (after plan A is installed): both external advisors (Claude Code and
+  Antigravity) as an independent group for every non-trivial change, per the policy table in
+  `WORKFLOW.md`.
+- **Post-code review** — the interim review dispatches `advisor-*-post` agents when `ce:review`
+  is not run; once active, the external advisory review of the committed unit against the agreed
+  approach (both hosts), then `ce:review` where the route owes it, then the native RDD review.
+  The external review is evidence, never approval.
 - **Impact axis** — decides HOW MUCH advice (the number of advisors, whether a cross-family group
   is needed, whether both external hosts are consulted once the lane is active); still raises scrutiny and never lowers
   it. A heavier route always governs when the
@@ -102,10 +104,11 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
 - 2026-10-01 (amends the line above): external hosts ALSO give a post-code advisory review, after
   the work-unit commit and before the mandatory `ce:review` and native review. It is advisory
   evidence only and never a gentle-ai lens.
-- 2026-10-01: interim post-code advisory rule. Until the external lane is active, the registered
-  `advisor-*` agents give the post-code advisory review of a non-trivial unit, only when the route
-  does not run `ce:review` (which already is an advisory multi-persona review). Evidence only,
-  recorded with step `post-code`. `post-code-pair` takes over once the external lane is active.
+- 2026-10-01 (updated for the advisor split): interim pre-code advice dispatches registered
+  `advisor-*-pre` agents, and interim post-code advisory review dispatches registered
+  `advisor-*-post` agents for a non-trivial unit only when the route does not run `ce:review`
+  (which already is an advisory multi-persona review). Evidence only, recorded with step
+  `post-code`. `post-code-pair` takes over once the external lane is active.
 - 2026-10-01: deployment gating. All workflow changes must be correctly gated when deployed; see
   the Constraints bullet and queue Q28 (gating matrix).
 
@@ -176,12 +179,12 @@ the class that used to offer SDD needs a route built from the ODD spine and the 
 2. `ce:brainstorm` produces the requirements doc (`docs/brainstorms/`).
 3. `ce:plan` produces the plan (`docs/plans/`); design decisions are recorded in the feature
    document.
-4. Pre-code advice: interim `advisor-*` set; external `pair-default` once active. Consequential
+4. Pre-code advice: interim `advisor-*-pre` set; external `pair-default` once active. Consequential
    findings are resolved before coding.
 5. `ce:work` task by task, each closing with a work-unit commit.
 6. Per-commit RDD assessment.
-7. Post-code advisory review: interim only when `ce:review` is not run; external `post-code-pair`
-   once active.
+7. Post-code advisory review: interim `advisor-*-post` set only when `ce:review` is not run;
+   external `post-code-pair` once active.
 8. `ce:review`.
 9. Native gentle-ai review (`asi-review-*`) when due.
 10. `ce:compound` captures learnings.

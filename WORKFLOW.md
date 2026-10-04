@@ -419,11 +419,31 @@ Advice is **mandatory for every non-trivial change**. "Trivial" keeps its meanin
 
 ### Interim lane (active)
 
-Use the smallest sufficient set of registered `advisor-*` subagents: one by default. Impact decides when to add a second model family (the Go advisors span DeepSeek, Kimi and MiMo). Add testing or security only for a distinct necessary question; a single integration advisor may cover cross-component behaviour and deployment. These advisors are automated and raise no subscription issue.
+Use the smallest sufficient set of registered pre-code `advisor-*-pre` subagents: one by default. Impact decides when to add a second model family. Add testing or security only for a distinct necessary question; a single integration advisor may cover cross-component behaviour and deployment. These advisors are automated and raise no subscription issue. Pre-code advice dispatches the `-pre` agents.
 
-**Interim post-code advisory review (owner, 2026-10-01).** The registered `advisor-*` subagents also review a non-trivial unit after its work-unit commit and before the native review, but only when the route does not run `ce:review` for that unit, because `ce:review` already provides the advisory multi-persona review. When `ce:review` runs, make no interim post-code advisor call. The same rules apply as for pre-code advice: the smallest sufficient set, evidence only, never approval. Record it under the task ID with step `post-code`. Once the external lane is active, `post-code-pair` applies as written below.
+**Interim post-code advisory review (owner, 2026-10-01).** Dispatch the registered `advisor-*-post` subagents to review a non-trivial unit after its work-unit commit and before the native review, but only when the route does not run `ce:review` for that unit, because `ce:review` already provides the advisory multi-persona review. When `ce:review` runs, make no interim post-code advisor call. The same rules apply as for pre-code advice: the smallest sufficient set, one by default, evidence only, never approval. Record it under the task ID with step `post-code`. Once the external lane is active, `post-code-pair` applies as written below.
 
-Registered advisors and their models: `advisor-design`, `advisor-integration`, and `advisor-security` on `opencode-go/deepseek-v4.1-flash`; `advisor-testing` on `opencode-go/kimi-k2.7-code`; `advisor-maintainability` on `opencode-go/mimo-v2.6-flash`.
+The orchestrator routes and aggregates advisor findings mechanically. Because it authored the plan, it must never rank, dismiss, or merge those findings.
+
+**Pre-code advisors**
+
+| Advisor | Model |
+|---|---|
+| `advisor-design-pre` | `openai/gpt-6.1-sol` |
+| `advisor-security-pre` | `openai/gpt-6.1-sol` |
+| `advisor-integration-pre` | `opencode-go/kimi-k2.7-code` |
+| `advisor-testing-pre` | `opencode-go/minimax-m3` |
+| `advisor-maintainability-pre` | `opencode-go/mimo-v2.6-flash` |
+
+**Post-code advisors**
+
+| Advisor | Model |
+|---|---|
+| `advisor-design-post` | `opencode-go/qwen3.7-plus` |
+| `advisor-integration-post` | `opencode-go/kimi-k2.7-code` |
+| `advisor-testing-post` | `opencode-go/kimi-k2.7-code` |
+| `advisor-security-post` | `opencode-go/qwen3.7-plus` |
+| `advisor-maintainability-post` | `opencode-go/deepseek-v4.1-flash` |
 
 ### External lane (PLANNED — activated by B3)
 

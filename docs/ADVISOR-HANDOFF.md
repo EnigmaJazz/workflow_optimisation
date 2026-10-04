@@ -4,15 +4,27 @@ This handoff records the current advisor setup and its verified capability bound
 
 ## Registered advisors
 
-Five advisors are registered; all use `"hidden": true`, `"mode": "subagent"`, and `"variant": "medium"`:
+Ten split advisors are registered; all use `"hidden": true` and `"mode": "subagent"`. Their `variant` fields are omitted.
+
+### Pre-code
 
 | Advisor | Model |
 |---|---|
-| `advisor-design` | `opencode-go/deepseek-v4.1-flash` |
-| `advisor-integration` | `opencode-go/deepseek-v4.1-flash` |
-| `advisor-security` | `opencode-go/deepseek-v4.1-flash` |
-| `advisor-testing` | `opencode-go/kimi-k2.7-code` |
-| `advisor-maintainability` | `opencode-go/mimo-v2.6-flash` |
+| `advisor-design-pre` | `openai/gpt-6.1-sol` |
+| `advisor-security-pre` | `openai/gpt-6.1-sol` |
+| `advisor-integration-pre` | `opencode-go/kimi-k2.7-code` |
+| `advisor-testing-pre` | `opencode-go/minimax-m3` |
+| `advisor-maintainability-pre` | `opencode-go/mimo-v2.6-flash` |
+
+### Post-code
+
+| Advisor | Model |
+|---|---|
+| `advisor-design-post` | `opencode-go/qwen3.7-plus` |
+| `advisor-integration-post` | `opencode-go/kimi-k2.7-code` |
+| `advisor-testing-post` | `opencode-go/kimi-k2.7-code` |
+| `advisor-security-post` | `opencode-go/qwen3.7-plus` |
+| `advisor-maintainability-post` | `opencode-go/deepseek-v4.1-flash` |
 
 ## Current permissions
 
@@ -26,7 +38,7 @@ Five advisors are registered; all use `"hidden": true`, `"mode": "subagent"`, an
 
 **Also denied:** `grep`, `task` (advisors cannot delegate), and `ctx_memory` (no shared-memory writes).
 
-All five advisors are in the orchestrator's `permission.task`; the orchestrator dispatches them and they dispatch nothing.
+All ten split advisors are in the orchestrator's `permission.task`; the orchestrator dispatches them and they dispatch nothing.
 
 ## Available testing tools today
 
