@@ -2731,7 +2731,7 @@ else {
 
 const ordinaryMemoryAgents=new Set([
   "explore","frontend-apply","frontend-apply-local","frontend-dev","frontend-dev-premium","general",
-  "gentle-orchestrator","jd-fix-agent","vision",
+  "gentle-orchestrator","jd-fix-agent","vision","pm-probe",
 ])
 const isolatedMemoryAgents=new Set([
   "jd-judge-a","jd-judge-b",
