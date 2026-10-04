@@ -2751,10 +2751,11 @@ for (const [name,a] of Object.entries(deployedAgents)) {
   else if (ordinaryMemoryAgents.has(name) || name.startsWith("sdd-")) expected="allow"
   else {
     fail(`MAGIC_CONTEXT_MEMORY_POLICY_UNCLASSIFIED_AGENT: ${name}`)
-    continue
   }
-  if (cfgPerm(a,"ctx_memory")!==expected) {
-    fail(`MAGIC_CONTEXT_MEMORY_POLICY_MISMATCH: ${name}.permission.ctx_memory expected ${expected}, got ${show(cfgPerm(a,"ctx_memory"))}`)
+  if (expected!==undefined) {
+    if (cfgPerm(a,"ctx_memory")!==expected) {
+      fail(`MAGIC_CONTEXT_MEMORY_POLICY_MISMATCH: ${name}.permission.ctx_memory expected ${expected}, got ${show(cfgPerm(a,"ctx_memory"))}`)
+    }
   }
   if (name!=="gentle-orchestrator" && cfgPerm(a,"host_register_project")!==undefined) {
     fail(`HOST_REGISTER_PROJECT_AGENT_OVERRIDE_FORBIDDEN: ${name}=${show(cfgPerm(a,"host_register_project"))}`)

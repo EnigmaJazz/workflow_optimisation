@@ -379,7 +379,6 @@
         "host_review_lens_context": "allow",
         "host_review_mode_status": "allow",
         "host_sandbox_result": "allow",
-        "host_register_project": "deny",
         "host_sandbox_result_install": "deny",
         "host_sdd_attempt_acquire": "deny",
         "host_sdd_attempt_begin": "deny",
