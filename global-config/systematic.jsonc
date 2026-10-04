@@ -163,7 +163,7 @@
     "adversarial-reviewer": {"model": "openai/gpt-6.1-sol", "variant": "high", "temperature": 0.1, "steps": 25},
     "security-reviewer": {"model": "openai/gpt-6.1-sol", "variant": "high", "temperature": 0.1, "steps": 25},
     "api-contract-reviewer": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 18},
-    "architecture-strategist": {"model": "opencode-go/glm-5.3", "variant": "high", "temperature": 0.1, "steps": 22},
+    "architecture-strategist": {"model": "opencode-go/glm-5.3-flash", "variant": "high", "temperature": 0.1, "steps": 22},
     "reliability-reviewer": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 20},
     "data-migrations-reviewer": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 20},
     "deployment-verification-agent": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 20},
