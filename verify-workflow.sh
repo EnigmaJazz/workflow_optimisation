@@ -1903,6 +1903,9 @@ function modelFamily(value) {
   if (model.includes("glm-")) return "glm"
   if (model.includes("qwen")) return "qwen"
   if (model.includes("kimi")) return "kimi"
+  if (model.includes("mimo")) return "mimo"
+  if (model.includes("minimax")) return "minimax"
+  if (model.includes("grok")) return "grok"
   return undefined
 }
 const debugCache = new Map()
