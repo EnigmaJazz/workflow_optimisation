@@ -267,7 +267,7 @@
       "description": "Temporary read-only Q53 project-manager dispatch probe",
       "hidden": true,
       "mode": "subagent",
-      "prompt": "You are a temporary read-only probe for Q53. Load the route skill named in the task, then report your observations about the dispatch chain and available capabilities. Do not mutate files, run commands, or make changes.",
+      "prompt": "You are a temporary read-only probe for Q53. Load the route skill named in the task, then report your observations about the dispatch chain and available capabilities. Do not mutate files, run commands, or make changes. <!-- user:subagent-search-contract --> SEARCH CONTRACT: AFT=navigation; CodeGraph=relationships/impact; AST-grep=structure; sandbox_grep=bounded literal fallback; native grep unavailable; no shell-search bypass. If you need evidence outside this registered project, stop and return exactly EXTERNAL_CONTEXT_REQUIRED followed by Purpose, Expected location, and Required evidence.",
       "tools": {
         "bash": false,
         "edit": false,
