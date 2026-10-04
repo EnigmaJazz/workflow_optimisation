@@ -1906,6 +1906,7 @@ function modelFamily(value) {
   if (model.includes("mimo")) return "mimo"
   if (model.includes("minimax")) return "minimax"
   if (model.includes("grok")) return "grok"
+  if (model.includes("gemini")) return "gemini"
   return undefined
 }
 const debugCache = new Map()

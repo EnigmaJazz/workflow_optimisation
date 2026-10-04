@@ -670,6 +670,28 @@
           "vision"
         ]
       }
+    ],
+    "openrouter/~google/gemini-flash-latest": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
     ]
   },
   "providerFallbacks": {

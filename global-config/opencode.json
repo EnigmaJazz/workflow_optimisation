@@ -569,7 +569,7 @@
       "description": "R2 Readability reviewer — naming, complexity, intention, maintainability, review size, and context clarity",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/deepseek-v4.1-flash",
+      "model": "openrouter/~google/gemini-flash-latest",
       "permission": {
         "bash": "deny",
         "edit": "deny",
@@ -612,8 +612,7 @@
         "sandbox_grep": false,
         "sandbox_diff": false,
         "grep": false
-      },
-      "variant": "high"
+      }
     },
     "review-refuter": {
       "description": "Batched adversarial refuter — evaluates every BLOCKER/CRITICAL candidate through one assigned lens and returns one verdict per finding",
@@ -1638,8 +1637,7 @@
       "description": "Relay reviewer (R2 readability lens). Provider-materialized prompt only.",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/deepseek-v4.1-flash",
-      "variant": "high",
+      "model": "openrouter/~google/gemini-flash-latest",
       "prompt": "Follow only the provider-materialized review prompt. Do not inspect the live worktree, delegate, or edit anything.",
       "tools": {
         "*": false,
