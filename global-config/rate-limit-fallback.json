@@ -3,7 +3,8 @@
   "startProviders": [
     "openai",
     "opencode-go",
-    "kinver"
+    "kinver",
+    "openrouter"
   ],
   "agentFallbackModels": {
     "frontend-apply": [
@@ -307,8 +308,7 @@
     "opencode-go/kimi-k2.7-code": [
       {
         "providerID": "openrouter",
-        "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "modelID": "~google/gemini-flash-latest",
         "capabilities": [
           "files",
           "tools",
@@ -358,9 +358,8 @@
         ]
       },
       {
-        "providerID": "openai",
-        "modelID": "gpt-6.1-sol",
-        "variant": "high",
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
         "capabilities": [
           "files",
           "tools",
@@ -683,6 +682,16 @@
         ]
       },
       {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
         "variant": "max",
@@ -773,6 +782,38 @@
         "providerID": "openai",
         "modelID": "gpt-6-luna",
         "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "openrouter": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "opencode-go",
+        "modelID": "deepseek-v4.1-flash",
+        "variant": "max",
         "capabilities": [
           "files",
           "tools",
