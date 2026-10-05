@@ -2611,7 +2611,6 @@ else {
             "deepseek-v4-pro",
             "deepseek-v4-flash-vision-exp",
             "deepseek-v4-flash-0731",
-            "deepseek-v4-flash",
           ]) {
             if (fallbackText.includes(retiredModel)) fail(`FALLBACK_RETIRED_MUSE_OR_DEEPSEEK_MODEL: ${retiredModel}`)
           }

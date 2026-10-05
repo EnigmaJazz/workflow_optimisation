@@ -108,3 +108,17 @@ The subsequent verifier run exposed five fallback-policy failures, fixed in comm
 ### Open item
 
 The `opencode-go/glm-5.3-flash` fallback chain ends on `openai/gpt-6.1-sol`, which conflicts with the constraint that no GPT model appears on a review seat. This target is inert because every review and judge seat is in `excludeAgents`. The owner must decide whether to change the chain or explicitly waive the rule; it is not resolved here.
+
+## DeepSeek V4.1 unusable lens-turn recovery
+
+Owner decision: a lens turn is a **FAILURE**, never "no findings", if the finish reason is unknown, output tokens are 0, the message contains a reasoning part but no text part, or the output does not match the lens output contract. On failure, retry once, then fall back, then fail closed. Malformed lens output must never be parsed leniently or skipped.
+
+### Model reassignment
+
+| Agent | Old model / variant | New model / variant |
+|---|---|---|
+| `review-readability` | `opencode-go/deepseek-v4.1-flash` / `max` | `opencode-go/deepseek-v4-flash` / `high` |
+| `asi-review-readability` | `opencode-go/deepseek-v4.1-flash` / `max` | `opencode-go/deepseek-v4-flash` / `high` |
+| `advisor-maintainability-post` | `opencode-go/deepseek-v4.1-flash` / none | `opencode-go/deepseek-v4-flash` / `medium` |
+
+The exact fallback policy for `opencode-go/deepseek-v4-flash` is new because the verifier requires an exact policy for every active primary. It starts with `opencode-go/mimo-v2.6-flash` as required for the readability seats. The existing `opencode-go/deepseek-v4.1-flash` exact policy was left unchanged.

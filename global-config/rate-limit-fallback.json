@@ -585,6 +585,38 @@
           "vision"
         ]
       }
+    ],
+    "opencode-go/deepseek-v4-flash": [
+      {
+        "providerID": "opencode-go",
+        "modelID": "mimo-v2.6-flash",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
     ]
   },
   "providerFallbacks": {

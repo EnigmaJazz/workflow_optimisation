@@ -717,7 +717,7 @@
       "description": "R2 Readability reviewer — naming, complexity, intention, maintainability, review size, and context clarity",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/deepseek-v4.1-flash",
+      "model": "opencode-go/deepseek-v4-flash",
       "permission": {
         "bash": "deny",
         "edit": "deny",
@@ -761,7 +761,7 @@
         "sandbox_diff": false,
         "grep": false
       },
-      "variant": "max"
+      "variant": "high"
     },
     "review-refuter": {
       "description": "Batched adversarial refuter — evaluates every BLOCKER/CRITICAL candidate through one assigned lens and returns one verdict per finding",
@@ -1788,7 +1788,7 @@
       "description": "Relay reviewer (R2 readability lens). Provider-materialized prompt only.",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/deepseek-v4.1-flash",
+      "model": "opencode-go/deepseek-v4-flash",
       "prompt": "Follow only the provider-materialized review prompt. Do not inspect the live worktree, delegate, or edit anything.",
       "tools": {
         "*": false,
@@ -1823,7 +1823,7 @@
         "sandbox_diff": "deny",
         "grep": "deny"
       },
-      "variant": "max"
+      "variant": "high"
     },
     "asi-review-reliability": {
       "description": "Relay reviewer (R3 reliability lens). Provider-materialized prompt only.",
@@ -2423,7 +2423,7 @@
         "sandbox_grep": true,
         "sandbox_diff": true
       },
-      "model": "opencode-go/deepseek-v4.1-flash",
+      "model": "opencode-go/deepseek-v4-flash",
       "permission": {
         "edit": "deny",
         "write": "deny",
@@ -2444,7 +2444,8 @@
         "sandbox_list": "allow",
         "sandbox_grep": "allow",
         "sandbox_diff": "allow"
-      }
+      },
+      "variant": "medium"
     },
     "pm-odd": {
       "description": "One-work-unit pm-odd route coordinator",
