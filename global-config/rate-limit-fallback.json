@@ -211,16 +211,6 @@
         ]
       },
       {
-        "providerID": "openai",
-        "modelID": "gpt-6-luna",
-        "variant": "high",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
         "variant": "max",
@@ -246,16 +236,6 @@
         "providerID": "opencode-go",
         "modelID": "deepseek-v4.1-flash",
         "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "openai",
-        "modelID": "gpt-6-luna",
-        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -292,8 +272,8 @@
         ]
       },
       {
-        "providerID": "openai",
-        "modelID": "gpt-6.1-sol",
+        "providerID": "opencode-go",
+        "modelID": "mimo-v2.6-flash",
         "variant": "high",
         "capabilities": [
           "files",
@@ -399,16 +379,6 @@
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
         "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "openai",
-        "modelID": "gpt-6-luna",
-        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -584,16 +554,6 @@
         ]
       },
       {
-        "providerID": "openai",
-        "modelID": "gpt-6-luna",
-        "variant": "high",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
         "variant": "max",
@@ -609,16 +569,6 @@
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
         "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "openai",
-        "modelID": "gpt-6-luna",
-        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -681,16 +631,6 @@
         ]
       },
       {
-        "providerID": "openai",
-        "modelID": "gpt-6-luna",
-        "variant": "high",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
         "variant": "max",
@@ -739,16 +679,6 @@
       "providerID": "deepseek",
       "modelID": "deepseek-flash",
       "variant": "max",
-      "capabilities": [
-        "files",
-        "tools",
-        "vision"
-      ]
-    },
-    {
-      "providerID": "openai",
-      "modelID": "gpt-6-luna",
-      "variant": "high",
       "capabilities": [
         "files",
         "tools",
