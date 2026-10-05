@@ -223,6 +223,15 @@ Work in one long session per project: Magic Context manages context for the whol
 
 For each new change, LOAD the `workflow-route` skill — stating a route line is not routing. When RDD is enabled, assess the review state of every work-unit commit after it lands, on the committed candidate, and honour a due review before continuing; a size-exception for one candidate never becomes standing. Keep each commit inside the review budget (default 400 authored lines and 100 KiB authored patch) and never shrink correct code to fit it. Present user-facing terminal commands Fish-compatible and without heredocs.
 
+### Execution tool availability
+
+There is no `bash` tool in this environment. Do not attempt it.
+
+`bash_status`, `bash_watch`, `bash_write`, and `bash_kill` report on tasks that only `bash` could start; they can never do anything here and must not be called. Calling them in a loop wastes turns and produces no information.
+
+Project commands run through `sandbox_bash`, which is argv-only: no pipes, redirects, globs, `&&`, `;`, or `$()`. Use one command per call.
+
+Read-only agents that have neither `bash` nor `sandbox_bash` must say so and report the limitation rather than probing for an execution path. If a tool you need is absent, report that plainly instead of retrying it.
 
 <!-- /user:grep-tool-enforcement -->
 

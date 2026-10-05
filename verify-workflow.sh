@@ -2680,7 +2680,7 @@ if (gp.ctx_search!=="allow") fail(`MAGIC_CONTEXT_SEARCH_NOT_ALLOW: ${show(gp.ctx
 if (gp.ctx_expand!=="allow") fail(`MAGIC_CONTEXT_EXPAND_NOT_ALLOW: ${show(gp.ctx_expand)}`)
 if (gp.ctx_memory!=="deny") fail(`MAGIC_CONTEXT_MEMORY_DEFAULT_NOT_DENY: ${show(gp.ctx_memory)}`)
 if (gp.host_register_project!=="deny") fail(`HOST_REGISTER_PROJECT_DEFAULT_NOT_DENY: ${show(gp.host_register_project)}`)
-if (gp.bash!=="deny" || gp.apply_patch!=="deny") fail("ORDINARY_HOST_EXECUTION_NOT_DENIED")
+if (gp.bash!=="deny" || gp.bash_status!=="deny" || gp.apply_patch!=="deny") fail("ORDINARY_HOST_EXECUTION_NOT_DENIED")
 if (gp.grep!=="ask") fail(`GREP_PERMISSION_NOT_ASK: ${show(gp.grep)}`)
 if (gp.glob!=="allow") fail(`GLOB_PERMISSION_NOT_ALLOW: ${show(gp.glob)}`)
 if (gp.sandbox_bash!=="ask") fail(`SANDBOX_BASH_DEFAULT_NOT_ASK: ${show(gp.sandbox_bash)}`)
