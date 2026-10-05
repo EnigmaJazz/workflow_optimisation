@@ -2681,7 +2681,12 @@ if (gp.host_register_project!=="deny") fail(`HOST_REGISTER_PROJECT_DEFAULT_NOT_D
 if (gp.bash!=="deny" || gp.bash_status!=="deny" || gp.apply_patch!=="deny") fail("ORDINARY_HOST_EXECUTION_NOT_DENIED")
 if (gp.grep!=="ask") fail(`GREP_PERMISSION_NOT_ASK: ${show(gp.grep)}`)
 if (gp.glob!=="allow") fail(`GLOB_PERMISSION_NOT_ALLOW: ${show(gp.glob)}`)
-if (gp.sandbox_bash!=="ask") fail(`SANDBOX_BASH_DEFAULT_NOT_ASK: ${show(gp.sandbox_bash)}`)
+if (gp.sandbox_bash!=="deny") fail(`SANDBOX_BASH_DEFAULT_NOT_DENY: ${show(gp.sandbox_bash)}`)
+for (const [name,agent] of Object.entries(deployedAgents)) {
+  const usesSandboxBash=cfgTool(agent,"sandbox_bash")===true
+  const expected=usesSandboxBash ? "allow" : "deny"
+  if (cfgPerm(agent,"sandbox_bash")!==expected) fail(`SANDBOX_BASH_AGENT_PERMISSION_MISMATCH: ${name} expected ${expected}, got ${show(cfgPerm(agent,"sandbox_bash"))}`)
+}
 for (const t of ["sandbox_apply","sandbox_apply_patch","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_edit","sandbox_finish","sandbox_write"]) if (gp[t]!=="deny") fail(`SANDBOX_MUTATION_DEFAULT_NOT_DENY: ${t}=${show(gp[t])}`)
 
 

@@ -2988,7 +2988,7 @@
     "sandbox_read": "allow",
     "sandbox_apply": "deny",
     "sandbox_apply_patch": "deny",
-    "sandbox_bash": "ask",
+    "sandbox_bash": "deny",
     "sandbox_copy_in": "deny",
     "sandbox_copy_out": "deny",
     "sandbox_discard": "deny",
