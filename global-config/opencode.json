@@ -2565,7 +2565,16 @@
         "host_review_capture_refuter": "ask",
         "host_review_capture_validation": "ask",
         "host_review_validate": "ask",
-        "host_review_recover": "ask"
+        "host_review_recover": "ask",
+        "sandbox_write": "deny",
+        "sandbox_edit": "deny",
+        "sandbox_apply_patch": "deny",
+        "sandbox_apply": "deny",
+        "sandbox_bash": "deny",
+        "sandbox_finish": "deny",
+        "sandbox_discard": "deny",
+        "sandbox_copy_in": "deny",
+        "sandbox_copy_out": "deny"
       }
     },
     "pm-systematic": {
@@ -2695,7 +2704,16 @@
         "host_review_capture_refuter": "ask",
         "host_review_capture_validation": "ask",
         "host_review_validate": "ask",
-        "host_review_recover": "ask"
+        "host_review_recover": "ask",
+        "sandbox_write": "deny",
+        "sandbox_edit": "deny",
+        "sandbox_apply_patch": "deny",
+        "sandbox_apply": "deny",
+        "sandbox_bash": "deny",
+        "sandbox_finish": "deny",
+        "sandbox_discard": "deny",
+        "sandbox_copy_in": "deny",
+        "sandbox_copy_out": "deny"
       }
     },
     "pm-sdd": {
@@ -2803,7 +2821,16 @@
         },
         "skill": "allow",
         "systematic_skill": "allow",
-        "host_sdd_archive_compose": "ask"
+        "host_sdd_archive_compose": "ask",
+        "sandbox_write": "deny",
+        "sandbox_edit": "deny",
+        "sandbox_apply_patch": "deny",
+        "sandbox_apply": "deny",
+        "sandbox_bash": "deny",
+        "sandbox_finish": "deny",
+        "sandbox_discard": "deny",
+        "sandbox_copy_in": "deny",
+        "sandbox_copy_out": "deny"
       }
     },
     "odd-apply": {
