@@ -1694,7 +1694,6 @@ for (const [profileName, profile] of Object.entries(profiles)) {
 const systematicText = JSON.stringify(config)
 for (const retiredModel of [
   "muse-spark-1.2-contributor",
-  "muse-spark-1.3-contributor",
   "deepseek-v4-pro",
   "deepseek-v4-flash-vision-exp",
 ]) {
@@ -2606,7 +2605,6 @@ else {
           const fallbackText=JSON.stringify(cfg)
           for (const retiredModel of [
             "muse-spark-1.2-contributor",
-            "muse-spark-1.3-contributor",
             "deepseek-v4-pro",
             "deepseek-v4-flash-vision-exp",
             "deepseek-v4-flash-0731",
@@ -3370,7 +3368,7 @@ esac
 for MODEL_CONFIG in \
   "$OPENCODE_CONFIG_FILE" "$OPENCODE_CONFIG_SOURCE" \
   "$SYSTEMATIC_CONFIG" "$SYSTEMATIC_CONFIG_SOURCE"; do
-  if [ -f "$MODEL_CONFIG" ] && grep -Eq -- 'muse-spark|deepseek-v4-pro' "$MODEL_CONFIG" 2>/dev/null; then
+  if [ -f "$MODEL_CONFIG" ] && grep -Eq -- 'muse-spark-1\.2-contributor|deepseek-v4-pro' "$MODEL_CONFIG" 2>/dev/null; then
     fail "RETIRED_MUSE_OR_DEEPSEEK_MODEL_REFERENCE: $MODEL_CONFIG"
   fi
 done

@@ -111,7 +111,7 @@ The `opencode-go/glm-5.3-flash` fallback chain ends on `openai/gpt-6.1-sol`, whi
 
 ## DeepSeek V4.1 unusable lens-turn recovery
 
-Owner decision: a lens turn is a **FAILURE**, never "no findings", if the finish reason is unknown, output tokens are 0, the message contains a reasoning part but no text part, or the output does not match the lens output contract. On failure, retry once, then fall back, then fail closed. Malformed lens output must never be parsed leniently or skipped.
+Owner decision: a lens turn is a **FAILURE**, never "no findings", if the finish reason is unknown, output tokens are 0, the message contains a reasoning part but no text part, the output is malformed or does not match the lens output contract, or a tool-call-ID error occurs. On failure, retry once, then fall back, then fail closed. Log the error text. Malformed lens output must never be parsed leniently or skipped.
 
 ### Model reassignment
 
@@ -122,3 +122,13 @@ Owner decision: a lens turn is a **FAILURE**, never "no findings", if the finish
 | `advisor-maintainability-post` | `opencode-go/deepseek-v4.1-flash` / none | `opencode-go/deepseek-v4-flash` / `medium` |
 
 The exact fallback policy for `opencode-go/deepseek-v4-flash` is new because the verifier requires an exact policy for every active primary. It starts with `opencode-go/mimo-v2.6-flash` as required for the readability seats. The existing `opencode-go/deepseek-v4.1-flash` exact policy was left unchanged.
+
+
+### Muse Spark 1.3 readability reassignment
+
+| Agent | Old model / variant | New model / variant |
+|---|---|---|
+| `review-readability` | `opencode-go/deepseek-v4-flash` / `high` | `opencode-go/muse-spark-1.3-contributor` / `high` |
+| `asi-review-readability` | `opencode-go/deepseek-v4-flash` / `high` | `opencode-go/muse-spark-1.3-contributor` / `high` |
+
+The exact fallback policy for `opencode-go/muse-spark-1.3-contributor` starts with `opencode-go/mimo-v2.6-flash` (`high`), followed by the existing non-GPT `deepseek/deepseek-flash` and `openrouter/deepseek/deepseek-v4.1-flash` targets. The existing `opencode-go/deepseek-v4-flash` policy remains because `advisor-maintainability-post` still uses that primary.

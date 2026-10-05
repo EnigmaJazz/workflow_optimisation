@@ -717,7 +717,7 @@
       "description": "R2 Readability reviewer — naming, complexity, intention, maintainability, review size, and context clarity",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/deepseek-v4-flash",
+      "model": "opencode-go/muse-spark-1.3-contributor",
       "permission": {
         "bash": "deny",
         "edit": "deny",
@@ -1788,7 +1788,7 @@
       "description": "Relay reviewer (R2 readability lens). Provider-materialized prompt only.",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/deepseek-v4-flash",
+      "model": "opencode-go/muse-spark-1.3-contributor",
       "prompt": "Follow only the provider-materialized review prompt. Do not inspect the live worktree, delegate, or edit anything.",
       "tools": {
         "*": false,
