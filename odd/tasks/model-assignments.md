@@ -22,14 +22,14 @@ Verified in the live `~/.config/opencode/opencode.json` (2026-10-03):
 9. Barred from per-commit fan-out seats: `qwen3.8-max`, `kimi-k3`, `grok-4.7`. Grok only on the refuter.
 
 ## Tasks
-- **T1 Review lens seats and relays — complete.** `review-risk` → `opencode-go/qwen3.7-plus` (high); `review-resilience` → `opencode-go/mimo-v2.6-pro` (high); `review-reliability` → `opencode-go/kimi-k2.7-code` (high, already correct); `review-readability` → `openrouter/~google/gemini-flash-latest` (no variant; moved for provider spread). The six `asi-review-*` relays map one-to-one to their corresponding plain review seats. `review-validator` → `opencode-go/minimax-m3` (high); `review-refuter` → `opencode-go/grok-4.7` (high). Evidence: commit `261c6d0` (`fix(models): move review lenses and judges off the writer's model family`); GPT-exclusion assertion PASS; reviewability receipt: 36 authored changed lines / 21,305 authored patch bytes.
+- **T1 Review lens seats and relays — complete.** `review-risk` → `opencode-go/qwen3.7-plus` (high); `review-resilience` → `opencode-go/glm-5.3-flash` (high); `review-reliability` → `opencode-go/kimi-k2.7-code` (high, already correct); `review-readability` → `opencode-go/deepseek-v4.1-flash` (max). The six `asi-review-*` relays map one-to-one to their corresponding plain review seats. `review-validator` → `opencode-go/minimax-m3` (high); `review-refuter` → `opencode-go/grok-4.7` (high). Evidence: commits `261c6d0` and `e6c6e64`; GPT-exclusion assertion PASS; reviewability receipt for `261c6d0`: 36 authored changed lines / 21,305 authored patch bytes.
 - **T2 Judgment day — complete.** `jd-fix-agent` → `openai/gpt-6.1-sol` (medium); `jd-judge-a` → `opencode-go/kimi-k2.7-code` (high); `jd-judge-b` → `opencode-go/qwen3.7-plus` (high). `opencode-go/kimi-k3` and `opencode-go/qwen3.8-max` are documented escalation options for unresolved consequential cases only, never defaults. Evidence: commit `261c6d0` (`fix(models): move review lenses and judges off the writer's model family`); GPT-exclusion assertion PASS; reviewability receipt: 36 authored changed lines / 21,305 authored patch bytes.
 - **T3 Advisor split.** Split into two units; T3b switched routing and retired the five old names.
   - **T3a Add split agents — complete in this unit.** Add `advisor-<x>-pre` and `advisor-<x>-post` as deep copies of their existing source agents, with only model changed and `variant` removed; leave all five `advisor-<x>` definitions unchanged. Pre: design/security `openai/gpt-6.1-sol`; integration `opencode-go/kimi-k2.7-code`; testing `opencode-go/minimax-m3`; maintainability `opencode-go/mimo-v2.6-flash`. Post: design/security `opencode-go/qwen3.7-plus`; integration/testing `opencode-go/kimi-k2.7-code`; maintainability `opencode-go/deepseek-v4.1-flash`. `mimo-v2.6-flash` variant support was unconfirmed, so the copied variant was removed.
   - **T3b Routing switch and retirement — complete.** Switched pre-code advice to `-pre`, post-code advisory review to `-post`, and retired the old five advisor entries. Commit: `502fa74`.
 - **T4 Enforcement surfaces.**
   - **T4a Verifier and guard enforcement — complete.** Updated verifier reviewer/writer family-diversity checks and advisor name lists, and routing-guard specialist allow-lists. Commit: `aaebc3c`.
-  - **T4b Documentation and test surfaces — this unit.** Update `WORKFLOW.md`, `docs/ADVISOR-HANDOFF.md`, `docs/PLAN.md`, `docs/TODO.md`, and the routing-guard test sample for the pre/post advisor split. No verifier changes in this unit.
+  - **T4b Documentation and test surfaces — complete.** Updated `WORKFLOW.md`, `docs/ADVISOR-HANDOFF.md`, `docs/PLAN.md`, `docs/TODO.md`, and the routing-guard test sample for the pre/post advisor split. No verifier changes in this unit.
 
 ## Acceptance criteria
 - Every changed agent is re-read after editing and asserted against rule 1; the unit fails if any assertion is violated.
@@ -57,13 +57,14 @@ Note: the pre-existing `advisor-testing` entry carries `"variant": "medium"` on 
 - [x] T3a add the ten split advisor agents (old names retained)
 - [x] T3b switch routing and retire old five advisor entries (commit `502fa74`)
 - [x] T4a verifier and guard enforcement surfaces (commit `aaebc3c`)
-- [ ] T4b documentation and test surfaces (this unit)
+- [x] T4b documentation and test surfaces
+- [x] T5 model assignment update and follow-on verifier fixes (commits `e6c6e64`, `5552a4e`, `2a40821`)
 
 ## Route and trigger evidence
 Route: delegated (secure policy — the orchestrator is read-only). Intended specialist: `general` sandbox writer. Trigger: substantial change across `opencode.json`, the guard, the verifier and `WORKFLOW.md`.
 
 ## Next step
-Complete T4b documentation and test surfaces; then verify and record this unit's delivery.
+T1-T5 and the follow-on verifier fixes are complete. The owner must decide whether to replace the GPT fallback target or explicitly waive the constraint; the question remains open.
 
 ## Delivery
 Strategy: `ask-on-risk`. Forecast: above the ~400-line planning heuristic because T3 adds ten agent definitions; recompute from the first work-unit receipt and ask before the next commit if the total crosses ~400. Chain strategy: `stacked-to-main` (owner, 2026-10-03).
@@ -82,7 +83,7 @@ Recorded by: orchestrator, 2026-10-03. Chain strategy: `stacked-to-main`.
 
 - **Fixed:** The five post-code advisors are excluded from rate-limit fallback replay via `excludeAgents`.
 - **Fixed:** The verifier's `required_agents` set now asserts all ten split advisors exist in the canonical OpenCode config.
-- **Verified already aligned:** `asi-review-resilience` and `review-resilience` both use `opencode-go/mimo-v2.6-pro` without a variant; the tracker’s `(high)` assignment label is not independent provider-support evidence.
+- **Current assignment:** `asi-review-resilience` and `review-resilience` both use `opencode-go/glm-5.3-flash` with variant `high`.
 - **Accepted, not fixed (informational):** Relay model/variant assignments are not compared against their corresponding review lenses by a verifier assertion.
 - **Accepted, not fixed (informational):** The Sol-assigned `advisor-design-pre` and `advisor-security-pre` have selectable Astra aliases.
 
@@ -96,6 +97,14 @@ Recorded by: orchestrator, 2026-10-03. Chain strategy: `stacked-to-main`.
 | `asi-review-readability` | `openrouter/~google/gemini-flash-latest` / none | `opencode-go/deepseek-v4.1-flash` / `max` |
 | `jd-judge-a` | `openrouter/~google/gemini-flash-latest` / none | `opencode-go/glm-5.3-flash` / `high` |
 
-The existing GLM-5.3 fallback-policy chain was renamed to the exact GLM-5.3-flash key and merged with the existing flash chain; the resilience policy now starts with `opencode-go/glm-5.2` (`high`). Risk, reliability, and readability policies start with `opencode-go/mimo-v2.6-flash` (`high`) and contain no GLM targets.
+The existing GLM-5.3 fallback-policy chain was renamed to the exact GLM-5.3-flash key and merged with the existing flash chain. The resilience policy starts with `opencode-go/glm-5.3` (non-flash, `high`). Risk and reliability policies start with `opencode-go/mimo-v2.6-flash` (`high`); readability starts with `deepseek/deepseek-flash` because its primary is `opencode-go/deepseek-v4.1-flash` and the verifier requires that first target. None of these policies contains GLM targets.
 
-Verifier changes: retain distinct judgment-day models but no longer require distinct providers; retain at least four distinct 4R models but no longer require multiple providers. No other verifier check is changed.
+Verifier changes: retain distinct judgment-day models but no longer require distinct providers; retain at least four distinct 4R models but no longer require multiple providers. The judgment-day fallback diversity check (two distinct providers) remains and was not relaxed. The owner decided subscription capacity plus failover replaces provider spread for the two relaxed checks.
+
+### Follow-on verifier failures and fixes
+
+The subsequent verifier run exposed five fallback-policy failures, fixed in commit `5552a4e`: `FALLBACK_OBSOLETE_MODEL` (`glm-5.2` → `glm-5.3`); `FALLBACK_UNSUPPORTED_START_PROVIDER` (removed `openrouter` from `startProviders`); `FALLBACK_EXACT_SOURCE_INACTIVE` (removed the stale Gemini policy key); `DEEPSEEK_V4_1_MODEL_FALLBACK_FIRST_MISMATCH` (moved `deepseek/deepseek-flash` to first); and `FALLBACK_ACTIVE_MODEL_NO_EXACT_POLICY` (moved `architecture-strategist` to `glm-5.3-flash` in `global-config/systematic.jsonc`). A subsequent fix, commit `2a40821`, removed the orphaned `openrouter` provider rule.
+
+### Open item
+
+The `opencode-go/glm-5.3-flash` fallback chain ends on `openai/gpt-6.1-sol`, which conflicts with the constraint that no GPT model appears on a review seat. This target is inert because every review and judge seat is in `excludeAgents`. The owner must decide whether to change the chain or explicitly waive the rule; it is not resolved here.

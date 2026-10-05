@@ -36,9 +36,11 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
     side, port plugins dual-mode, verifier V2 mode, change set and runbook (queue Q40-Q47).
 13. Project-manager layer (owner, 2026-10-04; queue Q53-Q61): the orchestrator becomes the
     strategic front end and dispatches one route-specific project-manager subagent per work
-    unit, which runs the route to completion. Probe first, then the sandbox allowlist
-    (cross-project), a pilot on one route, then the orchestrator slimming, guard ordering,
-    verifier and model changes. Design: `docs/handoffs/2026-10-04-pm-layer-workflow-optimisation.md`.
+    unit, which runs the route to completion. Q53's probe is complete: seven of eight items were
+    observed; item 4 remains unobserved and deferred to Q55. Q54 is blocked pending the owner
+    passing Handover A across to agent-sandbox-integration; Q55 is next and actionable; Q56 needs
+    both Q54 and Q55, followed by Q57-Q61. Design:
+    `docs/handoffs/2026-10-04-pm-layer-workflow-optimisation.md`.
 
 ## Layers
 - **Execution spine** — tiny fix: direct. Everything beyond trivial and not SDD: **ODD** (tracker
@@ -116,6 +118,14 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
   `post-code`. `post-code-pair` takes over once the external lane is active.
 - 2026-10-01: deployment gating. All workflow changes must be correctly gated when deployed; see
   the Constraints bullet and queue Q28 (gating matrix).
+- 2026-10-04: review/advisor model assignments were changed so no reviewer shares a model family
+  with the author of what it reviews. Review lenses, judgment seats and split advisors were
+  reassigned; a later patch moved the lens seats onto the `opencode-go` subscription, removed
+  `mimo-v2.6-pro`, set `glm-5.3-flash` on the resilience lens and `jd-judge-a`, and made
+  `opencode-go/glm-5.3` (non-flash) the resilience fallback target. The owner relaxed the two
+  verifier provider-diversity checks on the decision that subscription capacity plus failover
+  replaces provider spread. Tracker: `odd/tasks/model-assignments.md`. The GPT fallback target
+  question remains open.
 
 ## Memory and inter-agent communication (direction, 2026-10-01)
 - **Memory pathway by runtime (owner decisions, 2026-10-01):**

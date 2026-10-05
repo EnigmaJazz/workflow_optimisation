@@ -39,7 +39,7 @@ task, each assessed against the last reviewed boundary.
 - [x] T0 — Plan and the two handovers. Route: inline (Claude Code, advisory; the content is the
   planner's own analysis). Trigger: owner request.
 - [x] T1 (Q53) — Probe with `pm-probe` and depth 4; record the eight observations. Probe work is complete; item 4 remains unobserved and its placement is deferred to Q55.
-- [ ] T2 (Q54) — Sandbox allowlist installed (Handover A); probe host mutations from a subagent.
+- [ ] T2 (Q54) — Wait for the owner to pass Handover A to agent-sandbox-integration; then install the sandbox allowlist and probe host mutations from a subagent.
 - [ ] T3 (Q55) — `docs/specs/pm-handoff.md`; PM and `odd-apply` agents; prompts; guard data and
   tests.
 - [ ] T4 (Q56) — Pilot `pm-odd` on global-tooling units; ten units without route escape.
@@ -103,4 +103,4 @@ task, each assessed against the last reviewed boundary.
 - **Retraction (third claim)** — Retracted the assertion that "the parent's adapter key is not being refreshed from child activity." It was falsified by `workflow-odd-secure.key` showing `last_active` matching its own file mtime while `workflow-route.key` was simply stale; see `CLAIM-RETRACTIONS.md`.
 
 ## Next step
-T1 (Q53): probe work complete; item 4's placement is deferred to Q55. T2 waits on the owner passing Handover A across.
+T1 (Q53) is complete; Q55 is the next actionable item, and item 4 remains deferred to its PM agents. T2 (Q54) still waits on the owner passing Handover A across to agent-sandbox-integration.

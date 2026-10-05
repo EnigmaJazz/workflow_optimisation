@@ -36,8 +36,9 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 - **Phase 4, gentle-ai v4 upgrade (owner-triggered):** Q29, then Q30-Q33 and Q35-Q39 delivered as
   the Q36 change set, then Q34. Q49 runs throughout.
 - **Phase 5, OpenCode V2 upgrade (owner-triggered, after Phase 4):** Q40-Q47.
-- **Project-manager layer (owner, 2026-10-04; runs alongside Phases 2 and 3):** Q53, then Q54
-  (cross-project) and Q55 in parallel, then Q56 (needs both), then Q57-Q60, then Q61.
+- **Project-manager layer (owner, 2026-10-04; runs alongside Phases 2 and 3):** Q53 done; Q54
+  blocked pending the owner passing Handover A across to agent-sandbox-integration; Q55 next and
+  actionable; Q56 needs both Q54 and Q55; then Q57-Q60, then Q61.
 
 Every source change needs the deploy step: verifier mirror, then restart. Q27 waits on an owner
 decision.
@@ -80,11 +81,11 @@ waits on an owner decision.
   advisory evidence.
 
 ### Q03. Guard review findings — fix unit (old item 12)
-- **Status:** READY. Subject to the advice mandate (Q02). The guard is live and warn-only, so
-  any fix needs the verifier mirror and a restart to take effect.
+- **Status:** DONE (2026-10-03; guard fix unit landed). Follow-on review and runtime findings remain
+  recorded in the tracker; this queue item covers the completed fix unit.
 - **Prerequisites:** Q02 (advice record before coding).
 - **Source:** `docs/TODO-HISTORY.md` "12. Guard review findings"; `odd/tasks/routing-guard-keys.md`
-  review `review-84383b2e59dc8844`.
+  review `review-84383b2e59dc8844`; `odd/tasks/guard-q03.md`.
 - **Findings, in fix order.** R2-001 and the cross-route defect are both in the stage-resolution
   path; fix them together.
   - R2-001 (real defect, live): `allowsSpecialists` is inverted; fix first.
@@ -484,7 +485,9 @@ Source for the whole group: `docs/handoffs/2026-10-04-pm-layer-workflow-optimisa
 One PM subagent session per work unit; the orchestrator dispatches only `explore` and `pm-*`.
 
 ### Q53. PM layer: probe (go/no-go)
-- **Status:** READY.
+- **Status:** DONE. The eight-item probe ran: items 1, 2, 3, 5, 6, 7 and 8 were observed and
+  passing; item 4 was unobserved and deferred to Q55. Evidence: `odd/tasks/pm-layer.md` and
+  `ROUTER-LOG.md`.
 - **Prerequisites:** none.
 - **Description:** temporary `pm-probe` subagent and `subagent_depth` 4; record the eight
   observations listed in Handover B (nesting, key mint and inheritance, subagent `question`,
@@ -499,14 +502,14 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   Task and `host_review_status` from `pm-probe`. Related: Q50 (interface contract).
 
 ### Q55. PM layer: handoff contract, agents and writer
-- **Status:** PLANNED.
+- **Status:** READY.
 - **Prerequisites:** Q53.
 - **Description:** `docs/specs/pm-handoff.md`; `pm-odd`, `pm-systematic`, `pm-sdd` and
   `odd-apply` in `global-config/opencode.json`; PM prompts within budget; guard data
   (`SPECIALIST_WRITERS`, `pm-` as coordinator) with tests first; remove `pm-probe`.
 
 ### Q56. PM layer: pilot `pm-odd`
-- **Status:** PLANNED.
+- **Status:** BLOCKED.
 - **Prerequisites:** Q54, Q55.
 - **Description:** run global-tooling units here through `pm-odd`, with
   `gentle-orchestrator-legacy` kept selectable. Ten consecutive units without route escape.
@@ -771,9 +774,10 @@ Release facts that drive the group:
   - **v4:** apply the same rule to v4's managed orchestrator prompts (Q29b, Q30).
 
 ### Q36. Non-destructive change set for the v4 upgrade: apply and revert without clobbering drift
-- **Status:** TOOL DONE 2026-10-02: `scripts/changeset.py`, spec `docs/specs/changeset-tool.md`
-  v1.3, 72 tests, three native reviews approved (tracker `odd/tasks/changeset-tool.md`; follow-up
-  T5). The v4 change-set CONTENT is authored at upgrade time (Q30-Q33), per the build-late rule.
+- **Status:** DONE. Tool completed 2026-10-02: `scripts/changeset.py`, spec
+  `docs/specs/changeset-tool.md` v1.3, 72 tests, three native reviews approved (tracker
+  `odd/tasks/changeset-tool.md`; follow-up T5). The v4 change-set CONTENT is authored at upgrade
+  time (Q30-Q33), per the build-late rule.
 - **Prerequisites:** Q29 (the changes to encode); Q26 (stable anchors make markdown edits
   addressable).
 - **Source:** owner, 2026-10-01: build it all non-destructively, with a simple process to insert
@@ -1085,4 +1089,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   advisor interface contract and plan B: `2a757ab`.
 - Guard stages and keys, T1–T7b, T7a-fix, T9: see `odd/tasks/routing-guard-keys.md`; native review
   `review-84383b2e59dc8844` approved and acknowledged (its findings are Q03).
+- Review/advisor model assignments and follow-on fallback fixes: complete work unit, recorded in
+  `odd/tasks/model-assignments.md`. Added here in Done rather than assigning a new Q-number because
+  the tracked unit and its follow-ons are complete; the GPT fallback target question remains open.
 - Work queue and plan created: `b0e000e`.
