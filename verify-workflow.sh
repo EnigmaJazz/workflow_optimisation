@@ -2688,7 +2688,7 @@ for (const t of ["sandbox_apply","sandbox_apply_patch","sandbox_copy_in","sandbo
 
 
 const registeredHostReads=["host_sdd_status","host_sdd_continue","host_sdd_task_result","host_review_assess","host_review_mode_status","host_review_status","host_review_lens_context","host_sandbox_result"]
-const gatedHostMutations=["host_sdd_attempt_grant","host_sdd_archive_compose","host_git_commit","host_git_push","host_gh_issue_create","host_plan_append","host_register_project","host_review_start","host_review_capture_result","host_review_capture_unachievable","host_review_acknowledge_approved","host_review_capture_correction_plan","host_review_capture_refuter","host_review_capture_validation","host_review_validate","host_review_recover","host_sandbox_result_install"]
+const gatedHostMutations=["host_sdd_attempt_grant","host_sdd_archive_compose","host_git_commit","host_git_push","host_gh_issue_create","host_plan_append","host_register_project","host_review_start","host_review_capture_result","host_review_capture_unachievable","host_review_acknowledge_approved","host_review_capture_correction_plan","host_review_capture_refuter","host_review_capture_validation","host_review_validate","host_review_recover","host_sandbox_result_install","host_git_clear_commit_intent"]
 const retiredHostOperations=["host_sdd_verify_validate","host_sdd_attempt_status","host_sdd_attempt_acquire","host_sdd_attempt_begin","host_sdd_attempt_rescope","host_sdd_attempt_finish","host_sdd_attempt_reset","host_sdd_attempt_settle"]
 for (const name of registeredHostReads) if (gp[name]!=="allow") fail(`HOST_READ_PERMISSION_MISMATCH: ${name}`)
 for (const name of [...gatedHostMutations,...retiredHostOperations]) if (gp[name]!=="deny") fail(`HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY: ${name}`)
