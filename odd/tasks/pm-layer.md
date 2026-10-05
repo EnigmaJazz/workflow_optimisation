@@ -143,3 +143,8 @@ task, each assessed against the last reviewed boundary.
 
 ## Next step
 T1 (Q53) is complete; Q55 is the next actionable item, and item 4 remains deferred to its PM agents. T2 (Q54) still waits on the owner passing Handover A across to agent-sandbox-integration.
+
+## Post-code advisory review — open, deferred findings
+
+- **Open (owner decision):** Review fallback chains carry DeepSeek targets. A fallback hit on any 4R lens can put a reviewer on the author's model family, contradicting the recorded constraint that a reviewer never shares a model family with the author. This is a constraint-versus-reality conflict; it is recorded for owner resolution, not fixed here.
+- **Open (deferred):** Three-way policy drift remains: `ODD_SPECIALIST_WRITERS` in the guard helpers authorises writers that the ODD route skill and `pm-odd` task permissions do not use, so those three surfaces are not equivalent. `ROUTE_STAGES` also has no `workflow-sdd-secure` entry although `pm-sdd` loads it. Not fixed in this change.

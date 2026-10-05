@@ -107,7 +107,7 @@ The subsequent verifier run exposed five fallback-policy failures, fixed in comm
 
 ### Open item
 
-The `opencode-go/glm-5.3-flash` fallback chain ends on `openai/gpt-6.1-sol`, which conflicts with the constraint that no GPT model appears on a review seat. This target is inert because every review and judge seat is in `excludeAgents`. The owner must decide whether to change the chain or explicitly waive the rule; it is not resolved here.
+**Resolved:** The `opencode-go/glm-5.3-flash` fallback chain now ends on `opencode-go/mimo-v2.6-flash`; it contains no GPT target.
 
 ## DeepSeek V4.1 unusable lens-turn recovery
 

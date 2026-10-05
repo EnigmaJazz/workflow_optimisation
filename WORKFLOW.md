@@ -266,8 +266,6 @@ The current derived mapping is:
 
 | Sol base agent | Selectable Astra alias |
 | --- | --- |
-| `jd-judge-a` | `jd-judge-a-astra` |
-| `review-risk` | `review-risk-astra` |
 | `sdd-design` | `sdd-design-astra` |
 | `sdd-spec` | `sdd-spec-astra` |
 | `sdd-verify` | `sdd-verify-astra` |
@@ -443,7 +441,7 @@ The orchestrator routes and aggregates advisor findings mechanically. Because it
 | `advisor-integration-post` | `opencode-go/kimi-k2.7-code` |
 | `advisor-testing-post` | `opencode-go/kimi-k2.7-code` |
 | `advisor-security-post` | `opencode-go/qwen3.7-plus` |
-| `advisor-maintainability-post` | `opencode-go/deepseek-v4.1-flash` |
+| `advisor-maintainability-post` | `opencode-go/deepseek-v4-flash` (`medium`) |
 
 ### External lane (PLANNED — activated by B3)
 
