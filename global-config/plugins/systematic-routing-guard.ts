@@ -46,6 +46,7 @@ import type { Plugin } from "@opencode-ai/plugin"
 import {
   ROUTE_STAGES,
   READ_ONLY_SPECIALIST_PATTERNS,
+  isCoordinator,
   stageMarkerNames,
   taskWriteFile,
   type RouteStage,
@@ -856,7 +857,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       }
 
       const dispatchedType = typeof args.subagent_type === "string" ? args.subagent_type : null
-      if (mode !== "off" && dispatchedType && !isReadOnlySpecialist(dispatchedType)) {
+      if (mode !== "off" && dispatchedType && !isCoordinator(dispatchedType) && !isReadOnlySpecialist(dispatchedType)) {
         try {
           for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
             if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue

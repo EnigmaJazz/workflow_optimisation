@@ -182,6 +182,43 @@ describe("1. specialist rule: deny by default", () => {
     expect(logCount("specialist mystery-writer dispatched before tracker")).toBe(1)
   })
 
+  test("a PM coordinator dispatched by the orchestrator is not treated as a writer", async () => {
+    seedKey("ses_pm_orchestrator", ODD)
+    marker("ses_pm_orchestrator", `artifact-${ODD}-tracker`)
+    await dispatch("ses_pm_orchestrator", "pm-odd")
+    expect(logCount("specialist pm-odd")).toBe(0)
+    await probe()
+  })
+
+  test("unknown pm-* names remain coordinators, not writers", async () => {
+    seedKey("ses_pm_unknown", ODD)
+    await dispatch("ses_pm_unknown", "pm-not-registered")
+    expect(logCount("specialist pm-not-registered")).toBe(0)
+    await probe()
+  })
+
+  test("PM dispatch does not require writer-stage evidence", async () => {
+    seedKey("ses_pm_no_stage", ODD)
+    await dispatch("ses_pm_no_stage", "pm-odd")
+    expect(logCount("specialist pm-odd dispatched before tracker")).toBe(0)
+    await probe()
+  })
+
+  test("odd-apply is admitted at the ODD tracker stage", async () => {
+    seedKey("ses_odd_apply", ODD)
+    marker("ses_odd_apply", `artifact-${ODD}-tracker`)
+    await dispatch("ses_odd_apply", "odd-apply")
+    expect(logCount("specialist odd-apply")).toBe(0)
+    await probe()
+  })
+
+  test("odd-apply is not admitted at the Systematic plan stage", async () => {
+    seedKey("ses_odd_apply_sys", SYS)
+    marker("ses_odd_apply_sys", `artifact-${SYS}-plan`)
+    await dispatch("ses_odd_apply_sys", "odd-apply")
+    expect(logCount(`${SYS} specialist odd-apply is not allowed at plan stage`)).toBe(1)
+  })
+
   test("listed writer after the tracker exists does not warn", async () => {
     seedKey("ses_s4", ODD)
     marker("ses_s4", `artifact-${ODD}-tracker`)

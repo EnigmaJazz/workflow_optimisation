@@ -368,6 +368,7 @@ if not local_auto_update_path.is_file():
 
 required_agents = {
     "gentle-orchestrator", "general", "explore", "sdd-research",
+    "pm-odd", "pm-systematic", "pm-sdd", "odd-apply",
     "frontend-dev", "frontend-dev-premium", "sdd-apply-local",
     "asi-review-risk", "asi-review-resilience", "asi-review-readability",
     "asi-review-reliability", "asi-review-refuter", "asi-review-validator",
@@ -2709,7 +2710,7 @@ function assertCfgWriter(name) {
   }
   if (cfgTool(a,"*")===false) fail(`CUSTOM_TOOL_SURFACE_DISABLED: ${name}`)
 }
-for (const name of ["frontend-apply","frontend-apply-local","general","jd-fix-agent"]) assertCfgWriter(name)
+for (const name of ["frontend-apply","frontend-apply-local","general","jd-fix-agent","odd-apply"]) assertCfgWriter(name)
 for (const name of Object.keys(deployedAgents).filter((n)=>n.startsWith("sdd-") && n!=="sdd-research")) assertCfgWriter(name)
 
 const sddResearch=deployedAgents["sdd-research"]
@@ -2730,7 +2731,7 @@ else {
 
 const ordinaryMemoryAgents=new Set([
   "explore","frontend-apply","frontend-apply-local","frontend-dev","frontend-dev-premium","general",
-  "gentle-orchestrator","jd-fix-agent","vision","pm-probe",
+  "gentle-orchestrator","jd-fix-agent","vision","pm-probe","pm-odd","pm-systematic","pm-sdd","odd-apply",
 ])
 const isolatedMemoryAgents=new Set([
   "jd-judge-a","jd-judge-b",
