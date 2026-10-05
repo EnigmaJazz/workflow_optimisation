@@ -47,14 +47,17 @@ task, each assessed against the last reviewed boundary.
 - [ ] T5 (Q57) — Slim orchestrator prompt and permissions; `AGENTS.md` split; `WORKFLOW.md` and
   skills.
 - [ ] T6 (Q58) — Guard ordering rules, tests first.
-  - Requirement: a PM must hold its own route's key before it may dispatch a relay or call
-    `host_review_start`: `pm-odd` requires `workflow-odd-secure`, `pm-systematic` requires
-    `workflow-systematic`, and `pm-sdd` requires `workflow-sdd-secure`.
+  - Requirement (not yet implemented): a PM must hold its own route's adapter key before
+    `host_review_start`: `pm-odd` requires `workflow-odd-secure`, and `pm-systematic` requires
+    `workflow-systematic`. This matches the existing rule that a PM must hold its route key
+    before `host_git_commit` or a writer dispatch. `pm-sdd` does not launch native RDD.
   - A relay grant without the matching route key must not admit a review; permission alone is
     not readiness.
-  - The verifier rule admitting PMs to relay grants and the guard rule requiring the route key
-    must move together, or the verifier will reject what the design needs (or admit what it should
-    not).
+  - The relay grants and verifier rule admitting them on `pm-*` are deliberately coupled
+    with the future guard rule requiring the PM's own route key before review. The verifier
+    admits relays only on `gentle-orchestrator` and `pm-*`; the guard will later require the key.
+  - These grants restore the `pm-odd` and `pm-systematic` relay permissions previously removed
+    by the `RELAY_TASK_GRANTED_OUTSIDE_ORCHESTRATOR` fix; that verifier rule now admits PMs.
   - The broker currently binds `host_review_start` to `gentle-orchestrator`, so PMs cannot start
     a review until Q54 lands; the grant is deliberately in place ahead of Q54 for `pm-odd` and
     `pm-systematic`, because those routes owe native review. SDD does not launch native RDD, so

@@ -2813,8 +2813,7 @@ else {
     const delegated=cfgPerm(agentConfig,"task")
     if (!delegated || typeof delegated!=="object") continue
     if (delegated["*"]==="allow") fail(`RELAY_TASK_WILDCARD_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}`)
-    if (agentName.startsWith("pm-")) continue
-    for (const relayName of relayReviewAgents) if (delegated[relayName]==="allow") fail(`RELAY_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.${relayName}`)
+    for (const relayName of relayReviewAgents) if (delegated[relayName]==="allow" && !agentName.startsWith("pm-")) fail(`RELAY_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.${relayName}`)
   }
   if (task?.["sdd-research"]!=="allow") fail("SDD_RESEARCH_TASK_NOT_ALLOWED")
 
