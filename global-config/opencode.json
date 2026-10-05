@@ -2494,7 +2494,16 @@
         "host_review_capture_refuter": true,
         "host_review_capture_validation": true,
         "host_review_validate": true,
-        "host_review_recover": true
+        "host_review_recover": true,
+        "sandbox_write": false,
+        "sandbox_edit": false,
+        "sandbox_apply_patch": false,
+        "sandbox_apply": false,
+        "sandbox_bash": false,
+        "sandbox_finish": false,
+        "sandbox_discard": false,
+        "sandbox_copy_in": false,
+        "sandbox_copy_out": false
       },
       "permission": {
         "edit": "deny",
@@ -2606,7 +2615,16 @@
         "host_review_capture_refuter": true,
         "host_review_capture_validation": true,
         "host_review_validate": true,
-        "host_review_recover": true
+        "host_review_recover": true,
+        "sandbox_write": false,
+        "sandbox_edit": false,
+        "sandbox_apply_patch": false,
+        "sandbox_apply": false,
+        "sandbox_bash": false,
+        "sandbox_finish": false,
+        "sandbox_discard": false,
+        "sandbox_copy_in": false,
+        "sandbox_copy_out": false
       },
       "permission": {
         "edit": "deny",
@@ -2718,7 +2736,16 @@
         "host_sandbox_result": true,
         "skill": true,
         "systematic_skill": true,
-        "host_sdd_archive_compose": true
+        "host_sdd_archive_compose": true,
+        "sandbox_write": false,
+        "sandbox_edit": false,
+        "sandbox_apply_patch": false,
+        "sandbox_apply": false,
+        "sandbox_bash": false,
+        "sandbox_finish": false,
+        "sandbox_discard": false,
+        "sandbox_copy_in": false,
+        "sandbox_copy_out": false
       },
       "permission": {
         "edit": "deny",
