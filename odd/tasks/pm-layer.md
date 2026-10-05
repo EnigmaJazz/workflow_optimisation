@@ -47,6 +47,18 @@ task, each assessed against the last reviewed boundary.
 - [ ] T5 (Q57) — Slim orchestrator prompt and permissions; `AGENTS.md` split; `WORKFLOW.md` and
   skills.
 - [ ] T6 (Q58) — Guard ordering rules, tests first.
+  - Requirement: a PM must hold its own route's key before it may dispatch a relay or call
+    `host_review_start`: `pm-odd` requires `workflow-odd-secure`, `pm-systematic` requires
+    `workflow-systematic`, and `pm-sdd` requires `workflow-sdd-secure`.
+  - A relay grant without the matching route key must not admit a review; permission alone is
+    not readiness.
+  - The verifier rule admitting PMs to relay grants and the guard rule requiring the route key
+    must move together, or the verifier will reject what the design needs (or admit what it should
+    not).
+  - The broker currently binds `host_review_start` to `gentle-orchestrator`, so PMs cannot start
+    a review until Q54 lands; the grant is deliberately in place ahead of Q54 for `pm-odd` and
+    `pm-systematic`, because those routes owe native review. SDD does not launch native RDD, so
+    `pm-sdd` receives no relay grant.
 - [ ] T7 (Q59) — Verifier coordinator-set checks, prompt budgets, behavioural probes, digest pin.
 - [ ] T8 (Q60) — Model assignment, after the external advice.
 - [ ] T9 (Q61) — Remaining routes; remove the legacy agent; `ce:compound`.
