@@ -1907,6 +1907,7 @@ function modelFamily(value) {
   if (model.includes("qwen")) return "qwen"
   if (model.includes("kimi")) return "kimi"
   if (model.includes("mimo")) return "mimo"
+  if (model.includes("muse")) return "muse"
   if (model.includes("minimax")) return "minimax"
   if (model.includes("grok")) return "grok"
   if (model.includes("gemini")) return "gemini"
