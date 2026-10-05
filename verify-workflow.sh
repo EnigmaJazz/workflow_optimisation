@@ -2716,12 +2716,19 @@ for (const name of ["frontend-apply","frontend-apply-local","general","jd-fix-ag
 for (const name of Object.keys(deployedAgents).filter((n)=>n.startsWith("sdd-") && n!=="sdd-research")) assertCfgWriter(name)
 
 const pmAgents=["pm-odd","pm-systematic","pm-sdd"]
+const pmProbeAndAgents=[...pmAgents,"pm-probe"]
 const pmNoExecutionTools=["sandbox_write","sandbox_edit","sandbox_apply_patch","sandbox_apply","sandbox_bash","sandbox_finish","sandbox_discard","sandbox_copy_in","sandbox_copy_out","bash","edit","write"]
-for (const name of pmAgents) {
+const pmNoSandboxReadTools=["sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"]
+for (const name of pmProbeAndAgents) {
   const pm=deployedAgents[name]
   if (!pm) { fail(`PM_AGENT_MISSING: ${name}`); continue }
   for (const t of pmNoExecutionTools) {
     if (cfgPerm(pm,t)!=="deny" || cfgTool(pm,t)===true) fail(`PM_EXECUTION_TOOL_EXPOSED: ${name}.${t}`)
+  }
+  for (const t of pmNoSandboxReadTools) {
+    if (Object.prototype.hasOwnProperty.call(pm.tools??{},t) || Object.prototype.hasOwnProperty.call(pm.permission??{},t)) {
+      fail(`PM_SANDBOX_READ_TOOL_PRESENT: ${name}.${t}`)
+    }
   }
 }
 const oddApply=deployedAgents["odd-apply"]

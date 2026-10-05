@@ -141,6 +141,13 @@ task, each assessed against the last reviewed boundary.
 
 - **Retraction (third claim)** — Retracted the assertion that "the parent's adapter key is not being refreshed from child activity." It was falsified by `workflow-odd-secure.key` showing `last_active` matching its own file mtime while `workflow-route.key` was simply stale; see `CLAIM-RETRACTIONS.md`.
 
+### Additional probe findings — 2026-10-05
+
+- **Observed — host binding/resume:** The probe could not observe host binding or resume because `pm-probe` lacked the required host tools. This unit corrects the probe tool surface; the finding records the probe limitation, not proof that those behaviors have since been exercised.
+- **Observed — relay dispatch:** The depth-1 review relay dispatch was blocked by `pm-probe`'s task allowlist.
+- **Observed — PM sandbox reads:** Sandbox read calls from a PM returned `unknown session`, rather than a refusal. The owner decision is that PMs must not use the sandbox; the sandbox read tools are removed from their surfaces.
+- **Observed — review integration depth:** The review integration showed no depth or parent sensitivity in the probe. `trustedParent` exists in the interface but `decide()` does not read it; the only `parentID` read is the relay's. This records the observed code shape without claiming a mechanism or causal effect.
+
 ## Next step
 T1 (Q53) is complete; Q55 is the next actionable item, and item 4 remains deferred to its PM agents. T2 (Q54) still waits on the owner passing Handover A across to agent-sandbox-integration.
 
