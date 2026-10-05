@@ -40,7 +40,7 @@ task, each assessed against the last reviewed boundary.
   planner's own analysis). Trigger: owner request.
 - [x] T1 (Q53) — Probe with `pm-probe` and depth 4; record the eight observations. Probe work is complete; item 4 remains unobserved and its placement is deferred to Q55.
 - [ ] T2 (Q54) — Wait for the owner to pass Handover A to agent-sandbox-integration; then install the sandbox allowlist and probe host mutations from a subagent.
-- [ ] T3 (Q55) — implementation landed in commit `8980254`: `docs/specs/pm-handoff.md`, four agent registrations, guard coordinator admission, and regression tests. `pm-probe` is deliberately retained pending Q54's probe-target change from `pm-probe` to the real PM agents; Q54's existing probe dependency must retain its subject. Acceptance remains open for post-code advisory review and enforcement evidence; route-specific classification is verified, but hard rejection is not (the guard is warning-only).
+- [ ] T3 (Q55) — implementation landed in commit `8980254`: `docs/specs/pm-handoff.md`, four agent registrations, guard coordinator admission, and regression tests. `pm-probe` is deliberately retained pending Q54's probe-target change from `pm-probe` to the real PM agents; Q54's existing probe dependency must retain its subject. The post-code advisory review is complete; acceptance remains open for enforcement and pilot evidence. Route-specific classification is verified, but hard rejection is not (the guard is warning-only).
 - [ ] T4 (Q56) — Pilot `pm-odd` on global-tooling units; ten units without route escape.
 - [ ] T5 (Q57) — Slim orchestrator prompt and permissions; `AGENTS.md` split; `WORKFLOW.md` and
   skills.
@@ -94,11 +94,22 @@ task, each assessed against the last reviewed boundary.
   with 53 passed / 0 failed; the red-first run had 4 failures. The implementation delivers the
   handoff contract, PM agents, ODD writer, coordinator guard admission and five regression cases.
   `pm-probe` is deliberately retained until Q54 changes its probe target to the real PM agents.
-  T3 is IN PROGRESS, not complete: the post-code advisory review remains owed, and route-specific
-  classification is verified while hard rejection is not (the guard is warning-only). The
-  Q58 requirement that PMs hold their own route key before `host_review_start` is recorded above;
-  relay grants and verifier admission for PMs are coupled to the future guard rule. Acceptance
-  evidence and the required metadata/mirror close-out remain pending.
+  T3 is IN PROGRESS, not complete: post-code advisory review has now run, but acceptance remains
+  unmet because the guard is warning-only and the PM behavioral probe/pilot evidence is deferred.
+  The Q58 requirement that PMs hold their own route key before `host_review_start` is recorded
+  above; relay grants and verifier admission for PMs remain coupled to the future guard rule.
+  Acceptance evidence and the required metadata/mirror close-out remain pending.
+- 2026-10-05: Q55 post-code advisory review ran in design scope (seven findings) and integration
+  scope. Testing scope was not run because the guard tests were empirically verified with a
+  red-first run. The contract folds in commit ownership, review assessment as a `DONE` conjunct,
+  the reviewability receipt, brief schema identity, route-specific post-code advice, RDD mode/source
+  brief inputs, log-backed routing-gate observations, and explicit metadata worker/commit/failure
+  handling. The verifier now asserts PM non-execution permissions, the `odd-apply` writer shape,
+  and its PM-only task allowlist. Deferred: `COORDINATOR_PATTERNS` still treats any `pm-*` name
+  as a coordinator without registry cross-check; `workflow-sdd-secure` has no `ROUTE_STAGES`
+  entry; the warning-only guard leaves the three-way invariants unenforced; and the behavioral
+  probe does not exercise PM agents (Q59/T7 territory). T3 remains open because acceptance criteria
+  remain unmet.
 - 2026-10-04: T0 done. Facts verified against `global-config/opencode.json`, the guard helpers,
   `verify-workflow.sh`, the OpenCode 1.18.34 binary (Task `task_id`, depth check, child
   permission derivation) and agent-sandbox-integration (`sandbox-tools.ts:64`,

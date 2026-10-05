@@ -2710,6 +2710,24 @@ function assertCfgWriter(name) {
 for (const name of ["frontend-apply","frontend-apply-local","general","jd-fix-agent","odd-apply"]) assertCfgWriter(name)
 for (const name of Object.keys(deployedAgents).filter((n)=>n.startsWith("sdd-") && n!=="sdd-research")) assertCfgWriter(name)
 
+const pmAgents=["pm-odd","pm-systematic","pm-sdd"]
+const pmNoExecutionTools=["sandbox_write","sandbox_edit","sandbox_apply_patch","sandbox_apply","sandbox_bash","sandbox_finish","sandbox_discard","sandbox_copy_in","sandbox_copy_out","bash","edit","write"]
+for (const name of pmAgents) {
+  const pm=deployedAgents[name]
+  if (!pm) { fail(`PM_AGENT_MISSING: ${name}`); continue }
+  for (const t of pmNoExecutionTools) {
+    if (cfgPerm(pm,t)!=="deny" || cfgTool(pm,t)===true) fail(`PM_EXECUTION_TOOL_EXPOSED: ${name}.${t}`)
+  }
+}
+const oddApply=deployedAgents["odd-apply"]
+if (!oddApply) fail("SANDBOX_WRITER_MISSING: odd-apply")
+else {
+  const pmTask=cfgPerm(deployedAgents["pm-odd"],"task")
+  const orchestratorTask=cfgPerm(deployedAgents["gentle-orchestrator"],"task")
+  if (pmTask?.["odd-apply"]!=="allow") fail(`ODD_APPLY_NOT_ALLOWED_TO_PM: pm-odd.odd-apply=${show(pmTask?.["odd-apply"])}`)
+  if (orchestratorTask?.["odd-apply"]==="allow") fail("ODD_APPLY_ALLOWED_TO_ORCHESTRATOR")
+}
+
 const sddResearch=deployedAgents["sdd-research"]
 if (!sddResearch) fail("SDD_RESEARCH_AGENT_MISSING")
 else {
