@@ -40,17 +40,16 @@ task, each assessed against the last reviewed boundary.
   planner's own analysis). Trigger: owner request.
 - [x] T1 (Q53) — Probe with `pm-probe` and depth 4; record the eight observations. Probe work is complete; item 4 remains unobserved and its placement is deferred to Q55.
 - [ ] T2 (Q54) — Wait for the owner to pass Handover A to agent-sandbox-integration; then install the sandbox allowlist and probe host mutations from a subagent.
-- [ ] T3 (Q55) — `docs/specs/pm-handoff.md`; PM and `odd-apply` agents; prompts; guard data and
-  tests. `pm-probe` removal is deferred until Q54's probe target is changed from `pm-probe` to
-  the real PM agents; Q54's existing probe dependency must retain its subject.
+- [ ] T3 (Q55) — implementation landed in commit `8980254`: `docs/specs/pm-handoff.md`, four agent registrations, guard coordinator admission, and regression tests. `pm-probe` is deliberately retained pending Q54's probe-target change from `pm-probe` to the real PM agents; Q54's existing probe dependency must retain its subject. Acceptance remains open for post-code advisory review and enforcement evidence; route-specific classification is verified, but hard rejection is not (the guard is warning-only).
 - [ ] T4 (Q56) — Pilot `pm-odd` on global-tooling units; ten units without route escape.
 - [ ] T5 (Q57) — Slim orchestrator prompt and permissions; `AGENTS.md` split; `WORKFLOW.md` and
   skills.
 - [ ] T6 (Q58) — Guard ordering rules, tests first.
-  - Requirement (not yet implemented): a PM must hold its own route's adapter key before
-    `host_review_start`: `pm-odd` requires `workflow-odd-secure`, and `pm-systematic` requires
-    `workflow-systematic`. This matches the existing rule that a PM must hold its route key
-    before `host_git_commit` or a writer dispatch. `pm-sdd` does not launch native RDD.
+  - Requirement (not yet implemented; recorded in commit `e9bffc0`): a PM must hold its own
+    route's adapter key before `host_review_start`: `pm-odd` requires `workflow-odd-secure`, and
+    `pm-systematic` requires `workflow-systematic`. This matches the existing rule that a PM must
+    hold its route key before `host_git_commit` or a writer dispatch. `pm-sdd` does not launch
+    native RDD.
   - A relay grant without the matching route key must not admit a review; permission alone is
     not readiness.
   - The relay grants and verifier rule admitting them on `pm-*` are deliberately coupled
@@ -87,14 +86,19 @@ task, each assessed against the last reviewed boundary.
   task.
 
 ## Progress
-- 2026-10-05: Q55 implementation evidence: `docs/specs/pm-handoff.md`, four agent registrations,
-  route-specific guard admission, and five regression cases are present. T3 remains pending: the
-  staged reviewability receipt is above the 400-line per-commit limit; no commit or native review
-  was started. Required pre-code advisor
-  dispatch was unavailable in this bounded worker, so no advice result is claimed. The route is
-  delegated global-tooling work; the named sandbox writer ran the ordered implementation and test
-  stages in this session. Final tracker/mirror metadata and review must be completed in a separate
-  metadata work unit before T3 can be marked done.
+- 2026-10-05: Q55 (T3) implementation landed in commit `8980254`. Files: `docs/specs/pm-handoff.md`,
+  `global-config/opencode.json`, `global-config/plugins/lib/routing-guard-helpers.ts`,
+  `global-config/plugins/systematic-routing-guard.ts`,
+  `global-config/skills/workflow-odd-secure/SKILL.md`, `odd/tasks/pm-layer.md`,
+  `tests/routing-guard/routing-guard.test.ts`, and `verify-workflow.sh`. The test run finished
+  with 53 passed / 0 failed; the red-first run had 4 failures. The implementation delivers the
+  handoff contract, PM agents, ODD writer, coordinator guard admission and five regression cases.
+  `pm-probe` is deliberately retained until Q54 changes its probe target to the real PM agents.
+  T3 is IN PROGRESS, not complete: the post-code advisory review remains owed, and route-specific
+  classification is verified while hard rejection is not (the guard is warning-only). The
+  Q58 requirement that PMs hold their own route key before `host_review_start` is recorded above;
+  relay grants and verifier admission for PMs are coupled to the future guard rule. Acceptance
+  evidence and the required metadata/mirror close-out remain pending.
 - 2026-10-04: T0 done. Facts verified against `global-config/opencode.json`, the guard helpers,
   `verify-workflow.sh`, the OpenCode 1.18.34 binary (Task `task_id`, depth check, child
   permission derivation) and agent-sandbox-integration (`sandbox-tools.ts:64`,

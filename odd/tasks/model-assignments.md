@@ -132,3 +132,21 @@ The exact fallback policy for `opencode-go/deepseek-v4-flash` is new because the
 | `asi-review-readability` | `opencode-go/deepseek-v4-flash` / `high` | `opencode-go/muse-spark-1.3-contributor` / `high` |
 
 The exact fallback policy for `opencode-go/muse-spark-1.3-contributor` starts with `opencode-go/mimo-v2.6-flash` (`high`), followed by the existing non-GPT `deepseek/deepseek-flash` and `openrouter/deepseek/deepseek-v4.1-flash` targets. The existing `opencode-go/deepseek-v4-flash` policy remains because `advisor-maintainability-post` still uses that primary.
+
+### Follow-on assignment and retired-model record
+
+| Agent | Previous model / variant | Current model / variant | Evidence |
+|---|---|---|---|
+| `review-readability` | `opencode-go/deepseek-v4.1-flash` / `max` | `opencode-go/deepseek-v4-flash` / `high` | `b7f7bd9` |
+| `asi-review-readability` | `opencode-go/deepseek-v4.1-flash` / `max` | `opencode-go/deepseek-v4-flash` / `high` | `b7f7bd9` |
+| `advisor-maintainability-post` | `opencode-go/deepseek-v4.1-flash` / none | `opencode-go/deepseek-v4-flash` / `medium` | `b7f7bd9` |
+| `review-readability` | `opencode-go/deepseek-v4-flash` / `high` | `opencode-go/muse-spark-1.3-contributor` / `high` | `00e603b` |
+| `asi-review-readability` | `opencode-go/deepseek-v4-flash` / `high` | `opencode-go/muse-spark-1.3-contributor` / `high` | `00e603b` |
+
+The `deepseek-v4-flash` and Muse Spark assignments required unretiring those models; the
+associated changes are recorded in `e89d4f0` and `00e603b`, respectively. The lens-failure rule
+also treats an unknown finish reason, zero output tokens, reasoning-only output, and tool-call-ID
+errors as failures, alongside malformed or contract-mismatched output: retry once, fall back, then
+fail closed. None is a valid no-findings result. The verifier's 4R model-family mapping recognizes
+Muse Spark as family `muse` (`f9e1cae`). The local Go usage limit for Muse Spark is not available;
+record it as unknown, not as a numeric allowance.

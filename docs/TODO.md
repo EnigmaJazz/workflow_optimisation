@@ -37,8 +37,9 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   the Q36 change set, then Q34. Q49 runs throughout.
 - **Phase 5, OpenCode V2 upgrade (owner-triggered, after Phase 4):** Q40-Q47.
 - **Project-manager layer (owner, 2026-10-04; runs alongside Phases 2 and 3):** Q53 done; Q54
-  blocked pending the owner passing Handover A across to agent-sandbox-integration; Q55 next and
-  actionable; Q56 needs both Q54 and Q55; then Q57-Q60, then Q61.
+  blocked pending the owner passing Handover A across to agent-sandbox-integration; Q55
+  implementation in progress pending acceptance; Q56 needs both Q54 and Q55; then Q57-Q60 and
+  Q61. Q62 (retired-model list and seat-assignment reconciliation) is independently planned.
 
 Every source change needs the deploy step: verifier mirror, then restart. Q27 waits on an owner
 decision.
@@ -502,11 +503,14 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   Task and `host_review_status` from `pm-probe`. Related: Q50 (interface contract).
 
 ### Q55. PM layer: handoff contract, agents and writer
-- **Status:** READY.
+- **Status:** IN PROGRESS. Implementation landed in commit `8980254`; acceptance criteria remain
+  open. `pm-probe` is deliberately retained pending Q54's probe-target change.
 - **Prerequisites:** Q53.
 - **Description:** `docs/specs/pm-handoff.md`; `pm-odd`, `pm-systematic`, `pm-sdd` and
   `odd-apply` in `global-config/opencode.json`; PM prompts within budget; guard data
-  (`SPECIALIST_WRITERS`, `pm-` as coordinator) with tests first; remove `pm-probe`.
+  (`SPECIALIST_WRITERS`, `pm-` as coordinator) with tests first; remove `pm-probe` only after Q54
+  changes its probe target. Post-code advisory review remains owed; route-specific classification
+  is verified, but hard rejection is not (the guard is warning-only).
 
 ### Q56. PM layer: pilot `pm-odd`
 - **Status:** BLOCKED.
@@ -547,6 +551,15 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 - **Description:** move the Systematic and SDD routes to `pm-systematic` and `pm-sdd`; remove
   `gentle-orchestrator-legacy`; `ce:compound`. For V2, the four-level nesting must be probed in
   Q41, because V2 has no `subagent_depth` (Q43).
+
+### Q62. Keep retired models aligned with seat assignments
+- **Status:** PLANNED.
+- **Prerequisites:** none.
+- **Description:** resolve the maintenance gap between the retired-model list and seat
+  assignments. Three seats in a row were blocked by the retired-model list; the list and
+  assignments are maintained in different places, with no mechanism keeping them in sync.
+  Define one authoritative relationship or a check that detects drift, then reconcile both
+  records without blocking valid assignments accidentally.
 
 ## gentle-ai v4 upgrade (PLANNED — implement when the owner decides to upgrade)
 

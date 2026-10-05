@@ -38,8 +38,9 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
     strategic front end and dispatches one route-specific project-manager subagent per work
     unit, which runs the route to completion. Q53's probe is complete: seven of eight items were
     observed; item 4 remains unobserved and deferred to Q55. Q54 is blocked pending the owner
-    passing Handover A across to agent-sandbox-integration; Q55 is next and actionable; Q56 needs
-    both Q54 and Q55, followed by Q57-Q61. Design:
+    passing Handover A across to agent-sandbox-integration; Q55 implementation is in progress with
+    acceptance criteria still open; Q56 needs both Q54 and Q55, followed by Q57-Q61. Q62 is an
+    independently planned model-retirement/seat-assignment reconciliation. Design:
     `docs/handoffs/2026-10-04-pm-layer-workflow-optimisation.md`.
 
 ## Layers
@@ -126,6 +127,10 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
   verifier provider-diversity checks on the decision that subscription capacity plus failover
   replaces provider spread. Tracker: `odd/tasks/model-assignments.md`. The GPT fallback target
   question remains open.
+- 2026-10-05: assign `review-readability` and `asi-review-readability` to
+  `opencode-go/muse-spark-1.3-contributor` (`high`); the owner accepted the model's training-data
+  terms. The local Go usage limit is unavailable and remains unknown, not a numeric assumption.
+  The model-family verifier maps Muse Spark to `muse`. Tracker: `odd/tasks/model-assignments.md`.
 
 ## Memory and inter-agent communication (direction, 2026-10-01)
 - **Memory pathway by runtime (owner decisions, 2026-10-01):**
