@@ -364,38 +364,6 @@
         ]
       }
     ],
-    "opencode-go/grok-4.7": [
-      {
-        "providerID": "opencode-go",
-        "modelID": "deepseek-v4.1-flash",
-        "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "deepseek",
-        "modelID": "deepseek-flash",
-        "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "openrouter",
-        "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      }
-    ],
     "openai/gpt-6-astra": [
       {
         "providerID": "openai",
