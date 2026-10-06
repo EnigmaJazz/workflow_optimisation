@@ -51,6 +51,11 @@ Per work unit: `bash -n verify-workflow.sh`; the routing-guard test suite under 
 
 Note: the pre-existing `advisor-testing` entry carries `"variant": "medium"` on `opencode-go/kimi-k2.7-code`, which offers no variants; `advisor-maintainability` carries `medium` on `opencode-go/mimo-v2.6-flash`, unconfirmed. Both are candidates for cleanup in T4.
 
+## Native review follow-up findings — `review-87d0cd86677f9627` (APPROVED)
+
+- **R3-001 (SUGGESTION): resolved.** `verify-workflow.sh` audits tools and every configured permission leaf for all twelve plain review and `asi-review-*` agents. Positive control command: `bun .sandbox-state/review-agent-lockdown-positive-control.js`. It extracted the exact predicate from `verify-workflow.sh`, applied it to the parsed canonical config (all 12 agents produced no failures), then to a synthetic enabled tool/allowed permission. Observed output: `PASS: parsed canonical config passed lockdown checks for 12 review agents`; `REVIEW_AGENT_TOOL_EXPOSED: positive-control synthetic-enabled-tool`; `REVIEW_AGENT_PERMISSION_NOT_DENIED: positive-control permission.synthetic-permission`.
+- **R4-REFUTER-OBSERVABILITY-02 (WARNING): documented, not automated.** Selected option 1: `WORKFLOW.md` requires the orchestrator to record each refuter verdict and its configured model in the current task tracker, or in the log below when no task-specific tracker exists. The routing guard only sees Task arguments at dispatch; it does not obtain configured model resolution or Task result verdicts, so option 2 cannot provide the required pair. Refuters themselves are tool-less. No automated capture was implemented.
+
 ## Progress
 - [x] T1 lens seats and relays
 - [x] T2 judgment day
@@ -167,7 +172,16 @@ The `opencode-go/grok-4.7` exact fallback policy is restored because Grok is an 
 ### Refutation policy requirements and open item
 
 - **Unchanged policy, restated:** a refuter failure leaves the disputed finding standing as **UNREFUTED**.
-- **Requirement, not implemented:** log each refuter verdict together with the model used. The logging destination is undefined.
+- **Resolution (manual process requirement):** after each native review refuter Task, the orchestrator records the verdict and configured model in the current ODD task tracker; if no task-specific tracker exists, it appends a row to the log below. Capture refusals/transport failures are recorded as such, not as verdicts, and all-`inconclusive` batches are explicitly noted. `WORKFLOW.md` now makes this a required review-flow step.
+- **Automation status: not implemented.** The refuter emits only a verdict and has no tools, while the routing guard's `tool.execute.before` hook can observe Task arguments but does not obtain the configured model or the returned refuter verdict. Adding a dispatch log there would therefore not meet the verdict-plus-model requirement; the in-repo `WORKFLOW.md` process rule is the only justified option with current capabilities.
+
+### Refuter verdict log
+
+Append one row per refuter Task. Do not backfill a verdict when transport/capture failed.
+
+| Date | Review/candidate reference | Verdict or transport status | Configured model | Notes |
+|---|---|---|---|---|
+| — | — | No entries recorded yet | — | Placeholder for future review-flow records |
 - **Open item, not implemented:** always use the refuter fallback when the disputed finding's lens actually ran on a MiMo model. This is not expressible in the current fallback policy: the policy is keyed on rate-limit replay, not on which model a lens ran on, and the provider owns lens model selection.
 
 ## Review refuter transport refusal — tool-use correction

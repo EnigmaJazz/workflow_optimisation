@@ -2699,6 +2699,34 @@ for (const name of ["host_system","host_service_status","host_service_logs","hos
 
 function cfgTool(agent,t) { return agent?.tools && typeof agent.tools==="object" ? agent.tools[t] : undefined }
 function cfgPerm(agent,t) { return agent?.permission && typeof agent.permission==="object" ? agent.permission[t] : undefined }
+function reviewAgentLockdownFailures(name,agent) {
+  const failures=[]
+  for (const tool of Object.keys(agent?.tools??{})) {
+    if (cfgTool(agent,tool)!==false) failures.push(`REVIEW_AGENT_TOOL_EXPOSED: ${name} ${tool}`)
+  }
+  const checkPermissions=(permissions,path="permission")=>{
+    for (const [permission,value] of Object.entries(permissions??{})) {
+      const permissionPath=`${path}.${permission}`
+      if (value && typeof value==="object" && !Array.isArray(value)) checkPermissions(value,permissionPath)
+      else if (value!=="deny") failures.push(`REVIEW_AGENT_PERMISSION_NOT_DENIED: ${name} ${permissionPath}`)
+    }
+  }
+  checkPermissions(agent?.permission)
+  return failures
+}
+const reviewAgentProbeFailures=reviewAgentLockdownFailures("positive-control",{
+  tools:{"synthetic-enabled-tool":true},
+  permission:{"synthetic-permission":"allow"},
+})
+const expectedReviewAgentProbeFailures=[
+  "REVIEW_AGENT_TOOL_EXPOSED: positive-control synthetic-enabled-tool",
+  "REVIEW_AGENT_PERMISSION_NOT_DENIED: positive-control permission.synthetic-permission",
+]
+if (expectedReviewAgentProbeFailures.some((failure)=>!reviewAgentProbeFailures.includes(failure))) {
+  fail(`REVIEW_AGENT_LOCKDOWN_POSITIVE_CONTROL_FAILED: ${JSON.stringify(reviewAgentProbeFailures)}`)
+} else {
+  console.log(`   ok: review-agent lockdown positive control detected ${JSON.stringify(expectedReviewAgentProbeFailures)}`)
+}
 function assertCfgWriter(name) {
   const a=deployedAgents[name]; if (!a) { fail(`SANDBOX_WRITER_MISSING: ${name}`); return }
   if (cfgPerm(a,"edit")!=="deny" || cfgPerm(a,"write")!=="deny") fail(`HOST_WRITE_EXPOSED: ${name}`)
@@ -2730,6 +2758,15 @@ for (const name of pmProbeAndAgents) {
       fail(`PM_SANDBOX_READ_TOOL_PRESENT: ${name}.${t}`)
     }
   }
+}
+const reviewRelayAgents=[
+  "review-risk","review-resilience","review-readability","review-reliability","review-refuter","review-validator",
+  "asi-review-risk","asi-review-resilience","asi-review-readability","asi-review-reliability","asi-review-refuter","asi-review-validator",
+]
+for (const name of reviewRelayAgents) {
+  const agent=deployedAgents[name]
+  if (!agent) { fail(`REVIEW_AGENT_MISSING: ${name}`); continue }
+  for (const failure of reviewAgentLockdownFailures(name,agent)) fail(failure)
 }
 const oddApply=deployedAgents["odd-apply"]
 if (!oddApply) fail("SANDBOX_WRITER_MISSING: odd-apply")
