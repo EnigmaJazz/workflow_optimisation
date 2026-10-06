@@ -155,14 +155,14 @@ record it as unknown, not as a numeric allowance.
 
 | Agent | Old model / variant | New model / variant |
 |---|---|---|
-| `review-refuter` | `opencode-go/grok-4.7` / `high` | `opencode-go/mimo-v2.6-flash` / `high` |
-| `asi-review-refuter` | `opencode-go/grok-4.7` / `high` | `opencode-go/mimo-v2.6-flash` / `high` |
+| `review-refuter` | `opencode-go/mimo-v2.6-flash` / `high` | `opencode-go/grok-4.7` / `high` |
+| `asi-review-refuter` | `opencode-go/mimo-v2.6-flash` / `high` | `opencode-go/grok-4.7` / `high` |
 
-`opencode-go/mimo-v2.6-pro` was **not validated** against the refuter output contract: no model-invocation path was available to the orchestrator. The conservative branch was therefore taken; this is not a claim that the model was validated and failed.
+`opencode-go/mimo-v2.6-pro` was **not validated** against the refuter output contract: no model-invocation path was available to the orchestrator. This remains an evidence gap; it was not the cause of the refuter failures.
 
-The reassignment gives the refuter the `mimo` family. This is distinct from the four lens families (`qwen`, `glm`, `muse`, `kimi`) and from the validator's `minimax` family, satisfying the recorded refuter/validator distinctness rule. `modelFamily()` already recognizes `mimo`.
+The MiMo reassignment was reverted because the model was **irrelevant** to the refuter failures: the cause was the prompt inviting repository investigation and tool use. The refuter and its relay are `opencode-go/grok-4.7` / `high` again. The prompt correction now forbids tool use and investigation.
 
-The refuter's fallback chain now starts with `opencode-go/longcat-2.0` (`high`), followed by the previously configured `deepseek/deepseek-flash` and `openrouter/deepseek/deepseek-v4.1-flash` targets. The existence of `longcat-2.0` is **unverified**; no repository occurrence was found before it was added here. Moving the refuter off `opencode-go/grok-4.7` leaves the existing exact Grok fallback policy orphaned; it is retained, not deleted.
+The `opencode-go/grok-4.7` exact fallback policy is restored because Grok is an active primary again. The MiMo fallback chain no longer includes `opencode-go/longcat-2.0`; its continued existence is **unverified**, and it is not referenced by any fallback chain.
 
 ### Refutation policy requirements and open item
 
