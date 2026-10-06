@@ -184,6 +184,21 @@ The provider's continuation names its agent with the plain installed names (`pro
 - After successful acknowledgement, review is terminal; push/PR/merge/release follow ordinary repository policy and explicit user intent.
 - `stop` never approves delivery. If the user disables RDD, do not re-enable it automatically; continue under ordinary repository policy.
 - On `correction_context_budget_exceeded`, preserve the stop and obtain the exact `gentle-ai review abandon` binding template through the reviewed host boundary; do not use `review invalidate`. After authorized abandonment, split the candidate and start smaller reviews, or continue only under an explicit disabled-RDD disposition.
+- Run provider-returned lifecycle and recovery commands exactly as returned; add no caller-authored flags such as `--actor`, `--reason`, or `--maintainer-authorization` beyond the provider's binding. This reinforces the existing rule in `docs/TODO.md` and `docs/TODO-HISTORY.md`; do not duplicate its rationale here.
+- Lens Tasks return opaque artifact references, and `host_review_status` does not print findings. Read finding text from the last admitted lens's completion event: its closure payload contains the complete `reviewer_results`, any advisory statement, and the acknowledgement command. Do not hunt for a store path or schema, and do not read under `.git`.
+- For multi-line Fish authorization bindings, build the LF-joined value without a trailing newline using `set -l auth (printf 'line1\nline2' | string collect)`, pass it as `"$auth"`, and verify it with `string escape "$auth"`. Fish double quotes do not expand `\n`, and command substitution splits on newlines and rejoins quoted results with spaces.
+- When a review lineage cannot be advanced, abandon it rather than leaving it stuck. Read `entries[]` for the lineage in plain `gentle-ai review status --cwd .` output: use `lineage_id`, `revision`, `snapshot_identity`, comma-joined `discarded_work.captured_lens_results` in listed order, and `discarded_work.findings_present`. Choose `--reason` only from `operator_disposition` or `retired_schema`; `--actor` is the operator's choice. The `--maintainer-authorization` value is exactly these eight LF-joined lines with no trailing newline:
+  ```text
+  gentle-ai.review-abandon-authorization/v2
+  lineage=<--lineage>
+  revision=<--expected-revision>
+  snapshot_identity=<entries[].snapshot_identity>
+  reason=<--reason>
+  captured_lens_results=<comma-joined captured_lens_results>
+  findings_present=<findings_present>
+  actor=<--actor>
+  ```
+  `gentle-ai review repair` is not a fallback; it reported `unsupported` with zero eligible candidates.
 - An SDD archive may return positive `archived: {path}` state and the `archived` recommended-action token. Preserve these values as completion, not as a missing-next-phase failure.
 - For `openspec` and `hybrid`, archive runs native `gentle-ai sdd-archive-compose` to deterministically merge the accepted delta into the canonical spec. In `hybrid`, persist the identical composed body through Magic Context and refuse one-sided or divergent closure. In `magic-context`-only mode, do not create a synthetic OpenSpec tree; persist the final archive report in the declared store. Native `gentle-ai.sdd-status/v2` remains authoritative for OpenSpec-backed state; Magic Context-only state requires artifact readback.
 
