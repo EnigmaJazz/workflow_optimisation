@@ -544,6 +544,16 @@
     ],
     "opencode-go/mimo-v2.6-flash": [
       {
+        "providerID": "opencode-go",
+        "modelID": "longcat-2.0",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
         "variant": "max",

@@ -764,7 +764,7 @@
       "description": "Batched adversarial refuter — evaluates every BLOCKER/CRITICAL candidate through one assigned lens and returns one verdict per finding",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/grok-4.7",
+      "model": "opencode-go/mimo-v2.6-flash",
       "prompt": "You are the detached read-only refuter for exactly ONE transaction-wide inferential batch. Receive every inferential severe neutral claim and proof reference, return one corroborated | refuted | inconclusive result per finding, add no findings, modify nothing, return one complete result, and terminate. Missing or malformed entries are inconclusive.\n\n<!-- gentle-ai:agent-language-contract -->\n## Artifact Language Contract\n\nGenerated artifacts (code, comments, UI copy, docs, specs, tests, commit messages, memory entries) default to English. If an artifact is explicitly requested in Spanish, use neutral/professional Spanish. Never use regional slang or dialect-specific grammar in any artifact, regardless of the conversation language in your prompt context.\n\nBefore any Write/Edit whose content is an artifact, re-verify these artifact language rules.\n<!-- /gentle-ai:agent-language-contract -->\n",
       "tools": {
         "*": false,
@@ -1866,7 +1866,7 @@
       "description": "Relay refuter. Provider-materialized prompt only.",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/grok-4.7",
+      "model": "opencode-go/mimo-v2.6-flash",
       "variant": "high",
       "prompt": "Follow only the provider-materialized refutation prompt. Do not add findings, modify anything, or delegate.",
       "tools": {

@@ -150,3 +150,22 @@ errors as failures, alongside malformed or contract-mismatched output: retry onc
 fail closed. None is a valid no-findings result. The verifier's 4R model-family mapping recognizes
 Muse Spark as family `muse` (`f9e1cae`). The local Go usage limit for Muse Spark is not available;
 record it as unknown, not as a numeric allowance.
+
+## Refuter reassignment and policy record
+
+| Agent | Old model / variant | New model / variant |
+|---|---|---|
+| `review-refuter` | `opencode-go/grok-4.7` / `high` | `opencode-go/mimo-v2.6-flash` / `high` |
+| `asi-review-refuter` | `opencode-go/grok-4.7` / `high` | `opencode-go/mimo-v2.6-flash` / `high` |
+
+`opencode-go/mimo-v2.6-pro` was **not validated** against the refuter output contract: no model-invocation path was available to the orchestrator. The conservative branch was therefore taken; this is not a claim that the model was validated and failed.
+
+The reassignment gives the refuter the `mimo` family. This is distinct from the four lens families (`qwen`, `glm`, `muse`, `kimi`) and from the validator's `minimax` family, satisfying the recorded refuter/validator distinctness rule. `modelFamily()` already recognizes `mimo`.
+
+The refuter's fallback chain now starts with `opencode-go/longcat-2.0` (`high`), followed by the previously configured `deepseek/deepseek-flash` and `openrouter/deepseek/deepseek-v4.1-flash` targets. The existence of `longcat-2.0` is **unverified**; no repository occurrence was found before it was added here. Moving the refuter off `opencode-go/grok-4.7` leaves the existing exact Grok fallback policy orphaned; it is retained, not deleted.
+
+### Refutation policy requirements and open item
+
+- **Unchanged policy, restated:** a refuter failure leaves the disputed finding standing as **UNREFUTED**.
+- **Requirement, not implemented:** log each refuter verdict together with the model used. The logging destination is undefined.
+- **Open item, not implemented:** always use the refuter fallback when the disputed finding's lens actually ran on a MiMo model. This is not expressible in the current fallback policy: the policy is keyed on rate-limit replay, not on which model a lens ran on, and the provider owns lens model selection.
