@@ -118,6 +118,18 @@ task, each assessed against the last reviewed boundary.
   Native review `review-314b7602882be12e` (one lens, reliability): approved and acknowledged;
   authority burned. One advisory suggestion (Q54 and Q55 can run in parallel) applied to the
   Phases line in `docs/TODO.md`. Reviewed boundary: `bd7835c`.
+- **Observed — abandoned native-review lineage (2026-10-06):** Gentle AI 3.7.0 (stable, protocol
+  1.5) review `review-df3efa401830a824` reached `correction_required`, then required
+  `intended_untracked_selection_required`. The required exact
+  `gentle-ai.review-intended-untracked-selection/v1` JSON schema was unavailable through the CLI,
+  so the lineage could not be advanced. The supplied recovery command failed after caller-authored
+  `--actor` and `--reason` flags were appended; the `--reason` value was silently captured as an
+  untracked path, poisoning the successor lineage's inventory. Successor
+  `review-df3efa401830a824-s1` is abandoned. Run provider-returned lifecycle commands verbatim
+  with no added flags, as already asserted in `docs/TODO.md` around line 590 and
+  `docs/TODO-HISTORY.md` around line 104. The CLI also reported pre-existing store-integrity damage
+  and unsupported automatic repair; details and affected lineage IDs are tracked in `docs/TODO.md`
+  Q63. No `.git` store files were inspected or edited.
 
 ### Q53 probe results
 - **Item 1 PASS** — Four-level chain executed end to end: orchestrator → `pm-probe` (`ses_ef76d56c2ffeiKOhXlYSHVZ3KP`) → `frontend-dev` (`ses_ef76d1349ffeMfRV4Yyur0n4Uq`) → `frontend-apply` (`ses_ef76ceca5ffeil6DlZlHAyGf60`) → `vision` (`ses_ef76cd241ffepugoicm9Up9w7S`). No permission or depth gate fired.
