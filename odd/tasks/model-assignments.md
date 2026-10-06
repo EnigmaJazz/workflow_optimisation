@@ -169,3 +169,9 @@ The refuter's fallback chain now starts with `opencode-go/longcat-2.0` (`high`),
 - **Unchanged policy, restated:** a refuter failure leaves the disputed finding standing as **UNREFUTED**.
 - **Requirement, not implemented:** log each refuter verdict together with the model used. The logging destination is undefined.
 - **Open item, not implemented:** always use the refuter fallback when the disputed finding's lens actually ran on a MiMo model. This is not expressible in the current fallback policy: the policy is keyed on rate-limit replay, not on which model a lens ran on, and the provider owns lens model selection.
+
+## Review refuter transport refusal — tool-use correction
+
+**Observed diagnosis:** The refusal was `opencode_provider_role_result_refused (cause: role_capture_failed)`. The refuter turn emitted `aft_search` and `read` tool calls rather than a verdict, so the verdict-only relay had no role result to capture. The cause was tool use, not the model and not a broken transport. The grok attempt's raw output was never visible; whether it behaved identically is **unconfirmed**.
+
+**Correction:** All twelve review agents (the six `review-*` agents and six `asi-review-*` relays) now have every configured tool explicitly disabled (`tools: false`) and denied (`permission: "deny"`). They review the supplied evidence without inspecting the worktree, searching the repository, or delegating, allowing their turns to end on a verdict.
