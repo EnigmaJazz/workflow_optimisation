@@ -774,7 +774,9 @@
     "all configured opencode go keys are currently unavailable"
   ],
   "sourceGraceProviders": [
-    "opencode-go"
+    "openai",
+    "opencode-go",
+    "kinver"
   ],
   "sourceGraceMs": 30000,
   "replayWatchdogMs": 15000,
