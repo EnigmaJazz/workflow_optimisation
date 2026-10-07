@@ -268,11 +268,26 @@ task, each assessed against the last reviewed boundary.
   nothing. Correct deployment sequence: verifier mirror → restart. Removal remains unverified
   until a dispatch to `pm-probe` fails. Positive observation: the still-live `pm-probe` session
   correctly refused an instruction shaped like a liveness beacon rather than complying.
+- **Correction D — deployment verification (observed after commit `ae24a7f`):** Check (c) PASSES:
+  a Task dispatch to `pm-probe` returned `Unknown agent type: pm-probe is not a valid agent type`;
+  the removal is live. The canonical→live deployment chain is confirmed end to end: commit →
+  verifier mirror → restart → live. A restart alone applies nothing; this was the observation that
+  proved the order matters. The live `pm-odd` tool set was verified at 12 host-mutation tools:
+  `host_git_commit`, `host_git_push`, `host_review_acknowledge_approved`,
+  `host_review_capture_correction_plan`, `host_review_capture_refuter`,
+  `host_review_capture_result`, `host_review_capture_unachievable`,
+  `host_review_capture_validation`, `host_review_recover`, `host_review_start`,
+  `host_review_validate`, and `host_sandbox_result_install`. `host_gh_issue_create` and
+  `host_plan_append` are absent by design. Resume was re-confirmed: resuming the earlier
+  `pm-odd` session retained its prior conversation, a second independent observation of the
+  `task_id` resume behaviour (the first was the synthetic probe). In this unit, `pm-sdd` was
+  extended to the same 12 host-mutation tools, with `host_sdd_archive_compose` retained as its
+  route-specific extra.
 
 ## Next step
-Q54's earlier closure claim is superseded by the corrections above: the `pm-probe` removal check
-remains unverified until dispatch fails after verifier mirror → restart. Q55 remains in progress
-for the owed post-code advisory review. Q56 remains gated on Q55, deployment, and removal verification.
+Q54's `pm-probe` removal check (c) now PASSES after verifier mirror → restart; the failed dispatch
+is observed and the removal is live. Q55 remains in progress for the owed post-code advisory
+review. Q56 remains gated on Q55 and its other pilot prerequisites.
 
 ## Post-code advisory review — open, deferred findings
 
