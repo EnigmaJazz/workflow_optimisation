@@ -2488,11 +2488,13 @@ else {
       else {
         try {
           const cfg=parseJsonc(cfgPath)
-          const supportedFieldsMatch=defaults.match(/SUPPORTED_CONFIG_FIELDS\s*=\s*\[([\s\S]*?)\]/)
+          const supportedFieldsMatch=defaults.match(/SUPPORTED_CONFIG_FIELDS\s*=[\s\S]*?\[([\s\S]*?)\]/)
           const supportedFields=[...(supportedFieldsMatch?.[1] ?? "").matchAll(/["']([^"']+)["']/g)].map((match)=>match[1])
           if (supportedFields.length===0) fail("FALLBACK_CONFIG_SUPPORTED_FIELDS_EXTRACTION_EMPTY")
-          const supportedFieldSet=new Set([...supportedFields,"peakPolicy"])
-          for (const key of Object.keys(cfg)) if (!supportedFieldSet.has(key)) fail(`FALLBACK_CONFIG_UNSUPPORTED_FIELD: ${key}`)
+          else {
+            const supportedFieldSet=new Set([...supportedFields,"peakPolicy"])
+            for (const key of Object.keys(cfg)) if (!supportedFieldSet.has(key)) fail(`FALLBACK_CONFIG_UNSUPPORTED_FIELD: ${key}`)
+          }
           if (cfg.enabled!==true) fail("FALLBACK_CONFIG_DISABLED")
           if (cfg.logging!==true) fail("FALLBACK_LOGGING_NOT_ENABLED")
           if (cfg.advanceGraceMs!==30000) fail(`FALLBACK_ADVANCE_GRACE_MISMATCH: expected 30000, got ${show(cfg.advanceGraceMs)}`)
