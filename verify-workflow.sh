@@ -2701,6 +2701,12 @@ function cfgTool(agent,t) { return agent?.tools && typeof agent.tools==="object"
 function cfgPerm(agent,t) { return agent?.permission && typeof agent.permission==="object" ? agent.permission[t] : undefined }
 function reviewAgentLockdownFailures(name,agent) {
   const failures=[]
+  if (!agent?.tools || typeof agent.tools!=="object" || Array.isArray(agent.tools)) {
+    failures.push(`REVIEW_AGENT_LOCKDOWN_CONFIG_OBJECT_MISSING: ${name} tools`)
+  }
+  if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission)) {
+    failures.push(`REVIEW_AGENT_LOCKDOWN_CONFIG_OBJECT_MISSING: ${name} permission`)
+  }
   for (const tool of Object.keys(agent?.tools??{})) {
     if (cfgTool(agent,tool)!==false) failures.push(`REVIEW_AGENT_TOOL_EXPOSED: ${name} ${tool}`)
   }
@@ -2726,6 +2732,16 @@ if (expectedReviewAgentProbeFailures.some((failure)=>!reviewAgentProbeFailures.i
   fail(`REVIEW_AGENT_LOCKDOWN_POSITIVE_CONTROL_FAILED: ${JSON.stringify(reviewAgentProbeFailures)}`)
 } else {
   console.log(`   ok: review-agent lockdown positive control detected ${JSON.stringify(expectedReviewAgentProbeFailures)}`)
+}
+const omittedReviewAgentProbeFailures=reviewAgentLockdownFailures("positive-control-omitted-objects",{})
+const expectedOmittedReviewAgentProbeFailures=[
+  "REVIEW_AGENT_LOCKDOWN_CONFIG_OBJECT_MISSING: positive-control-omitted-objects tools",
+  "REVIEW_AGENT_LOCKDOWN_CONFIG_OBJECT_MISSING: positive-control-omitted-objects permission",
+]
+if (expectedOmittedReviewAgentProbeFailures.some((failure)=>!omittedReviewAgentProbeFailures.includes(failure))) {
+  fail(`REVIEW_AGENT_LOCKDOWN_OMITTED_OBJECT_POSITIVE_CONTROL_FAILED: ${JSON.stringify(omittedReviewAgentProbeFailures)}`)
+} else {
+  console.log(`   ok: review-agent lockdown positive control detected ${JSON.stringify(expectedOmittedReviewAgentProbeFailures)}`)
 }
 function assertCfgWriter(name) {
   const a=deployedAgents[name]; if (!a) { fail(`SANDBOX_WRITER_MISSING: ${name}`); return }
