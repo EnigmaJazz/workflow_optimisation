@@ -39,12 +39,14 @@ task, each assessed against the last reviewed boundary.
 - [x] T0 — Plan and the two handovers. Route: inline (Claude Code, advisory; the content is the
   planner's own analysis). Trigger: owner request.
 - [x] T1 (Q53) — Probe with `pm-probe` and depth 4; record the eight observations. Probe work is complete; item 4 remains unobserved and its placement is deferred to Q55.
-- [ ] T2 (Q54) — Wait for the owner to pass Handover A to agent-sandbox-integration; then install the sandbox allowlist and probe host mutations from a subagent.
-- [ ] T3 (Q55) — implementation landed in commit `8980254`: `docs/specs/pm-handoff.md`, four agent registrations, guard coordinator admission, and regression tests. `pm-probe` is deliberately retained pending Q54's probe-target change from `pm-probe` to the real PM agents; Q54's existing probe dependency must retain its subject. The post-code advisory review is complete; acceptance remains open for enforcement and pilot evidence. Route-specific classification is verified, but hard rejection is not (the guard is warning-only).
+- [x] T2 (Q54) — Complete from the owner-relayed Handover A report; identity policy, sandbox refusals and five probe answers recorded below. Probe closed in this unit, licensing removal of `pm-probe`.
+- [ ] T3 (Q55) — implementation landed in commit `8980254`: `docs/specs/pm-handoff.md`, four agent registrations, guard coordinator admission, and regression tests. The Q54 probe is closed and `pm-probe` was removed in this unit; the post-code advisory review remains owed. Route-specific classification is verified, but hard rejection is not (the guard is warning-only).
 - [ ] T4 (Q56) — Pilot `pm-odd` on global-tooling units; ten units without route escape.
 - [ ] T5 (Q57) — Slim orchestrator prompt and permissions; `AGENTS.md` split; `WORKFLOW.md` and
   skills.
-- [ ] T6 (Q58) — Guard ordering rules, tests first.
+- [ ] T6 (Q58) — Guard ordering rules, tests first; include proof of a real review relay from a PM
+  with a genuine provider-issued binding. Q54 reported reachability only; context delivery remains
+  unverified.
   - Requirement (not yet implemented; recorded in commit `e9bffc0`): a PM must hold its own
     route's adapter key before `host_review_start`: `pm-odd` requires `workflow-odd-secure`, and
     `pm-systematic` requires `workflow-systematic`. This matches the existing rule that a PM must
@@ -57,11 +59,13 @@ task, each assessed against the last reviewed boundary.
     admits relays only on `gentle-orchestrator` and `pm-*`; the guard will later require the key.
   - These grants restore the `pm-odd` and `pm-systematic` relay permissions previously removed
     by the `RELAY_TASK_GRANTED_OUTSIDE_ORCHESTRATOR` fix; that verifier rule now admits PMs.
-  - The broker currently binds `host_review_start` to `gentle-orchestrator`, so PMs cannot start
-    a review until Q54 lands; the grant is deliberately in place ahead of Q54 for `pm-odd` and
-    `pm-systematic`, because those routes owe native review. SDD does not launch native RDD, so
-    `pm-sdd` receives no relay grant.
-- [ ] T7 (Q59) — Verifier coordinator-set checks, prompt budgets, behavioural probes, digest pin.
+  - Before Q54, the broker bound `host_review_start` to `gentle-orchestrator`; Q54's owner-relayed
+    identity table now permits it for the PM identities that owe native review. A genuine,
+    provider-bound PM relay still must be exercised under Q58/Q61; SDD does not launch native RDD,
+    so `pm-sdd` receives no relay grant.
+- [ ] T7 (Q59) — Verifier coordinator-set checks must assert the PM identity surface as well as
+  prompt budgets, behavioural probes and digest pin; Q54's bound identity is inferred because
+  the broker does not echo identity on permitted calls.
 - [ ] T8 (Q60) — Model assignment, after the external advice.
 - [ ] T9 (Q61) — Remaining routes; remove the legacy agent; `ce:compound`.
 
@@ -93,23 +97,23 @@ task, each assessed against the last reviewed boundary.
   `tests/routing-guard/routing-guard.test.ts`, and `verify-workflow.sh`. The test run finished
   with 53 passed / 0 failed; the red-first run had 4 failures. The implementation delivers the
   handoff contract, PM agents, ODD writer, coordinator guard admission and five regression cases.
-  `pm-probe` is deliberately retained until Q54 changes its probe target to the real PM agents.
-  T3 is IN PROGRESS, not complete: post-code advisory review has now run, but acceptance remains
-  unmet because the guard is warning-only and the PM behavioral probe/pilot evidence is deferred.
+  At that time `pm-probe` was retained pending Q54. Q54 has now closed the probe and licensed
+  removal in this unit. T3 remains IN PROGRESS: the post-code advisory review is still owed;
+  acceptance also remains open because the guard is warning-only and pilot evidence is deferred.
   The Q58 requirement that PMs hold their own route key before `host_review_start` is recorded
   above; relay grants and verifier admission for PMs remain coupled to the future guard rule.
   Acceptance evidence and the required metadata/mirror close-out remain pending.
-- 2026-10-05: Q55 post-code advisory review ran in design scope (seven findings) and integration
-  scope. Testing scope was not run because the guard tests were empirically verified with a
-  red-first run. The contract folds in commit ownership, review assessment as a `DONE` conjunct,
-  the reviewability receipt, brief schema identity, route-specific post-code advice, RDD mode/source
-  brief inputs, log-backed routing-gate observations, and explicit metadata worker/commit/failure
-  handling. The verifier now asserts PM non-execution permissions, the `odd-apply` writer shape,
-  and its PM-only task allowlist. Deferred: `COORDINATOR_PATTERNS` still treats any `pm-*` name
-  as a coordinator without registry cross-check; `workflow-sdd-secure` has no `ROUTE_STAGES`
-  entry; the warning-only guard leaves the three-way invariants unenforced; and the behavioral
-  probe does not exercise PM agents (Q59/T7 territory). T3 remains open because acceptance criteria
-  remain unmet.
+- 2026-10-05: Q55 advisory review ran in design scope (seven findings) and integration scope;
+  testing scope was not run because guard tests had a red-first run. This did not discharge the
+  required post-code advisory review, which remains owed. The contract folds in commit ownership,
+  review assessment as a `DONE` conjunct, the reviewability receipt, brief schema identity,
+  route-specific post-code advice, RDD mode/source brief inputs, log-backed routing-gate
+  observations, and explicit metadata worker/commit/failure handling. The verifier asserts PM
+  non-execution permissions, the `odd-apply` writer shape, and its PM-only task allowlist.
+  Deferred: `COORDINATOR_PATTERNS` still treats any `pm-*` name as a coordinator without registry
+  cross-check; `workflow-sdd-secure` has no `ROUTE_STAGES` entry; the warning-only guard leaves
+  the three-way invariants unenforced; and the behavioral probe does not exercise PM agents
+  (Q59/T7 territory). T3 remains open.
 - 2026-10-04: T0 done. Facts verified against `global-config/opencode.json`, the guard helpers,
   `verify-workflow.sh`, the OpenCode 1.18.34 binary (Task `task_id`, depth check, child
   permission derivation) and agent-sandbox-integration (`sandbox-tools.ts:64`,
@@ -153,15 +157,51 @@ task, each assessed against the last reviewed boundary.
 
 - **Retraction (third claim)** — Retracted the assertion that "the parent's adapter key is not being refreshed from child activity." It was falsified by `workflow-odd-secure.key` showing `last_active` matching its own file mtime while `workflow-route.key` was simply stale; see `CLAIM-RETRACTIONS.md`.
 
-### Additional probe findings — 2026-10-05
+### Additional probe findings — 2026-10-05 (superseded by Q54 report below)
 
-- **Observed — host binding/resume:** The probe could not observe host binding or resume because `pm-probe` lacked the required host tools. This unit corrects the probe tool surface; the finding records the probe limitation, not proof that those behaviors have since been exercised.
-- **Observed — relay dispatch:** The depth-1 review relay dispatch was blocked by `pm-probe`'s task allowlist.
-- **Observed — PM sandbox reads:** Sandbox read calls from a PM returned `unknown session`, rather than a refusal. The owner decision is that PMs must not use the sandbox; the sandbox read tools are removed from their surfaces.
-- **Observed — review integration depth:** The review integration showed no depth or parent sensitivity in the probe. `trustedParent` exists in the interface but `decide()` does not read it; the only `parentID` read is the relay's. This records the observed code shape without claiming a mechanism or causal effect.
+- At that time host binding/resume could not be observed because `pm-probe` lacked the required
+  host tools, relay dispatch was blocked by its task allowlist, and sandbox reads returned
+  `unknown session` rather than a refusal. Q54's owner-relayed report later supplied probe answers
+  and the intended fail-closed sandbox policy; it does not change the provenance of those earlier
+  observations.
+- The 2026-10-05 depth assessment remains historical. Q54's owner-relayed report states no
+  depth-sensitive behavior was found in broker/plugin code and that raising depth 3→4 should not
+  affect binding, worker initialization or relay session-root resolution.
+
+### Q54 handover — owner-relayed external report (2026-10-07; not independently observed here)
+
+- **Broker identity table:** `HOST_MUTATION_IDENTITY_OPERATIONS` enforces identity restrictions
+  beyond host permission grants: `gentle-orchestrator` receives every `HOST_MUTATION_OPERATIONS`
+  entry; `pm-odd`, `pm-systematic` and `pm-sdd` receive every entry except `registerProject`;
+  `pm-probe` receives exactly `reviewStart` and `gitCommit`. `registerProject` remains
+  orchestrator-only. All five identities are refused by `sandbox_read`, `sandbox_list`,
+  `sandbox_grep`, `sandbox_diff`, and sandbox mutation tools: no PM enters the sandbox.
+- **Five reported answers:** (1) Subagent binding YES: `host_git_commit` returned “cannot commit:
+  no applied B→C result for this session” and `host_review_start` returned the SDD runtime's
+  “untracked files require an explicit declaration”; these business errors imply authorization
+  passed and no `HOST_MUTATION_*` denial appeared. The bound identity is inferred to be `pm-probe`:
+  the broker echoes no identity on a permitted call. (2) Resume YES: binding survived `task_id`
+  resume; whether via per-turn re-send or idempotent rebinding was not observed. (3) A depth-1
+  review relay was reachable but delivery untested: dispatch refused at the frame layer because
+  the relay prompt lacked provider-issued review binding, not because of session-root/parent
+  resolution; full `GENTLE_AI_REVIEW_CONTEXT` delivery remains unobserved. (4) PM read surface:
+  `read`, `glob`, AFT, CodeGraph, AST-grep, context tools, and host read operations (open to all
+  agents); no host bash or sandbox tools. (5) No depth-sensitive behavior was reported in
+  `broker/src/**` or `opencode/plugins/**`; `subagent_depth` appears only in documentation, and
+  raising depth 3→4 should not change binding, `ensureWorker`, or relay session-root resolution.
+- **Operations and warning:** Required restarts are `sandbox-broker.service` and
+  `secure-opencode.service`. Check installed plugin bytes before classifying an unbound-looking
+  result as a hook defect: the first probe returned `HOST_MUTATION_UNKNOWN_AGENT` because the
+  installed plugin still listed only `gentle-orchestrator`; the hook was fine.
+- **Removal condition and closure:** Effective broker policy, installed plugin bytes, and refusal
+  of mutations from a previously bound probe session must be verifiable. The probe is recorded
+  closed as of this unit, licensing removal; those external/runtime checks were not independently
+  performed in this workspace. Q54 is complete from the owner-relayed report, with review-relay
+  delivery explicitly unverified.
 
 ## Next step
-T1 (Q53) is complete; Q55 is the next actionable item, and item 4 remains deferred to its PM agents. T2 (Q54) still waits on the owner passing Handover A across to agent-sandbox-integration.
+Q54 and the probe are complete; `pm-probe` was removed in this unit. Q55 remains in progress
+for the owed post-code advisory review. Q56 is gated on Q55 alone.
 
 ## Post-code advisory review — open, deferred findings
 

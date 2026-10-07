@@ -36,11 +36,10 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
     side, port plugins dual-mode, verifier V2 mode, change set and runbook (queue Q40-Q47).
 13. Project-manager layer (owner, 2026-10-04; queue Q53-Q61): the orchestrator becomes the
     strategic front end and dispatches one route-specific project-manager subagent per work
-    unit, which runs the route to completion. Q53's probe is complete: seven of eight items were
-    observed; item 4 remains unobserved and deferred to Q55. Q54 is blocked pending the owner
-    passing Handover A across to agent-sandbox-integration; Q55 implementation is in progress with
-    acceptance criteria still open; Q56 needs both Q54 and Q55, followed by Q57-Q61. Q62 is an
-    independently planned model-retirement/seat-assignment reconciliation. Design:
+    unit, which runs the route to completion. Q54 is done from the owner-relayed Handover A report;
+    `pm-probe` is closed and removed in this unit. Q55 remains open for the post-code advisory
+    review; Q56 is gated on Q55 alone, then Q57-Q61. Q62 is an independently planned
+    model-retirement/seat-assignment reconciliation. Design:
     `docs/handoffs/2026-10-04-pm-layer-workflow-optimisation.md`.
 
 ## Layers
