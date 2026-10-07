@@ -549,13 +549,15 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 
 ### Q55. PM layer: handoff contract, agents and writer
 - **Status:** IN PROGRESS. Implementation landed in commit `8980254`; Q54's check (c) now confirms
-  live `pm-probe` removal (see Q54). The post-code advisory review remains owed.
+  live `pm-probe` removal (see Q54). Q55's post-code advisory review is DONE; findings and open
+  decisions are recorded in `odd/tasks/pm-layer.md`.
 - **Prerequisites:** Q53.
 - **Description:** `docs/specs/pm-handoff.md`; `pm-odd`, `pm-systematic`, `pm-sdd` and
   `odd-apply` in `global-config/opencode.json`; PM prompts within budget; guard data
   (`SPECIALIST_WRITERS`, `pm-` as coordinator) with tests first. Q54's live `pm-probe` removal
-  verification now passes check (c); see Q54. The post-code advisory review remains owed.
-  Route-specific classification is verified, but hard rejection is not (the guard is warning-only).
+  verification now passes check (c); see Q54. The post-code advisory review is DONE; see
+  `odd/tasks/pm-layer.md`. Route-specific classification is verified, but hard rejection is not (the
+  guard is warning-only).
 
 ### Q56. PM layer: pilot `pm-odd`
 - **Status:** BLOCKED on Q55, deployment and removal verification.

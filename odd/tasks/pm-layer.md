@@ -286,10 +286,17 @@ task, each assessed against the last reviewed boundary.
 
 ## Next step
 Q54's `pm-probe` removal check (c) now PASSES after verifier mirror → restart; the failed dispatch
-is observed and the removal is live. Q55 remains in progress for the owed post-code advisory
-review. Q56 remains gated on Q55 and its other pilot prerequisites.
+is observed and the removal is live. Q55's post-code advisory review is complete; Q55 remains in
+progress for its other open acceptance items. Q56 remains gated on Q55 and its other pilot
+prerequisites.
 
-## Post-code advisory review — open, deferred findings
+## Post-code advisory review — findings and open decisions
 
+- **Q55 post-code advisory review (completed; advisory evidence, not approval):** `advisor-integration-post`, Task `ses_ee7ce6bb0ffe1l2JkLinwru2FK`.
+  - **Contract completeness gap:** `docs/specs/pm-handoff.md` specifies `ROUTE_DISPUTED` (line 15) and `BLOCKED` (lines 108–110) at a high level, but gives no deterministic procedure for an absent or unrecoverable tracker mirror, an unverifiable `last_reviewed_boundary`, or outstanding prerequisite checks. The live `pm-odd` run applied the general `BLOCKED` rule correctly; the contract remains silent on those states.
+  - **`odd-apply` contradiction found and fixed:** its prompt instructed the worker to include the work-unit commit, tracker update, and `ROUTER-LOG` entry in one worker lifecycle, contrary to `docs/specs/pm-handoff.md` lines 27 and 108. The prompt now assigns implementation, checks, and the staged reviewability receipt to the worker; commit ownership stays with the PM, and tracker/`ROUTER-LOG` updates belong to the separate metadata work unit.
+  - **`pm-sdd` latent hazard:** it has `host_review_start`, `host_review_capture_*`, and `host_review_acknowledge_approved` at `ask`, although the SDD contract forbids starting native review and `pm-sdd` has no `asi-review-*` relay lanes. These tools are unreachable in practice because the loop fails at lens dispatch, but the grants contradict the contract's intent. No permission change is made here.
+  - **Three-way drift:** see the existing **Open (deferred)** note below; the guard, ODD route skill, and `pm-odd` task allowlist remain inconsistent. The narrower config does not create a security hole, but the discrepancy remains tracked rather than duplicated here.
+  - **Open owner decision — PM-owned review versus enforced independence:** the advisor recommends removing the `asi-review-*` relay lanes from `pm-odd` and `pm-systematic`, leaving a coordinating PM able to start native review but unable to conduct it itself. Q58's route-key rule is necessary but not sufficient: it verifies that the PM loaded its route skill, not that reviewer and author differ. No permission is changed in this unit.
 - **Open (owner decision):** Review fallback chains carry DeepSeek targets. A fallback hit on any 4R lens can put a reviewer on the author's model family, contradicting the recorded constraint that a reviewer never shares a model family with the author. This is a constraint-versus-reality conflict; it is recorded for owner resolution, not fixed here.
 - **Open (deferred):** Three-way policy drift remains: `ODD_SPECIALIST_WRITERS` in the guard helpers authorises writers that the ODD route skill and `pm-odd` task permissions do not use, so those three surfaces are not equivalent. `ROUTE_STAGES` also has no `workflow-sdd-secure` entry although `pm-sdd` loads it. Not fixed in this change.
