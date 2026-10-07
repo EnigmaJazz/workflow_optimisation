@@ -562,9 +562,11 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   records without blocking valid assignments accidentally.
 
 ### Q63. Native review CLI lifecycle and store-integrity blockers
-- **Status:** BLOCKED (upstream CLI/schema gap; store repair unsupported).
+- **Status:** BLOCKED (upstream CLI/schema gap; store repair unsupported); malformed compact-state
+  lineages deferred pending the Gentle AI 4.x upgrade.
 - **Prerequisites:** Gentle AI must publish a usable intended-untracked-selection schema and
-  provide a supported repair path for malformed compact state.
+  provide a supported repair path for malformed compact state. Installed build is 3.7.0 (stable);
+  the owner is preparing for 4.x.
 - **Source:** Native-review investigation of `review-df3efa401830a824` on Gentle AI 3.7.0,
   stable, protocol 1.5; findings recorded in `odd/tasks/pm-layer.md`.
 - **Description:**
@@ -585,6 +587,15 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
     `review-ca0b00d6638492b9`, `review-fb8e1806d1fc1169`. These pre-existing shared-store
     findings were reported by the CLI; no store files were inspected. The existing log entries
     locate the store at `.git/gentle-ai`.
+  - Defer these six malformed compact-state lineages pending the Gentle AI 4.x upgrade. Do not
+    file or comment on an upstream report while a published fix may exist in the pending release:
+    the residue protocol forbids reporting when a fix is not verifiably absent. If 4.x ships
+    without fixing this, an upstream report becomes appropriate then.
+  - After upgrading, run `gentle-ai review inspect-authority` and confirm the six entries either
+    read cleanly or are repairable, with `gentle-ai review repair --preflight` reporting eligible
+    candidates. Record the outcome here. Also re-check the unpublished
+    `gentle-ai.review-intended-untracked-selection/v1` schema after upgrading; this schema gap is
+    separate from the malformed-state question and may or may not be affected by 4.x.
   - Run provider-returned lifecycle/recovery commands verbatim; do not append caller-authored
     flags. The recovery-command rule is already established in the gentle-ai v4 notes above
     (around line 590) and `docs/TODO-HISTORY.md` (2026-09-30 item 1, around line 104); this item
