@@ -37,9 +37,12 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
 13. Project-manager layer (owner, 2026-10-04; queue Q53-Q61): the orchestrator becomes the
     strategic front end and dispatches one route-specific project-manager subagent per work
     unit, which runs the route to completion. Q54 is done from the owner-relayed Handover A report;
-    `pm-probe` is closed and removed in this unit. Q55 remains open for the post-code advisory
-    review; Q56 is gated on Q55 alone, then Q57-Q61. Q62 is an independently planned
-    model-retirement/seat-assignment reconciliation. Design:
+    `pm-probe` is closed and removed in this unit. The required restarts
+    (`sandbox-broker.service`, `secure-opencode.service`) have not been performed. The three removal
+    checks—effective broker policy, installed plugin bytes, and refusal of a mutation from a
+    previously bound probe session—have not been performed. Q55 remains open for the post-code
+    advisory review; Q56 is gated on Q55 plus those restarts and checks, then Q57-Q61. Q62 is an
+    independently planned model-retirement/seat-assignment reconciliation. Design:
     `docs/handoffs/2026-10-04-pm-layer-workflow-optimisation.md`.
 
 ## Layers

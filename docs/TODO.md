@@ -38,8 +38,10 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 - **Phase 5, OpenCode V2 upgrade (owner-triggered, after Phase 4):** Q40-Q47.
 - **Project-manager layer (owner, 2026-10-04; runs alongside Phases 2 and 3):** Q53 and Q54 done;
   Q55 remains in progress for the post-code advisory review; `pm-probe` was removed in this unit.
-  Q56 is gated on Q55 alone, then Q57-Q60 and Q61. Q62 (retired-model list and seat-assignment
-  reconciliation) is independently planned.
+  Q56 is gated on Q55, both service restarts and the live-policy smoke test, plus all three
+  `pm-probe` removal checks. Q58's route-key-before-review rule is recommended before Q56's pilot;
+  a PM can currently close the author→commit→review→approve loop alone. Then Q57-Q60 and Q61.
+  Q62 (retired-model list and seat-assignment reconciliation) is independently planned.
 
 Every source change needs the deploy step: verifier mirror, then restart. Q27 waits on an owner
 decision.
@@ -529,8 +531,15 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   (the guard is warning-only).
 
 ### Q56. PM layer: pilot `pm-odd`
-- **Status:** BLOCKED on Q55.
-- **Prerequisites:** Q55 (Q54 is complete).
+- **Status:** BLOCKED on Q55, deployment and removal verification.
+- **Prerequisites:** Q55 post-code advisory review; restart `sandbox-broker.service` and
+  `secure-opencode.service`, then run a live-policy smoke test from one `pm-odd` session with one
+  denied `host_register_project` operation and one permitted `host_git_commit` or
+  `host_review_start` operation; verify all three `pm-probe` removal checks: effective broker
+  policy, installed plugin bytes, and refusal of a mutation from a previously bound probe session.
+  Q54 is complete from the owner-relayed report. Q58's route-key-before-`host_review_start` rule is
+  recommended to land before this pilot because a PM can currently close the
+  author→commit→review→approve loop alone.
 - **Description:** run global-tooling units here through `pm-odd`, with
   `gentle-orchestrator-legacy` kept selectable. Ten consecutive units without route escape.
 

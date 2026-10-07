@@ -88,6 +88,29 @@ task, each assessed against the last reviewed boundary.
      subagent, key state on resume). Resolved by the Q53 and Q54 probes before any build.
 - The registered `advisor-*` pre-code advice is still owed for T3 onwards and is recorded per
   task.
+- T3/Q55 follow-up on commit `8d40f97`, post-code advisors (advisory evidence only; not approval):
+  - `advisor-integration-post` (verified): `pm-probe` removal is complete and safe in the committed
+    source: no surviving reference in `global-config/opencode.json` or `verify-workflow.sh`; the
+    orchestrator Task allow-list and verifier `required_agents`/`pmAgents` lists contain only the
+    three production PMs, and the renamed verifier list has no stale referent. Positive control:
+    any survivor would occur as a JSON agent block, a `permission.task` allow entry, or a verifier
+    list member. Sequencing gap: restart both services and run the live smoke test, then perform the
+    three removal checks, then Q55's review, all before the pilot. Highest-risk assumption: that
+    identity policy is live and `pm-odd` is bound as intended. Retire-test: restart
+    `sandbox-broker.service` and `secure-opencode.service`; from one `pm-odd` session confirm one
+    denied `host_register_project` and one permitted `host_git_commit` or `host_review_start`.
+  - `advisor-security-post` (advisory evidence): **HIGH — self-review loop:** one PM session can
+    dispatch the writer, commit, start native review, dispatch the relay lens, capture its result,
+    and acknowledge approval. Q58's route-key-before-review rule is unimplemented; the guard is
+    warning-only; and the broker identity table grants every PM every mutation without route
+    distinction. `WORKFLOW.md` states review independence is intended, but nothing enforces it.
+    **Reachability:** `frontend-apply`, `frontend-apply-local` and `frontend-dev` have a
+    `permission.task` wildcard ask rule, enabling dispatch to any named subagent including a PM;
+    mitigation is to remove only those wildcards and preserve explicit targets. **Live/committed
+    drift:** until both services restart, the running broker still defines `pm-probe` with
+    `reviewStart` and `gitCommit`, and running OpenCode still accepts it as a dispatch target;
+    committed removal is not live. Ranked mitigations: (1) drop the three frontend wildcards;
+    (2) perform both restarts; (3) implement Q58's route-key rule before the pilot.
 
 ## Progress
 - 2026-10-05: Q55 (T3) implementation landed in commit `8980254`. Files: `docs/specs/pm-handoff.md`,

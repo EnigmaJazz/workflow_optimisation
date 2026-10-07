@@ -60,7 +60,6 @@
       "model": "opencode-go/deepseek-v4.1-flash",
       "permission": {
         "task": {
-          "*": "ask",
           "vision": "allow"
         },
         "edit": "deny",
@@ -113,7 +112,6 @@
       "model": "kinver/professional",
       "permission": {
         "task": {
-          "*": "ask",
           "vision": "allow"
         },
         "edit": "deny",
@@ -166,7 +164,6 @@
       "model": "opencode-go/glm-5.3-flash",
       "permission": {
         "task": {
-          "*": "ask",
           "frontend-apply": "allow",
           "frontend-apply-local": "allow",
           "vision": "allow"
