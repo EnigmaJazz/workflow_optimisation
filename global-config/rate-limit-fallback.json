@@ -783,6 +783,9 @@
   "eventDebounceMs": 1500,
   "advanceGraceMs": 30000,
   "revertToOriginalModel": true,
+  "revertAfterSubagent": true,
+  "stallDetection": true,
+  "stallDefaultMs": 300000,
   "patterns": [
     "rate limit",
     "usage limit",
