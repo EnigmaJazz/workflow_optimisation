@@ -2401,13 +2401,7 @@
           "advisor-testing-post": "allow",
           "advisor-testing-pre": "allow",
           "explore": "allow",
-          "odd-apply": "allow",
-          "asi-review-risk": "allow",
-          "asi-review-resilience": "allow",
-          "asi-review-readability": "allow",
-          "asi-review-reliability": "allow",
-          "asi-review-refuter": "allow",
-          "asi-review-validator": "allow"
+          "odd-apply": "allow"
         },
         "skill": "allow",
         "systematic_skill": "allow",
@@ -2536,13 +2530,7 @@
           "project-standards-reviewer": "allow",
           "repo-research-analyst": "allow",
           "systematic-implementer": "allow",
-          "testing-reviewer": "allow",
-          "asi-review-risk": "allow",
-          "asi-review-resilience": "allow",
-          "asi-review-readability": "allow",
-          "asi-review-reliability": "allow",
-          "asi-review-refuter": "allow",
-          "asi-review-validator": "allow"
+          "testing-reviewer": "allow"
         },
         "skill": "allow",
         "systematic_skill": "allow",

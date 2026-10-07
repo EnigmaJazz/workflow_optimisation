@@ -56,10 +56,11 @@ task, each assessed against the last reviewed boundary.
     is driven by the orchestrator or another coordinator, not its implementing `pm-odd` session.
 - [ ] T5 (Q57) — Slim orchestrator prompt and permissions; `AGENTS.md` split; `WORKFLOW.md` and
   skills.
-- [ ] T6 (Q58) — Guard ordering rules, tests first; include proof of a real review relay from a PM
-  with a genuine provider-issued binding. Q54 reported reachability only; context delivery remains
-  unverified. It may run through `pm-odd` as Q56's bootstrap unit only (see T4); its own enforcement
-  does not exist during execution, so it runs unguarded by design. Its review must not be self-driven.
+- [ ] T6 (Q58) — Guard ordering rules, tests first; relay-delivery proof must come from a dispatch
+  outside the coordinating PM session, with a genuine provider-issued binding. Q54 reported
+  reachability only; context delivery remains unverified. It may run through `pm-odd` as Q56's
+  bootstrap unit only (see T4); its own enforcement does not exist during execution, so it runs
+  unguarded by design. Its review must not be self-driven.
   Do not start Q58 until Q56's other gates pass: both service restarts, the live-policy smoke test,
   and all three `pm-probe` removal checks.
   - Requirement (not yet implemented; recorded in commit `e9bffc0`): a PM must hold its own
@@ -69,15 +70,20 @@ task, each assessed against the last reviewed boundary.
     native RDD.
   - A relay grant without the matching route key must not admit a review; permission alone is
     not readiness.
-  - The relay grants and verifier rule admitting them on `pm-*` are deliberately coupled
-    with the future guard rule requiring the PM's own route key before review. The verifier
-    admits relays only on `gentle-orchestrator` and `pm-*`; the guard will later require the key.
-  - These grants restore the `pm-odd` and `pm-systematic` relay permissions previously removed
-    by the `RELAY_TASK_GRANTED_OUTSIDE_ORCHESTRATOR` fix; that verifier rule now admits PMs.
-  - Before Q54, the broker bound `host_review_start` to `gentle-orchestrator`; Q54's owner-relayed
-    identity table now permits it for the PM identities that owe native review. A genuine,
-    provider-bound PM relay still must be exercised under Q58/Q61; SDD does not launch native RDD,
-    so `pm-sdd` receives no relay grant.
+  - **Owner decision: enforced independence.** The coordinating PM cannot dispatch relay lenses;
+    review is driven from outside the PM session. Q58's route-key rule is necessary but not
+    sufficient: it verifies that the PM loaded its route skill, not that the reviewer differs from
+    the author. Independence requires lane separation, not the key rule alone.
+  - **Q58/Q61 evidence consequence:** relay-delivery proof must come from a dispatch outside the
+    coordinating PM session, not from the PM itself. No PM is required to prove its own relay
+    delivery.
+  - **Open question — undecided:** each PM still holds `host_review_start` and review lifecycle
+    tools, so a PM can start a review it cannot complete without relay lanes. Options:
+    (a) the PM keeps `host_review_start` and another actor drives the lens; or
+    (b) review start also leaves the PM session. Do not resolve this here.
+  - The verifier rule `RELAY_TASK_GRANTED_OUTSIDE_ORCHESTRATOR` allows PM relay grants, but does not
+    require them; removing the lanes from `pm-odd` and `pm-systematic` satisfies its assertion.
+    `pm-sdd` remains without relay targets because it does not launch native RDD.
 - [ ] T7 (Q59) — Verifier coordinator-set checks must assert the PM identity surface as well as
   prompt budgets, behavioural probes and digest pin; Q54's bound identity is inferred because
   the broker does not echo identity on permitted calls.
@@ -139,8 +145,10 @@ task, each assessed against the last reviewed boundary.
   removal in this unit. T3 remains IN PROGRESS: the post-code advisory review is still owed;
   acceptance also remains open because the guard is warning-only and pilot evidence is deferred.
   The Q58 requirement that PMs hold their own route key before `host_review_start` is recorded
-  above; relay grants and verifier admission for PMs remain coupled to the future guard rule.
-  Acceptance evidence and the required metadata/mirror close-out remain pending.
+  above. The later owner decision requires enforced independence: PM relay lanes are removed, and
+  relay-delivery evidence must be dispatched outside the coordinating PM session. The verifier's
+  admission rule permits PM relay grants but does not require them. Acceptance evidence and the
+  required metadata/mirror close-out remain pending.
 - 2026-10-05: Q55 advisory review ran in design scope (seven findings) and integration scope;
   testing scope was not run because guard tests had a red-first run. This did not discharge the
   required post-code advisory review, which remains owed. The contract folds in commit ownership,
@@ -297,6 +305,9 @@ prerequisites.
   - **`odd-apply` contradiction found and fixed:** its prompt instructed the worker to include the work-unit commit, tracker update, and `ROUTER-LOG` entry in one worker lifecycle, contrary to `docs/specs/pm-handoff.md` lines 27 and 108. The prompt now assigns implementation, checks, and the staged reviewability receipt to the worker; commit ownership stays with the PM, and tracker/`ROUTER-LOG` updates belong to the separate metadata work unit.
   - **`pm-sdd` latent hazard:** it has `host_review_start`, `host_review_capture_*`, and `host_review_acknowledge_approved` at `ask`, although the SDD contract forbids starting native review and `pm-sdd` has no `asi-review-*` relay lanes. These tools are unreachable in practice because the loop fails at lens dispatch, but the grants contradict the contract's intent. No permission change is made here.
   - **Three-way drift:** see the existing **Open (deferred)** note below; the guard, ODD route skill, and `pm-odd` task allowlist remain inconsistent. The narrower config does not create a security hole, but the discrepancy remains tracked rather than duplicated here.
-  - **Open owner decision — PM-owned review versus enforced independence:** the advisor recommends removing the `asi-review-*` relay lanes from `pm-odd` and `pm-systematic`, leaving a coordinating PM able to start native review but unable to conduct it itself. Q58's route-key rule is necessary but not sufficient: it verifies that the PM loaded its route skill, not that reviewer and author differ. No permission is changed in this unit.
+  - **Owner decision — enforced independence (resolved):** remove the `asi-review-*` relay lanes
+    from `pm-odd` and `pm-systematic`, leaving review dispatch outside the coordinating PM session.
+    Q58's route-key rule is necessary but not sufficient: it verifies that the PM loaded its route
+    skill, not that reviewer and author differ. The config change is recorded in this unit.
 - **Open (owner decision):** Review fallback chains carry DeepSeek targets. A fallback hit on any 4R lens can put a reviewer on the author's model family, contradicting the recorded constraint that a reviewer never shares a model family with the author. This is a constraint-versus-reality conflict; it is recorded for owner resolution, not fixed here.
 - **Open (deferred):** Three-way policy drift remains: `ODD_SPECIALIST_WRITERS` in the guard helpers authorises writers that the ODD route skill and `pm-odd` task permissions do not use, so those three surfaces are not equivalent. `ROUTE_STAGES` also has no `workflow-sdd-secure` entry although `pm-sdd` loads it. Not fixed in this change.

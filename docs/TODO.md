@@ -590,11 +590,21 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   evidence and pass all three `pm-probe` removal checks, including a dispatch that fails. Feeds Q28
   (gating matrix).
 - **Description:** PM agent ↔ route key binding; warn when the orchestrator dispatches a writer
-  directly; advice-before-writer and commit-before-review stages. Require proof of a real review
-  relay from a PM carrying a genuine provider-issued binding; Q54 showed reachability only, not
-  delivery. Warning-only; tests first. Q58 may be executed through `pm-odd` as Q56's bootstrap unit
-  only (see Q56); its own enforcement does not exist during its execution, so it runs unguarded by
-  design. Its review must be driven independently, not by the `pm-odd` session implementing it.
+  directly; advice-before-writer and commit-before-review stages. **Owner decision: enforced
+  independence.** The coordinating PM cannot dispatch relay lenses; review is driven from outside
+  the PM session. Q58's route-key rule is necessary but not sufficient: it verifies the PM loaded
+  its route skill, not that the reviewer differs from the author. Independence requires lane
+  separation, not the key rule alone. Require relay-delivery proof from a dispatch outside the
+  coordinating PM session, with a genuine provider-issued binding; Q54 showed reachability only,
+  not delivery. The PM itself must not dispatch or prove its own relay delivery. Warning-only;
+  tests first. Q58 may be executed through `pm-odd` as Q56's bootstrap unit only (see Q56); its
+  own enforcement does not exist during its execution, so it runs unguarded by design. Its review
+  must be driven independently, not by the `pm-odd` session implementing it.
+
+- **Open question — undecided:** each PM still holds `host_review_start` and review lifecycle
+  tools, so a PM can start a review it cannot complete without relay lanes. Options:
+  (a) the PM keeps `host_review_start` and another actor drives the lens; or
+  (b) review start also leaves the PM session. Do not resolve this in Q58.
 
 ### Q59. PM layer: verifier
 - **Status:** PLANNED.
@@ -615,8 +625,10 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 - **Status:** PLANNED.
 - **Prerequisites:** Q57, Q58, Q59, Q60.
 - **Description:** move the Systematic and SDD routes to `pm-systematic` and `pm-sdd`; remove
-  `gentle-orchestrator-legacy`; `ce:compound`. Require proof of a real review relay from a PM
-  carrying a genuine provider-issued binding; Q54 showed reachability only, not delivery. For V2,
+  `gentle-orchestrator-legacy`; `ce:compound`. Require relay-delivery proof from a dispatch
+  outside the coordinating PM session, carrying a genuine provider-issued binding; Q54 showed
+  reachability only, not delivery. Do not require the PM itself to dispatch or prove its own relay
+  delivery. For V2,
   the four-level nesting must be probed in Q41, because V2 has no `subagent_depth` (Q43).
 
 ### Q62. Keep retired models aligned with seat assignments
