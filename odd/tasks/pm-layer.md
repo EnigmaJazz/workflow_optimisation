@@ -42,11 +42,25 @@ task, each assessed against the last reviewed boundary.
 - [x] T2 (Q54) — Complete from the owner-relayed Handover A report; identity policy, sandbox refusals and five probe answers recorded below. Probe closed in this unit, licensing removal of `pm-probe`.
 - [ ] T3 (Q55) — implementation landed in commit `8980254`: `docs/specs/pm-handoff.md`, four agent registrations, guard coordinator admission, and regression tests. The Q54 probe is closed and `pm-probe` was removed in this unit; the post-code advisory review remains owed. Route-specific classification is verified, but hard rejection is not (the guard is warning-only).
 - [ ] T4 (Q56) — Pilot `pm-odd` on global-tooling units; ten units without route escape.
+  - Sequence: (1) restart `sandbox-broker.service` and `secure-opencode.service`; (2) run the
+    `pm-odd` smoke test with one denied `host_register_project` and one permitted
+    `host_git_commit` or `host_review_start`, confirming the expected deny/permit pair; (3) pass the
+    three `pm-probe` removal checks (effective broker policy, installed plugin bytes, and refusal
+    of a mutation from a previously bound probe session); (4) execute Q58 through `pm-odd` as a
+    bootstrap unit, with its review independently driven; (5) start Q56's ten-unit count only once
+    Q58's enforcement is live.
+  - Q58 is the bootstrap exception only and does not count toward the ten consecutive units without
+    route escape: its own route-key enforcement is not live during its execution. The unit that
+    establishes review independence must not itself be reviewed without it; therefore Q58's review
+    is driven by the orchestrator or another coordinator, not its implementing `pm-odd` session.
 - [ ] T5 (Q57) — Slim orchestrator prompt and permissions; `AGENTS.md` split; `WORKFLOW.md` and
   skills.
 - [ ] T6 (Q58) — Guard ordering rules, tests first; include proof of a real review relay from a PM
   with a genuine provider-issued binding. Q54 reported reachability only; context delivery remains
-  unverified.
+  unverified. It may run through `pm-odd` as Q56's bootstrap unit only (see T4); its own enforcement
+  does not exist during execution, so it runs unguarded by design. Its review must not be self-driven.
+  Do not start Q58 until Q56's other gates pass: both service restarts, the live-policy smoke test,
+  and all three `pm-probe` removal checks.
   - Requirement (not yet implemented; recorded in commit `e9bffc0`): a PM must hold its own
     route's adapter key before `host_review_start`: `pm-odd` requires `workflow-odd-secure`, and
     `pm-systematic` requires `workflow-systematic`. This matches the existing rule that a PM must

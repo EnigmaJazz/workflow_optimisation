@@ -537,11 +537,14 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   denied `host_register_project` operation and one permitted `host_git_commit` or
   `host_review_start` operation; verify all three `pm-probe` removal checks: effective broker
   policy, installed plugin bytes, and refusal of a mutation from a previously bound probe session.
-  Q54 is complete from the owner-relayed report. Q58's route-key-before-`host_review_start` rule is
-  recommended to land before this pilot because a PM can currently close the
-  author→commit→review→approve loop alone.
+  Q54 is complete from the owner-relayed report.
 - **Description:** run global-tooling units here through `pm-odd`, with
-  `gentle-orchestrator-legacy` kept selectable. Ten consecutive units without route escape.
+  `gentle-orchestrator-legacy` kept selectable. Ten consecutive units without route escape. Q58
+  may run through `pm-odd` as the pilot's bootstrap unit only; it does not count toward the ten-unit
+  criterion because its route-key enforcement is not yet live during its own execution. Start the
+  count only after Q58's enforcement is live. Q58's review must be driven independently by the
+  orchestrator or another coordinator, not by the implementing `pm-odd` session: the unit that
+  establishes review independence must not itself be reviewed without it.
 
 ### Q57. PM layer: slim the orchestrator
 - **Status:** PLANNED.
@@ -552,11 +555,15 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 
 ### Q58. PM layer: guard ordering
 - **Status:** PLANNED.
-- **Prerequisites:** Q55. Feeds Q28 (gating matrix).
+- **Prerequisites:** Q55 and Q56's other gates: restart `sandbox-broker.service` and
+  `secure-opencode.service`, pass the live-policy smoke test, and pass all three `pm-probe` removal
+  checks. Feeds Q28 (gating matrix).
 - **Description:** PM agent ↔ route key binding; warn when the orchestrator dispatches a writer
   directly; advice-before-writer and commit-before-review stages. Require proof of a real review
   relay from a PM carrying a genuine provider-issued binding; Q54 showed reachability only, not
-  delivery. Warning-only; tests first.
+  delivery. Warning-only; tests first. Q58 may be executed through `pm-odd` as Q56's bootstrap unit
+  only (see Q56); its own enforcement does not exist during its execution, so it runs unguarded by
+  design. Its review must be driven independently, not by the `pm-odd` session implementing it.
 
 ### Q59. PM layer: verifier
 - **Status:** PLANNED.
