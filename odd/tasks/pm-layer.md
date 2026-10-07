@@ -39,16 +39,17 @@ task, each assessed against the last reviewed boundary.
 - [x] T0 — Plan and the two handovers. Route: inline (Claude Code, advisory; the content is the
   planner's own analysis). Trigger: owner request.
 - [x] T1 (Q53) — Probe with `pm-probe` and depth 4; record the eight observations. Probe work is complete; item 4 remains unobserved and its placement is deferred to Q55.
-- [x] T2 (Q54) — Complete from the owner-relayed Handover A report; identity policy, sandbox refusals and five probe answers recorded below. Probe closed in this unit, licensing removal of `pm-probe`.
-- [ ] T3 (Q55) — implementation landed in commit `8980254`: `docs/specs/pm-handoff.md`, four agent registrations, guard coordinator admission, and regression tests. The Q54 probe is closed and `pm-probe` was removed in this unit; the post-code advisory review remains owed. Route-specific classification is verified, but hard rejection is not (the guard is warning-only).
+- [x] T2 (Q54) — Complete from the owner-relayed Handover A report; identity policy, sandbox refusals and five probe answers recorded below. The later live correction records that `pm-probe` removal is unverified; see Correction C.
+- [ ] T3 (Q55) — implementation landed in commit `8980254`: `docs/specs/pm-handoff.md`, four agent registrations, guard coordinator admission, and regression tests. The post-code advisory review remains owed. The earlier claim that `pm-probe` was removed is superseded by Correction C. Route-specific classification is verified, but hard rejection is not (the guard is warning-only).
 - [ ] T4 (Q56) — Pilot `pm-odd` on global-tooling units; ten units without route escape.
-  - Sequence: (1) restart `sandbox-broker.service` and `secure-opencode.service`; (2) run the
-    `pm-odd` smoke test with one denied `host_register_project` and one permitted
-    `host_git_commit` or `host_review_start`, confirming the expected deny/permit pair; (3) pass the
-    three `pm-probe` removal checks (effective broker policy, installed plugin bytes, and refusal
-    of a mutation from a previously bound probe session); (4) execute Q58 through `pm-odd` as a
-    bootstrap unit, with its review independently driven; (5) start Q56's ten-unit count only once
-    Q58's enforcement is live.
+  - Sequence: (1) run the verifier mirror, then restart `sandbox-broker.service` and
+    `secure-opencode.service`; (2) run the `pm-odd` smoke test, recording that
+    `host_register_project` is absent from the registered tool set (tool-registration-layer
+    control, not a broker refusal) and one permitted `host_git_commit` or `host_review_start`;
+    (3) verify `pm-probe` removal through effective broker policy, installed plugin bytes, and a
+    dispatch that fails (a restart alone does not apply the canonical config); (4) execute Q58
+    through `pm-odd` as a bootstrap unit, with its review independently driven; (5) start Q56's
+    ten-unit count only once Q58's enforcement is live.
   - Q58 is the bootstrap exception only and does not count toward the ten consecutive units without
     route escape: its own route-key enforcement is not live during its execution. The unit that
     establishes review independence must not itself be reviewed without it; therefore Q58's review
@@ -236,9 +237,42 @@ task, each assessed against the last reviewed boundary.
   performed in this workspace. Q54 is complete from the owner-relayed report, with review-relay
   delivery explicitly unverified.
 
+### Corrections to the Q54 report — observed 2026-10-07
+
+- **Correction A — broker grant versus reachable tools:** The broker grant is every
+  `HOST_MUTATION_OPERATIONS` entry except `registerProject`; the reachable surface is the
+  intersection of that grant with tools registered to the session. In the observed live
+  `pm-odd` session, the host-mutation tools actually registered were `host_git_commit`,
+  `host_review_start`, `host_review_acknowledge_approved`, `host_review_capture_result`,
+  `host_review_capture_refuter`, `host_review_capture_validation`,
+  `host_review_capture_correction_plan`, `host_review_capture_unachievable`,
+  `host_review_recover`, and `host_review_validate`. It did not hold
+  `host_git_push`, `host_gh_issue_create`, `host_plan_append`, or
+  `host_sandbox_result_install`. This change adds `host_git_push` and
+  `host_sandbox_result_install`; `host_gh_issue_create` and `host_plan_append` remain absent by
+  design. The broad broker grant does not itself mean every operation is reachable from a PM.
+- **Correction B — live `pm-odd` smoke test:** After the owner restarted services,
+  `host_git_commit({"message":"test: identity probe"})` returned the business error
+  `cannot commit: no applied B→C result for this session`. `host_review_start({})` returned
+  the runtime business error `the candidate has no pending changes; already-committed work can
+  be reviewed by rerunning review start with --base-ref <commit>`. No `HOST_MUTATION_*` token
+  appeared in any response. `host_register_project` is absent from the session's registered
+  tool set, so its deny path is unobservable for `pm-odd`: the call never reaches the broker.
+  This is a tool-registration-layer control, not a broker refusal. Verdict: identity binding is
+  **confirmed live for permitted operations**; the deny path is **unobservable**, not refuted.
+  The security advisor's author→commit→review→approve loop is **confirmed reachable**: commit,
+  review start, capture, and acknowledge are all in the observed tool set.
+- **Correction C — check (c) FAILED:** A Task dispatch to `pm-probe` still succeeded and the
+  session still carried its Q53 probe brief. The canonical→live mirror had not run since commit
+  `8d40f97`, so `~/.config/opencode/opencode.json` still defined `pm-probe`; restart alone applies
+  nothing. Correct deployment sequence: verifier mirror → restart. Removal remains unverified
+  until a dispatch to `pm-probe` fails. Positive observation: the still-live `pm-probe` session
+  correctly refused an instruction shaped like a liveness beacon rather than complying.
+
 ## Next step
-Q54 and the probe are complete; `pm-probe` was removed in this unit. Q55 remains in progress
-for the owed post-code advisory review. Q56 is gated on Q55 alone.
+Q54's earlier closure claim is superseded by the corrections above: the `pm-probe` removal check
+remains unverified until dispatch fails after verifier mirror → restart. Q55 remains in progress
+for the owed post-code advisory review. Q56 remains gated on Q55, deployment, and removal verification.
 
 ## Post-code advisory review — open, deferred findings
 

@@ -36,12 +36,14 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 - **Phase 4, gentle-ai v4 upgrade (owner-triggered):** Q29, then Q30-Q33 and Q35-Q39 delivered as
   the Q36 change set, then Q34. Q49 runs throughout.
 - **Phase 5, OpenCode V2 upgrade (owner-triggered, after Phase 4):** Q40-Q47.
-- **Project-manager layer (owner, 2026-10-04; runs alongside Phases 2 and 3):** Q53 and Q54 done;
-  Q55 remains in progress for the post-code advisory review; `pm-probe` was removed in this unit.
-  Q56 is gated on Q55, both service restarts and the live-policy smoke test, plus all three
-  `pm-probe` removal checks. Q58's route-key-before-review rule is recommended before Q56's pilot;
-  a PM can currently close the author→commit→review→approve loop alone. Then Q57-Q60 and Q61.
-  Q62 (retired-model list and seat-assignment reconciliation) is independently planned.
+- **Project-manager layer (owner, 2026-10-04; runs alongside Phases 2 and 3):** Q53 and Q54 are
+  complete as reports, but Q54's `pm-probe` removal check (c) FAILED and remains unverified;
+  canonical→live verifier mirror → restart is required because restart alone applies nothing. Q55
+  remains in progress for the post-code advisory review. Q56 is gated on Q55, deployment, the live
+  permitted-operation smoke evidence, and failed `pm-probe` dispatch/removal checks. Q58's
+  route-key-before-review rule is recommended before Q56's pilot; a PM can currently close the
+  author→commit→review→approve loop alone. Then Q57-Q60 and Q61. Q62 (retired-model list and
+  seat-assignment reconciliation) is independently planned.
 
 Every source change needs the deploy step: verifier mirror, then restart. Q27 waits on an owner
 decision.
@@ -497,47 +499,61 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   permission prompts, `task_id` resume, key state after expiry, `ce:plan` load, `ctx_memory`).
 
 ### Q54. PM layer: sandbox allowlist (cross-project)
-- **Status:** DONE (owner-relayed external report; probe closed in this unit, 2026-10-07).
+- **Status:** DONE as a report (owner-relayed findings plus live smoke corrections, 2026-10-07);
+  `pm-probe` removal verification remains open after check (c) FAILED.
 - **Prerequisites:** Handover A passed to agent-sandbox-integration and reported installed.
-- **Description:** The broker-side `HOST_MUTATION_IDENTITY_OPERATIONS` table enforces identity
-  restrictions beyond host permission grants: `gentle-orchestrator` receives every mutation;
-  `pm-odd`, `pm-systematic` and `pm-sdd` receive every mutation except `registerProject`;
-  `pm-probe` receives exactly `reviewStart` and `gitCommit`; registration remains
-  orchestrator-only. All five identities are refused by sandbox read/list/grep/diff and mutation
-  tools, so PMs do not enter the sandbox. Reported answers: (1) binding YES—business errors from
-  commit/review calls imply authorization passed, but `pm-probe` identity is inferred because the
-  broker echoes none; (2) `task_id` resume YES, mechanism unobserved; (3) depth-1 relay REACHABLE,
-  but the frame refused without provider-issued review binding and full context delivery is
-  unverified; (4) PM surface includes host reads, AFT, CodeGraph, AST-grep, context and read/glob,
-  with no host bash or sandbox tools; host reads remain open to all agents; (5) no depth-sensitive
-  behavior found by report, and raising depth 3→4 should not affect binding, worker initialization
-  or session-root relay resolution.
-  Required restarts: `sandbox-broker.service` and `secure-opencode.service`. Operational warning:
-  check installed plugin bytes before diagnosing an unbound-looking result—the first failure was
-  due to installed bytes still listing only `gentle-orchestrator`, not a hook defect. Review-relay
-  delivery remains unverified. Removal was licensed after recording probe closure; verify effective
-  broker policy, installed plugin bytes, and mutation refusal from a previously bound probe session.
+- **Description:** The broker-side grant is every `HOST_MUTATION_OPERATIONS` entry except
+  `registerProject`, but the reachable PM surface is the intersection of that grant with tools
+  registered to the session. A live `pm-odd` session held `host_git_commit`, `host_review_start`,
+  `host_review_acknowledge_approved`, `host_review_capture_result`, `host_review_capture_refuter`,
+  `host_review_capture_validation`, `host_review_capture_correction_plan`,
+  `host_review_capture_unachievable`, `host_review_recover`, and `host_review_validate`. It did not
+  hold `host_git_push`, `host_gh_issue_create`, `host_plan_append`, or
+  `host_sandbox_result_install`; this change adds `host_git_push` and
+  `host_sandbox_result_install`, while `host_gh_issue_create` and `host_plan_append` remain absent
+  by design. All five identities are refused by sandbox read/list/grep/diff and mutation tools, so
+  PMs do not enter the sandbox. Other owner-relayed answers remain: (1) `task_id` resume YES,
+  mechanism unobserved; (2) depth-1 relay REACHABLE, but full context delivery is unverified; (3) PM
+  surface includes host reads, AFT, CodeGraph, AST-grep, context and read/glob, with no host bash or
+  sandbox tools; (4) no depth-sensitive behavior was reported, and raising depth 3→4 should not
+  affect binding, worker initialization or session-root relay resolution.
+- **Live smoke correction (observed after owner restart):**
+  `host_git_commit({"message":"test: identity probe"})` returned `cannot commit: no applied B→C
+  result for this session`; `host_review_start({})` returned `the candidate has no pending changes;
+  already-committed work can be reviewed by rerunning review start with --base-ref <commit>`. No
+  `HOST_MUTATION_*` token appeared. `host_register_project` is absent from the registered tool set,
+  so its deny path is unobservable for `pm-odd` (tool-registration-layer control, not broker
+  refusal). Identity binding is confirmed live for permitted operations; the deny path is
+  unobservable, not refuted. The security advisor's author→commit→review→approve loop is confirmed
+  reachable: commit, review start, capture and acknowledge are all in the observed tool set.
+- **Removal correction — check (c) FAILED:** A Task dispatch to `pm-probe` still succeeded, with
+  its Q53 probe brief. The canonical→live mirror had not run since commit `8d40f97`, so
+  `~/.config/opencode/opencode.json` still defined the agent; restart alone applies nothing. The
+  correct deployment sequence is verifier mirror → restart. `pm-probe` removal remains unverified
+  until dispatch fails. Positively, the still-live `pm-probe` refused an instruction shaped like a
+  liveness beacon. Required services are `sandbox-broker.service` and `secure-opencode.service`.
   Related: Q50 (interface contract).
 
 ### Q55. PM layer: handoff contract, agents and writer
-- **Status:** IN PROGRESS. Implementation landed in commit `8980254`; the probe closed in Q54 and
-  `pm-probe` was removed in this unit. The post-code advisory review remains owed.
+- **Status:** IN PROGRESS. Implementation landed in commit `8980254`; Q54's reported probe closure
+  does not verify live `pm-probe` removal (check (c) FAILED; see Q54). The post-code advisory review
+  remains owed.
 - **Prerequisites:** Q53.
 - **Description:** `docs/specs/pm-handoff.md`; `pm-odd`, `pm-systematic`, `pm-sdd` and
   `odd-apply` in `global-config/opencode.json`; PM prompts within budget; guard data
-  (`SPECIALIST_WRITERS`, `pm-` as coordinator) with tests first. The probe is closed as of this
-  unit, licensing removal; the post-code advisory review remains owed. Route-specific classification
-  is verified, but hard rejection is not
-  (the guard is warning-only).
+  (`SPECIALIST_WRITERS`, `pm-` as coordinator) with tests first. Q54's original probe report is
+  recorded, but live `pm-probe` removal remains unverified after check (c) failed; see Q54. The
+  post-code advisory review remains owed. Route-specific classification is verified, but hard
+  rejection is not (the guard is warning-only).
 
 ### Q56. PM layer: pilot `pm-odd`
 - **Status:** BLOCKED on Q55, deployment and removal verification.
-- **Prerequisites:** Q55 post-code advisory review; restart `sandbox-broker.service` and
-  `secure-opencode.service`, then run a live-policy smoke test from one `pm-odd` session with one
-  denied `host_register_project` operation and one permitted `host_git_commit` or
-  `host_review_start` operation; verify all three `pm-probe` removal checks: effective broker
-  policy, installed plugin bytes, and refusal of a mutation from a previously bound probe session.
-  Q54 is complete from the owner-relayed report.
+- **Prerequisites:** Q55 post-code advisory review; run the verifier mirror, then restart
+  `sandbox-broker.service` and `secure-opencode.service`. In one `pm-odd` session, record
+  `host_register_project` as absent from the registered tool set (registration-layer control, not
+  broker refusal) and retain permitted-operation smoke evidence. Pass all three `pm-probe` removal
+  checks: effective broker policy, installed plugin bytes, and a dispatch to `pm-probe` that fails.
+  Q54's live permitted-operation evidence is recorded in the tracker; check (c) failed.
 - **Description:** run global-tooling units here through `pm-odd`, with
   `gentle-orchestrator-legacy` kept selectable. Ten consecutive units without route escape. Q58
   may run through `pm-odd` as the pilot's bootstrap unit only; it does not count toward the ten-unit
@@ -555,9 +571,10 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 
 ### Q58. PM layer: guard ordering
 - **Status:** PLANNED.
-- **Prerequisites:** Q55 and Q56's other gates: restart `sandbox-broker.service` and
-  `secure-opencode.service`, pass the live-policy smoke test, and pass all three `pm-probe` removal
-  checks. Feeds Q28 (gating matrix).
+- **Prerequisites:** Q55 and Q56's other gates: run the verifier mirror, then restart
+  `sandbox-broker.service` and `secure-opencode.service`; retain the live permitted-operation smoke
+  evidence and pass all three `pm-probe` removal checks, including a dispatch that fails. Feeds Q28
+  (gating matrix).
 - **Description:** PM agent ↔ route key binding; warn when the orchestrator dispatches a writer
   directly; advice-before-writer and commit-before-review stages. Require proof of a real review
   relay from a PM carrying a genuine provider-issued binding; Q54 showed reachability only, not
