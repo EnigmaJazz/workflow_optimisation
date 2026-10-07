@@ -2455,9 +2455,10 @@ else {
     const dir=path.dirname(p)
     const sources=[p,path.join(dir,"src","config.ts"),path.join(dir,"src","plugin.ts"),path.join(dir,"src","log.ts")].filter(fs.existsSync).map((x)=>fs.readFileSync(x,"utf8")).join("\n")
     const fallbackDefaultsPath=path.join(dir,"src","config.ts")
+    let defaults=""
     if (!fs.existsSync(fallbackDefaultsPath)) fail(`FALLBACK_DEFAULTS_SOURCE_MISSING: ${fallbackDefaultsPath}`)
     else {
-      const defaults=fs.readFileSync(fallbackDefaultsPath,"utf8")
+      defaults=fs.readFileSync(fallbackDefaultsPath,"utf8")
       const excludedBlock=defaults.match(/DEFAULT_EXCLUDE_AGENTS\s*=\s*\[([\s\S]*?)\]/)?.[1] || ""
       for (const name of ["review-risk","review-resilience","review-readability","review-reliability","review-refuter","review-validator","asi-review-risk","asi-review-resilience","asi-review-readability","asi-review-reliability","asi-review-refuter","asi-review-validator"]) if (!excludedBlock.includes(`"${name}"`)) fail(`FALLBACK_SOURCE_BOUND_REVIEW_EXCLUSION_MISSING: ${name}`)
     }
@@ -2487,8 +2488,11 @@ else {
       else {
         try {
           const cfg=parseJsonc(cfgPath)
-          const supportedFields=new Set(["enabled","startProviders","agentFallbackModels","agentRequiredCapabilities","fallbackModels","providerFallbacks","fallbackModel","sameProviderFallbackMode","modelFailurePatterns","providerFailurePatterns","sourceGraceProviders","sourceGraceMs","replayWatchdogMs","cooldownMs","eventDebounceMs","advanceGraceMs","revertToOriginalModel","patterns","excludePatterns","excludeAgents","logging","peakPolicy"])
-          for (const key of Object.keys(cfg)) if (!supportedFields.has(key)) fail(`FALLBACK_CONFIG_UNSUPPORTED_FIELD: ${key}`)
+          const supportedFieldsMatch=defaults.match(/SUPPORTED_CONFIG_FIELDS\s*=\s*\[([\s\S]*?)\]/)
+          const supportedFields=[...(supportedFieldsMatch?.[1] ?? "").matchAll(/["']([^"']+)["']/g)].map((match)=>match[1])
+          if (supportedFields.length===0) fail("FALLBACK_CONFIG_SUPPORTED_FIELDS_EXTRACTION_EMPTY")
+          const supportedFieldSet=new Set([...supportedFields,"peakPolicy"])
+          for (const key of Object.keys(cfg)) if (!supportedFieldSet.has(key)) fail(`FALLBACK_CONFIG_UNSUPPORTED_FIELD: ${key}`)
           if (cfg.enabled!==true) fail("FALLBACK_CONFIG_DISABLED")
           if (cfg.logging!==true) fail("FALLBACK_LOGGING_NOT_ENABLED")
           if (cfg.advanceGraceMs!==30000) fail(`FALLBACK_ADVANCE_GRACE_MISMATCH: expected 30000, got ${show(cfg.advanceGraceMs)}`)
