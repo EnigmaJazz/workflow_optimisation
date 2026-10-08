@@ -133,6 +133,10 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
   `opencode-go/muse-spark-1.3-contributor` (`high`); the owner accepted the model's training-data
   terms. The local Go usage limit is unavailable and remains unknown, not a numeric assumption.
   The model-family verifier maps Muse Spark to `muse`. Tracker: `odd/tasks/model-assignments.md`.
+- **Owner decision (2026-10-07) — session writing model: cloud.** This project uses
+  `gentle-ai-worker` (`deepseek-v4.1-flash`); a PM unit may rely on this explicit decision without
+  inferring it. The local option, `gentle-ai-worker-local` (`kinver/professional`), exists but was
+  not selected.
 
 ## Memory and inter-agent communication (direction, 2026-10-01)
 - **Memory pathway by runtime (owner decisions, 2026-10-01):**

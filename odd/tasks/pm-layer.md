@@ -61,8 +61,10 @@ task, each assessed against the last reviewed boundary.
   reachability only; context delivery remains unverified. It may run through `pm-odd` as Q56's
   bootstrap unit only (see T4); its own enforcement does not exist during execution, so it runs
   unguarded by design. Its review must not be self-driven.
-  Do not start Q58 until Q56's other gates pass: both service restarts, the live-policy smoke test,
-  and all three `pm-probe` removal checks.
+  Before Q58 starts, Q56's other gates must pass: both service restarts and the live-policy smoke
+  test. Removal-check evidence is reconciled below: (c) PASSED; (a) and (b) PARTIALLY PASSED, with
+  the broker deny path unobservable and its separate identity list unverifiable from this workspace.
+  Do not characterize those partial findings as full passes.
   - Requirement (not yet implemented; recorded in commit `e9bffc0`): a PM must hold its own
     route's adapter key before `host_review_start`: `pm-odd` requires `workflow-odd-secure`, and
     `pm-systematic` requires `workflow-systematic`. This matches the existing rule that a PM must
@@ -314,7 +316,7 @@ prerequisites.
 
 ## Native review and advisory follow-ups — 2026-10-07
 
-- **Observed — native review `review-eafee5bf38502dad`: APPROVED, acknowledged, authority burned.** Candidate base tree `0d7c77c405ad8d3304869f18ecf697cb69036c89` (last reviewed boundary, commit `2a72ba2`); candidate HEAD tree `b1f3c8c46b1c0fe60d678be7763ab729668922b8`; 10 paths / 716 changed lines; tier high. Correction budget 200, unused; no finding opened a correction. `review-risk`, `review-resilience`, `review-readability`, and `review-reliability` all completed (4/4); readability returned zero findings. Reliability failed twice before completion: one attempt was refused by the relay concurrency cap of 4, and a later attempt was cancelled; it completed on retry after the provider re-offered the same task. These were transport/provider refusals, not findings. The reviewed boundary now advances to candidate HEAD tree `b1f3c8c46b1c0fe60d678be7763ab729668922b8`.
+- **Observed — native review `review-eafee5bf38502dad`: APPROVED, acknowledged, authority burned.** Candidate base tree `0d7c77c405ad8d3304869f18ecf697cb69036c89` (last reviewed boundary, commit `2a72ba2`); candidate HEAD tree `b1f3c8c46b1c0fe60d678be7763ab729668922b8`; 10 paths / 716 changed lines; tier high. Correction budget 200, unused; no finding opened a correction. `review-risk`, `review-resilience`, `review-readability`, and `review-reliability` all completed (4/4); readability returned zero findings. Reliability failed twice before completion: one attempt was refused by the relay concurrency cap of 4, and a later attempt was cancelled; it completed on retry after the provider re-offered the same task. These were transport/provider refusals, not findings. At the time, the reviewed boundary advanced to candidate HEAD tree `b1f3c8c46b1c0fe60d678be7763ab729668922b8`.
 - **Observed — earlier native review `review-87d0cd86677f9627`: APPROVED.** The review store no longer has a retrievable record: `host_review_status` returned `applicability: "unrelated"` and zero lineages (status readback supplied for this task). Its reviewed boundary is confirmed as commit `2a72ba2` by equality between that commit's tree and the review's recorded `initial_review_tree`.
 - **Advisory findings — all non-blocking and informational; none reopens either review or warrants rerunning it.**
   - **R1-001 (risk, WARNING):** `global-config/opencode.json` newly registers `host_git_push` and `host_sandbox_result_install` for `pm-odd`, `pm-systematic`, and `pm-sdd` at `ask`. Push extends a PM session's blast radius to remote push, gated only by `ask`, which is susceptible to approval fatigue.
@@ -325,3 +327,19 @@ prerequisites.
   - **R4-003 (resilience, SUGGESTION):** `verify-workflow.sh:2747` removes `pm-probe` from the PM non-execution audit list and ordinary memory-agent set without asserting its absence from deployed config. A future reintroduction would escape this audit; add an explicit absence assertion.
 - **Positive security observations (risk lens):** the `asi-review-*` relay lanes were removed from `pm-odd` and `pm-systematic`; the task wildcard was removed from `advisor-testing-pre`, `advisor-maintainability`, and `advisor-testing-post`; the new 12-agent review lockdown audit was added; `pm-probe` was fully removed; and `odd-apply` commit ownership was separated.
 - **Open follow-ups (owner decision / separate units; no changes made here):** R1-001 asks the owner to resolve whether PM ask-gated remote push is acceptable; R1-002 / R3-PM-SDD-REVIEW-HAZARD / R4-002 require an owner decision on `pm-sdd` review lifecycle grants and the stuck-lineage/manual-abandon risk; R4-003 needs a separate explicit-absence assertion. R4-001 is addressed by this unit's fail-closed check. These remain advisory evidence, not approval conditions.
+
+## Q58 bootstrap prerequisites — observed evidence (2026-10-08)
+
+- **Observed — reviewed boundary:** Git tree for commit `6ac15ea0a8206cda8e915c3e33ea5e76dd043a24` is `b1f3c8c46b1c0fe60d678be7763ab729668922b8`, equal to the approved candidate tree recorded for `review-eafee5bf38502dad`. This confirms `6ac15ea0a8206cda8e915c3e33ea5e76dd043a24` as the last reviewed boundary. Descendant commits seen in the inspected history are `a926f9e8f1e2eb7df33d8474d5966f6be786510c`, `dbdcfe109bc8453ad704dbbcce711e5d8296b36f`, `1b6ba2ba7259b1baa023ae94644b8c68e369f918`, and `c76f9e630234b09295de5cc8129e74653353f615`; no later reviewed candidate is recorded in this tracker or the located `ROUTER-LOG.md` entry. Boundary remains commit `6ac15ea0a8206cda8e915c3e33ea5e76dd043a24`.
+- **Observed — `pm-probe` removal check (c), PASSED:** a Task dispatch returned `Unknown agent type: pm-probe is not a valid agent type`.
+- **Observed — removal check (b), PARTIALLY PASSED:** the installed sandbox-refusal list in `/home/james/.config/opencode/plugins/sandbox-tools.ts`, `READ_ONLY_AGENTS` lines 64–69, contains `gentle-orchestrator`, `pm-odd`, `pm-systematic`, and `pm-sdd`, and contains no `pm-probe`. The broker's separate identity list is in the `agent-sandbox-integration` project and is not reachable from this workspace; the `~/ai-workspace` directory listing was permission-denied. That half remains unverifiable here and is not treated as passed.
+- **Observed — removal check (a), PARTIALLY PASSED:** live `pm-odd` calls returned `host_git_commit`: `cannot commit: no applied B→C result for this session`; and `host_review_start`: `the candidate has no pending changes…`. These business errors are reachable only after authorization passed; no `HOST_MUTATION_*` token appeared. The deny path is unobservable: `host_register_project` is absent from `pm-odd`'s registered tool set, so the call cannot reach the broker. This is a tool-registration-layer control, not an observed broker refusal. Do not characterize all of (a) as passed.
+- **Owner decision (2026-10-07) — session writing-model decision: decided: cloud.** This project uses `gentle-ai-worker` (`deepseek-v4.1-flash`); a PM unit may rely on this explicit decision without inferring it. The local option, `gentle-ai-worker-local` (`kinver/professional`), exists but was not selected.
+- **Advisory evidence — Q58 pre-code advice (`advisor-integration-pre`):** consequential open question: recording PM identity only when the parent receives a completed Task result cannot establish identity during that child’s initial execution. Cross-reference `odd/tasks/guard-q03.md`, “Confirmed loader defect closure” / runtime investigation note: child/parent state is only observed when the Task returns, not at dispatch. This tracker records the implication without duplicating the Q03 timing analysis.
+
+### Removal-check status summary
+
+- (a) Effective broker policy: **PARTIALLY PASSED (observed)** for permitted calls; broker refusal/deny path unobservable because `host_register_project` is not registered in the live PM tool set.
+- (b) Installed plugin bytes: **PARTIALLY PASSED (observed)** for `READ_ONLY_AGENTS`; separate broker identity list **UNVERIFIABLE** from this workspace.
+- (c) Previously bound probe-session refusal: **PASSED (observed)** by failed `pm-probe` Task dispatch.
+
