@@ -602,27 +602,23 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   `global-config/AGENTS.md`; update `WORKFLOW.md`, `workflow-route` and the adapters.
 
 ### Q58. PM layer: guard ordering
-- **Status:** PLANNED; prerequisite evidence has been reconciled, with limits recorded.
-- **Prerequisites:** Q55 and Q56's remaining gates: Q55's other acceptance work, verifier mirror,
-  restarts of `sandbox-broker.service` and `secure-opencode.service`, and live permitted-operation
-  smoke evidence. The `pm-probe` removal evidence is now accurately recorded: check (c) PASSED;
-  (a) and (b) PARTIALLY PASSED, with the deny path unobservable and separate broker identity
-  list unverifiable from this workspace. Do not rewrite these as full passes or as three outstanding
-  checks. Carry the caveats into Q56's pilot decision. Feeds Q28 (gating matrix). Session-specific
-  writing-model choice is undocumented and needs an owner decision before dispatch. See
-  `odd/tasks/pm-layer.md` for the observed boundary and evidence.
-- **Description:** PM agent ↔ route key binding; warn when the orchestrator dispatches a writer
-  directly; advice-before-writer and commit-before-review stages. **Owner decision: enforced
-  independence.** The coordinating PM cannot dispatch relay lenses; review is driven from outside
-  the PM session. Q58's route-key rule is necessary but not sufficient: it verifies the PM loaded
-  its route skill, not that the reviewer differs from the author. Independence requires lane
-  separation, not the key rule alone. Require relay-delivery proof from a dispatch outside the
-  coordinating PM session, with a genuine provider-issued binding; Q54 showed reachability only,
-  not delivery. The PM itself must not dispatch or prove its own relay delivery. Warning-only;
-  tests first. Q58 may be executed through `pm-odd` as Q56's bootstrap unit only (see Q56); its
-  own enforcement does not exist during its execution, so it runs unguarded by design. Its review
-  must be driven independently, not by the `pm-odd` session implementing it.
-
+- **Status:** IN PROGRESS — slice 1 COMPLETE (commit `7a427d7`); remaining slices not started.
+- **Prerequisites:** Q55 and Q56 pilot evidence/caveats remain recorded above. The Q58 slice-1
+  implementation and review evidence are in `odd/tasks/pm-layer.md`. Q58 feeds Q28 (gating matrix).
+- **Description:** Slice 1 adds a warning-only check that PM coordinators hold their own route's
+  adapter key before gated host mutations and any `host_review_*` call; inherited and wrong-route
+  keys do not satisfy it. The binding premise was verified live with a temporary `chat.message`
+  probe, which has since been removed. The remaining, not-started slices are the orchestrator
+  direct-writer-dispatch warning and advice-before-writer stages. The prior commit-before-review
+  half is superseded by the pre-commit advisory rule recorded in the workflow formalisation.
+  **Owner decision: enforced independence.** The coordinating PM cannot dispatch relay lenses;
+  review is driven from outside the PM session. Q58's route-key rule is necessary but not
+  sufficient: it verifies that the PM loaded its route skill, not that the reviewer differs from
+  the author. Require relay-delivery proof from a dispatch outside the coordinating PM session,
+  with a genuine provider-issued binding; Q54 showed reachability only, not delivery. The PM itself
+  must not dispatch or prove its own relay delivery. Q58 may be executed through `pm-odd` as Q56's
+  bootstrap unit only (see Q56); its review must be driven independently, not by the implementing
+  `pm-odd` session.
 - **Open question — undecided:** each PM still holds `host_review_start` and review lifecycle
   tools, so a PM can start a review it cannot complete without relay lanes. Options:
   (a) the PM keeps `host_review_start` and another actor drives the lens; or
