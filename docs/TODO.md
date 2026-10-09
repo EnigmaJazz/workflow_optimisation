@@ -602,15 +602,12 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   `global-config/AGENTS.md`; update `WORKFLOW.md`, `workflow-route` and the adapters.
 
 ### Q58. PM layer: guard ordering
-- **Status:** IN PROGRESS — slice 1 COMPLETE (commit `7a427d7`); remaining slices not started.
-- **Prerequisites:** Q55 and Q56 pilot evidence/caveats remain recorded above. The Q58 slice-1
-  implementation and review evidence are in `odd/tasks/pm-layer.md`. Q58 feeds Q28 (gating matrix).
+- **Status:** DONE — all slices complete. Slice 1: `7a427d7`; direct-writer-dispatch warning: `d25228b`; advice-before-writer stage: `4b63481`; supporting routing-gate and breadcrumb fixes: `9c215b1`.
+- **Prerequisites:** Q55 and Q56 pilot evidence/caveats remain recorded above. The Q58 implementation, reviewability, and slice evidence are in `odd/tasks/pm-layer.md`. Q58 feeds Q28 (gating matrix).
 - **Description:** Slice 1 adds a warning-only check that PM coordinators hold their own route's
   adapter key before gated host mutations and any `host_review_*` call; inherited and wrong-route
   keys do not satisfy it. The binding premise was verified live with a temporary `chat.message`
-  probe, which has since been removed. The remaining, not-started slices are the orchestrator
-  direct-writer-dispatch warning and advice-before-writer stages. The prior commit-before-review
-  half is superseded by the pre-commit advisory rule recorded in the workflow formalisation.
+  probe, which has since been removed. The completed remaining slices warn when `gentle-orchestrator` dispatches a writing specialist directly instead of through its route coordinator, and when a writer is dispatched before the advice record exists. The prior commit-before-review half is superseded by the pre-commit advisory rule recorded in the workflow formalisation. Commits `9c215b1`, `d25228b`, and `4b63481` are recorded in `odd/tasks/pm-layer.md`; the routing-guard suite reports 94 passed / 0 failed (previously 80 passed). The advice-record convention is documented in `WORKFLOW.md` and the tracker.
   **Owner decision: enforced independence.** The coordinating PM cannot dispatch relay lenses;
   review is driven from outside the PM session. Q58's route-key rule is necessary but not
   sufficient: it verifies that the PM loaded its route skill, not that the reviewer differs from
@@ -623,6 +620,7 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   tools, so a PM can start a review it cannot complete without relay lanes. Options:
   (a) the PM keeps `host_review_start` and another actor drives the lens; or
   (b) review start also leaves the PM session. Do not resolve this in Q58.
+- **Open external/upstream item — review relay deadline:** two review lenses expired with `reviewer_relay_deadline_expired: review relay deadline of 600000 ms expired` despite taking 16–19 minutes. The deadline is `RELAY_DEADLINE_MS = 600_000` at `~/.config/opencode/plugins/lib/reviewer-relay-core.ts:112`, overridable through `config.deadlineMs` at `:778` and `:1294`. That file is not tracked here (this repository tracks only `global-config/plugins/lib/routing-guard-helpers.ts`), and nothing in this repository sets the deadline. The fix belongs to the external plugin owner, not local Q58 work; details are in `odd/tasks/pm-layer.md`.
 
 ### Q59. PM layer: verifier
 - **Status:** PLANNED.

@@ -479,6 +479,12 @@ The former `consequential-pair` rule is subsumed by `pair-default`. The external
 - **Subscription rule.** External sessions are opened and prompted only by the user. No queue watcher, script or OpenCode agent launches or prompts them.
 - **Throughput.** Every non-trivial unit then waits for the user to open sessions twice per host: pre-code advice and post-code advisory review, four in all. That is intentional while testing. The first tightening step, if usage approaches the allowances, is `default-rotate`.
 
+### Advice record and route stage
+
+A substantial route owes pre-code advisory review before its first writer dispatch. The durable evidence is `odd/advice/<change>.md`. A delegated sandbox worker writes this record: the orchestrator and PM agents are read-only and cannot write project files, so the coordinator cannot create it directly. The guard detects the advice record by its written path, as it does tracker and plan writes, and that path satisfies the advice stage for `workflow-odd-secure` and `workflow-systematic`. Dispatching a writer before the file exists produces a warning only; it does not block the dispatch.
+
+The record is an artifact rather than a dispatch event because a dispatch proves only that a `task` call happened, and that event ceases to be observable when advisors are external (a CLI, another runtime, or a human reviewer). The file remains visible to the guard and reviewable by a human or native review, while remaining advisor-agnostic; it therefore continues to work as advisors move outside the current runtime without requiring a guard rewrite. This gate proves only that advice was recorded, not that it was acted on; it deliberately asserts that weaker, true claim.
+
 ### Advisory evidence in the ODD tracker
 
 A non-trivial unit records its advice under its task ID in `odd/tasks/<feature>.md`. A unit lacking an advice record is reported as a blocked gate, never silently skipped.
