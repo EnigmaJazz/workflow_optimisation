@@ -343,3 +343,16 @@ prerequisites.
 - (b) Installed plugin bytes: **PARTIALLY PASSED (observed)** for `READ_ONLY_AGENTS`; separate broker identity list **UNVERIFIABLE** from this workspace.
 - (c) Previously bound probe-session refusal: **PASSED (observed)** by failed `pm-probe` Task dispatch.
 
+## T6 (Q58) slice readiness — 2026-10-09
+
+- **Unit:** `Q58-bootstrap-slice1` (T6), workspace `workflow_optimisation`, tracker `odd/tasks/pm-layer.md`.
+- **Route: delegated.** Specialist: `odd-apply` sandbox writer; the orchestrator stays read-only. Trigger evidence: the writer trigger (two or more non-trivial files) plus the secure delegation/preparation policy — every project mutation and execution is delegated. Recorded before the first implementation source edit per `WORKFLOW.md` lines 58 and 64.
+- **Authorized scope (forecast):** `global-config/plugins/systematic-routing-guard.ts`, `global-config/plugins/lib/routing-guard-helpers.ts`, and `tests/routing-guard/` regression tests. No verifier, config, or permission edits; `docs/specs` stays untouched (advisor suggestion out of scope).
+- **Model:** cloud owner decision (2026-10-07): `opencode-go/deepseek-v4.1-flash`, observed in the canonical config; models are not changed.
+- **TDD:** on (owner strategy); TDD source is this tracker and the Task brief; runner `HOME="$(mktemp -d)" bun test tests/routing-guard`, executed only in the isolated sandbox. RED first, then GREEN, then REFACTOR.
+- **Bootstrap/review exception:** Q58 runs as Q56's bootstrap unit, unguarded by design, and does not count toward the ten-unit pilot. Its review must not be self-driven: the orchestrator independently drives review, metadata closure, and deployment after handoff; no post-code advice or native review runs in this unit, which stops at sandbox handoff.
+- **Forecast:** below 400 authored changed lines and 100 KiB of authored textual patch for this slice (revise here if implementation evidence says otherwise).
+- **Pre-code advice (advisory evidence only, not approval):** `advisor-integration-pre`, Task `ses_ee2053b3fffe6TKHQSp3cZZXSC`, configured `opencode-go/kimi-k2.7-code`. Required shape: PM key validation only from the PM's own route-directory key (no inherited key, no wrong-route acceptance); identity from the persisted recent message agent via `chat.message`; an exact declarative map in the helpers (`pm-odd`→`workflow-odd-secure`, `pm-systematic`→`workflow-systematic`, `pm-sdd`→`workflow-sdd-secure`); keep the broad `isCoordinator` admission and the generic/non-PM stage semantics; every gated host mutation and review-lifecycle warning names the PM and the missing key.
+- **Latest-message-agent limitation:** PM identity is not observable while the child first executes — parent/child state is written only when the Task returns; helpers must rely on the persisted latest-message agent through `chat.message`. See the Q58 prerequisites note above; the Q03 timing analysis is not duplicated here.
+- **Inputs:** reviewed boundary `6ac15ea0a8206cda8e915c3e33ea5e76dd043a24`; RDD enabled (global). Readback of this body and its Magic Context mirror is the readiness gate before the first source edit.
+
