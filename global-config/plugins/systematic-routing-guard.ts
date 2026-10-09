@@ -969,6 +969,18 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       const dispatchedType = typeof args.subagent_type === "string" ? args.subagent_type : null
       if (mode !== "off" && dispatchedType && !isCoordinator(dispatchedType) && !isReadOnlySpecialist(dispatchedType)) {
         try {
+          const boundAgent = await readLatestMessageAgent(input.sessionID)
+          if (
+            boundAgent === "gentle-orchestrator" &&
+            (await getWorkflowKeyStatus(input.sessionID)) === "valid"
+          ) {
+            await warn(
+              "task",
+              input.sessionID,
+              `orchestrator dispatched writing specialist ${dispatchedType}; orchestrator must delegate through the route coordinator`,
+            )
+          }
+
           for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
             if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
             for (const stage of stages) {
