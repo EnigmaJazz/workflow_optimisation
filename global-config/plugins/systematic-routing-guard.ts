@@ -800,7 +800,6 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
   // One de-dup set for every console warning: sessionID + tool + failure text.
   const warnedConsole = new Set<string>()
   const reportedKeyStatuses = new Set<string>()
-  const probedChatMessageSessions = new Set<string>()
 
   const warn = async (tool: string, sessionID: string, failure: string): Promise<void> => {
     const warningKey = `${sessionID}\u0000${tool}\u0000${failure}`
@@ -817,30 +816,6 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
     "chat.message": async (input) => {
       activeBySession.delete(input.sessionID)
       lastKeyRefreshBySession.delete(input.sessionID)
-      if (!probedChatMessageSessions.has(input.sessionID)) {
-        probedChatMessageSessions.add(input.sessionID)
-        try {
-          const messageInput = input as Record<string, unknown>
-          const keys = Object.keys(messageInput)
-          const agentFields = keys
-            .filter((key) => /agent/i.test(key))
-            .map((key) => {
-              const value = messageInput[key]
-              return typeof value === "string"
-                ? { key, type: typeof value, value }
-                : { key, type: typeof value }
-            })
-          const logDirectory = join(homedir(), ".local/share/opencode/logs")
-          await mkdir(logDirectory, { recursive: true })
-          await appendFile(
-            join(logDirectory, "routing-guard-chat-message-probe.log"),
-            `${JSON.stringify({ sessionID: input.sessionID, keys, agentFields })}\n`,
-            "utf8",
-          )
-        } catch {
-          // Probe is best-effort and must never affect a chat message.
-        }
-      }
       // The guard observes the message agent here; it is the latest observed value, not an
       // authenticated session identity.
       await boxed(persistLatestMessageAgent(input.sessionID, input.agent))
