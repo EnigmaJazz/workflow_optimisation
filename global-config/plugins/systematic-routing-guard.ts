@@ -923,6 +923,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
             if (routeSkill !== "workflow-odd-secure") continue
             if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
             for (const stage of stages) {
+              if (!stage.allowsSpecialists) continue
               // A call that writes the stage artifact itself counts as writing it.
               if (paths.some((path) => stage.artifactPattern?.test(path))) continue
               if (await hasRouteStageArtifactInAncestorChain(input.sessionID, routeSkill, stage)) continue
@@ -983,6 +984,17 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
 
           for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
             if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
+            const adviceStage = stages.find((stage) => stage.id === "advice")
+            if (
+              adviceStage &&
+              !(await hasRouteStageArtifactInAncestorChain(input.sessionID, routeSkill, adviceStage))
+            ) {
+              await warn(
+                "task",
+                input.sessionID,
+                `${routeSkill} specialist ${dispatchedType} dispatched before advice record odd/advice/<change>.md exists`,
+              )
+            }
             for (const stage of stages) {
               if (!stage.allowsSpecialists) continue
               if (!(await hasRouteStageArtifactInAncestorChain(input.sessionID, routeSkill, stage))) {

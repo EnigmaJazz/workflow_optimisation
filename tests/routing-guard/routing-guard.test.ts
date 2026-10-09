@@ -50,6 +50,7 @@ function marker(sid: string, name: string) {
   mkdirSync(sessionDir(sid), { recursive: true })
   writeFileSync(join(sessionDir(sid), name), "x")
 }
+const markAdvice = (sid: string, route = ODD) => marker(sid, `artifact-${route}-advice`)
 const hasFile = (sid: string, name: string) => existsSync(join(sessionDir(sid), name))
 const logText = () => (existsSync(logFile()) ? readFileSync(logFile(), "utf8") : "")
 const logCount = (needle: string) => logText().split("\n").filter((l) =>
@@ -181,8 +182,8 @@ describe("7. exported stage table", () => {
       }
       expect(route.startsWith("workflow-")).toBe(true)
     }
-    expect(stages[ODD].map((s) => s.id)).toEqual(["tracker"])
-    expect(stages[SYS].map((s) => s.id)).toEqual(["requirements", "plan", "review"])
+    expect(stages[ODD].map((s) => s.id)).toEqual(["advice", "tracker"])
+    expect(stages[SYS].map((s) => s.id)).toEqual(["requirements", "advice", "plan", "review"])
   })
 
   test("READ_ONLY_SPECIALIST_PATTERNS is exported", () => {
@@ -234,6 +235,7 @@ describe("1. specialist rule: deny by default", () => {
   test("odd-apply is admitted at the ODD tracker stage", async () => {
     seedKey("ses_odd_apply", ODD)
     marker("ses_odd_apply", `artifact-${ODD}-tracker`)
+    markAdvice("ses_odd_apply")
     await dispatch("ses_odd_apply", "odd-apply")
     expect(logCount("specialist odd-apply")).toBe(0)
     await probe()
@@ -249,6 +251,7 @@ describe("1. specialist rule: deny by default", () => {
   test("listed writer after the tracker exists does not warn", async () => {
     seedKey("ses_s4", ODD)
     marker("ses_s4", `artifact-${ODD}-tracker`)
+    markAdvice("ses_s4")
     await dispatch("ses_s4", "general")
     expect(logCount("specialist general")).toBe(0)
     await probe()
@@ -264,6 +267,7 @@ describe("1. specialist rule: deny by default", () => {
   test("every declared writer is allowed once the tracker exists", async () => {
     seedKey("ses_s5b", ODD)
     marker("ses_s5b", `artifact-${ODD}-tracker`)
+    markAdvice("ses_s5b")
     for (const name of ["general", "systematic-implementer", "frontend-dev", "frontend-dev-premium",
       "frontend-apply", "frontend-apply-local", "jd-fix-agent", "pr-comment-resolver",
       "bug-reproduction-validator", "design-iterator", "sdd-apply", "sdd-apply-local",
@@ -354,6 +358,12 @@ describe("1b. orchestrator writer dispatch warning", () => {
 })
 
 describe("2. route-namespaced stage markers", () => {
+  test("writing an ODD advice record writes namespaced advice markers before the hook returns", async () => {
+    await before("sandbox_write", "ses_advice_marker", { path: "odd/advice/feature-x.md", content: "advice" })
+    expect(hasFile("ses_advice_marker", `artifact-${ODD}-advice`)).toBe(true)
+    expect(hasFile("ses_advice_marker", `artifact-${SYS}-advice`)).toBe(true)
+  })
+
   test("writing the tracker writes the namespaced marker before the hook returns", async () => {
     seedKey("ses_m1", ODD)
     await before("sandbox_write", "ses_m1", { path: "odd/tasks/feature.md", content: "x" })
@@ -369,6 +379,7 @@ describe("2. route-namespaced stage markers", () => {
     for (const [sid, legacy] of [["ses_m3", "artifact-tracker"], ["ses_m4", "artifact-odd-tracker"]]) {
       seedKey(sid, ODD)
       marker(sid, legacy)
+      markAdvice(sid)
       await dispatch(sid, "general")
       expect(logCount(`specialist general dispatched before tracker`)).toBe(0)
     }
@@ -417,6 +428,62 @@ describe("2. route-namespaced stage markers", () => {
     marker("ses_child1", `artifact-${ODD}-tracker`)
     await after("task", "ses_parent1", { subagent_type: "general" }, 'task id="ses_child1" completed')
     expect(hasFile("ses_parent1", `artifact-${ODD}-tracker`)).toBe(true)
+  })
+})
+
+describe("1c. pre-code advice stage", () => {
+  test("a writer dispatch without an advice record warns and still resolves", async () => {
+    const sid = "ses_advice_missing"
+    seedKey(sid, ODD)
+    marker(sid, `artifact-${ODD}-tracker`)
+
+    await expect(dispatch(sid, "systematic-implementer")).resolves.toBeUndefined()
+
+    expect(logCount(`${ODD} specialist systematic-implementer dispatched before advice record`)).toBe(1)
+  })
+
+  test("a Systematic writer dispatch also requires the shared advice record", async () => {
+    const sid = "ses_systematic_advice_missing"
+    seedKey(sid, SYS)
+    marker(sid, `artifact-${SYS}-plan`)
+
+    await expect(dispatch(sid, "systematic-implementer")).resolves.toBeUndefined()
+
+    expect(logCount(`${SYS} specialist systematic-implementer dispatched before advice record`)).toBe(1)
+  })
+
+  test("a writer dispatch after the advice record exists does not warn", async () => {
+    const sid = "ses_advice_present"
+    seedKey(sid, ODD)
+    marker(sid, `artifact-${ODD}-tracker`)
+    await before("sandbox_write", sid, { path: "odd/advice/feature-x.md", content: "advice" })
+
+    await dispatch(sid, "systematic-implementer")
+
+    expect(logCount(`${ODD} specialist systematic-implementer dispatched before advice record`)).toBe(0)
+    await probe()
+  })
+
+  test("a coordinator dispatch does not warn for missing advice", async () => {
+    const sid = "ses_advice_coordinator"
+    seedKey(sid, ODD)
+    marker(sid, `artifact-${ODD}-tracker`)
+
+    await dispatch(sid, "pm-odd")
+
+    expect(logCount("dispatched before advice record")).toBe(0)
+    await probe()
+  })
+
+  test("a read-only specialist dispatch does not warn for missing advice", async () => {
+    const sid = "ses_advice_readonly"
+    seedKey(sid, ODD)
+    marker(sid, `artifact-${ODD}-tracker`)
+
+    await dispatch(sid, "repo-research-analyst")
+
+    expect(logCount("dispatched before advice record")).toBe(0)
+    await probe()
   })
 })
 
@@ -621,6 +688,7 @@ describe("6. warning de-duplication", () => {
 
   test("specialist warnings are de-duplicated", async () => {
     seedKey("ses_d2", ODD)
+    markAdvice("ses_d2")
     await dispatch("ses_d2", "general")
     await dispatch("ses_d2", "general")
     expect(consoleCount("specialist general")).toBe(1)
@@ -645,6 +713,7 @@ describe("6. warning de-duplication", () => {
 
   test("different failures for the same tool are not suppressed by each other", async () => {
     seedKey("ses_d5", ODD)
+    markAdvice("ses_d5")
     await dispatch("ses_d5", "general")
     await dispatch("ses_d5", "mystery-writer")
     expect(consoleCount("specialist general")).toBe(1)

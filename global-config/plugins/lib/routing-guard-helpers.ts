@@ -65,17 +65,27 @@ export function stageMarkerNames(
 }
 
 export const ROUTE_STAGES: Record<string, readonly RouteStage[]> = {
-  "workflow-odd-secure": [{
-    id: "tracker",
-    artifactPattern: /^odd\/tasks\/[^/]+\.md$/,
-    allowsSpecialists: ODD_SPECIALIST_WRITERS,
-  }],
+  "workflow-odd-secure": [
+    {
+      id: "advice",
+      artifactPattern: /^odd\/advice\/[^/]+\.md$/,
+    },
+    {
+      id: "tracker",
+      artifactPattern: /^odd\/tasks\/[^/]+\.md$/,
+      allowsSpecialists: ODD_SPECIALIST_WRITERS,
+    },
+  ],
   "workflow-systematic": [
     {
       id: "requirements",
       artifactPattern: /^docs\/brainstorms\/[^/]+\.md$/,
       skillMarkers: ["ce-brainstorm"],
       gatesSkillLoads: ["ce-plan"],
+    },
+    {
+      id: "advice",
+      artifactPattern: /^odd\/advice\/[^/]+\.md$/,
     },
     {
       id: "plan",
