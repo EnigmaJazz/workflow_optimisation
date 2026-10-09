@@ -134,6 +134,20 @@ describe("0. state-root seam", () => {
 
     await expect(before("host_git_commit", "ses_log_rejection", {})).resolves.toBeUndefined()
   })
+
+  test("failed message-agent binding writes report one best-effort breadcrumb", async () => {
+    const validSession = "ses_binding_write_control"
+    await expect(message(validSession, "pm-odd")).resolves.toBeUndefined()
+    expect(readFileSync(join(sessionDir(validSession), ".agent"), "utf8")).toContain("pm-odd")
+    expect(consoleCount("message-agent binding write failed")).toBe(0)
+
+    const failedSession = "ses_binding_write_failure"
+    mkdirSync(keyRoot(), { recursive: true })
+    writeFileSync(sessionDir(failedSession), "not a directory")
+    await expect(message(failedSession, "pm-odd")).resolves.toBeUndefined()
+    await expect(message(failedSession, "pm-odd")).resolves.toBeUndefined()
+    expect(consoleCount(`message-agent binding write failed (session: ${failedSession},`)).toBe(1)
+  })
 })
 
 describe("7. exported stage table", () => {
@@ -143,6 +157,17 @@ describe("7. exported stage table", () => {
       .map(([name]) => name)
       .sort()
     expect(functionExports).toEqual(["SystematicRoutingGuardPlugin", "default"])
+  })
+
+  test("plugin factory returns its recognized hooks", () => {
+    const recognizedHooks = Object.keys(hooks).sort()
+    expect(recognizedHooks).toEqual([
+      "chat.message",
+      "command.execute.before",
+      "tool.execute.after",
+      "tool.execute.before",
+    ])
+    console.log(`[plugin factory hooks] ${recognizedHooks.join(", ")}`)
   })
 
   test("ROUTE_STAGES is exported and well formed", () => {
@@ -733,11 +758,24 @@ describe("8. PM own-route key binding", () => {
       "host_gh_issue_create",
       "host_plan_append",
       "host_register_project",
+      "host_sandbox_result_install",
+      "host_sdd_archive_compose",
     ]
     await message("ses_pm_hosts", "pm-odd")
     for (const tool of tools) {
       await before(tool, "ses_pm_hosts", {})
       expect(logCount(pmWarning("pm-odd", ODD, tool))).toBe(1)
+      expect(logText()).toContain(`workflow key status=missing (session: ses_pm_hosts)`)
+    }
+  })
+
+  test("host mutation PM gates are derived from the routing gate set", async () => {
+    const tools = ["host_sandbox_result_install", "host_sdd_archive_compose"]
+    await message("ses_pm_derived_hosts", "pm-sdd")
+    for (const tool of tools) {
+      await before(tool, "ses_pm_derived_hosts", {})
+      expect(logCount(pmWarning("pm-sdd", "workflow-sdd-secure", tool))).toBe(1)
+      expect(logText()).toContain(`workflow key status=missing (session: ses_pm_derived_hosts)`)
     }
   })
 
