@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
 import {
+  pmRequiredRouteSkill,
   READ_ONLY_SPECIALIST_PATTERNS,
   ROUTE_STAGES,
   setTaskWriteFileForTests,
@@ -65,6 +66,7 @@ const after = (tool: string, sid: string, args: Record<string, unknown>, output:
   hooks["tool.execute.after"]({ tool, sessionID: sid, callID: "c1", args }, { args, output, title: "", metadata: {} })
 const dispatch = (sid: string, subagent: string) =>
   before("task", sid, { subagent_type: subagent, description: "do work", prompt: "do work" })
+const message = (sid: string, agent: string) => hooks["chat.message"]({ sessionID: sid, agent })
 
 // Positive control for absence assertions: proves this test's guard output really lands under the
 // per-test state root, so "no warning" / "no marker" cannot pass vacuously.
@@ -572,5 +574,250 @@ describe("6. warning de-duplication", () => {
     await dispatch("ses_d5", "mystery-writer")
     expect(consoleCount("specialist general")).toBe(1)
     expect(consoleCount("specialist mystery-writer")).toBe(1)
+  })
+})
+
+// Q58/T6: the guard binds the most recently seen message agent per session and, for a PM
+// session, requires the PM's own route-directory adapter key before host mutations and the
+// review lifecycle. Warning-only: the binding is the latest observed message agent, not an
+// authenticated session identity, and a missing key never blocks the call.
+describe("8. PM own-route key binding", () => {
+  const pmWarning = (pm: string, route: string, tool: string, status = "missing") =>
+    `${pm} requires its own ${route} route key before ${tool} (PM session key status: ${status})`
+
+  test("binds the latest message agent under the state root", async () => {
+    await message("ses_pm_bind", "pm-odd")
+    expect(hasFile("ses_pm_bind", ".agent")).toBe(true)
+    expect(readFileSync(join(sessionDir("ses_pm_bind"), ".agent"), "utf8")).toContain("pm-odd")
+  })
+
+  test("a PM host mutation without its own key warns and still resolves", async () => {
+    await message("ses_pm_commit", "pm-odd")
+    await expect(before("host_git_commit", "ses_pm_commit", {})).resolves.toBeUndefined()
+    expect(logText()).toContain(pmWarning("pm-odd", ODD, "host_git_commit"))
+    expect(logCount("pm-odd requires its own")).toBe(1)
+  })
+
+  test("a PM review start without its own key warns and still resolves", async () => {
+    await message("ses_pm_review_start", "pm-systematic")
+    await expect(before("host_review_start", "ses_pm_review_start", {})).resolves.toBeUndefined()
+    expect(logText()).toContain(pmWarning("pm-systematic", SYS, "host_review_start"))
+    expect(logCount("pm-systematic requires its own")).toBe(1)
+  })
+
+  test("maps each PM to its own route adapter key", async () => {
+    for (const [pm, route] of [
+      ["pm-odd", ODD],
+      ["pm-systematic", SYS],
+      ["pm-sdd", "workflow-sdd-secure"],
+    ]) {
+      const sid = `ses_pm_map_${pm.replace(/-/g, "_")}`
+      await message(sid, pm)
+      await before("host_git_commit", sid, {})
+      expect(logText()).toContain(pmWarning(pm, route, "host_git_commit"))
+    }
+    await probe()
+  })
+
+  test("own fresh route key means silence", async () => {
+    await message("ses_pm_ok", "pm-odd")
+    seedKey("ses_pm_ok", ODD)
+    await before("host_git_commit", "ses_pm_ok", {})
+    expect(logCount("ses_pm_ok")).toBe(0)
+    expect(logCount("requires its own")).toBe(0)
+    await probe()
+  })
+
+  test("a wrong-route own key cannot satisfy the PM requirement", async () => {
+    await message("ses_pm_wrong", "pm-odd")
+    seedKey("ses_pm_wrong", SYS)
+    await before("host_git_commit", "ses_pm_wrong", {})
+    expect(logCount(pmWarning("pm-odd", ODD, "host_git_commit"))).toBe(1)
+  })
+
+  test("an inherited route key cannot satisfy the PM requirement", async () => {
+    seedKey("ses_pm_inh_parent", ODD)
+    seedInherited("ses_pm_inh_child", "ses_pm_inh_parent")
+    await message("ses_pm_inh_child", "pm-odd")
+    await before("host_git_commit", "ses_pm_inh_child", {})
+    expect(logCount(pmWarning("pm-odd", ODD, "host_git_commit"))).toBe(1)
+  })
+
+  test("an unrelated ancestor key cannot mask the missing own key", async () => {
+    seedKey("ses_pm_anc_parent", SYS)
+    seedInherited("ses_pm_anc_child", "ses_pm_anc_parent")
+    await message("ses_pm_anc_child", "pm-odd")
+    await before("host_git_commit", "ses_pm_anc_child", {})
+    expect(logCount(pmWarning("pm-odd", ODD, "host_git_commit"))).toBe(1)
+  })
+
+  test("an expired own key warns as expired and is not revived by refresh", async () => {
+    await message("ses_pm_expired", "pm-odd")
+    seedKey("ses_pm_expired", ODD, 31)
+    const keyPath = join(sessionDir("ses_pm_expired"), `${ODD}.key`)
+    const beforeTs = JSON.parse(readFileSync(keyPath, "utf8")).last_active
+    await before("host_git_commit", "ses_pm_expired", {})
+    const afterTs = JSON.parse(readFileSync(keyPath, "utf8")).last_active
+    expect(afterTs).toBe(beforeTs)
+    expect(logCount(pmWarning("pm-odd", ODD, "host_git_commit", "expired"))).toBe(1)
+  })
+
+  test("a parent-linked PM mints its own key when it loads its adapter skill", async () => {
+    seedInherited("ses_pm_mint", "ses_pm_mint_parent")
+    await message("ses_pm_mint", "pm-odd")
+    await after("skill", "ses_pm_mint", { name: ODD }, "loaded")
+    expect(hasFile("ses_pm_mint", `${ODD}.key`)).toBe(true)
+    await before("host_git_commit", "ses_pm_mint", {})
+    expect(logCount("requires its own")).toBe(0)
+    await probe()
+  })
+
+  test("a non-PM parent-linked session keeps inherited-key minting", async () => {
+    seedInherited("ses_nonpm_mint", "ses_nonpm_mint_parent")
+    await message("ses_nonpm_mint", "gentle-orchestrator")
+    await after("skill", "ses_nonpm_mint", { name: ODD }, "loaded")
+    expect(hasFile("ses_nonpm_mint", `${ODD}.key`)).toBe(false)
+    expect(hasFile("ses_nonpm_mint", "inherited.key")).toBe(true)
+  })
+
+  test("a newer message agent replaces the previous binding", async () => {
+    await message("ses_pm_latest", "pm-odd")
+    await message("ses_pm_latest", "pm-systematic")
+    await before("host_git_commit", "ses_pm_latest", {})
+    expect(logCount(pmWarning("pm-systematic", SYS, "host_git_commit"))).toBe(1)
+    expect(logCount("pm-odd requires")).toBe(0)
+  })
+
+  test("a non-PM message agent clears the PM requirement", async () => {
+    await message("ses_pm_clear", "pm-odd")
+    await message("ses_pm_clear", "gentle-orchestrator")
+    await before("host_git_commit", "ses_pm_clear", {})
+    expect(logCount("requires its own")).toBe(0)
+    await probe()
+  })
+
+  test("tool.execute.before uses the persisted binding, not input.agent or output.agent", async () => {
+    await message("ses_pm_input", "pm-odd")
+    await hooks["tool.execute.before"](
+      { tool: "host_git_commit", sessionID: "ses_pm_input", callID: "c1", agent: "pm-sdd" },
+      { args: {}, agent: "pm-systematic" },
+    )
+    expect(logText()).toContain(pmWarning("pm-odd", ODD, "host_git_commit"))
+    expect(logCount("pm-sdd requires")).toBe(0)
+    expect(logCount("pm-systematic requires")).toBe(0)
+  })
+
+  test("every host_review_* lifecycle call requires the PM own key", async () => {
+    const tools = [
+      "host_review_start",
+      "host_review_capture_result",
+      "host_review_capture_refuter",
+      "host_review_capture_validation",
+      "host_review_capture_correction_plan",
+      "host_review_capture_unachievable",
+      "host_review_acknowledge_approved",
+      "host_review_recover",
+      "host_review_validate",
+    ]
+    await message("ses_pm_lifecycle", "pm-odd")
+    for (const tool of tools) {
+      await expect(before(tool, "ses_pm_lifecycle", {})).resolves.toBeUndefined()
+      expect(logCount(pmWarning("pm-odd", ODD, tool))).toBe(1)
+    }
+  })
+
+  test("every gated host mutation requires the PM own key", async () => {
+    const tools = [
+      "host_git_commit",
+      "host_git_push",
+      "host_gh_issue_create",
+      "host_plan_append",
+      "host_register_project",
+    ]
+    await message("ses_pm_hosts", "pm-odd")
+    for (const tool of tools) {
+      await before(tool, "ses_pm_hosts", {})
+      expect(logCount(pmWarning("pm-odd", ODD, tool))).toBe(1)
+    }
+  })
+
+  test("the PM rule does not gate sandbox writes or task dispatch", async () => {
+    await message("ses_pm_scope", "pm-odd")
+    await before("sandbox_write", "ses_pm_scope", { path: "src/x.ts", content: "x" })
+    await dispatch("ses_pm_scope", "pm-odd")
+    expect(logCount("requires its own")).toBe(0)
+    await probe()
+  })
+
+  test("the binding persists for a new plugin factory in the same session", async () => {
+    await message("ses_pm_resume", "pm-odd")
+    hooks = await guard.default({} as any)
+    await before("host_git_commit", "ses_pm_resume", {})
+    expect(logCount(pmWarning("pm-odd", ODD, "host_git_commit"))).toBe(1)
+  })
+
+  test("an invalid session id cannot persist a binding or warn as a PM", async () => {
+    await expect(message("ses_bad/id", "pm-odd")).resolves.toBeUndefined()
+    await expect(before("host_git_commit", "ses_bad/id", {})).resolves.toBeUndefined()
+    expect(logCount("requires its own")).toBe(0)
+  })
+
+  test("a message without an agent clears the previous PM binding", async () => {
+    await message("ses_pm_no_agent", "pm-odd")
+    await hooks["chat.message"]({ sessionID: "ses_pm_no_agent" })
+    await before("host_git_commit", "ses_pm_no_agent", {})
+    expect(logCount("requires its own")).toBe(0)
+    await message("ses_pm_no_agent", "pm-odd")
+    await before("host_git_commit", "ses_pm_no_agent", {})
+    expect(logCount(pmWarning("pm-odd", ODD, "host_git_commit"))).toBe(1)
+  })
+
+  test("a malformed persisted binding is treated as no binding", async () => {
+    await message("ses_pm_malformed", "pm-odd")
+    mkdirSync(sessionDir("ses_pm_malformed"), { recursive: true })
+    writeFileSync(join(sessionDir("ses_pm_malformed"), ".agent"), "{not-json", "utf8")
+    await expect(before("host_git_commit", "ses_pm_malformed", {})).resolves.toBeUndefined()
+    expect(logCount("requires its own")).toBe(0)
+    await message("ses_pm_malformed", "pm-odd")
+    await before("host_git_commit", "ses_pm_malformed", {})
+    expect(logCount(pmWarning("pm-odd", ODD, "host_git_commit"))).toBe(1)
+  })
+})
+
+// Q58/T6 correction: the adapter map must be an own-property-only identity lookup. A plain
+// object literal inherits Object.prototype members, so `constructor`, `toString` and `__proto__`
+// would otherwise resolve to inherited members and masquerade as PM route requirements.
+describe("9. PM adapter map own-property lookup", () => {
+  test("resolves each configured PM identity to its adapter skill", () => {
+    expect(pmRequiredRouteSkill("pm-odd")).toBe("workflow-odd-secure")
+    expect(pmRequiredRouteSkill("pm-systematic")).toBe("workflow-systematic")
+    expect(pmRequiredRouteSkill("pm-sdd")).toBe("workflow-sdd-secure")
+  })
+
+  test("constructor is not a PM identity", () => {
+    expect(pmRequiredRouteSkill("constructor")).toBeNull()
+  })
+
+  test("toString is not a PM identity", () => {
+    expect(pmRequiredRouteSkill("toString")).toBeNull()
+  })
+
+  test("__proto__ is not a PM identity", () => {
+    expect(pmRequiredRouteSkill("__proto__")).toBeNull()
+  })
+
+  test("an unknown pm- name is not a PM identity", () => {
+    expect(pmRequiredRouteSkill("pm-unknown")).toBeNull()
+  })
+
+  test("a prototype-member message agent does not trip the PM warning", async () => {
+    await message("ses_pm_proto_name", "constructor")
+    await before("host_git_commit", "ses_pm_proto_name", {})
+    expect(logCount("requires its own")).toBe(0)
+    // Positive control: the same run still warns for a configured PM, so the zero above is a
+    // real absence, not a broken log.
+    await message("ses_pm_proto_ctl", "pm-odd")
+    await before("host_git_commit", "ses_pm_proto_ctl", {})
+    expect(logCount(`pm-odd requires its own ${ODD} route key before host_git_commit`)).toBe(1)
   })
 })
