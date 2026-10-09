@@ -784,6 +784,7 @@
   "advanceGraceMs": 30000,
   "revertToOriginalModel": true,
   "revertAfterSubagent": true,
+  "holdSubagentResult": true,
   "stallDetection": true,
   "stallDefaultMs": 300000,
   "patterns": [
