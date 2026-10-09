@@ -39,7 +39,7 @@
  */
 
 import { appendFile, copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises"
-import { appendFileSync, constants, existsSync, mkdirSync } from "node:fs"
+import { constants, existsSync } from "node:fs"
 import { homedir } from "node:os"
 import { join, resolve } from "node:path"
 import type { Plugin } from "@opencode-ai/plugin"
@@ -226,7 +226,6 @@ const reportedFileLogFailures = new Set<string>()
 const routingGateOffFile = (): string => join(stateRoot(), ".config/opencode/routing-guard-off")
 const routingGateLogDir = (): string => join(stateRoot(), ".local/share/opencode/logs")
 const routingGateLogFile = (): string => join(routingGateLogDir(), "routing-guard.log")
-const routingGateInputProbeFile = (): string => join(routingGateLogDir(), "routing-guard-input-probe.log")
 const routingKeyRoot = (): string => join(stateRoot(), ".local/share/opencode/routing-keys")
 
 async function appendRoutingLog(line: string): Promise<void> {
@@ -726,7 +725,6 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
   // One de-dup set for every console warning: sessionID + tool + failure text.
   const warnedConsole = new Set<string>()
   const reportedKeyStatuses = new Set<string>()
-  const reportedInputProbeSessions = new Set<string>()
 
   const warn = async (tool: string, sessionID: string, failure: string): Promise<void> => {
     const warningKey = `${sessionID}\u0000${tool}\u0000${failure}`
@@ -746,49 +744,6 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
     },
 
     "tool.execute.before": async (input, output) => {
-      // TEMPORARY PROBE — remove after reading ROUTING_GUARD_INPUT_PROBE lines.
-      try {
-        const sessionID = input.sessionID
-        if (!reportedInputProbeSessions.has(sessionID)) {
-          reportedInputProbeSessions.add(sessionID)
-          const describeAgentFields = (record: Record<string, unknown> | undefined) => {
-            if (!record) return null
-            const keys = Object.keys(record)
-            const agentFields = [...new Set([...keys.filter((key) => /agent/i.test(key)), "agent"])]
-            return Object.fromEntries(agentFields.map((key) => {
-              const value = record[key]
-              const valueType = typeof value
-              return [key, {
-                type: valueType,
-                value: value === null || valueType === "string" || valueType === "number" || valueType === "boolean"
-                  ? value
-                  : valueType === "undefined" ? "<undefined>" : `<${valueType}>`,
-              }]
-            }))
-          }
-          const inputRecord = input as unknown as Record<string, unknown>
-          const outputRecord = output && typeof output === "object"
-            ? output as unknown as Record<string, unknown>
-            : undefined
-          const details = {
-            sessionID,
-            tool: input.tool,
-            inputKeys: Object.keys(input),
-            outputKeys: outputRecord ? Object.keys(outputRecord) : [],
-            outputType: output === null ? "null" : typeof output,
-            inputAgentFields: describeAgentFields(inputRecord),
-            outputAgentFields: describeAgentFields(outputRecord),
-          }
-          mkdirSync(routingGateLogDir(), { recursive: true })
-          appendFileSync(
-            routingGateInputProbeFile(),
-            `${new Date().toISOString()} ROUTING_GUARD_INPUT_PROBE ${JSON.stringify(details)}\n`,
-            "utf8",
-          )
-        }
-      } catch {
-        // The temporary diagnostic must never affect a tool call.
-      }
       // Refresh before the status check: it must see the refreshed key.
       await boxed(refreshWorkflowKeyActivity(input.sessionID, lastKeyRefreshBySession))
       const args = output.args as Record<string, unknown> | undefined
