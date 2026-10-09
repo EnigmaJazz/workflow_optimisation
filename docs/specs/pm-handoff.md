@@ -12,17 +12,20 @@ Keep each PM prompt to approximately 6,000 characters or less. It contains only 
 
 ## Route validation and ordered execution
 
-The PM loads its assigned secure route skill first, reads the current `WORKFLOW.md`, and confirms task class and route before any writer dispatch or mutation. Disagreement returns `ROUTE_DISPUTED` with the supplied and expected class/route plus concrete reasons. It dispatches no writer and performs no mutation; only route-skill loading and read-only inspection are permitted.
+The PM loads its assigned secure route skill first, reads the current `WORKFLOW.md`, and confirms task class and route before any writer dispatch or mutation. Disagreement returns `ROUTE_DISPUTED` with the supplied and expected class/route plus concrete reasons. It dispatches no writer and performs no mutation; only route-skill loading and read-only inspection are permitted. At unit start, it verifies the appropriate feature branch before doing work. For bounded read-only investigation, the PM delegates to `explore` agents instead of doing the reading itself, reducing PM workload while retaining ownership of the resulting understanding and implementation contract.
 
 After route agreement, follow that route skill's current requirements in order:
 
-1. pre-code advice;
-2. named writer/specialist for this unit only;
-3. required checks, each captured with its observed result;
-4. staged reviewability receipt and authorized PM-owned work-unit commit;
-5. post-code review: routes that do not run Systematic `ce:review` owe the registered post-code advisor review; routes that run `ce:review` do not owe the post-code advisor review;
-6. native review only when the selected non-SDD route and user-owned RDD state require it; then
-7. tracker, `docs/TODO.md`, and `docs/PLAN.md` updates as applicable.
+1. verify at unit start that the current branch is the appropriate feature branch; do not defer this check until commit time;
+2. pre-code advice;
+3. named writer/specialist for this unit only;
+4. required checks, each captured with its observed result;
+5. post-code advisory review from the PM before the work-unit commit: routes that do not run Systematic `ce:review` owe the registered post-code advisor review; routes that run `ce:review` do not owe that additional advisor review. The advisory reviewer must be independent of the author, and its findings must inform the candidate that is committed;
+6. staged reviewability receipt and authorized PM-owned work-unit commit;
+7. native review only when the selected non-SDD route and user-owned RDD state require it; it remains separately driven and is never run by the PM; then
+8. tracker, `docs/TODO.md`, and `docs/PLAN.md` updates as applicable.
+
+When a writer's result needs refinement, install the result first, then dispatch a fresh writer to refine the installed base; never reconstruct the changes from the original base. Repeat as needed. Sandbox workers are single-lifecycle and terminal after apply, so every iteration uses a fresh worker regardless. Installing each iteration makes progress durable immediately, which matters because worker sessions routinely stall or are cancelled. Only the reviewed result is committed; intermediate installed states are not committed. The host tree therefore carries uncommitted intermediate states: maintain tree hygiene and deliberately reconcile the intended feature branch before continuing.
 
 The implementation sandbox worker does not commit. The PM commits the worker's applied result through the reviewed fixed host commit operation; that grant sits on the PM, not the worker. The worker supplies the staged reviewability receipt before the PM commits.
 
