@@ -2892,8 +2892,8 @@
     "host_review_recover": "deny"
   },
   "plugin": [
-    "@fro.bot/systematic@3.21.0",
-    "@cortexkit/opencode-magic-context@0.44.4",
+    "@fro.bot/systematic@3.21.5",
+    "@cortexkit/opencode-magic-context@0.45.0",
     "@cortexkit/aft-opencode@0.58.2",
     "file:///home/james/.config/opencode/plugins/opencode-rate-limit-fallback-mapped/index.ts",
     "file:///home/james/.local/share/opencode-plugin-auto-update-local/dist/index.js",
