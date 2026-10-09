@@ -155,6 +155,8 @@ When a review-agent task returns cancelled/empty during a review:
 
 ## Code search: prefer narrow read-only tools (ENFORCED)
 
+Every turn must end with a user-facing message; never conclude inside reasoning with no visible output.
+
 For routine project inspection, choose the narrowest available, authorized tool
 that answers the question. Start with `aft_outline`/`aft_zoom` to navigate a
 known file or symbol, `codegraph_codegraph_explore` (also shown as

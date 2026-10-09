@@ -220,19 +220,18 @@ const ROUTING_GATE_TOOLS = new Set([
   "host_gh_issue_create",
   "host_plan_append",
   "host_register_project",
+  "host_sandbox_result_install",
+  "host_sdd_archive_compose",
 ])
 
-/** Gated host mutations that additionally require a PM's own route adapter key. */
-const HOST_MUTATION_GATE_TOOLS = new Set([
-  "host_git_commit",
-  "host_git_push",
-  "host_gh_issue_create",
-  "host_plan_append",
-  "host_register_project",
-])
+/** Host mutations additionally require a PM's own route adapter key. */
+const HOST_MUTATION_GATE_TOOLS = new Set(
+  [...ROUTING_GATE_TOOLS].filter((tool) => tool.startsWith("host_")),
+)
 // State root is read at each use (never fixed at import) so tests can redirect it.
 const stateRoot = (): string => process.env.SYSTEMATIC_ROUTING_GUARD_STATE_ROOT ?? homedir()
 const reportedFileLogFailures = new Set<string>()
+const reportedBindingWriteFailures = new Set<string>()
 const routingGateOffFile = (): string => join(stateRoot(), ".config/opencode/routing-guard-off")
 const routingGateLogDir = (): string => join(stateRoot(), ".local/share/opencode/logs")
 const routingGateLogFile = (): string => join(routingGateLogDir(), "routing-guard.log")
@@ -339,8 +338,21 @@ async function persistLatestMessageAgent(sessionID: string, agent: unknown): Pro
     if (!directory) return
     await mkdir(directory, { recursive: true })
     await writeFile(join(directory, ".agent"), typeof agent === "string" ? agent.trim() : "", "utf8")
-  } catch {
-    // Binding persistence is best-effort and must never fail a chat message.
+  } catch (error) {
+    const failureCode = error && typeof error === "object" && "code" in error
+      ? String((error as NodeJS.ErrnoException).code)
+      : "unknown"
+    const failureKey = `${sessionID}\u0000${failureCode}`
+    if (!reportedBindingWriteFailures.has(failureKey)) {
+      reportedBindingWriteFailures.add(failureKey)
+      try {
+        console.warn(
+          `[systematic-routing-guard] message-agent binding write failed (session: ${sessionID}, ${failureCode}): ${error instanceof Error ? error.message : String(error)}`,
+        )
+      } catch {
+        // Reporting a binding failure must never fail a chat message.
+      }
+    }
   }
 }
 
