@@ -24,6 +24,23 @@ export const COORDINATOR_PATTERNS: readonly RegExp[] = [/^pm-[a-z0-9-]+$/]
 export const isCoordinator = (name: string): boolean =>
   COORDINATOR_PATTERNS.some((pattern) => pattern.test(name))
 
+/**
+ * PM sessions must hold their own route's adapter key before gated host mutations and the
+ * native review lifecycle. Declarative agent → adapter-skill map; a guardrail input, not an
+ * authentication boundary or an identity source.
+ */
+export const PM_ROUTE_ADAPTER_SKILLS: Readonly<Record<string, string>> = {
+  "pm-odd": "workflow-odd-secure",
+  "pm-systematic": "workflow-systematic",
+  "pm-sdd": "workflow-sdd-secure",
+}
+
+/** The adapter skill a PM session must own, or null for any non-PM agent name. */
+export const pmRequiredRouteSkill = (agent: string): string | null =>
+  Object.prototype.hasOwnProperty.call(PM_ROUTE_ADAPTER_SKILLS, agent)
+    ? (PM_ROUTE_ADAPTER_SKILLS[agent] ?? null)
+    : null
+
 // Anchored on purpose: under deny-by-default a loose match would let a writer through.
 export const READ_ONLY_SPECIALIST_PATTERNS: readonly RegExp[] = [
   /^(?:explore|gentle-ai-explore|gentle-ai-verify|sdd-explore|sdd-verify|sdd-research|vision|architecture-strategist|spec-flow-analyzer|git-history-analyzer|issue-intelligence-analyst|pattern-recognition-specialist|deployment-verification-agent|repo-research-analyst|best-practices-researcher|framework-docs-researcher|learnings-researcher)$/,
@@ -48,17 +65,27 @@ export function stageMarkerNames(
 }
 
 export const ROUTE_STAGES: Record<string, readonly RouteStage[]> = {
-  "workflow-odd-secure": [{
-    id: "tracker",
-    artifactPattern: /^odd\/tasks\/[^/]+\.md$/,
-    allowsSpecialists: ODD_SPECIALIST_WRITERS,
-  }],
+  "workflow-odd-secure": [
+    {
+      id: "advice",
+      artifactPattern: /^odd\/advice\/[^/]+\.md$/,
+    },
+    {
+      id: "tracker",
+      artifactPattern: /^odd\/tasks\/[^/]+\.md$/,
+      allowsSpecialists: ODD_SPECIALIST_WRITERS,
+    },
+  ],
   "workflow-systematic": [
     {
       id: "requirements",
       artifactPattern: /^docs\/brainstorms\/[^/]+\.md$/,
       skillMarkers: ["ce-brainstorm"],
       gatesSkillLoads: ["ce-plan"],
+    },
+    {
+      id: "advice",
+      artifactPattern: /^odd\/advice\/[^/]+\.md$/,
     },
     {
       id: "plan",

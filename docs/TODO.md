@@ -37,13 +37,13 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   the Q36 change set, then Q34. Q49 runs throughout.
 - **Phase 5, OpenCode V2 upgrade (owner-triggered, after Phase 4):** Q40-Q47.
 - **Project-manager layer (owner, 2026-10-04; runs alongside Phases 2 and 3):** Q53 and Q54 are
-  complete as reports. Q54's `pm-probe` removal check (c) now PASSES: commit `ae24a7f` → verifier
-  mirror → restart → live; a restart alone applies nothing. A Task dispatch to `pm-probe` returned
-  `Unknown agent type: pm-probe is not a valid agent type`. Q55 remains in progress for the
-  post-code advisory review. Q56 is gated on Q55, deployment, live permitted-operation smoke
-  evidence, and the remaining removal checks. Q58's route-key-before-review rule is recommended
-  before Q56's pilot; a PM can currently close the author→commit→review→approve loop alone. Then
-  Q57-Q60 and Q61. Q62 (retired-model list and seat-assignment reconciliation) is independently
+  complete as reports. Removal check (c) PASSED by a failed `pm-probe` Task dispatch. Checks (a)
+  and (b) are PARTIALLY PASSED: permitted-operation broker authorization and the installed
+  sandbox-refusal list were observed, while the broker deny path and broker-side identity list
+  remain unobservable/unverifiable from this workspace. Q55's post-code advisory review is done;
+  its other acceptance work remains open. Q56/Q58 must carry these evidence limits forward rather
+  than describe all three removal checks as outstanding or passed. See Q54, Q56 and Q58 below.
+  Then Q57-Q60 and Q61. Q62 (retired-model list and seat-assignment reconciliation) is independently
   planned.
 
 Every source change needs the deploy step: verifier mirror, then restart. Q27 waits on an owner
@@ -546,6 +546,18 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   `pm-odd` session retained its prior conversation, a second independent observation of `task_id`
   resume behaviour (the first was the synthetic probe). In this unit, `pm-sdd` was extended to the
   same host-mutation set, retaining `host_sdd_archive_compose` as its route-specific extra.
+- **Observed removal-check reconciliation (2026-10-08):** check (c) PASSED by the failed dispatch
+  recorded above. Check (b) is PARTIALLY PASSED: installed `/home/james/.config/opencode/plugins/
+  sandbox-tools.ts`, `READ_ONLY_AGENTS` lines 64–69, lists `gentle-orchestrator`, `pm-odd`,
+  `pm-systematic`, and `pm-sdd`, with no `pm-probe`; the separate broker identity list in
+  `agent-sandbox-integration` is unreachable from this workspace (the `~/ai-workspace` listing
+  was permission-denied), so that half is UNVERIFIABLE here. Check (a) is PARTIALLY PASSED: live
+  `pm-odd` returned business errors for `host_git_commit` (`cannot commit: no applied B→C result
+  for this session`) and `host_review_start` (`the candidate has no pending changes…`), with no
+  `HOST_MUTATION_*` token; authorization passed for those permitted calls. The deny path is
+  unobservable because `host_register_project` is not registered, which is a tool-registration
+  control, not a broker refusal. Full detail and the confirmed review boundary are in
+  `odd/tasks/pm-layer.md`.
 
 ### Q55. PM layer: handoff contract, agents and writer
 - **Status:** IN PROGRESS. Implementation landed in commit `8980254`; Q54's check (c) now confirms
@@ -560,14 +572,20 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   guard is warning-only).
 
 ### Q56. PM layer: pilot `pm-odd`
-- **Status:** BLOCKED on Q55, deployment and removal verification.
-- **Prerequisites:** Q55 post-code advisory review; run the verifier mirror, then restart
-  `sandbox-broker.service` and `secure-opencode.service`. In one `pm-odd` session, record
-  `host_register_project` as absent from the registered tool set (registration-layer control, not
-  broker refusal) and retain permitted-operation smoke evidence. Pass all three `pm-probe` removal
-  checks: effective broker policy, installed plugin bytes, and a dispatch to `pm-probe` that fails.
-  Q54's live permitted-operation evidence is recorded in the tracker; the dispatch/removal check
-  (c) now passes, while the other two checks remain.
+- **Status:** BLOCKED on Q55's remaining acceptance work, deployment, and owner disposition of the
+  explicitly limited removal evidence.
+- **Prerequisites:** Q55 post-code advisory review is done; its other acceptance items remain open.
+  The verifier mirror and restarts of `sandbox-broker.service` and `secure-opencode.service` are
+  recorded as completed for the existing smoke/removal observations. In one `pm-odd` session,
+  retain `host_register_project` as absent from the registered tool set (registration-layer
+  control, not broker refusal) and the permitted-operation smoke evidence. Removal check (c)
+  PASSED: dispatch to `pm-probe` failed with `Unknown agent type: pm-probe is not a valid agent
+  type`. Checks (a) and (b) are PARTIALLY PASSED, not outstanding wholesale: permitted calls
+  demonstrate authorization passed and the installed `READ_ONLY_AGENTS` list omits `pm-probe`;
+  the broker deny path is unobservable because `host_register_project` is not registered, and the
+  broker's separate identity list is unverifiable from this workspace. Preserve those caveats and
+  do not label the three-check set fully passed. Evidence: `odd/tasks/pm-layer.md`, “Q58 bootstrap
+  prerequisites — observed evidence”.
 - **Description:** run global-tooling units here through `pm-odd`, with
   `gentle-orchestrator-legacy` kept selectable. Ten consecutive units without route escape. Q58
   may run through `pm-odd` as the pilot's bootstrap unit only; it does not count toward the ten-unit
@@ -584,27 +602,25 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   `global-config/AGENTS.md`; update `WORKFLOW.md`, `workflow-route` and the adapters.
 
 ### Q58. PM layer: guard ordering
-- **Status:** PLANNED.
-- **Prerequisites:** Q55 and Q56's other gates: run the verifier mirror, then restart
-  `sandbox-broker.service` and `secure-opencode.service`; retain the live permitted-operation smoke
-  evidence and pass all three `pm-probe` removal checks, including a dispatch that fails. Feeds Q28
-  (gating matrix).
-- **Description:** PM agent ↔ route key binding; warn when the orchestrator dispatches a writer
-  directly; advice-before-writer and commit-before-review stages. **Owner decision: enforced
-  independence.** The coordinating PM cannot dispatch relay lenses; review is driven from outside
-  the PM session. Q58's route-key rule is necessary but not sufficient: it verifies the PM loaded
-  its route skill, not that the reviewer differs from the author. Independence requires lane
-  separation, not the key rule alone. Require relay-delivery proof from a dispatch outside the
-  coordinating PM session, with a genuine provider-issued binding; Q54 showed reachability only,
-  not delivery. The PM itself must not dispatch or prove its own relay delivery. Warning-only;
-  tests first. Q58 may be executed through `pm-odd` as Q56's bootstrap unit only (see Q56); its
-  own enforcement does not exist during its execution, so it runs unguarded by design. Its review
-  must be driven independently, not by the `pm-odd` session implementing it.
-
+- **Status:** DONE — all slices complete. Slice 1: `7a427d7`; direct-writer-dispatch warning: `d25228b`; advice-before-writer stage: `4b63481`; supporting routing-gate and breadcrumb fixes: `9c215b1`.
+- **Prerequisites:** Q55 and Q56 pilot evidence/caveats remain recorded above. The Q58 implementation, reviewability, and slice evidence are in `odd/tasks/pm-layer.md`. Q58 feeds Q28 (gating matrix).
+- **Description:** Slice 1 adds a warning-only check that PM coordinators hold their own route's
+  adapter key before gated host mutations and any `host_review_*` call; inherited and wrong-route
+  keys do not satisfy it. The binding premise was verified live with a temporary `chat.message`
+  probe, which has since been removed. The completed remaining slices warn when `gentle-orchestrator` dispatches a writing specialist directly instead of through its route coordinator, and when a writer is dispatched before the advice record exists. The prior commit-before-review half is superseded by the pre-commit advisory rule recorded in the workflow formalisation. Commits `9c215b1`, `d25228b`, and `4b63481` are recorded in `odd/tasks/pm-layer.md`; the routing-guard suite reports 94 passed / 0 failed (previously 80 passed). The advice-record convention is documented in `WORKFLOW.md` and the tracker.
+  **Owner decision: enforced independence.** The coordinating PM cannot dispatch relay lenses;
+  review is driven from outside the PM session. Q58's route-key rule is necessary but not
+  sufficient: it verifies that the PM loaded its route skill, not that the reviewer differs from
+  the author. Require relay-delivery proof from a dispatch outside the coordinating PM session,
+  with a genuine provider-issued binding; Q54 showed reachability only, not delivery. The PM itself
+  must not dispatch or prove its own relay delivery. Q58 may be executed through `pm-odd` as Q56's
+  bootstrap unit only (see Q56); its review must be driven independently, not by the implementing
+  `pm-odd` session.
 - **Open question — undecided:** each PM still holds `host_review_start` and review lifecycle
   tools, so a PM can start a review it cannot complete without relay lanes. Options:
   (a) the PM keeps `host_review_start` and another actor drives the lens; or
   (b) review start also leaves the PM session. Do not resolve this in Q58.
+- **Open external/upstream item — review relay deadline:** two review lenses expired with `reviewer_relay_deadline_expired: review relay deadline of 600000 ms expired` despite taking 16–19 minutes. The deadline is `RELAY_DEADLINE_MS = 600_000` at `~/.config/opencode/plugins/lib/reviewer-relay-core.ts:112`, overridable through `config.deadlineMs` at `:778` and `:1294`. That file is not tracked here (this repository tracks only `global-config/plugins/lib/routing-guard-helpers.ts`), and nothing in this repository sets the deadline. The fix belongs to the external plugin owner, not local Q58 work; details are in `odd/tasks/pm-layer.md`.
 
 ### Q59. PM layer: verifier
 - **Status:** PLANNED.
@@ -679,6 +695,18 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
     flags. The recovery-command rule is already established in the gentle-ai v4 notes above
     (around line 590) and `docs/TODO-HISTORY.md` (2026-09-30 item 1, around line 104); this item
     reinforces rather than duplicates that rule.
+
+### Q64. PM workflow execution optimisations
+- **Status:** DONE (2026-10-09); the owner selected install-then-refine and all four rules are
+  formalised in `WORKFLOW.md`, `docs/specs/pm-handoff.md`, and `odd/tasks/pm-layer.md`.
+- **Prerequisites:** none; the refinement-loop decision is made (install-then-refine, option a).
+- **Source:** owner, 2026-10-09; observations and decision recorded in
+  `odd/tasks/pm-layer.md`, “Workflow optimisations (owner, 2026-10-09)”.
+- **Description:** confirm the appropriate feature branch before unit work; install each writer
+  result before dispatching a fresh writer to refine on the installed base, with only the reviewed
+  result committed; run required independent post-code advisory review from the PM before the
+  work-unit commit (native review remains separate); and delegate bounded read-only investigation
+  to `explore` agents.
 
 ## gentle-ai v4 upgrade (PLANNED — implement when the owner decides to upgrade)
 

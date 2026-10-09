@@ -47,6 +47,7 @@ import {
   ROUTE_STAGES,
   READ_ONLY_SPECIALIST_PATTERNS,
   isCoordinator,
+  pmRequiredRouteSkill,
   stageMarkerNames,
   taskWriteFile,
   type RouteStage,
@@ -219,10 +220,18 @@ const ROUTING_GATE_TOOLS = new Set([
   "host_gh_issue_create",
   "host_plan_append",
   "host_register_project",
+  "host_sandbox_result_install",
+  "host_sdd_archive_compose",
 ])
+
+/** Host mutations additionally require a PM's own route adapter key. */
+const HOST_MUTATION_GATE_TOOLS = new Set(
+  [...ROUTING_GATE_TOOLS].filter((tool) => tool.startsWith("host_")),
+)
 // State root is read at each use (never fixed at import) so tests can redirect it.
 const stateRoot = (): string => process.env.SYSTEMATIC_ROUTING_GUARD_STATE_ROOT ?? homedir()
 const reportedFileLogFailures = new Set<string>()
+const reportedBindingWriteFailures = new Set<string>()
 const routingGateOffFile = (): string => join(stateRoot(), ".config/opencode/routing-guard-off")
 const routingGateLogDir = (): string => join(stateRoot(), ".local/share/opencode/logs")
 const routingGateLogFile = (): string => join(routingGateLogDir(), "routing-guard.log")
@@ -313,6 +322,50 @@ function routingKeyFile(sessionID: string, skillName: string): string | null {
   const directory = routingKeySessionDirectory(sessionID)
   if (!directory || !/^workflow-[a-zA-Z0-9_-]+$/.test(skillName)) return null
   return join(directory, `${skillName}.key`)
+}
+
+/**
+ * Persist the most recently observed `chat.message` agent for a session.
+ *
+ * LIMITATION: `chat.message` reports the agent of one message and that value can vary per
+ * message; this stores the latest observed value, not an authenticated or immutable session
+ * identity. It is a guardrail input only, never an authorization fact. A missing or non-string
+ * agent overwrites the previous value so a stale PM binding is not silently retained.
+ */
+async function persistLatestMessageAgent(sessionID: string, agent: unknown): Promise<void> {
+  try {
+    const directory = routingKeySessionDirectory(sessionID)
+    if (!directory) return
+    await mkdir(directory, { recursive: true })
+    await writeFile(join(directory, ".agent"), typeof agent === "string" ? agent.trim() : "", "utf8")
+  } catch (error) {
+    const failureCode = error && typeof error === "object" && "code" in error
+      ? String((error as NodeJS.ErrnoException).code)
+      : "unknown"
+    const failureKey = `${sessionID}\u0000${failureCode}`
+    if (!reportedBindingWriteFailures.has(failureKey)) {
+      reportedBindingWriteFailures.add(failureKey)
+      try {
+        console.warn(
+          `[systematic-routing-guard] message-agent binding write failed (session: ${sessionID}, ${failureCode}): ${error instanceof Error ? error.message : String(error)}`,
+        )
+      } catch {
+        // Reporting a binding failure must never fail a chat message.
+      }
+    }
+  }
+}
+
+/** Read the last persisted message agent; a missing, unreadable or empty value yields null. */
+async function readLatestMessageAgent(sessionID: string): Promise<string | null> {
+  try {
+    const directory = routingKeySessionDirectory(sessionID)
+    if (!directory) return null
+    const raw = (await readFile(join(directory, ".agent"), "utf8")).trim()
+    return raw || null
+  } catch {
+    return null
+  }
 }
 
 async function hasRouteStageArtifactInAncestorChain(
@@ -406,6 +459,19 @@ async function mintWorkflowKey(
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") return
     }
     if (hasParentMarker) {
+      const boundAgent = await readLatestMessageAgent(sessionID)
+      const requiredSkill = boundAgent ? pmRequiredRouteSkill(boundAgent) : null
+      if (requiredSkill === skillName) {
+        // A bound PM must own its adapter key even when a .parent marker exists, otherwise its
+        // own-session key requirement is unsatisfiable after a resume. The binding is the latest
+        // observed message agent, not a session identity.
+        await writeFile(
+          file,
+          JSON.stringify({ skill: skillName, minted_at: mintedAt, last_active: mintedAt, specialists }),
+          "utf8",
+        )
+        return
+      }
       await writeFile(
         join(directory, "inherited.key"),
         JSON.stringify({ inherited_from: parentSessionID, minted_at: mintedAt, last_active: mintedAt }),
@@ -488,6 +554,27 @@ async function getWorkflowKeyStatus(
   requiredSkill?: string,
 ): Promise<WorkflowKeyStatus> {
   return (await walkWorkflowKeys(sessionID, requiredSkill)).status
+}
+
+/**
+ * Own-directory key status only: unlike `walkWorkflowKeys`, no ancestor is consulted, so an
+ * inherited or unrelated adapter key can never satisfy a PM's own-route requirement. An
+ * expired key is reported as expired and is never revived by the refresh pass.
+ */
+async function getOwnWorkflowKeyStatus(
+  sessionID: string,
+  requiredSkill: string,
+): Promise<WorkflowKeyStatus> {
+  const file = routingKeyFile(sessionID, requiredSkill)
+  if (!file) return "missing"
+  try {
+    const key = JSON.parse(await readFile(file, "utf8")) as Record<string, unknown>
+    if (key.skill !== requiredSkill || typeof key.minted_at !== "number") return "missing"
+    const lastActive = typeof key.last_active === "number" ? key.last_active : key.minted_at
+    return Date.now() - lastActive <= ACTIVE_TTL_MS ? "valid" : "expired"
+  } catch {
+    return "missing"
+  }
 }
 
 function isRoutingGateTool(tool: string): boolean {
@@ -741,6 +828,9 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
     "chat.message": async (input) => {
       activeBySession.delete(input.sessionID)
       lastKeyRefreshBySession.delete(input.sessionID)
+      // The guard observes the message agent here; it is the latest observed value, not an
+      // authenticated session identity.
+      await boxed(persistLatestMessageAgent(input.sessionID, input.agent))
     },
 
     "tool.execute.before": async (input, output) => {
@@ -787,6 +877,26 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
           // Future block behavior could throw here; this rollout is warning-only.
         }
 
+        // A PM must hold its own route adapter key before gated host mutations and every
+        // host_review_* call. The binding is the persisted latest observed message agent, never
+        // input.agent/output.agent. Own-directory validation only: an inherited or unrelated
+        // adapter key does not satisfy it. Warning-only, exactly like the key gate above.
+        const boundAgent = await readLatestMessageAgent(input.sessionID)
+        const requiredPmSkill = boundAgent ? pmRequiredRouteSkill(boundAgent) : null
+        if (
+          requiredPmSkill &&
+          (HOST_MUTATION_GATE_TOOLS.has(input.tool) || input.tool.startsWith("host_review_"))
+        ) {
+          const ownStatus = await getOwnWorkflowKeyStatus(input.sessionID, requiredPmSkill)
+          if (ownStatus !== "valid") {
+            await warn(
+              input.tool,
+              input.sessionID,
+              `${boundAgent} requires its own ${requiredPmSkill} route key before ${input.tool} (PM session key status: ${ownStatus})`,
+            )
+          }
+        }
+
         if (input.tool === "host_review_start") {
           try {
             if ((await getWorkflowKeyStatus(input.sessionID, "workflow-systematic")) === "valid") {
@@ -813,6 +923,7 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
             if (routeSkill !== "workflow-odd-secure") continue
             if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
             for (const stage of stages) {
+              if (!stage.allowsSpecialists) continue
               // A call that writes the stage artifact itself counts as writing it.
               if (paths.some((path) => stage.artifactPattern?.test(path))) continue
               if (await hasRouteStageArtifactInAncestorChain(input.sessionID, routeSkill, stage)) continue
@@ -859,8 +970,31 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       const dispatchedType = typeof args.subagent_type === "string" ? args.subagent_type : null
       if (mode !== "off" && dispatchedType && !isCoordinator(dispatchedType) && !isReadOnlySpecialist(dispatchedType)) {
         try {
+          const boundAgent = await readLatestMessageAgent(input.sessionID)
+          if (
+            boundAgent === "gentle-orchestrator" &&
+            (await getWorkflowKeyStatus(input.sessionID)) === "valid"
+          ) {
+            await warn(
+              "task",
+              input.sessionID,
+              `orchestrator dispatched writing specialist ${dispatchedType}; orchestrator must delegate through the route coordinator`,
+            )
+          }
+
           for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
             if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
+            const adviceStage = stages.find((stage) => stage.id === "advice")
+            if (
+              adviceStage &&
+              !(await hasRouteStageArtifactInAncestorChain(input.sessionID, routeSkill, adviceStage))
+            ) {
+              await warn(
+                "task",
+                input.sessionID,
+                `${routeSkill} specialist ${dispatchedType} dispatched before advice record odd/advice/<change>.md exists`,
+              )
+            }
             for (const stage of stages) {
               if (!stage.allowsSpecialists) continue
               if (!(await hasRouteStageArtifactInAncestorChain(input.sessionID, routeSkill, stage))) {
