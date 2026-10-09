@@ -303,6 +303,56 @@ describe("1. specialist rule: deny by default", () => {
   })
 })
 
+describe("1b. orchestrator writer dispatch warning", () => {
+  test("warns when the orchestrator dispatches a writer despite completed route setup", async () => {
+    const sid = "ses_orchestrator_writer"
+    await message(sid, "gentle-orchestrator")
+    seedKey(sid, ODD)
+    marker(sid, `artifact-${ODD}-tracker`)
+
+    await expect(dispatch(sid, "systematic-implementer")).resolves.toBeUndefined()
+
+    expect(logCount("orchestrator dispatched writing specialist systematic-implementer")).toBe(1)
+    expect(logText()).toContain("orchestrator must delegate through the route coordinator")
+  })
+
+  test("does not warn when the orchestrator dispatches a coordinator", async () => {
+    const sid = "ses_orchestrator_coordinator"
+    await message(sid, "gentle-orchestrator")
+    seedKey(sid, ODD)
+    await dispatch(sid, "pm-odd")
+    expect(logCount("orchestrator dispatched writing specialist")).toBe(0)
+    await probe()
+  })
+
+  test("does not warn when the orchestrator dispatches a read-only specialist", async () => {
+    const sid = "ses_orchestrator_readonly"
+    await message(sid, "gentle-orchestrator")
+    seedKey(sid, ODD)
+    await dispatch(sid, "advisor-design-pre")
+    expect(logCount("orchestrator dispatched writing specialist")).toBe(0)
+    await probe()
+  })
+
+  test("does not warn when a non-orchestrator worker dispatches a writer", async () => {
+    const sid = "ses_worker_writer"
+    await message(sid, "systematic-implementer")
+    seedKey(sid, ODD)
+    marker(sid, `artifact-${ODD}-tracker`)
+    await dispatch(sid, "frontend-apply")
+    expect(logCount("orchestrator dispatched writing specialist")).toBe(0)
+    await probe()
+  })
+
+  test("does not apply the orchestrator writer warning without a valid route key", async () => {
+    const sid = "ses_orchestrator_no_key"
+    await message(sid, "gentle-orchestrator")
+    await dispatch(sid, "systematic-implementer")
+    expect(logCount("orchestrator dispatched writing specialist")).toBe(0)
+    await probe()
+  })
+})
+
 describe("2. route-namespaced stage markers", () => {
   test("writing the tracker writes the namespaced marker before the hook returns", async () => {
     seedKey("ses_m1", ODD)
