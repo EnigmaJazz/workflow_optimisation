@@ -85,9 +85,19 @@ otherwise configuration validation or the health-check plugin can fail.
     `retiredHostOperations` lists all 13 retired names so line 2703 (unchanged) asserts every
     `host_sdd_*` permission is `deny`; digest re-pinned to
     `38c5dbfaebc3bc0d1493afac1916022fba9cfb0bdbbbb15aa62b9e3986b46674`.
-  - [ ] **S2 — Retire first SDD agent block.** Remove `sdd-apply` through `sdd-init`
+  - [x] **S2 — Retire first SDD agent block.** Remove `sdd-apply` through `sdd-init`
     (`874-1161`), remove their task grants, and drop `sdd-apply-local` from `required_agents`.
-    Pair with the relevant verifier changes and digest re-pin.
+    Pair with the relevant verifier changes and digest re-pin. **Done 2026-10-10 (sandbox
+    result; not committed or applied):** measured spans `877-924`, `925-972`, `973-1020`,
+    `1021-1068`, `1069-1116`, `1117-1164` removed (`sdd-apply`, `sdd-apply-local`,
+    `sdd-archive`, `sdd-design`, `sdd-explore`, `sdd-init`); task grants removed (5 from
+    `gentle-orchestrator`, 6 from `pm-sdd`); `verify-workflow.sh` drops `sdd-apply-local` from
+    `required_agents`, `sdd-apply` from the direct-model list, and `sdd-apply`/`sdd-explore`
+    from `PROBE_NAMES`; digest re-pinned `38c5dbfa…` →
+    `ba175ec308e84e60cde76780959b32a4769dd9700739b22156ec8e7124b43143`. Checks:
+    `python3 -m json.tool` rc 0; presence/absence probe PASS with pre-change positive controls
+    (from `HEAD`); `bash -n` rc 0; routing-guard 94 pass / 0 fail; `sha256sum
+    verify-workflow.sh` equals the pin; `verify-workflow.sh` not run (mutates host config).
   - [ ] **S3 — Retire remaining SDD agents.** Remove `sdd-onboard` through `sdd-verify`
     (`1162-1401`) and `sdd-research` (`1506-1565`), remove their grants, and drop
     `sdd-research` from `required_agents`. Pair with the relevant verifier changes and digest
@@ -205,6 +215,16 @@ Run each check for every slice:
   the changed script and self-heal is degraded. This is the documented deploy sequence; handle as
   separate later work, not a re-review trigger. The verifier mirror and restart remain the owner's
   action and are NOT done.
+- 2026-10-10: S2 implemented in a sandbox worker (sandbox result exported for PM apply; no
+  commit, no host apply, `verify-workflow.sh` not run). Edits: `global-config/opencode.json`
+  removes the six first-block agents and 11 task grants (299 deleted lines, 0 added;
+  `python3 -m json.tool` clean); `verify-workflow.sh` has 3 changed lines (`required_agents`
+  drops `sdd-apply-local`; the direct-model list drops `sdd-apply`; `PROBE_NAMES` drops
+  `sdd-apply`/`sdd-explore`); `global-config/plugins/workflow-health-check.ts` digest re-pin
+  `38c5dbfa…` → `ba175ec308e84e60cde76780959b32a4769dd9700739b22156ec8e7124b43143`. Checks:
+  presence/absence probe PASS with pre-change positive controls (agents, grants, and verifier
+  lists; S3/S4 edit targets confirmed untouched); `bash -n` rc 0; routing-guard 94 pass /
+  0 fail; `sha256sum verify-workflow.sh` equals the pinned digest.
 
 ## Route, triggers, and actual dispatches
 
@@ -214,12 +234,14 @@ Run each check for every slice:
   `verify-workflow.sh` edits.
 - **Actual dispatches:** the tracker-creation writer for the preparation task; 2026-10-10 S1
   implementation dispatched to the `odd-apply` sandbox worker (sandbox result exported; not
-  committed or applied).
+  committed or applied). 2026-10-10 S2 implementation dispatched to the `odd-apply` sandbox
+  worker (sandbox result exported; not committed or applied).
 
 ## Next step
 
-S1's committed candidate passed native review and was acknowledged; do not apply it to the host
-as part of this record update. The verifier mirror and restart remain the owner's pending deploy
-action. S2 — retire the first SDD agent block — begins after the owner authorizes the next slice.
+S1's committed candidate passed native review and was acknowledged. S2's sandbox result is
+exported and awaits the PM's install/commit and native review; do not apply it to the host as
+part of this record update. The verifier mirror and restart remain the owner's pending deploy
+action. S3 — retire the remaining SDD agents — begins after the owner authorizes the next slice.
 S5 remains BLOCKED pending the location of the v4 managed prompt source; keep the
 `gentle-orchestrator` key fixed. The other Q31 slices stay pending.

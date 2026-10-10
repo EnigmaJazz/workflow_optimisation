@@ -369,7 +369,7 @@ if not local_auto_update_path.is_file():
 required_agents = {
     "gentle-orchestrator", "general", "explore", "sdd-research",
     "pm-odd", "pm-systematic", "pm-sdd", "odd-apply",
-    "frontend-dev", "frontend-dev-premium", "sdd-apply-local",
+    "frontend-dev", "frontend-dev-premium",
     "asi-review-risk", "asi-review-resilience", "asi-review-readability",
     "asi-review-reliability", "asi-review-refuter", "asi-review-validator",
     "advisor-design-pre", "advisor-security-pre", "advisor-integration-pre",
@@ -3086,7 +3086,7 @@ function assertDirectAgentModelMatchesConfig(name) {
     }
   }
 }
-for (const name of ["frontend-dev","frontend-dev-premium","jd-judge-b","sdd-research","general","sdd-apply","sdd-verify"]) {
+for (const name of ["frontend-dev","frontend-dev-premium","jd-judge-b","sdd-research","general","sdd-verify"]) {
   assertDirectAgentModelMatchesConfig(name)
 }
 
@@ -4680,7 +4680,7 @@ else
       gentle-orchestrator general explore
       frontend-dev frontend-dev-premium frontend-dev-premium-astra
       jd-judge-a jd-judge-b sdd-research
-      sdd-design sdd-design-astra sdd-spec sdd-spec-astra sdd-verify sdd-verify-astra sdd-apply sdd-explore
+      sdd-design sdd-design-astra sdd-spec sdd-spec-astra sdd-verify sdd-verify-astra
       review-risk review-readability review-reliability review-resilience review-refuter review-validator
       asi-review-risk asi-review-resilience asi-review-readability asi-review-reliability asi-review-refuter asi-review-validator
       advisor-design-pre-astra advisor-security-pre-astra
