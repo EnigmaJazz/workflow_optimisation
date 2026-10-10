@@ -59,13 +59,26 @@ otherwise configuration validation or the health-check plugin can fail.
   currently 2935 lines, so TODO line references are stale.
 - Do not commit or apply this preparation tracker to the host. Implementation is pending owner go.
 
+## Implementation notes
+
+- **S5 is blocked** until the owner provides the location of the v4 managed prompt source; keep the
+  `gentle-orchestrator` agent key fixed in the meantime.
+- `global-config/plugins/astra-sol-upgrade.ts` needs no edit: its regex (`:39-49`) already excludes
+  the new names and the plugin auto-aliases `gentle-ai-verify-astra`.
+- Stale `sdd-*` names in `global-config/plugins/lib/routing-guard-helpers.ts:18,46` are harmless;
+  track cleanup under Q33.
+- `global-config/opencode.json` currently parses as valid JSON. Validate it with
+  `python3 -m json.tool` after every implementation slice.
+
 ## Tasks
 
 - [ ] **T1 (Q31) — Agent allocation and paired verifier updates.** Deliverables:
   - [ ] **S1 — Host-SDD lockdown.** Set all global, orchestrator, and `pm-*` `host_sdd_*`
-    permissions to `deny`. In `verify-workflow.sh:2699-2702`, drop the three entries from
-    `registeredHostReads`, assert every `host_sdd_*` permission is `deny`, retain
-    `HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY`, then re-pin the verifier digest.
+    permissions to `deny`. In `verify-workflow.sh:2699-2703`, remove the three entries from
+    `registeredHostReads`; move `host_sdd_attempt_grant` and `host_sdd_archive_compose` from
+    `gatedHostMutations` (`:2700`) into `retiredHostOperations` (`:2701`); and retain
+    `HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY` (`:2703`) so it asserts every `host_sdd_*`
+    permission is `deny`. Re-pin the verifier digest.
   - [ ] **S2 — Retire first SDD agent block.** Remove `sdd-apply` through `sdd-init`
     (`874-1161`), remove their task grants, and drop `sdd-apply-local` from `required_agents`.
     Pair with the relevant verifier changes and digest re-pin.
@@ -76,10 +89,38 @@ otherwise configuration validation or the health-check plugin can fail.
   - [ ] **S4 — Add Q29d generic agents.** Add the four generic agents and the orchestrator's
     `permission.task` allows; add the agents to `required_agents`. Pair with verifier changes and
     digest re-pin.
-  - [ ] **S5 — Retitle and remove TUI entry.** Retitle the `gentle-orchestrator` description
-    (`:264`) and prompt (`:398`) from the v4 orchestrator source without changing its key; remove
-    `opencode-sdd-engram-manage` from `global-config/tui.json:6`; update the `required_agents`
-    check. Pair with verifier changes and digest re-pin.
+  - [ ] **S5 — Retitle and remove TUI entry.** BLOCKED: `internal/assets/opencode/orchestrator.md`
+    does not exist in this repository, so the orchestrator description (`:264`) and prompt (`:398`)
+    cannot yet be authored from the v4 managed prompt source. Keep the agent key exactly
+    `gentle-orchestrator`; resume the retitle only after the source location is provided. Remove
+    `opencode-sdd-engram-manage` from `global-config/tui.json:6` and update the `required_agents`
+    check when unblocked. Pair verifier changes and digest re-pin.
+
+### Paired verifier-edit inventory
+
+Apply the listed verifier edits in the same slice as the related configuration change. Every slice
+that edits `verify-workflow.sh` must also re-pin `VERIFY_SCRIPT_SHA256` in
+`global-config/plugins/workflow-health-check.ts:93`.
+
+- **S1:** In `verify-workflow.sh:2699-2703`, remove the three `host_sdd_*` reads from
+  `registeredHostReads`; move `host_sdd_attempt_grant` and `host_sdd_archive_compose` from
+  `gatedHostMutations` (`:2700`) into `retiredHostOperations` (`:2701`); ensure
+  `HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY` (`:2703`) asserts every `host_sdd_*` permission is
+  `deny`.
+- **S4:** At `:2323`, change the writer/verifier pair from
+  `["sdd-apply","sdd-verify"]` to `["gentle-ai-worker","gentle-ai-verify"]`.
+- **S2/S3/S4:** At `:3089`, remove `sdd-research`, `sdd-apply`, and `sdd-verify` from the
+  direct-model list (S2/S3), and add the generic agents (S4).
+- **S3:** Delete the `sdd-research` shape/block check at `:2802-2816`.
+- **S3:** At `:3264-3265`, remove `sdd-research`, `sdd-explore`, and `sdd-apply` from
+  `githubReaderNames`/`githubBlockedNames`. The probe-coverage extractor at `:4726-4730` requires
+  every listed name to be probeable.
+- **S2/S3:** Drop the hard-coded `sdd-*` entries and `-astra` aliases from `PROBE_NAMES`
+  (`:4679-4692`): S2 removes `sdd-apply`/`sdd-explore`; S3 removes `sdd-design`, `sdd-spec`,
+  `sdd-verify`, and their aliases.
+- **S4:** Extend the writer-shape check at `:2765-2766` to include `gentle-ai-worker` and
+  `gentle-ai-worker-local`.
+
   - [ ] Validate JSON and changed-agent/permission presence and absence with a positive control;
     run the routing-guard tests and `bash -n verify-workflow.sh` per slice.
   - [ ] Record measured per-slice reviewability receipts and route evidence before any later
@@ -132,6 +173,10 @@ Run each check for every slice:
   `global-config/opencode.json` is 2935 lines; the old TODO line references are stale.
   Q29 is done. No Q31 implementation, commit, verifier execution, or host apply has been
   performed in this tracker-creation step.
+- 2026-10-10: Pre-code advice from `advisor-integration-pre`, Task
+  `ses_eda1f91bbffe3zYguWZEQT76pQ` (model family OpenAI/Sol, independent of the DeepSeek author),
+  returned **GO-with-corrections**. This is advisory evidence only; it does not authorize
+  implementation or replace required review.
 
 ## Route, triggers, and actual dispatches
 
@@ -145,4 +190,5 @@ Run each check for every slice:
 ## Next step
 
 Begin S1 — host-SDD lockdown and its paired verifier edit plus digest re-pin — on the owner's go.
-The remaining Q31 slices stay pending.
+S5 remains BLOCKED pending the location of the v4 managed prompt source; keep the
+`gentle-orchestrator` key fixed. The other Q31 slices stay pending.
