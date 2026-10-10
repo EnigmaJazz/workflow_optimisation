@@ -193,6 +193,18 @@ Run each check for every slice:
   `python3 -m json.tool` clean; probe 33/33 `deny` + 7/7 `false`, 0 non-deny, positive control
   detects injected `"allow"`/`"ask"`; `bash -n` rc 0; routing-guard suite 94 pass / 0 fail;
   `sha256sum verify-workflow.sh` equals the pinned digest.
+- 2026-10-10: S1 committed as `7ca78678953bec248548de57c2464eddb151eb19` (5 files, +52/−30).
+  Native review lineage `review-1e04c6684b855cc7`; tier **high** (`process_boundary` on
+  `global-config/plugins/workflow-health-check.ts`, `shell_source` on `verify-workflow.sh`);
+  candidate 5 files / 82 lines. All four lenses (`review-risk`, `review-resilience`,
+  `review-readability`, `review-reliability`) were admitted. Outcome **approved** and
+  acknowledged; `authority: burned`; consumed revision
+  `sha256:a18e5c8f14bade867cfe198de64baa61896e1ed37a13ef6863d8b48b2ff9a285`.
+  Informational, non-blocking SUGGESTION `R4-DIGEST-SKEW-WINDOW` (`workflow-health-check.ts:93`):
+  until the owner runs the verifier and restarts, the live plugin's old pin `68d89eb0…` refuses
+  the changed script and self-heal is degraded. This is the documented deploy sequence; handle as
+  separate later work, not a re-review trigger. The verifier mirror and restart remain the owner's
+  action and are NOT done.
 
 ## Route, triggers, and actual dispatches
 
@@ -206,7 +218,8 @@ Run each check for every slice:
 
 ## Next step
 
-S1 is complete in the sandbox; its result awaits PM apply and review. S2 — retire the first SDD
-agent block — begins after the S1 result is applied per the owner's go. S5 remains BLOCKED pending
-the location of the v4 managed prompt source; keep the `gentle-orchestrator` key fixed. The other
-Q31 slices stay pending.
+S1's committed candidate passed native review and was acknowledged; do not apply it to the host
+as part of this record update. The verifier mirror and restart remain the owner's pending deploy
+action. S2 — retire the first SDD agent block — begins after the owner authorizes the next slice.
+S5 remains BLOCKED pending the location of the v4 managed prompt source; keep the
+`gentle-orchestrator` key fixed. The other Q31 slices stay pending.
