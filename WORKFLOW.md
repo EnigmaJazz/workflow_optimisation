@@ -50,7 +50,7 @@ Before any implementation route is selected, determine whether the requested out
 
 ## Mandatory ODD delegation
 
-The upstream ODD delegation triggers are mandatory. On a fired trigger, stop inline work and use the actual Task/subagent route before continuing; a completed inline result does not excuse a skipped delegation. Here the secure orchestrator remains read-only and delegates **every** project mutation and execution, including an understood one-file fix. These triggers choose a direct delegation topology; they do not select SDD or create SDD artifacts.
+The upstream ODD delegation triggers are mandatory. On a fired trigger, stop inline work and use the actual Task/subagent route before continuing; a completed inline result does not excuse a skipped delegation. Here the secure orchestrator remains read-only and delegates **every** project mutation and execution, including an understood one-file fix. These triggers choose a direct delegation topology; they do not select a route or create route artifacts.
 
 - **Mapping:** use an evidence budget instead of file counts: inline only within one parallel batch (at most 3 tool/read calls, about 10k tokens); more than about 5 sequential lookups or long-session mapping goes to one read-only explorer returning at most about 2k tokens with `path:line`.
 - **Writer:** when a change touches two or more non-trivial files, use one bounded sandbox writer. The local secure rule already requires a sandbox writer for any file change.
@@ -150,7 +150,7 @@ Systematic 3.18.4+ `ce:review` uses the bundled `screen`, `prepare`, `merge`, an
 
 The RDD kill switch is `gentle-ai review mode enable|disable|status`. Gentle AI 3.5 resolves an unset switch to **on by default**, while explicit clone/global settings may disable it. At route entry obtain read-only `gentle-ai review mode status --cwd <repo>` and record the effective mode **and deciding source** (`default`, `global`, or `clone-local`). Only the user may explicitly enable or disable RDD; neither the verifier nor an agent changes the switch to satisfy a health check. A user-requested mode change runs through an authorized fixed integration or delegated executor and is confirmed by status. For substantial ODD, enabled review applies at each work-unit commit or PR-slice boundary; other deliverables retain their ordinary boundary and it does not grant delivery authority.
 
-- After a candidate exists, obtain `gentle-ai review assess --json` (with `--agent opencode --base-ref <last reviewed boundary> --committed-only` for substantial ODD) through a reviewed fixed integration or correctly authorized delegated executor. This read-only assessment returns risk plus `candidate.consumed`, `review_due`, `review_due_reason`, and `next_transition` only when review is due; it does not start RDD, select SDD, or authorize delivery. In v3.5, `risk: "high"` with reason `unassessable` is a fail-closed assessment even when the command exits nonzero: do not infer a safe/passive outcome or silently advance the boundary. Preserve the returned failure envelope and seek the scoped preflight STATUS; if no valid continuation exists, stop the review path and report the blocker.
+- After a candidate exists, obtain `gentle-ai review assess --json` (with `--agent opencode --base-ref <last reviewed boundary> --committed-only` for substantial ODD) through a reviewed fixed integration or correctly authorized delegated executor. This read-only assessment returns risk plus `candidate.consumed`, `review_due`, `review_due_reason`, and `next_transition` only when review is due; it does not start RDD or authorize delivery. In v3.5, `risk: "high"` with reason `unassessable` is a fail-closed assessment even when the command exits nonzero: do not infer a safe/passive outcome or silently advance the boundary. Preserve the returned failure envelope and seek the scoped preflight STATUS; if no valid continuation exists, stop the review path and report the blocker.
 - The candidate writer runs required checks. With RDD enabled, native review supplies the independent review layer. With RDD disabled or explicitly declined, `passive` may finish with writer evidence plus structural readback, while `medium` or `high` requires an independent read-only verifier appropriate to the route.
 - Begin/re-enter only through provider-returned `next_transition` / `status_continuation`. When assessment says review is due, execute its literal `next_transition.command`; never reconstruct lifecycle selectors from prose.
 - Gentle AI 3.4 START refuses candidates whose complete serialized input exceeds the 200 KiB budget for any selected reviewer runtime. Treat `lens_context_budget_exceeded` or an equivalent provider-returned admission stop as a request to split the candidate, not to retry it unchanged. If STATUS later returns `correction_context_budget_exceeded`, follow only its exact `review abandon` continuation to release non-terminal authority, then split into smaller coherent candidates before a new review. Never use `review capture-result --input`, `review recover`, or transport substitution to bypass a budget guard.
@@ -241,7 +241,7 @@ implementation path, regardless of task class:
   external paths).
 - **E2E suite**: `vision/VISION-E2E.md` in the vision repo covers the whole
   stack (vision subagent, native-first, delegation, bridge, full design
-  cycle, SDD hybrid). Re-run after touching lane config.
+  cycle). Re-run after touching lane config.
 
 ## Execution Skills (registry-injected)
 
@@ -318,7 +318,7 @@ The health-check plugin pins `verify-workflow.sh`'s sha256 and **refuses to exec
 
 - **Preflight:** quality-first posture — interactive approval at planning boundaries; artifact choice is Magic Context, defaulting to Magic Context; per-session pace remains user-owned.
 - **Coding model question** (local model vs opencode bridge): asked at coding start, user-owned.
-- **Substantial-feature learning loop:** after archive, route outcomes through Systematic's `compound` skill so learnings are recorded.
+- **Substantial-feature learning loop:** after route close, route outcomes through Systematic's `compound` skill so learnings are recorded.
 
 ### Long sessions and context management
 

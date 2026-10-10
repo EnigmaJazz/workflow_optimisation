@@ -17,7 +17,6 @@ Native host project mutation is forbidden for every model agent.
 
 - Native `edit`, `write`, and `apply_patch` are disabled/denied globally and must not be re-enabled by an agent override.
 - The `gentle-orchestrator` is a strictly read-only coordinator. Native host Bash/edit/write and all sandbox mutation/execution/lifecycle capabilities are denied; fixed host workflow-control tools and dedicated read-only inspection remain available.
-- SDD artifact writers use sandbox tools and never native host edit/write; `sdd-apply` additionally writes implementation code. `sdd-research` is an output-only external evidence collector with no local read/write or memory access. `sdd-verify` runs optional diagnostics and does not issue an archive certificate.
 - Other implementation/fix workers use `sandbox_read`, `sandbox_list`, `sandbox_grep`, `sandbox_diff`, `sandbox_bash`, `sandbox_edit`, `sandbox_write`, and `sandbox_apply_patch` inside the worker.
 - Sandbox host-boundary/lifecycle operations such as apply, copy-in/out, finish, and discard remain approval-gated for writer agents. They are not ordinary worker-local writes.
 - Read-only reviewers, researchers, judges, refuters, validators, and coordinators do not receive sandbox file-mutation tools unless their current source role explicitly requires mutation.
