@@ -266,6 +266,12 @@ planned), and any host/live deployment path.
   3. `R3-PM-IDENTITY-CHAT-MESSAGE-BLIND-SPOT` — same location; already recorded at `odd/tasks/pm-layer.md:372`.
   Findings 2 and 3 belong to the pm-layer feature and are pointers only; this unit does not edit that tracker.
 
+- 2026-10-10 slice 3 evidence: commit `3b630b522f351e9e3ac76f1b67832284137b6d93`, 7 files (WORKFLOW.md residue + the six route-skill files), +40/−44 (84 authored lines); removed SDD from the route skills + WORKFLOW.md residue; `git diff --check` clean; probe with positive control: 0 `sdd` tokens in the six skill files, 1 permitted leftover (`WORKFLOW.md:94` `sdd-explore`, Q31 scope); preserved literals intact (`two or more non-trivial files`, `400 authored changed lines and 100 KiB`, `200 KiB serialized per-runtime review-input budget`, `### Gentle AI 3.4 reviewability budget`, `SEARCH CONTRACT: AFT=navigation`, the exact `Authorize → Explore → … → Close` sentence); routing-guard suite 94 pass / 0 fail.
+- Post-commit assessment for this slice (base `601395a`): `review_due:false`, reason `under_budget` (7 paths / 84 lines) — slice accumulates pending, no review run.
+- Expected verifier reds until Q32: routing-contract pins `verify-workflow.sh:4545/:4546/:4548/:4550` (3.5.0 headings, `four or more files`, `20 tool calls or five exploratory reads`).
+- Q30 conclusion: the DOCS surface is now complete (`WORKFLOW.md`, `docs/PLAN.md`, the route skills, residue). The two remaining Q30 items — the `global-config/AGENTS.md` host-SDD block removal + routing-line rewrite, and retiring `global-config/skills/workflow-sdd-secure/**` — are NOT docs-only: the AGENTS.md route block deploys from the verifier heredoc (`:1307-1321`/`:1315`) so a doc-only edit is inert and drifts, its host block is read by the recovery engine (`:908-915`,`:987-1001`,`:4461`), and the verifier manifest (`:812`) + assembly (`:4506-4507`) require `workflow-sdd-secure/**` to keep existing. Both therefore belong with Q32 (or a widened co-ship). Owner chose docs-only (a); this remainder cannot land under it.
+- Next step: decide the Q30 remainder disposition (defer to Q32 vs widen) and the next queue item.
+
 ## Route, triggers, and actual dispatches
 - **Route:** delegated (secure ODD). No inline mutation anywhere; orchestrator/PM read-only.
 - **Trigger evidence:** mapping trigger (the evidence budget: beyond one parallel batch or about
