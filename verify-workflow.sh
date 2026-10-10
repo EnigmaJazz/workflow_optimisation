@@ -3262,7 +3262,7 @@ for (const [name,overlay] of Object.entries(systematic.categories??{})) {
   }
 }
 const githubReaderNames=["gentle-orchestrator","explore","sdd-research"]
-const githubBlockedNames=["general","repo-research-analyst","sdd-explore","sdd-apply","review-risk","correctness-reviewer"]
+const githubBlockedNames=["general","repo-research-analyst","review-risk","correctness-reviewer"]
 const githubCredentialInProbe=Boolean(process.env.GITHUB_REVIEW_TOKEN)
 for (const name of [...githubReaderNames,...githubBlockedNames]) {
   const dbg=readDebug(name)

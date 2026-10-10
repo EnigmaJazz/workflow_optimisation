@@ -225,6 +225,22 @@ Run each check for every slice:
   presence/absence probe PASS with pre-change positive controls (agents, grants, and verifier
   lists; S3/S4 edit targets confirmed untouched); `bash -n` rc 0; routing-guard 94 pass /
   0 fail; `sha256sum verify-workflow.sh` equals the pinned digest.
+- 2026-10-10: S2b implemented in a sandbox worker (sandbox result exported for PM apply; no
+  commit, no host apply, `verify-workflow.sh` not run). Coverage-inconsistency follow-up to S2:
+  the runtime-checker heredoc (`:1806-3305`) still lists `sdd-apply`/`sdd-explore` in
+  `githubBlockedNames` (`:3265`) while `PROBE_NAMES` (`:4679-4692`) no longer lists them, so
+  the probe-coverage extractor (`:4726-4740`) would fail `PROBE_LIST_MISSING_CHECKER_AGENT`
+  once the six S2 agents are no longer registered. Fix: `verify-workflow.sh:3265`
+  `githubBlockedNames` drops both names (now `general`, `repo-research-analyst`,
+  `review-risk`, `correctness-reviewer`); `githubReaderNames` is unchanged and keeps
+  `sdd-research` (retired in S3). This pulls the `sdd-explore`/`sdd-apply` half of the S3
+  inventory item at `:3264-3265` forward; S3's remaining work there is `sdd-research` only.
+  Digest re-pin `ba175ec3…` → `664b2b8fb77625a017f646d7e8beb3d325da6f77a6838457b5ad0643a96b4dd6`.
+  Checks: exact extractor-emulation probe PASS (removed names absent from the extraction set
+  and from `PROBE_NAMES`; all remaining extracted names present in `PROBE_NAMES`;
+  `sdd-research` present in `githubReaderNames`) with a pre-change positive control from
+  `HEAD` (control extracts both names and flags them unprobeable); `bash -n` rc 0;
+  routing-guard 94 pass / 0 fail; `sha256sum verify-workflow.sh` equals the pinned digest.
 
 ## Route, triggers, and actual dispatches
 
@@ -239,9 +255,11 @@ Run each check for every slice:
 
 ## Next step
 
-S1's committed candidate passed native review and was acknowledged. S2's sandbox result is
-exported and awaits the PM's install/commit and native review; do not apply it to the host as
-part of this record update. The verifier mirror and restart remain the owner's pending deploy
-action. S3 — retire the remaining SDD agents — begins after the owner authorizes the next slice.
-S5 remains BLOCKED pending the location of the v4 managed prompt source; keep the
-`gentle-orchestrator` key fixed. The other Q31 slices stay pending.
+S1's committed candidate passed native review and was acknowledged. S2's and S2b's sandbox
+results are exported and await the PM's install/commit and native review; do not apply them to
+the host as part of this record update. S2b closes an S2 deployment gap (probe coverage), so
+deploy S2 and S2b together. The verifier mirror and restart remain the owner's pending deploy
+action. S3 — retire the remaining SDD agents; its `:3264-3265` edit now covers only
+`sdd-research` — begins after the owner authorizes the next slice. S5 remains BLOCKED pending
+the location of the v4 managed prompt source; keep the `gentle-orchestrator` key fixed. The
+other Q31 slices stay pending.
