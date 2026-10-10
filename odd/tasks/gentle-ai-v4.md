@@ -2,8 +2,8 @@
 
 **Feature:** gentle-ai v4 upgrade / queue Q30 (workflow documents). **Task ID:** T1 (stable).
 **Class:** global-tooling-change. **Route:** `workflow-odd-secure` (delegated).
-**Unit status:** PREPARATION COMPLETE — tracker and pre-code advice written; T1 implementation not started.
-**This unit:** preparation writer only. No implementation source edits, no deployment, no commit, no native review.
+**Unit status:** SLICE 1 INSTALLED (PM-supplied host commit `2db43a2`; sandbox baseline `ade9919` observed carrying the same three-path slice change) — WORKFLOW.md evidence budget applied (Mapping + Long-session backstop bullets); post-code advice observed (`advisor-integration-post`) and its single required fix applied in this refinement delta; PM commit and native review pending (Q30 retained).
+**This unit:** slice-1 refinement writer (sandbox `odd-apply`, fresh worker, Task `ses_edbc5062bffebXomOvL1LqcGg8`; prior refinement writer `ses_edb98fc7bffevHGT1pBsTAuuAm` ended terminal `fallback_chain_exhausted` with no recoverable result). Only this tracker and `odd/advice/gentle-ai-v4.md` change; `WORKFLOW.md` is untouched; no deployment, commit, native review, push, PR, merge, or change set.
 **Model:** cloud `opencode-go/deepseek-v4.1-flash` (owner decision 2026-10-07; observed as this worker's model, matching the selected cloud decision).
 
 ## Objective
@@ -50,24 +50,43 @@ review-budget commit and must be split into coherent work-unit commits.
 - **Intentionally nondeployed.** Q30 is source-only: no verifier mirror, no service restart, no
   live `~/.config/opencode` edit. The excluded verifier/plugins/config surfaces are preserved
   for Q31-Q33.
-- **Branch.** Host branch `feat/gentle-ai-v4`, host HEAD
-  `b4006acc928b6bddc1ac7f98f71d5c83d3903cbb` (supplied). The writer runs on the sandbox's
-  synthetic work branch; never switch branches. The PM confirms the real branch at unit start.
+- **Branch.** Host branch `feat/gentle-ai-v4`; the owner approved **feature-branch-chain**
+  integration (strategy `feature-branch-chain`, already approved — no repeats). Host preparation commit
+  `a12779e09af562dc5340b4a589c116a11f2542f1` carries this tracker and
+  `odd/advice/gentle-ai-v4.md`. The writer runs on the sandbox's synthetic work branch
+  (observed: `work`); never switch branches and never commit; the PM owns installation and the
+  fixed host commit.
 - **Review boundary.** Last reviewed boundary is
-  `5387c24dfa9a96c80ef93e27e8bcc9abd58d6860` (supplied) — NOT host HEAD. `host_git_commit`
-  accepts a message/session id (it commits the session's applied result); it does not take a
-  base selector. Record the supplied constraints; do not follow the retracted advisor
-  recommendation to pass host HEAD.
+  `5387c24dfa9a96c80ef93e27e8bcc9abd58d6860` (supplied) — NOT host HEAD, retained for slice 1.
+  `host_git_commit` accepts a message/session id (it commits the session's applied result); it
+  does not take a base selector. Record the supplied constraints; do not follow the retracted
+  advisor recommendation to pass host HEAD.
 - **Tests.** Standard tests-first, NOT strict TDD. Exact runner:
   `HOME="$(mktemp -d)" bun test tests/routing-guard`, executed only in the isolated sandbox.
   Q30 is a docs/skills change; the guard suite is expected to remain green. The verifier is NOT
   run (it mutates host config); verifier failures are recorded as expected, never faked.
-- **Delivery.** Strategy `ask-on-risk` (default). No push, PR, merge, or release authority.
+- **Delivery.** Strategy `feature-branch-chain` (owner-approved). No push, PR, merge, or release authority.
 - **Review.** Independent post-code advisory review (`advisor-integration-post`, not a
   DeepSeek-family model) before each T1 work-unit commit; an RDD post-commit assessment is
   required for every work-unit commit against the boundary above.
 - **Metadata.** Tracker, `docs/TODO.md`, `docs/PLAN.md`, and `ROUTER-LOG.md` updates belong to
   the separate metadata work unit; this preparation unit writes only the two artifacts below.
+
+## Native review state (owner-supplied 2026-10-10; not independently verified here)
+A native review relay attempt (lineage `review-be12d8a092fe7eda`) failed with the exact
+owner-supplied error:
+`opencode_reviewer_relay_refused: reviewer_relay_child_exited: transport exited before completion (1): Error: opencode_review_transport_binding_invalid: Task repository context does not match the repository and binding it commits to`.
+The owner reports this as the third occurrence and attributes it to a systemic, outdated
+installation compounded by the deferred v4 upgrade, alongside the 600 s `RELAY_DEADLINE_MS`;
+that attribution is the **owner's diagnosis**, not an independently established cause.
+PM-observed `host_review_status` snapshot: status `0`, schema v9, `authority.state=reviewing`,
+action `collect`, reason `reviewer_results_required`; full target
+`sha256:6a3efa3ef82a8974000f2dfd589ad51a62f3071dccfa71a8e451b401f18b1a32`, revision
+`sha256:66d2b6637aeefba3ce150fc7caa3a709ceb3fc2b032817e5eac3025723982ff2`. The state is
+non-terminal: no acknowledged authority. Consent handling is owner-reported; RDD remains enabled
+(global mode not toggled). The owner authorizes this source-only implementation slice despite the
+relay refusal: **no review authority is claimed and the reviewed boundary is unchanged**; the
+PM's fixed commit operation may gate — never bypass — the owed review.
 
 ## Tasks
 - [ ] **T1 (Q30) — Workflow documents.** Deliverables:
@@ -75,7 +94,8 @@ review-budget commit and must be split into coherent work-unit commits.
     `references/sdd-magic-adapter.md`).
   - [ ] Rewrite Task Classes and selection rules to the Q29a former-SDD route.
   - [ ] Replace file-count mapping delegation with the evidence budget; keep the 2+ writer rule
-    literal.
+    literal. (Slice 1: WORKFLOW.md Mapping + Long-session backstop bullets done; route-skill
+    file-count triggers pending in a later slice.)
   - [ ] Retitle "Gentle AI 3.5.0" headings to version-neutral/4.x.
   - [ ] Remove TDD-mode-selection assumptions; forward the exact runner.
   - [ ] Remove the `user:host-sdd-runtime-boundaries` block and the `workflow-sdd-secure`
@@ -134,16 +154,26 @@ planned), and any host/live deployment path.
   reported by worker session `ses_edd67c946ffeOfFSiTr2xO6697` (fresh wrapper
   `eec3384386926e28b6a071d5661a1ef0749fe936`, parent `b4006acc`, tree identical). Narrative:
   94/0/224. **Exit code unobserved.**
-### T1 implementation checks (planned)
-- Re-run the exact runner in the isolated worker; record observed counts and exit status.
-- Static preservation (observed by bounded literal read): `SEARCH CONTRACT: AFT=navigation` in
-  `workflow-route/SKILL.md`; `all subagents have it disabled` and `EXTERNAL_CONTEXT_REQUIRED`
-  in `WORKFLOW.md`; `prefer narrow read-only tools (ENFORCED)` and
-  ``built-in `grep` remains `ask`-gated`` in `AGENTS.md`.
-- No verifier run (host mutation). Expected verifier failures are the Q32 inventory below.
+### T1 slice 1 checks (observed 2026-10-10)
+- Doc-contract probe (worker-local, ignored `.atl/odd-q30-t1/probe_doc_contract.py`, run via
+  `python3 .atl/odd-q30-t1/run_probe.py`): pre-edit `PROBE_RETURNCODE=1` (positive control: old
+  Mapping/Long-session bullets present; new wording absent); post-edit `PROBE_RETURNCODE=0`
+  (16/16 checks: new budget wording present, old file-count phrases absent, 9 anchors preserved
+  — rootheading, writer x2, search x2, magic x2, readonly x2).
+- `HOME=<mktemp -d> bun test tests/routing-guard` (recorded argv-only wrapper
+  `.atl/odd-q30-t1/run_guard_tests.py`): baseline 94 pass / 0 fail / 224 `expect()` calls,
+  `RETURNCODE=0`; post-edit 94 / 0 / 224, `RETURNCODE=0`.
+- Static preservation: covered by the probe anchors (`SEARCH_TOOL_ROUTING_DRIFT` strings in
+  `WORKFLOW.md` intact; the other two live in AGENTS/skills, untouched this slice).
+- No verifier run (host mutation). Predicted WORKFLOW.md-side verifier breaks until Q32:
+  `:4353` (`four or more files`) and `:4355` (`20 tool calls or five exploratory reads`). The
+  routing-contract checks `:4546`/`:4548` read AGENTS/skills and stay unchanged until the later
+  slices; the rest of the Q32 inventory applies to later slices.
+- Runtime skill behavioral probe not applicable to this slice (WORKFLOW.md prose only); the
+  guard suite exercises the consumer plugin.
 
 ## Delivery strategy, forecast, and smallest coherent split
-- **Strategy:** `ask-on-risk` (default). No PR/push authority.
+- **Strategy:** `feature-branch-chain` (owner-approved). No PR/push authority.
 - **Forecast (honest):** well above 400 authored changed lines in total, so a single atomic
   commit is not feasible under the local cap. Estimate per slice (recompute from measured
   receipts at implementation):
@@ -157,6 +187,15 @@ planned), and any host/live deployment path.
   revertible, and intermediate unreferenced state is harmless because Q30 is nondeployed. If a
   measured slice exceeds the cap, split further at file boundaries; never shrink correct content
   to fit (no code golf). No `review-size-exception` is claimed or needed.
+- **Slice 1 boundary and rollback (2026-10-10).** Paths changed: `WORKFLOW.md` (Mapping +
+  Long-session backstop bullets), `odd/tasks/gentle-ai-v4.md`, `odd/advice/gentle-ai-v4.md`.
+  Rollback is all-or-nothing: revert those three paths to `a12779e0`; nothing else changed.
+  The staged receipt vs `a12779e0` is produced at staging time and reported in the unit result.
+- **Refinement delta (2026-10-10).** This unit changes only `odd/tasks/gentle-ai-v4.md` and
+  `odd/advice/gentle-ai-v4.md` on the installed slice baseline; `WORKFLOW.md` is untouched. The
+  refined FULL candidate vs `a12779e0` (three paths) and the two-path refinement delta receipts
+  are staged at staging time and reported in the unit result; both stay within the 400-line/100
+  KiB per-commit review cap.
 
 ## Progress
 - 2026-10-09: preparation unit. Mapper inventory re-verified against the current tree
@@ -164,7 +203,30 @@ planned), and any host/live deployment path.
   `ses_edd654d1dffecaALlO1nkvtPuS`). This tracker and `odd/advice/gentle-ai-v4.md` written in
   the sandbox. Preparation-artifact sizes: `odd/tasks/gentle-ai-v4.md` 255 lines and `odd/advice/gentle-ai-v4.md` 62 lines / 3743 bytes; combined 317 lines. Final digests are reported in the unit result; the tracker's line count is unchanged by this edit.
   Tracker + Magic Context mirror readback: recorded in the unit result.
-- T1 implementation: not started.
+- 2026-10-10: T1 slice 1 started. Owner-approved feature-branch-chain integration on
+  `feat/gentle-ai-v4`; planning artifacts committed as `a12779e0`. Slice 1 is bounded to three
+  paths — `WORKFLOW.md` (Mapping + Long-session backstop bullets; evidence budget), this
+  tracker, `odd/advice/gentle-ai-v4.md` — and is source-only. Future slices identified:
+  WORKFLOW.md remainder (Task Classes, SDD sections/rows, retitles, TDD-mode forwarding, Astra
+  table, context/artifact backend), `global-config/AGENTS.md`, route skills, retire
+  `workflow-sdd-secure/`, `docs/PLAN.md`.
+- 2026-10-10 checks (observed): doc-contract probe RED pre-edit (`PROBE_RETURNCODE=1`; old
+  bullets present, new wording absent) → GREEN post-edit (`PROBE_RETURNCODE=0`; 16/16 checks).
+  Routing-guard suite `HOME=<mktemp -d> bun test tests/routing-guard`: baseline and post-edit
+  both 94 pass / 0 fail / 224 `expect()` calls, `RETURNCODE=0`. The worker workspace was
+  recycled twice across long turns; scaffolding and edits were re-applied each time and the
+  intermediate digest re-verified identical (`body_sha256=f3a916c5...`). Raw invocations in
+  Checks below.
+- 2026-10-10 refinement (Task `ses_edbc5062bffebXomOvL1LqcGg8`): post-code advice observed
+  (`advisor-integration-post`, Task `ses_edb9bca70ffeiC8VwnVH6WqrHH`) and its single required fix
+  applied to this tracker and `odd/advice/gentle-ai-v4.md`; `WORKFLOW.md` untouched. Prior
+  refinement writer `ses_edb98fc7bffevHGT1pBsTAuuAm` ended terminal `fallback_chain_exhausted`
+  (`.atl/rate-limit-fallback.log:1682`) with no recoverable result; this fresh writer started
+  from the installed slice baseline (`ade9919`). Checks observed: WORKFLOW.md two-bullet probe
+  GREEN (12/12, `PROBE_RETURNCODE=0`); routing-guard suite with the exact runner under a
+  throwaway HOME: 94 pass / 0 fail / 224 `expect()` calls, `GUARD_RETURNCODE=0`. Staged receipts
+  (FULL candidate vs `a12779e0`; refinement delta vs the installed baseline) are within the
+  400-line/100 KiB caps and reported in the unit result.
 
 ## Route, triggers, and actual dispatches
 - **Route:** delegated (secure ODD). No inline mutation anywhere; orchestrator/PM read-only.
@@ -180,16 +242,26 @@ planned), and any host/live deployment path.
     `eec3384386926e28b6a071d5661a1ef0749fe936`, parent `b4006acc`, tree identical).
   - This preparation writer: `odd-apply` sandbox writer session (session id held by the PM; not
     observable from inside the worker).
+  - Post-code advisor `advisor-integration-post`, Task `ses_edb9bca70ffeiC8VwnVH6WqrHH`
+    (observed model family Kimi; independent of the DeepSeek-family author) — succeeded.
+  - Failed refinement writer `ses_edb98fc7bffevHGT1pBsTAuuAm` — terminal
+    `fallback_chain_exhausted` (`.atl/rate-limit-fallback.log:1682`); no result to recover.
+  - This refinement writer: `odd-apply` sandbox writer, Task `ses_edbc5062bffebXomOvL1LqcGg8`
+    (fresh worker on the installed slice; sandbox baseline commit `ade9919`).
 - The session ROUTE line is not execution evidence; results are recorded only as observed.
 
 ## Advice record
 - **Pre-code:** `odd/advice/gentle-ai-v4.md` — original and amended summaries, exact authority
   resolutions, and retractions. Satisfies the `workflow-odd-secure` advice stage
   (guard pattern `^odd/advice/[^/]+\.md$`).
-- **Post-code:** PENDING — independent `advisor-integration-post` (not DeepSeek) before each T1
-  work-unit commit.
+- **Post-code (observed 2026-10-10):** independent `advisor-integration-post`, Task
+  `ses_edb9bca70ffeiC8VwnVH6WqrHH` (Kimi; not DeepSeek-family): WORKFLOW.md evidence-budget
+  bullets confirmed correct; its single required fix applied — stale `ask-on-risk` replaced
+  with the approved `feature-branch-chain` (branch parenthetical, Delivery bullet, delivery
+  strategy). No other findings; no review authority claimed. Full record in
+  `odd/advice/gentle-ai-v4.md`.
 - **Post-commit:** RDD assessment required per work-unit commit against
-  `5387c24dfa9a96c80ef93e27e8bcc9abd58d6860`.
+  `5387c24dfa9a96c80ef93e27e8bcc9abd58d6860` (boundary unchanged).
 
 ## Q30 -> Q32 verifier dependency inventory (verified against the current tree, 2026-10-09; line numbers drift — regenerate at implementation time)
 **Q30-caused failures expected until Q32 lands:**
@@ -249,7 +321,10 @@ Dispositions remain pending owner choice (finish on 3.7.0, convert to ODD, or ab
 enforced by the Q36 apply preflight, not by Q30.
 
 ## Next step
-PM installs this prepared two-file result through the fixed host result install when available
-and approved (planning work-unit commit), then starts T1 slice 1 with the recorded pre-code
-advice, per `docs/specs/pm-handoff.md` ordering. No commit or native review runs in this
-preparation unit.
+PM installs this refinement result (two paths: this tracker and `odd/advice/gentle-ai-v4.md`)
+through the fixed host result install when available and approved; then runs the fixed host
+work-unit commit on `feat/gentle-ai-v4` and the per-commit RDD assessment against the reviewed
+boundary `5387c24dfa9a96c80ef93e27e8bcc9abd58d6860` (unchanged; Q30 remains open; the native
+relay refusal/deferral for v4 stays recorded above and claims no review authority). The staged
+receipts — FULL candidate vs `a12779e0` and refinement delta vs the installed baseline — are
+reported in the unit result. Remaining Q30 slices stay pending.
