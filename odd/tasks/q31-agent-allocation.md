@@ -334,6 +334,17 @@ Run each check for every slice:
   rc 0; routing-guard 94 pass / 0 fail; `sha256sum verify-workflow.sh` equals the pin.
   Reviewability receipt for the five-file staged candidate: authored_changed_lines=267,
   authored_patch_bytes=30565; generated_or_binary_paths: none.
+- 2026-10-10: S4 post-advisory security fix in the same sandbox work unit (sandbox result
+  exported for PM apply; no commit, no host apply, `verify-workflow.sh` not run). The post-code
+  security advisor found that `gentle-ai-worker` and `gentle-ai-worker-local` omitted `task`
+  from their `tools` blocks while the baseline writer `general` declares `"task": false`; both
+  now declare `"task": false` after `"read": true`, matching `general`. Neither worker has a
+  `permission.task` map, so no contradicting grant exists. The change touches no verifier
+  bytes: `sha256sum verify-workflow.sh` is unchanged and still equals `VERIFY_SCRIPT_SHA256`
+  (`06fa864e93dcf853419c4db06e7e07eb0b55ab4a20af1f1740091db38593a4eb`), so no digest re-pin
+  is needed. Checks: `python3 -m json.tool` rc 0; probe PASS (both workers `tools.task ===
+  false`) with a positive control detecting the pre-change absent form; routing-guard
+  94 pass / 0 fail.
 
 ## Route, triggers, and actual dispatches
 
