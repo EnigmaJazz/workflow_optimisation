@@ -241,6 +241,17 @@ Run each check for every slice:
   `sdd-research` present in `githubReaderNames`) with a pre-change positive control from
   `HEAD` (control extracts both names and flags them unprobeable); `bash -n` rc 0;
   routing-guard 94 pass / 0 fail; `sha256sum verify-workflow.sh` equals the pinned digest.
+- 2026-10-10: S2/S2b native review for commits `850fda4` (S2) and `e0d3508` (S2b),
+  candidate 5 files / 367 lines, lineage `review-7e15094e542e762d`, tier **high**; all four
+  selected lenses were admitted. `review-readability` first returned
+  `opencode_task_output_malformed` (transport failure; no capture) and was re-dispatched
+  successfully. Outcome **approved** and acknowledged; `authority: burned`; consumed revision
+  `sha256:f4f2bf289d3b2f8db5eddee9b666a73dede0ad995431e279c880ea8b6974235f`. Advisory findings
+  (non-blocking, informational; separate later work, not re-review triggers):
+  `R3-RETIRED-AGENT-LIST-COVERAGE` (`verify-workflow.sh:4680`),
+  `R4-DEFERRED-VERIFIER-RUN` (`verify-workflow.sh:3265`), and
+  `R4-DIGEST-SKEW-PERSIST` (`workflow-health-check.ts:93`). The deploy step remains the owner's
+  action.
 
 ## Route, triggers, and actual dispatches
 
