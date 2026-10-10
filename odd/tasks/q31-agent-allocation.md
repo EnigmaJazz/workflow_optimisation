@@ -121,9 +121,10 @@ otherwise configuration validation or the health-check plugin can fail.
     `sdd-research`/`sdd-verify`/`sdd-archive` skill/command checks (15 lines), plus the
     `gentle-orchestrator` prompt prose naming all SDD commands (`opencode.json:390`; S5 owns
     the prompt rebuild).
-  - [ ] **S4 — Add Q29d generic agents.** Add the four generic agents and the orchestrator's
+  - [x] **S4 — Add Q29d generic agents.** Add the four generic agents and the orchestrator's
     `permission.task` allows; add the agents to `required_agents`. Pair with verifier changes and
-    digest re-pin.
+    digest re-pin. **Done 2026-10-10 (sandbox result; not committed or applied):** see the S4
+    Progress bullet for the agent models/tools, the measured verifier sites, and the checks.
   - [ ] **S5 — Retitle and remove TUI entry.** BLOCKED: `internal/assets/opencode/orchestrator.md`
     does not exist in this repository, so the orchestrator description (`:264`) and prompt (`:398`)
     cannot yet be authored from the v4 managed prompt source. Keep the agent key exactly
@@ -310,6 +311,29 @@ Run each check for every slice:
   Advisory findings are non-blocking and informational, separate later work: `R3-DEFERRED-VERIFIER-RUN`
   (WARNING), `R3-ORCHESTRATOR-PROMPT-STALE`, `R4-001`, `R4-002` (WARNING — guard `ROUTE_STAGES`/
   skills still name retired SDD agents; fail-closed; S5/Q33), and `R4-003`.
+- 2026-10-10: S4 implemented in a sandbox worker (sandbox result exported for PM apply; no
+  commit, no host apply, `verify-workflow.sh` not run). Edits: `global-config/opencode.json`
+  adds the four Q29d generic agents between `general` and `gentle-orchestrator` —
+  `gentle-ai-explore` (`opencode-go/deepseek-v4.1-flash`, variant `medium`, read-only sandbox
+  tools and `ctx_memory` allow, no GitHub grant), `gentle-ai-verify` (`openai/gpt-6.1-sol`,
+  variant `high`, `sandbox_bash` execution with every mutation surface denied),
+  `gentle-ai-worker` (`opencode-go/deepseek-v4.1-flash`, variant `high`, full sandbox writer
+  shape) and `gentle-ai-worker-local` (`kinver/professional`, variant `""`, full sandbox writer
+  shape) — each carrying the Magic Context adapter and the search contract, plus the four
+  `gentle-orchestrator.permission.task` allows; `verify-workflow.sh` adds the four to
+  `required_agents` (`:371`), `ordinaryMemoryAgents` (`:2804`) and the direct-model list
+  (`:3066`), extends the writer-shape check to `gentle-ai-worker`/`gentle-ai-worker-local`
+  (`:2766`), re-adds the `["gentle-ai-worker","gentle-ai-verify"]` family pair (`:2324`), and
+  removes the three dead `startsWith("sdd-")` branches (writer-shape filter, memory-policy
+  allow, SDD-override prompt check); digest re-pinned `27ce301e…` →
+  `06fa864e93dcf853419c4db06e7e07eb0b55ab4a20af1f1740091db38593a4eb`. Checks:
+  `python3 -m json.tool` rc 0; differential agent probe PASS (new file: exactly the four generic
+  keys with the intended models/variants/tools and `ctx_memory=allow`, 0 `sdd-*` agent keys;
+  control on `HEAD` content detects 0 generic keys; control on `7ca7867` detects 12 `sdd-*` keys
+  proving the probe reads that shape); verifier membership lines confirmed by content; `bash -n`
+  rc 0; routing-guard 94 pass / 0 fail; `sha256sum verify-workflow.sh` equals the pin.
+  Reviewability receipt for the five-file staged candidate: authored_changed_lines=267,
+  authored_patch_bytes=30565; generated_or_binary_paths: none.
 
 ## Route, triggers, and actual dispatches
 
@@ -322,17 +346,14 @@ Run each check for every slice:
   committed or applied). 2026-10-10 S2 implementation dispatched to the `odd-apply` sandbox
   worker (sandbox result exported; not committed or applied). 2026-10-10 S3 implementation
   dispatched to the `odd-apply` sandbox worker (sandbox result exported; not committed or
-  applied).
+  applied). 2026-10-10 S4 implementation dispatched to the `odd-apply` sandbox worker (sandbox
+  result exported; not committed or applied).
 
 ## Next step
 
-S1's committed candidate passed native review and was acknowledged. S2's, S2b's, and S3's
-sandbox results are exported and await the PM's install/commit and native review; do not apply
-them to the host as part of this record update. S2b closes an S2 deployment gap (probe
-coverage) and S3 completes the retired-agent removal, so deploy S2, S2b, and S3 together in
-order. The verifier mirror and restart remain the owner's pending deploy action. S4 — add the
-four Q29d generic agents (`gentle-ai-explore`, `gentle-ai-worker`, `gentle-ai-worker-local`,
-`gentle-ai-verify`), their orchestrator grants, the `required_agents` entries, and the generic
-writer/verifier family pair that S3 removed — begins after the owner authorizes the next slice.
-S5 remains BLOCKED pending the location of the v4 managed prompt source; keep the
-`gentle-orchestrator` key fixed. The other Q31 slices stay pending.
+S1's, S2/S2b's, and S3's committed candidates passed native review and were acknowledged. S4's
+sandbox result is exported and awaits the PM's install/commit and native review; do not apply it
+to the host as part of this record update. The verifier mirror and restart remain the owner's
+pending deploy action for every committed slice. S5 remains BLOCKED pending the location of the
+v4 managed prompt source; keep the `gentle-orchestrator` key fixed. S5 is the only remaining
+Q31 slice.

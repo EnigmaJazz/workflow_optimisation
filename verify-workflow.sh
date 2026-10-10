@@ -368,6 +368,7 @@ if not local_auto_update_path.is_file():
 
 required_agents = {
     "gentle-orchestrator", "general", "explore",
+    "gentle-ai-explore", "gentle-ai-worker", "gentle-ai-worker-local", "gentle-ai-verify",
     "pm-odd", "pm-systematic", "pm-sdd", "odd-apply",
     "frontend-dev", "frontend-dev-premium",
     "asi-review-risk", "asi-review-resilience", "asi-review-readability",
@@ -2320,7 +2321,7 @@ if (genericRuntimeReady && ggaRuntimeReady && !distinct) {
 
 // Compare underlying families, not provider prefixes or exact model IDs.
 // A Go Luna fallback for OpenAI Luna does not create an independent reviewer.
-for (const [writer,reviewer] of [["general","gentle-orchestrator"]]) {
+for (const [writer,reviewer] of [["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"]]) {
   for (const [surface,writerModel,reviewerModel] of [
     ["configured",deployedAgents[writer]?.model,deployedAgents[reviewer]?.model],
     ["runtime",readDebug(writer)?.model,readDebug(reviewer)?.model],
@@ -2762,8 +2763,7 @@ function assertCfgWriter(name) {
   }
   if (cfgTool(a,"*")===false) fail(`CUSTOM_TOOL_SURFACE_DISABLED: ${name}`)
 }
-for (const name of ["frontend-apply","frontend-apply-local","general","jd-fix-agent","odd-apply"]) assertCfgWriter(name)
-for (const name of Object.keys(deployedAgents).filter((n)=>n.startsWith("sdd-"))) assertCfgWriter(name)
+for (const name of ["frontend-apply","frontend-apply-local","general","jd-fix-agent","odd-apply","gentle-ai-worker","gentle-ai-worker-local"]) assertCfgWriter(name)
 
 const pmAgents=["pm-odd","pm-systematic","pm-sdd"]
 const pmAndAgents=[...pmAgents]
@@ -2801,6 +2801,7 @@ else {
 
 const ordinaryMemoryAgents=new Set([
   "explore","frontend-apply","frontend-apply-local","frontend-dev","frontend-dev-premium","general",
+  "gentle-ai-explore","gentle-ai-verify","gentle-ai-worker","gentle-ai-worker-local",
   "gentle-orchestrator","jd-fix-agent","vision","pm-odd","pm-systematic","pm-sdd","odd-apply",
 ])
 const isolatedMemoryAgents=new Set([
@@ -2818,7 +2819,7 @@ const isolatedMemoryAgents=new Set([
 for (const [name,a] of Object.entries(deployedAgents)) {
   let expected
   if (isolatedMemoryAgents.has(name)) expected="deny"
-  else if (ordinaryMemoryAgents.has(name) || name.startsWith("sdd-")) expected="allow"
+  else if (ordinaryMemoryAgents.has(name)) expected="allow"
   else {
     fail(`MAGIC_CONTEXT_MEMORY_POLICY_UNCLASSIFIED_AGENT: ${name}`)
   }
@@ -3034,13 +3035,6 @@ else {
     const scrubbed=orchPrompt.replace(/### Mandatory Magic Context memory\/context[\s\S]*?### Commands/, "### Commands")
     if (rx.test(scrubbed)) fail(`LEGACY_ENGRAM_ORCHESTRATOR_DRIFT: ${rx}`)
   }
-  for (const [name,a] of Object.entries(deployedAgents)) {
-    if (!name.startsWith("sdd-")) continue
-    const prompt=typeof a?.prompt==="string" ? a.prompt : ""
-    if (!prompt.includes("USER-OWNED MAGIC CONTEXT SDD ADAPTER")) {
-      fail(`MAGIC_CONTEXT_SDD_OVERRIDE_MISSING: ${name}`)
-    }
-  }
 }
 
 function assertDirectAgentModelMatchesConfig(name) {
@@ -3069,7 +3063,7 @@ function assertDirectAgentModelMatchesConfig(name) {
     }
   }
 }
-for (const name of ["frontend-dev","frontend-dev-premium","jd-judge-b","general"]) {
+for (const name of ["frontend-dev","frontend-dev-premium","jd-judge-b","general","gentle-ai-explore","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify"]) {
   assertDirectAgentModelMatchesConfig(name)
 }
 
