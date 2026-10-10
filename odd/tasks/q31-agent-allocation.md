@@ -290,6 +290,26 @@ Run each check for every slice:
   `sdd-archive-compose` checks and the `sdd-research`/`sdd-verify`/`sdd-archive` skill/command
   checks (15 lines), and the `gentle-orchestrator` prompt prose naming all SDD commands
   (`opencode.json:390`; S5 scope).
+- 2026-10-10: Post-code advisory (before native review): `advisor-integration-post`, Task
+  `ses_ed8faac5affea0idh4Wh4tmd33`, and `advisor-security-post`, Task
+  `ses_ed8faa12dffencBpDyf8CesIuH`, both **GO, no blocking findings**. Security confirmed no
+  dangling authority; S1's `host_sdd_*` → `deny` is intact; no newly-exposed `allow`. Integration
+  confirmed S3 internally consistent; the writer/verifier pair is intentionally weaker until S4;
+  three `startsWith("sdd-")` verifier branches remain as verified no-ops.
+  **S4 must-do list (captured for S4):** add the four Q29d agents to `required_agents` and
+  `ordinaryMemoryAgents` (or remove the vestigial `sdd-` branch, otherwise
+  `MAGIC_CONTEXT_MEMORY_POLICY_UNCLASSIFIED_AGENT` fires); extend the writer-shape check; re-add
+  `[["gentle-ai-worker","gentle-ai-verify"]]` to the family-diversity pair; add the generic agents
+  to the direct-model list; add the orchestrator `permission.task` allows.
+- 2026-10-10: S3 native review for commit
+  `83384c105a8c1996328183aa282da03b9bfff090`; lineage `review-7637fbc42f4c0740`; tier **high**;
+  four lenses. `review-risk` first refused (`opencode_reviewer_result_refused`) and
+  `review-readability` returned malformed; STATUS was refreshed and both were re-dispatched
+  successfully. All lenses admitted; outcome **approved**, acknowledged; `authority: burned`;
+  consumed `sha256:93cbde709244ee2da7a812b8cd23fa4ae0178bf3069bfd7ba052641b4a2e8530`.
+  Advisory findings are non-blocking and informational, separate later work: `R3-DEFERRED-VERIFIER-RUN`
+  (WARNING), `R3-ORCHESTRATOR-PROMPT-STALE`, `R4-001`, `R4-002` (WARNING — guard `ROUTE_STAGES`/
+  skills still name retired SDD agents; fail-closed; S5/Q33), and `R4-003`.
 
 ## Route, triggers, and actual dispatches
 
