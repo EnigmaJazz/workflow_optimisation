@@ -4,8 +4,9 @@
 **Class:** global-tooling-change. **Route:** `workflow-odd-secure` (delegated).
 **Unit model:** cloud `opencode-go/deepseek-v4.1-flash` (owner decision 2026-10-07; the author's
 model family is DeepSeek).
-**Status:** pre-code advice recorded (satisfies the route's advice stage); post-code advisory
-review PENDING.
+**Status:** pre-code advice recorded (satisfies the route's advice stage); slice-1 checks
+observed; post-code advisory review observed 2026-10-10 and its single required fix applied in
+the refinement delta (Q30 remains open).
 
 ## Dispatch
 - Registered interim advisor: `advisor-integration-pre`.
@@ -51,10 +52,39 @@ advisor response was not handed to this unit; only this summary is recorded.
 - Consequential findings are resolved by the amended advice above; the pre-code gate for
   `workflow-odd-secure` is satisfied by this record.
 
-## Post-code advisory review (PENDING)
-- Owed before each T1 work-unit commit: independent `advisor-integration-post` (not DeepSeek);
-  its findings must inform the committed candidate.
-- Recorded with step `post-code` here when it runs. Native review remains separately driven and
+## Slice 1 record (Q30/T1, 2026-10-10)
+- Scope: `WORKFLOW.md` Mapping + Long-session backstop bullets (evidence budget, per
+  `docs/TODO.md` Q30 and the gentle-ai v4 release line), `odd/tasks/gentle-ai-v4.md`, this file.
+- Checks observed in the sandbox: doc-contract probe RED → GREEN (`PROBE_RETURNCODE=1` → `0`);
+  routing-guard suite `HOME=<mktemp -d> bun test tests/routing-guard` 94 pass / 0 fail /
+  224 `expect()` calls, `RETURNCODE=0` (baseline and post-edit). Raw invocations are recorded in
+  the tracker.
+- Post-code advisory review (observed 2026-10-10): independent `advisor-integration-post`
+  (Task `ses_edb9bca70ffeiC8VwnVH6WqrHH`; not DeepSeek-family) reviewed the installed
+  candidate. Findings: the WORKFLOW.md evidence-budget bullets are correct; one required fix —
+  the stale `ask-on-risk` strategy text (tracker branch parenthetical, Delivery bullet, and
+  delivery strategy) is replaced with the approved `feature-branch-chain`. No other findings;
+  no review authority claimed; the reviewed boundary is unchanged.
+
+## Refinement record (Q30/T1, 2026-10-10)
+- Scope: `odd/tasks/gentle-ai-v4.md` and this file only; `WORKFLOW.md` untouched.
+- Applied: the post-code required fix above (strategy wording), with the advisory
+  identity/reference/findings/disposition recorded in the tracker's Advice record.
+- Checks observed in the sandbox: WORKFLOW.md two-bullet probe GREEN (12/12,
+  `PROBE_RETURNCODE=0`); routing-guard suite with the exact runner under a throwaway HOME:
+  94 pass / 0 fail / 224 `expect()` calls, `GUARD_RETURNCODE=0`.
+- Worker: `odd-apply` Task `ses_edbc5062bffebXomOvL1LqcGg8` (fresh worker; prior refinement
+  writer `ses_edb98fc7bffevHGT1pBsTAuuAm` terminal `fallback_chain_exhausted` with no
+  recoverable result).
+
+## Post-code advisory review (observed 2026-10-10)
+- Ran before the slice-1 work-unit commit: independent `advisor-integration-post` (not
+  DeepSeek-family), Task `ses_edb9bca70ffeiC8VwnVH6WqrHH`.
+- Findings and applied disposition: WORKFLOW.md evidence budget confirmed correct; required fix
+  (stale `ask-on-risk` → approved `feature-branch-chain`, at tracker branch parenthetical,
+  Delivery bullet, and delivery strategy) applied by the refinement writer in the two-path
+  refinement delta; checks observed before export.
+- No review authority is claimed; Q30 remains open. Native review remains separately driven and
   is never run by the worker or the PM.
 
 ## Post-commit assessment (required)
