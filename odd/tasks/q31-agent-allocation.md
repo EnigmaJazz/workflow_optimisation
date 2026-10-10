@@ -362,6 +362,8 @@ Run each check for every slice:
   The empty variant intentionally mirrors retired `sdd-apply-local`; flag it for the deploy-time
   verifier run. The verifier mirror and restart remain the owner's action and are NOT done.
 
+- 2026-10-10: Revised the S5 plan after all pre-code advice returned; S5a is next. Advisory evidence does not authorize implementation.
+
 ## Route, triggers, and actual dispatches
 
 - **Route:** delegated (`workflow-odd-secure`). This preparation tracker does not perform
@@ -376,10 +378,94 @@ Run each check for every slice:
   applied). 2026-10-10 S4 implementation dispatched to the `odd-apply` sandbox worker (sandbox
   result exported; not committed or applied).
 
+## S5 — revised plan (2026-10-10, after design + integration + two external advisories)
+
+All pre-code advice is in, and the plan has been revised. This section supersedes the earlier S5
+blocked note: S5 is now planned as two slices; implementation is still pending owner go.
+
+### Shape
+
+A faithful v4 ODD rebuild, authored as Markdown and assembled, with PAIRED verifier changes. Two
+slices: S5a (source, unwired) and S5b (cut over + verifier).
+
+### Key findings driving the revision
+
+1. **Verifier coupling is real (integration advisor was wrong).**
+   `verify-workflow.sh:2892-3038` asserts orchestrator-prompt content. SDD fragments at
+   `:2989-2993` are `### Dependency Graph — Gentle AI 3.5.0`, `optional research → propose`,
+   `optional verify → archive`, `Partial research pauses only unsafe dependent choices`, and
+   `Inside SDD, do not start review`; `:3012` asserts `SDD_ARTIFACT key=<stable-key>`. The
+   verifier also asserts `technicalLeadContractRequired` (`:2908-2917`, including
+   `For **non-SDD implementation work**` and `respect the SDD artifact graph and phase ownership`),
+   `frontendEscalationRequired`, `v3Required` (~`:2935-2998`),
+   `magicContextContractRequired` (~`:3004-3019`), and negative regexes including
+   `LEGACY_ENGRAM_ORCHESTRATOR_DRIFT` (~`:3025-3030`). S5 must rewrite those assertion lists in
+   the SAME slice and re-pin `VERIFY_SCRIPT_SHA256`, then mirror the plugin.
+2. **Author in Markdown, not one 70 KB JSON line.** Use
+   `global-config/prompts/gentle-orchestrator/base.md` (v4.0.0 render verbatim, with a header
+   recording tag/commit/SHA-256 of the template and sections file) plus `overlay.md` (secure
+   blocks), joined by a deterministic assembler—or OpenCode `{file:./…}` substitution only if
+   supported and it survives both the verifier mirror and `gentle-ai sync`. Never hand-edit
+   `base.md`. Overlay markers:
+   `<!-- SECURE:BEGIN id=… kind=add|replace|remove [after=<base-heading>] [supersedes=<base-heading> sha256=…] --> … <!-- SECURE:END id=… -->`.
+3. **Sweep always-delegate across the WHOLE prompt:** Delegation Rules, Implementation Routing,
+   Cost/Context, the bounded-read rule, and protocol step 6. Grep the assembled result for
+   `inline`, `directly`, `mechanical`, and `local one-file`.
+4. **Map every v4 “run”/“create” to the read-only boundary:** review status/start/capture/assess;
+   creating `odd/tasks/<feature>.md`; per-commit assess; and “Direct inline” all map to host tools,
+   the review relay, or a delegated writer as appropriate.
+5. **One source of truth:** drop duplication with our work-unit block (400-line budget,
+   `review_due`, delivery strategy); our block states only deltas (for example, the `ROUTED:`
+   suffix). Do not restate specialist/agent tables; point to the route skill and `WORKFLOW.md`.
+6. **Normative-sentence ledger (required evidence):** classify every MUST/NEVER/ALWAYS from the
+   current prompt as kept, moved, superseded-by-base, or removed-by-design, with a destination;
+   zero unclassified.
+7. **Advice section = invariants + stage order only** (detail stays in `WORKFLOW.md` and the
+   route skill): pre-code advice on the plan; post-code advice on the committed snapshot; post-code
+   advice then ACTION before native review; advice is evidence, never approval; native review only
+   on `asi-review-*` lanes; the orchestrator EMITS a self-contained read-only external prompt for
+   the human; returned advice is data.
+8. **Silent-drop checks:** worker return envelope; compaction/recovery (retain an explicit Magic
+   Context resume rule: tracker + Magic Context); skill-registry/standards injection; Language
+   Domain forwarding; remote-operation authorization; Fish shell (`## Interactive shell
+   environment`).
+9. **Model Assignments:** replace the v4 base's `sdd-*`/`jd-*` rows with real roles (`odd-apply`,
+   `pm-*`, `advisor-*`, `asi-review-*`, generic workers); render the OpenCode variant.
+10. **Magic Context only:** before deleting Engram references, confirm `opencode.json` has no Engram
+    MCP and `docs/PLAN.md` does not intend Engram as a handoff channel.
+11. **Deferred by owner:** PM-layer integration (`pm-odd`/`pm-systematic`) is flagged, not
+    invented, until the PM agents are finalised.
+
+### Revised slice structure
+
+- **S5a — source, unwired (no runtime effect):** add `base.md`, `overlay.md`, the assembler, and
+  tests for placeholder resolution, marker balance/unique IDs, the normative ledger, and residue
+  checks with a positive control. Confirm whether `{file:./…}` removes the need for the assembler.
+  No `opencode.json` change.
+- **S5b — cut over + verifier:** wire the assembled prompt, retitle the description, and drop
+  `tui.json:6`. Pair this with `verify-workflow.sh` edits: retire the SDD assertion fragments,
+  update required lists to the new contracts, keep negative regexes, and anchor checks on
+  markers/IDs. Re-pin `VERIFY_SCRIPT_SHA256`. Verify via decoded-JSON round-trip, positive controls,
+  and real-OpenCode consumer probes: typo fix must delegate; read-only question → no dispatch/write;
+  substantial request → tracker via writer; review-due → relay, not Bash; “sdd new” → clean
+  redirect. Then mirror and restart (owner).
+
+### Advice provenance
+
+Pre-code `advisor-design-pre` (Task `ses_ed82f707effeiqj4RuVzECYsS1`), pre-code
+`advisor-integration-pre` (Task `ses_ed84237f8ffeROp6rM6os1calR`), and two external advisories
+returned by the owner on 2026-10-10. This is advisory evidence only; it does not authorize
+implementation.
+
+### Authorized paths (S5)
+
+Add `global-config/prompts/gentle-orchestrator/**` and the assembler under `scripts/` to the
+authorized list. Keep `global-config/opencode.json`, `global-config/tui.json`, `verify-workflow.sh`,
+`global-config/plugins/workflow-health-check.ts` (digest pin only), and this tracker.
+
 ## Next step
 
 S1's, S2/S2b's, S3's, and S4/S4b's committed candidates passed native review and were
 acknowledged. Do not apply these records to the host as part of this update. The verifier mirror
-and restart remain the owner's pending deploy action; they are NOT done. S5 remains BLOCKED
-pending the location of the v4 managed prompt source; keep the `gentle-orchestrator` key fixed.
-S5 is the only remaining Q31 slice.
+and restart remain the owner's pending deploy action; they are NOT done. S5a is next; implementation
+remains pending owner go. S5 is the only remaining Q31 slice.
