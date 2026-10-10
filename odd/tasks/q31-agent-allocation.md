@@ -73,12 +73,18 @@ otherwise configuration validation or the health-check plugin can fail.
 ## Tasks
 
 - [ ] **T1 (Q31) — Agent allocation and paired verifier updates.** Deliverables:
-  - [ ] **S1 — Host-SDD lockdown.** Set all global, orchestrator, and `pm-*` `host_sdd_*`
+  - [x] **S1 — Host-SDD lockdown.** Set all global, orchestrator, and `pm-*` `host_sdd_*`
     permissions to `deny`. In `verify-workflow.sh:2699-2703`, remove the three entries from
     `registeredHostReads`; move `host_sdd_attempt_grant` and `host_sdd_archive_compose` from
     `gatedHostMutations` (`:2700`) into `retiredHostOperations` (`:2701`); and retain
     `HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY` (`:2703`) so it asserts every `host_sdd_*`
-    permission is `deny`. Re-pin the verifier digest.
+    permission is `deny`. Re-pin the verifier digest. **Done 2026-10-10 (sandbox result; not
+    committed or applied):** 33/33 `host_sdd_*` permission entries are `deny` (global 13;
+    `gentle-orchestrator` 13, with `host_sdd_status`/`host_sdd_continue`/`host_sdd_task_result`
+    added as `deny`; pm-odd 2; pm-systematic 2; pm-sdd 3) and 7/7 agent tool flags are `false`;
+    `retiredHostOperations` lists all 13 retired names so line 2703 (unchanged) asserts every
+    `host_sdd_*` permission is `deny`; digest re-pinned to
+    `38c5dbfaebc3bc0d1493afac1916022fba9cfb0bdbbbb15aa62b9e3986b46674`.
   - [ ] **S2 — Retire first SDD agent block.** Remove `sdd-apply` through `sdd-init`
     (`874-1161`), remove their task grants, and drop `sdd-apply-local` from `required_agents`.
     Pair with the relevant verifier changes and digest re-pin.
@@ -177,6 +183,16 @@ Run each check for every slice:
   `ses_eda1f91bbffe3zYguWZEQT76pQ` (model family OpenAI/Sol, independent of the DeepSeek author),
   returned **GO-with-corrections**. This is advisory evidence only; it does not authorize
   implementation or replace required review.
+- 2026-10-10: S1 implemented in a sandbox worker (sandbox result exported for PM apply; no commit,
+  no host apply, `verify-workflow.sh` not run). Edits: `global-config/opencode.json` host-SDD
+  lockdown (33 permission entries `deny`; 7 agent tool flags `false`); `verify-workflow.sh`
+  (`registeredHostReads` drops the three `host_sdd_*` reads; `host_sdd_attempt_grant` and
+  `host_sdd_archive_compose` move from `gatedHostMutations` into `retiredHostOperations`, now all
+  13 retired `host_sdd_*` names); `global-config/plugins/workflow-health-check.ts` digest re-pin
+  `68d89eb0…` → `38c5dbfaebc3bc0d1493afac1916022fba9cfb0bdbbbb15aa62b9e3986b46674`. Checks:
+  `python3 -m json.tool` clean; probe 33/33 `deny` + 7/7 `false`, 0 non-deny, positive control
+  detects injected `"allow"`/`"ask"`; `bash -n` rc 0; routing-guard suite 94 pass / 0 fail;
+  `sha256sum verify-workflow.sh` equals the pinned digest.
 
 ## Route, triggers, and actual dispatches
 
@@ -184,11 +200,13 @@ Run each check for every slice:
   implementation or execution.
 - **Trigger:** substantial change spanning `global-config/opencode.json` and its paired
   `verify-workflow.sh` edits.
-- **Actual dispatches:** none for Q31 implementation; implementation is pending the owner's go.
-  The tracker-creation writer is the delegated sandbox worker for this preparation task.
+- **Actual dispatches:** the tracker-creation writer for the preparation task; 2026-10-10 S1
+  implementation dispatched to the `odd-apply` sandbox worker (sandbox result exported; not
+  committed or applied).
 
 ## Next step
 
-Begin S1 — host-SDD lockdown and its paired verifier edit plus digest re-pin — on the owner's go.
-S5 remains BLOCKED pending the location of the v4 managed prompt source; keep the
-`gentle-orchestrator` key fixed. The other Q31 slices stay pending.
+S1 is complete in the sandbox; its result awaits PM apply and review. S2 — retire the first SDD
+agent block — begins after the S1 result is applied per the owner's go. S5 remains BLOCKED pending
+the location of the v4 managed prompt source; keep the `gentle-orchestrator` key fixed. The other
+Q31 slices stay pending.
