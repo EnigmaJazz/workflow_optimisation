@@ -258,6 +258,14 @@ planned), and any host/live deployment path.
   `docs/PLAN.md:154` `/SDD` drop was not applicable by content: line 154 carries the Engram
   adoption text, and the only slash-form token in the file is `ODD/SDD` at `:20` (already edited).
 
+- 2026-10-10 slice 2 evidence: commit `411f689c43e9c5ef550625dafcd5125ca7087ce6` (`docs(workflow): Q30 slice 2…`), 4 files (`ROUTER-LOG.md`, `WORKFLOW.md`, `docs/PLAN.md`, `odd/tasks/gentle-ai-v4.md`), +87/−72; `WORKFLOW.md` 509→491 lines, `docs/PLAN.md` 301→300. Checks observed: doc-contract probe RED→GREEN (retired SDD strings = 0), preserved pins 29/29, routing-guard suite 94 pass / 0 fail, and `bash -n verify-workflow.sh` rc 0.
+- Native review outcome for this candidate: lineage `review-86b0f157bc915344`; lens `review-reliability`; state `approved`. Acknowledged; authority `burned`; `consumed_revision sha256:fa268df2…`. Post-ack assessment: `review_due:false` (`already_reviewed`, `consumed:true`). Reviewed candidate tree `b0c91df2…` (base `827749e7…`). The first lens attempt returned `Task cancelled` and was redelegated once; review lanes are skipped, not replayed, by the rate-limit fallback (`fallback_skipped_review_agent`).
+- Three advisory findings, all `WARNING`/`informational` and non-blocking, recorded as separate later work (not fixed here):
+  1. `R3-FALLBACK-HOLD-SUBAGENT-UNVERIFIED` — `global-config/rate-limit-fallback.json:787`.
+  2. `R3-PM-BINDING-PERSISTENCE-SILENT-FAILURE` — `global-config/plugins/systematic-routing-guard.ts:328-365`.
+  3. `R3-PM-IDENTITY-CHAT-MESSAGE-BLIND-SPOT` — same location; already recorded at `odd/tasks/pm-layer.md:372`.
+  Findings 2 and 3 belong to the pm-layer feature and are pointers only; this unit does not edit that tracker.
+
 ## Route, triggers, and actual dispatches
 - **Route:** delegated (secure ODD). No inline mutation anywhere; orchestrator/PM read-only.
 - **Trigger evidence:** mapping trigger (the evidence budget: beyond one parallel batch or about
