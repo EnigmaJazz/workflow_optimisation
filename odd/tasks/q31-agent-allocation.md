@@ -345,6 +345,22 @@ Run each check for every slice:
   is needed. Checks: `python3 -m json.tool` rc 0; probe PASS (both workers `tools.task ===
   false`) with a positive control detecting the pre-change absent form; routing-guard
   94 pass / 0 fail.
+- 2026-10-10: Post-code advisory (before native review): `advisor-integration-post` (Task
+  `ses_ed8ce115cffeXkbgl7aJjU3R3V`) returned **GO**; its S4 must-do list is complete.
+  `advisor-security-post` (Task `ses_ed8ce07d1ffe3e0UgrplM6Fm4x`) returned **GO with one
+  correction**: both workers omitted `tools.task`, applied in S4b by setting `task: false`.
+- 2026-10-10: S4/S4b native review for commits
+  `ab5405984c2e0673e4f3c774994f62d3e8b2cb3a` (S4) and
+  `0944830f4ea46ecebb360c67e50be23410c03424` (S4b); lineage `review-7fdd837765748b75`, tier
+  **high**. All four lenses were admitted; outcome **approved** and acknowledged;
+  `authority: burned`; consumed `sha256:6fef323cfbb44563230a7a55c1579bb028b405938ca1d429ace405e12aa737e0`.
+  Advisory findings are non-blocking and informational, for separate later work: 
+  `R3-EXPLORER-VERIFIER-SHAPE-UNTESTED` (WARNING — no shape check for `gentle-ai-explore`/
+  `gentle-ai-verify`), `R3-VERIFIER-NOT-EXECUTED` (WARNING),
+  `R3-WORKER-LOCAL-VARIANT-EMPTY` (SUGGESTION — `gentle-ai-worker-local` has `variant: ""`),
+  `R4-001` (WARNING), and `R4-002` (WARNING — the empty variant remains untested until deploy).
+  The empty variant intentionally mirrors retired `sdd-apply-local`; flag it for the deploy-time
+  verifier run. The verifier mirror and restart remain the owner's action and are NOT done.
 
 ## Route, triggers, and actual dispatches
 
@@ -362,9 +378,8 @@ Run each check for every slice:
 
 ## Next step
 
-S1's, S2/S2b's, and S3's committed candidates passed native review and were acknowledged. S4's
-sandbox result is exported and awaits the PM's install/commit and native review; do not apply it
-to the host as part of this record update. The verifier mirror and restart remain the owner's
-pending deploy action for every committed slice. S5 remains BLOCKED pending the location of the
-v4 managed prompt source; keep the `gentle-orchestrator` key fixed. S5 is the only remaining
-Q31 slice.
+S1's, S2/S2b's, S3's, and S4/S4b's committed candidates passed native review and were
+acknowledged. Do not apply these records to the host as part of this update. The verifier mirror
+and restart remain the owner's pending deploy action; they are NOT done. S5 remains BLOCKED
+pending the location of the v4 managed prompt source; keep the `gentle-orchestrator` key fixed.
+S5 is the only remaining Q31 slice.
