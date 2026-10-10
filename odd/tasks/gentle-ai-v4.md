@@ -266,6 +266,7 @@ planned), and any host/live deployment path.
   3. `R3-PM-IDENTITY-CHAT-MESSAGE-BLIND-SPOT` — same location; already recorded at `odd/tasks/pm-layer.md:372`.
   Findings 2 and 3 belong to the pm-layer feature and are pointers only; this unit does not edit that tracker.
 
+- 2026-10-10 owner scope decision: the two remaining Q30 items — the `global-config/AGENTS.md` host-SDD block removal + routing-line rewrite, and retiring `global-config/skills/workflow-sdd-secure/**` — are **PARKED and deferred to Q32**, which requires coordinated `verify-workflow.sh` edits (routing-block heredoc `:1307-1321`/`:1315`; recovery engine `:908-915`/`:987-1001`/`:4461`; manifest `:812`; assembly `:4506-4507`; `VERIFY_SCRIPT_SHA256` re-pin). Q30's docs surface is COMPLETE (`70a6524`, `411f689`, `3b630b5`; evidence `601395a`/`4fa3bc2`).
 - 2026-10-10 slice 3 evidence: commit `3b630b522f351e9e3ac76f1b67832284137b6d93`, 7 files (WORKFLOW.md residue + the six route-skill files), +40/−44 (84 authored lines); removed SDD from the route skills + WORKFLOW.md residue; `git diff --check` clean; probe with positive control: 0 `sdd` tokens in the six skill files, 1 permitted leftover (`WORKFLOW.md:94` `sdd-explore`, Q31 scope); preserved literals intact (`two or more non-trivial files`, `400 authored changed lines and 100 KiB`, `200 KiB serialized per-runtime review-input budget`, `### Gentle AI 3.4 reviewability budget`, `SEARCH CONTRACT: AFT=navigation`, the exact `Authorize → Explore → … → Close` sentence); routing-guard suite 94 pass / 0 fail.
 - Post-commit assessment for this slice (base `601395a`): `review_due:false`, reason `under_budget` (7 paths / 84 lines) — slice accumulates pending, no review run.
 - Expected verifier reds until Q32: routing-contract pins `verify-workflow.sh:4545/:4546/:4548/:4550` (3.5.0 headings, `four or more files`, `20 tool calls or five exploratory reads`).
@@ -370,10 +371,5 @@ Dispositions remain pending owner choice (finish on 3.7.0, convert to ODD, or ab
 enforced by the Q36 apply preflight, not by Q30.
 
 ## Next step
-PM installs this refinement result (two paths: this tracker and `odd/advice/gentle-ai-v4.md`)
-through the fixed host result install when available and approved; then runs the fixed host
-work-unit commit on `feat/gentle-ai-v4` and the per-commit RDD assessment against the reviewed
-boundary `5387c24dfa9a96c80ef93e27e8bcc9abd58d6860` (unchanged; Q30 remains open; the native
-relay refusal/deferral for v4 stays recorded above and claims no review authority). The staged
-receipts — FULL candidate vs `a12779e0` and refinement delta vs the installed baseline — are
-reported in the unit result. Remaining Q30 slices stay pending.
+
+Per the owner decision (2026-10-10), the two remaining Q30 items — removing the `global-config/AGENTS.md` host-SDD block and rewriting its routing line, and retiring `global-config/skills/workflow-sdd-secure/**` — are PARKED and deferred to Q32. They require coordinated `verify-workflow.sh` edits to the routing-block heredoc (`:1307-1321`/`:1315`), recovery engine (`:908-915`/`:987-1001`/`:4461`), manifest (`:812`), assembly (`:4506-4507`), and `VERIFY_SCRIPT_SHA256` re-pin. Q30's docs surface is COMPLETE (`70a6524`, `411f689`, `3b630b5`; evidence `601395a`/`4fa3bc2`). The next action is the next queue item; this does not authorize a commit or host apply.
