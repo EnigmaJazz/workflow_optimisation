@@ -88,6 +88,14 @@ non-terminal: no acknowledged authority. Consent handling is owner-reported; RDD
 relay refusal: **no review authority is claimed and the reviewed boundary is unchanged**; the
 PM's fixed commit operation may gate — never bypass — the owed review.
 
+A second native review outcome (supplied, 2026-10-10): lineage `review-415a851fd6a96364` is
+terminal with state `escalated` (cause `unknown_causality`); no review authority or approval is
+claimed from it. Its finding `R3-PM-IDENTITY-CHAT-MESSAGE-BLIND-SPOT` is the PM-layer
+identity-binding known limitation already documented at `odd/tasks/pm-layer.md:372` (the binding
+is the latest observed message agent, not authenticated identity, and a task-dispatched child PM
+may never receive `chat.message`). Disposition: accepted as a known limitation (owner,
+2026-10-10). The reviewed boundary is unchanged: `5387c24dfa9a96c80ef93e27e8bcc9abd58d6860`.
+
 ## Tasks
 - [ ] **T1 (Q30) — Workflow documents.** Deliverables:
   - [ ] Delete the SDD sections/rows and `workflow-sdd-secure/` (`SKILL.md`,
@@ -230,12 +238,32 @@ planned), and any host/live deployment path.
 
 - 2026-10-10 mirror consolidation (owner-directed; before commit): this tracker's Magic Context mirror had accumulated **nine** overlapping base64-chunk records across three body generations; it was rewritten as **one** plain-Markdown record (Magic Context id `1120`, marker `ODD_TASKS key=odd/workflow_optimisation/gentle-ai-v4/tasks`) whose body matches this tracker, and all nine stale records were archived (1107, 1109, 1110, 1111, 1112, 1114, 1115, 1116, 1117). Acceptance criterion 8 (tracker <-> mirror readback agreement) is restored. No other file changed; `WORKFLOW.md` untouched.
 
+- 2026-10-10 slice 2 (WORKFLOW.md remainder + `docs/PLAN.md`; docs-only, source-only): deleted the
+  retired SDD surfaces (the Optional SDD Research section, the SDD-archive bullets, the SDD
+  preflight/OpenSpec store bullets, and `host_sdd_*` from the host-tool counts), retitled the five
+  `Gentle AI 3.5.0` headings, rewrote Task Classes and the classification/route-selection rules to
+  the Q29a route, replaced TDD-mode selection with test-first plus exact-runner forwarding, and
+  updated `docs/PLAN.md` (ODD/advisor layers, ODD-only execution spine, Q29a heading and lead).
+  Slice-1 refinement is committed as `70a6524`. Checks observed: doc-contract probe RED pre-edit
+  (`PROBE_RETURNCODE=1`, 6/6 retired strings detected with the 6/6 positive control) → GREEN
+  post-edit (`PROBE_RETURNCODE=0`, 6 retired strings absent, 29 preserved pins present, six classes
+  present); 81/81 fragment check `VERIFY_OK`; routing-guard suite under a throwaway HOME 94 pass /
+  0 fail / 224 `expect()` calls, `GUARD_RETURNCODE=0`; `bash -n verify-workflow.sh` clean (file
+  unchanged). Sandbox note: batched same-file `sandbox_edit` calls silently lost five edits to a
+  parallel-apply race; all were re-applied and the fragment check now passes. AGENTS.md edits are
+  deferred because they force `verify-workflow.sh` edits (tuple `:4461`, recovery engine
+  `:908-917`/`:987-998`, byte-exact routing block `:1315`) which Q30's scope excludes; they move to
+  the verifier/Q32 slice. Q30's WORKFLOW.md heading retitles will red the verifier pins (`:4302`,
+  `:4337`, `:4350`, `:4347`, `:4360`, `:4361`) until Q32 — expected, non-deployed. The instructed
+  `docs/PLAN.md:154` `/SDD` drop was not applicable by content: line 154 carries the Engram
+  adoption text, and the only slash-form token in the file is `ODD/SDD` at `:20` (already edited).
+
 ## Route, triggers, and actual dispatches
 - **Route:** delegated (secure ODD). No inline mutation anywhere; orchestrator/PM read-only.
-- **Trigger evidence:** mapping trigger (understanding needed 4+ files) → one read-only mapper;
-  writer trigger (2+ non-trivial files) → bounded sandbox writer; preparation trigger (reading
-  that prepares a write) → this preparation unit; plus the secure delegation policy (every
-  project mutation/execution is delegated).
+- **Trigger evidence:** mapping trigger (the evidence budget: beyond one parallel batch or about
+  five sequential lookups) → one read-only mapper; writer trigger (2+ non-trivial files) → bounded
+  sandbox writer; preparation trigger (reading that prepares a write) → this preparation unit;
+  plus the secure delegation policy (every project mutation/execution is delegated).
 - **Actual dispatches (supplied):**
   - Read-only mapper `ses_edd654cfcffehK6gRwLSKctis0` — Q32 verifier-dependency inventory.
   - Pre-code advisor `advisor-integration-pre`, Task `ses_edd654d1dffecaALlO1nkvtPuS`
@@ -264,6 +292,11 @@ planned), and any host/live deployment path.
   `odd/advice/gentle-ai-v4.md`.
 - **Post-commit:** RDD assessment required per work-unit commit against
   `5387c24dfa9a96c80ef93e27e8bcc9abd58d6860` (boundary unchanged).
+- **Post-code findings 2/3 (2026-10-10, supplied and applied):** finding 2 — the trigger-evidence
+  line was stale after the slice-1 evidence-budget change (still `understanding needed 4+ files`)
+  and now describes the evidence budget; finding 3 — `calls` in the evidence budget is defined as
+  tool/read calls in `WORKFLOW.md` (:55, :59). Both applied. Advisory evidence only, never
+  approval; no review authority claimed.
 
 ## Q30 -> Q32 verifier dependency inventory (verified against the current tree, 2026-10-09; line numbers drift — regenerate at implementation time)
 **Q30-caused failures expected until Q32 lands:**

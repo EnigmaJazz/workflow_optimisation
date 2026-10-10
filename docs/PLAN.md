@@ -17,7 +17,7 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
 3. `docs/ADVISOR-HANDOFF.md` corrections (the sandbox project builds against it), then the
    verifier's prose coupling (stable anchors instead of prose literals).
 4. Split `verify-workflow.sh`, before the external lane adds verifier checks.
-5. Workflow policy: classes, ODD/SDD/advisor layers, the impact axis (how much advice), and the
+5. Workflow policy: classes, ODD/advisor layers, the impact axis (how much advice), and the
    per-project impact-surface declaration.
 6. External advisor lane: activate after agent-sandbox-integration plan A is installed (B3), then
    the routing-guard advice stage (B4) and the advisor handoff document (B5).
@@ -46,8 +46,8 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
     `docs/handoffs/2026-10-04-pm-layer-workflow-optimisation.md`.
 
 ## Layers
-- **Execution spine** — tiny fix: direct. Everything beyond trivial and not SDD: **ODD** (tracker
-  plus Magic Context mirror plus delegation plus the review boundary). SDD when selected.
+- **Execution spine** — tiny fix: direct. Everything beyond trivial follows the ODD spine and the
+  Q29a route for design-heavy work.
 - **Pre-code advice** — mandatory for every non-trivial change ("trivial" keeps its meaning:
   trivial document edits; clearly bounded few-line changes with no contract or security effect).
   Interim lane: the smallest sufficient set of registered `advisor-*-pre` agents, one by
@@ -98,8 +98,7 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
   declaration was honest.
 - Enforcement of the up-front tier must come from something other than the assessment: write
   targets observed by the guard, against the project's declared surfaces.
-- ODD was omitted from the first draft of the class mapping; it is the default spine for
-  non-SDD work beyond trivial, not a class of its own.
+- ODD was omitted from the first draft of the class mapping; it is the default spine beyond trivial, not a class of its own.
 - The advisor layer and the impact axis share one trigger set; they are one mechanism, not two.
 - 2026-10-01 (supersedes the line above): advice is mandatory for every non-trivial change, so the
   advisor layer no longer has a trigger set. The impact axis decides how much advice (number of
@@ -195,10 +194,10 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
     stays available for rollback.
 - Queue Q40-Q47.
 
-## Route for former-SDD work (DECIDED 2026-10-02, v4)
+## Route for design-heavy substantial work (Q29a, v4)
 
-Owner decision 2026-10-02 (Q29a): the full route below, chosen over a lighter variant without `ce:brainstorm`, so each stage has a durable artifact the guard can gate. gentle-ai v4.0.0 removes SDD, so
-the class that used to offer SDD needs a route built from the ODD spine and the `ce:*` skills.
+Owner decision 2026-10-02 (Q29a): the full route below, chosen over a lighter variant without `ce:brainstorm`, so each stage has a durable artifact the guard can gate.
+The route for design-heavy substantial work builds on the ODD spine and the `ce:*` skills.
 
 **Substantial design-heavy feature** (material product or design ambiguity):
 1. ODD spine: feature document `odd/tasks/<feature>.md` created before any source write.
