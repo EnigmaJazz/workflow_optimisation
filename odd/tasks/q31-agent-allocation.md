@@ -98,10 +98,29 @@ otherwise configuration validation or the health-check plugin can fail.
     `python3 -m json.tool` rc 0; presence/absence probe PASS with pre-change positive controls
     (from `HEAD`); `bash -n` rc 0; routing-guard 94 pass / 0 fail; `sha256sum
     verify-workflow.sh` equals the pin; `verify-workflow.sh` not run (mutates host config).
-  - [ ] **S3 — Retire remaining SDD agents.** Remove `sdd-onboard` through `sdd-verify`
+  - [x] **S3 — Retire remaining SDD agents.** Remove `sdd-onboard` through `sdd-verify`
     (`1162-1401`) and `sdd-research` (`1506-1565`), remove their grants, and drop
     `sdd-research` from `required_agents`. Pair with the relevant verifier changes and digest
-    re-pin.
+    re-pin. **Done 2026-10-10 (sandbox result; not committed or applied):** measured spans
+    `872-1111` (`sdd-onboard`, `sdd-propose`, `sdd-spec`, `sdd-tasks`, `sdd-verify`) and
+    `1216-1275` (`sdd-research`) removed; 12 task grants removed (6 `gentle-orchestrator`,
+    6 `pm-sdd`; the final no-comma grant line required dropping the resulting dangling
+    `explore` comma). `verify-workflow.sh`: `required_agents`, the direct-model list,
+    `PROBE_NAMES` (incl. `sdd-design`/`-astra`, `sdd-spec`/`-astra`, `sdd-verify`/`-astra`,
+    `sdd-research`), `githubReaders`/`githubReaderNames`, the `sdd-research` shape/block check,
+    the `sddResearchRuntime` block, the `sdd-research` task-grant check, the `repoCapable`
+    exclusion, the isolation-set entry, the stale comment, and the retired
+    `["sdd-apply","sdd-verify"]` family pair (S4 re-adds the generic pair) are all cleaned;
+    zero retired-AGENT references remain. Digest re-pinned `664b2b8f…` →
+    `27ce301e8493bb664877ee6e3efb9589e758f20edb1b7c9d8c13dd09230d0926`. Checks:
+    `python3 -m json.tool` rc 0; probe PASS with pre-change `HEAD` controls (5 verifier
+    sentinels; 6/6 S3 agents registered; `sdd-research` granted 2×); extractor emulation
+    returns no `sdd-` refs; `bash -n` rc 0; routing-guard 94 pass / 0 fail; pin equals the
+    computed digest; `verify-workflow.sh` not run. Deliberately kept (managed v3 assets, not
+    agent references): `sdd-archive-compose` native-command checks and the
+    `sdd-research`/`sdd-verify`/`sdd-archive` skill/command checks (15 lines), plus the
+    `gentle-orchestrator` prompt prose naming all SDD commands (`opencode.json:390`; S5 owns
+    the prompt rebuild).
   - [ ] **S4 — Add Q29d generic agents.** Add the four generic agents and the orchestrator's
     `permission.task` allows; add the agents to `required_agents`. Pair with verifier changes and
     digest re-pin.
@@ -123,8 +142,9 @@ that edits `verify-workflow.sh` must also re-pin `VERIFY_SCRIPT_SHA256` in
   `gatedHostMutations` (`:2700`) into `retiredHostOperations` (`:2701`); ensure
   `HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY` (`:2703`) asserts every `host_sdd_*` permission is
   `deny`.
-- **S4:** At `:2323`, change the writer/verifier pair from
-  `["sdd-apply","sdd-verify"]` to `["gentle-ai-worker","gentle-ai-verify"]`.
+- **S4:** At `:2323`, add the writer/verifier pair `["gentle-ai-worker","gentle-ai-verify"]`;
+  S3 removed the retired `["sdd-apply","sdd-verify"]` pair from this list (no-reference rule),
+  leaving `[["general","gentle-orchestrator"]]`.
 - **S2/S3/S4:** At `:3089`, remove `sdd-research`, `sdd-apply`, and `sdd-verify` from the
   direct-model list (S2/S3), and add the generic agents (S4).
 - **S3:** Delete the `sdd-research` shape/block check at `:2802-2816`.
@@ -252,6 +272,24 @@ Run each check for every slice:
   `R4-DEFERRED-VERIFIER-RUN` (`verify-workflow.sh:3265`), and
   `R4-DIGEST-SKEW-PERSIST` (`workflow-health-check.ts:93`). The deploy step remains the owner's
   action.
+- 2026-10-10: S3 implemented in a sandbox worker (sandbox result exported for PM apply; no
+  commit, no host apply, `verify-workflow.sh` not run). Edits: `global-config/opencode.json`
+  removes `sdd-onboard`/`sdd-propose`/`sdd-spec`/`sdd-tasks`/`sdd-verify` (`872-1111`) and
+  `sdd-research` (`1216-1275`) plus 12 task grants (6 `gentle-orchestrator`, 6 `pm-sdd`; the
+  final no-comma grant line required dropping the resulting dangling `explore` comma);
+  `verify-workflow.sh` now has zero retired-AGENT references (`required_agents`, direct-model
+  list, `PROBE_NAMES` incl. `-astra` aliases, `githubReaders`/`githubReaderNames`, the
+  `sdd-research` shape/block check and runtime block, the `sdd-research` task-grant check, the
+  `repoCapable` exclusion, the isolation-set entry, the stale comment, and the retired
+  `["sdd-apply","sdd-verify"]` family pair); digest re-pinned `664b2b8f…` →
+  `27ce301e8493bb664877ee6e3efb9589e758f20edb1b7c9d8c13dd09230d0926`. Checks:
+  `python3 -m json.tool` rc 0; probe PASS with pre-change positive controls from `HEAD`
+  (5 verifier sentinels; 6/6 S3 agents registered; `sdd-research` granted 2×); extractor
+  emulation returns no `sdd-` refs; `bash -n` rc 0; routing-guard 94 pass / 0 fail; pin equals
+  the computed digest. Deliberately kept as managed v3 asset checks (not agent references):
+  `sdd-archive-compose` checks and the `sdd-research`/`sdd-verify`/`sdd-archive` skill/command
+  checks (15 lines), and the `gentle-orchestrator` prompt prose naming all SDD commands
+  (`opencode.json:390`; S5 scope).
 
 ## Route, triggers, and actual dispatches
 
@@ -262,15 +300,19 @@ Run each check for every slice:
 - **Actual dispatches:** the tracker-creation writer for the preparation task; 2026-10-10 S1
   implementation dispatched to the `odd-apply` sandbox worker (sandbox result exported; not
   committed or applied). 2026-10-10 S2 implementation dispatched to the `odd-apply` sandbox
-  worker (sandbox result exported; not committed or applied).
+  worker (sandbox result exported; not committed or applied). 2026-10-10 S3 implementation
+  dispatched to the `odd-apply` sandbox worker (sandbox result exported; not committed or
+  applied).
 
 ## Next step
 
-S1's committed candidate passed native review and was acknowledged. S2's and S2b's sandbox
-results are exported and await the PM's install/commit and native review; do not apply them to
-the host as part of this record update. S2b closes an S2 deployment gap (probe coverage), so
-deploy S2 and S2b together. The verifier mirror and restart remain the owner's pending deploy
-action. S3 — retire the remaining SDD agents; its `:3264-3265` edit now covers only
-`sdd-research` — begins after the owner authorizes the next slice. S5 remains BLOCKED pending
-the location of the v4 managed prompt source; keep the `gentle-orchestrator` key fixed. The
-other Q31 slices stay pending.
+S1's committed candidate passed native review and was acknowledged. S2's, S2b's, and S3's
+sandbox results are exported and await the PM's install/commit and native review; do not apply
+them to the host as part of this record update. S2b closes an S2 deployment gap (probe
+coverage) and S3 completes the retired-agent removal, so deploy S2, S2b, and S3 together in
+order. The verifier mirror and restart remain the owner's pending deploy action. S4 — add the
+four Q29d generic agents (`gentle-ai-explore`, `gentle-ai-worker`, `gentle-ai-worker-local`,
+`gentle-ai-verify`), their orchestrator grants, the `required_agents` entries, and the generic
+writer/verifier family pair that S3 removed — begins after the owner authorizes the next slice.
+S5 remains BLOCKED pending the location of the v4 managed prompt source; keep the
+`gentle-orchestrator` key fixed. The other Q31 slices stay pending.

@@ -367,7 +367,7 @@ if not local_auto_update_path.is_file():
     raise SystemExit(0)
 
 required_agents = {
-    "gentle-orchestrator", "general", "explore", "sdd-research",
+    "gentle-orchestrator", "general", "explore",
     "pm-odd", "pm-systematic", "pm-sdd", "odd-apply",
     "frontend-dev", "frontend-dev-premium",
     "asi-review-risk", "asi-review-resilience", "asi-review-readability",
@@ -2082,7 +2082,7 @@ for (const [name,agent] of Object.entries(deployedAgents)) {
   if (!agent || typeof agent!=="object" || agent.mode!=="subagent") continue
   if (agent.tools?.grep!==false) fail(`SUBAGENT_NATIVE_GREP_TOOL_EXPOSED: ${name}`)
   if (agent.permission?.grep!=="deny") fail(`SUBAGENT_NATIVE_GREP_NOT_DENIED: ${name}`)
-  const repoCapable=agent.tools?.["*"]!==false && name!=="sdd-research" &&
+  const repoCapable=agent.tools?.["*"]!==false &&
     (agent.tools?.read===true || agent.tools?.sandbox_read===true)
   if (repoCapable && (typeof agent.prompt!=="string" || !agent.prompt.includes("<!-- user:subagent-search-contract -->"))) {
     fail(`SUBAGENT_SEARCH_PROMPT_CONTRACT_MISSING: ${name}`)
@@ -2320,7 +2320,7 @@ if (genericRuntimeReady && ggaRuntimeReady && !distinct) {
 
 // Compare underlying families, not provider prefixes or exact model IDs.
 // A Go Luna fallback for OpenAI Luna does not create an independent reviewer.
-for (const [writer,reviewer] of [["general","gentle-orchestrator"],["sdd-apply","sdd-verify"]]) {
+for (const [writer,reviewer] of [["general","gentle-orchestrator"]]) {
   for (const [surface,writerModel,reviewerModel] of [
     ["configured",deployedAgents[writer]?.model,deployedAgents[reviewer]?.model],
     ["runtime",readDebug(writer)?.model,readDebug(reviewer)?.model],
@@ -2763,7 +2763,7 @@ function assertCfgWriter(name) {
   if (cfgTool(a,"*")===false) fail(`CUSTOM_TOOL_SURFACE_DISABLED: ${name}`)
 }
 for (const name of ["frontend-apply","frontend-apply-local","general","jd-fix-agent","odd-apply"]) assertCfgWriter(name)
-for (const name of Object.keys(deployedAgents).filter((n)=>n.startsWith("sdd-") && n!=="sdd-research")) assertCfgWriter(name)
+for (const name of Object.keys(deployedAgents).filter((n)=>n.startsWith("sdd-"))) assertCfgWriter(name)
 
 const pmAgents=["pm-odd","pm-systematic","pm-sdd"]
 const pmAndAgents=[...pmAgents]
@@ -2799,22 +2799,6 @@ else {
   if (orchestratorTask?.["odd-apply"]==="allow") fail("ODD_APPLY_ALLOWED_TO_ORCHESTRATOR")
 }
 
-const sddResearch=deployedAgents["sdd-research"]
-if (!sddResearch) fail("SDD_RESEARCH_AGENT_MISSING")
-else {
-  if (sddResearch.mode!=="subagent" || sddResearch.hidden!==true) fail("SDD_RESEARCH_AGENT_SHAPE_INVALID")
-  if (!normalizeModel(sddResearch.model)) fail("SDD_RESEARCH_MODEL_NOT_EXPLICIT")
-  for (const t of ["edit","write","bash","task","webfetch","websearch","sandbox_bash"]) {
-    if (cfgPerm(sddResearch,t)!=="deny") fail(`SDD_RESEARCH_PERMISSION_NOT_DENY: ${t}=${show(cfgPerm(sddResearch,t))}`)
-  }
-  for (const t of ["read","sandbox_read","sandbox_list","sandbox_grep","sandbox_diff","sandbox_edit","sandbox_write","sandbox_apply_patch","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish","ctx_search","ctx_expand","ctx_memory"]) {
-    if (cfgPerm(sddResearch,t)!=="deny" || cfgTool(sddResearch,t)!==false) fail(`SDD_RESEARCH_OUTPUT_ONLY_BOUNDARY: ${t}`)
-  }
-  const rp=typeof sddResearch.prompt==="string"?sddResearch.prompt:""
-  for (const f of ["Gentle AI 3.5.0","output-only","actually available and authorized external tools","Partial research does not certify proposal readiness"]) if (!rp.includes(f)) fail(`GENTLE_AI_V3_RESEARCH_PROMPT_MISSING: ${JSON.stringify(f)}`)
-  if (rp.includes("gentle-ai.sdd-research-capability/v1")) fail("GENTLE_AI_V3_RESEARCH_RETIRED_GATE_PRESENT")
-}
-
 const ordinaryMemoryAgents=new Set([
   "explore","frontend-apply","frontend-apply-local","frontend-dev","frontend-dev-premium","general",
   "gentle-orchestrator","jd-fix-agent","vision","pm-odd","pm-systematic","pm-sdd","odd-apply",
@@ -2822,7 +2806,7 @@ const ordinaryMemoryAgents=new Set([
 const isolatedMemoryAgents=new Set([
   "jd-judge-a","jd-judge-b",
   "review-risk","review-readability","review-reliability",
-  "review-resilience","review-refuter","review-validator","sdd-research",
+  "review-resilience","review-refuter","review-validator",
   "advisor-design-pre","advisor-integration-pre","advisor-testing-pre",
   "advisor-security-pre","advisor-maintainability-pre",
   "advisor-design-post","advisor-integration-post","advisor-testing-post",
@@ -2903,7 +2887,6 @@ else {
     if (delegated["*"]==="allow") fail(`RELAY_TASK_WILDCARD_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}`)
     for (const relayName of relayReviewAgents) if (delegated[relayName]==="allow" && !agentName.startsWith("pm-")) fail(`RELAY_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.${relayName}`)
   }
-  if (task?.["sdd-research"]!=="allow") fail("SDD_RESEARCH_TASK_NOT_ALLOWED")
 
   const orchPrompt=typeof orch.prompt==="string" ? orch.prompt : ""
   const forbiddenPromptFragments=[
@@ -3052,7 +3035,7 @@ else {
     if (rx.test(scrubbed)) fail(`LEGACY_ENGRAM_ORCHESTRATOR_DRIFT: ${rx}`)
   }
   for (const [name,a] of Object.entries(deployedAgents)) {
-    if (!name.startsWith("sdd-") || name==="sdd-research") continue
+    if (!name.startsWith("sdd-")) continue
     const prompt=typeof a?.prompt==="string" ? a.prompt : ""
     if (!prompt.includes("USER-OWNED MAGIC CONTEXT SDD ADAPTER")) {
       fail(`MAGIC_CONTEXT_SDD_OVERRIDE_MISSING: ${name}`)
@@ -3086,16 +3069,8 @@ function assertDirectAgentModelMatchesConfig(name) {
     }
   }
 }
-for (const name of ["frontend-dev","frontend-dev-premium","jd-judge-b","sdd-research","general","sdd-verify"]) {
+for (const name of ["frontend-dev","frontend-dev-premium","jd-judge-b","general"]) {
   assertDirectAgentModelMatchesConfig(name)
-}
-
-const sddResearchRuntime=readDebug("sdd-research")
-if (sddResearchRuntime) {
-  for (const name of ["read","edit","bash","grep","ctx_search","ctx_expand","ctx_memory","sandbox_read","sandbox_list","sandbox_grep","sandbox_diff","sandbox_bash","sandbox_edit","sandbox_write","sandbox_apply_patch","sandbox_apply","sandbox_copy_in","sandbox_copy_out"]) {
-    const resolved=permissionActionForWildcard(sddResearchRuntime,name)
-    if (resolved!=="deny" || tool(sddResearchRuntime,name)===true) fail(`SDD_RESEARCH_RUNTIME_LOCAL_TOOL_EXPOSED: ${name}=${show(resolved)}`)
-  }
 }
 
 const orchRuntime=readDebug("gentle-orchestrator")
@@ -3244,7 +3219,7 @@ if (Object.keys(mcp).some((name)=>name!=="github_ro" && /^github([_-]|$)/i.test(
   fail("GITHUB_RO_DUPLICATE_MCP: unreviewed GitHub connection could bypass read-only mode")
 }
 if (deployed.tools?.["github_ro_*"]!==false) fail("GITHUB_RO_GLOBAL_TOOLS_NOT_DISABLED")
-const githubReaders=new Set(["gentle-orchestrator","explore","sdd-research"])
+const githubReaders=new Set(["gentle-orchestrator","explore"])
 for (const [name,agent] of Object.entries(deployedAgents)) {
   const enabled=agent?.tools?.["github_ro_*"]===true
   if (enabled!==githubReaders.has(name)) fail(`GITHUB_RO_AGENT_TOOLS_SCOPE_MISMATCH: ${name}`)
@@ -3261,7 +3236,7 @@ for (const [name,overlay] of Object.entries(systematic.categories??{})) {
     fail(`GITHUB_RO_SYSTEMATIC_CATEGORY_SCOPE_BYPASS: ${name}`)
   }
 }
-const githubReaderNames=["gentle-orchestrator","explore","sdd-research"]
+const githubReaderNames=["gentle-orchestrator","explore"]
 const githubBlockedNames=["general","repo-research-analyst","review-risk","correctness-reviewer"]
 const githubCredentialInProbe=Boolean(process.env.GITHUB_REVIEW_TOKEN)
 for (const name of [...githubReaderNames,...githubBlockedNames]) {
@@ -4674,13 +4649,12 @@ else
     tail -12 "$AGENT_LIST_STDERR" 2>/dev/null | sed 's/^/      /'
   else
     # Every agent the embedded runtime checker reads via readDebug must be probed
-    # here: SDD writers (sdd-apply, sdd-explore), github-scoped agents, and the
-    # Systematic baseline reviewers. A missing probe fails section 9.
+    # here: github-scoped agents and the Systematic baseline reviewers. A missing
+    # probe fails section 9.
     PROBE_NAMES=(
       gentle-orchestrator general explore
       frontend-dev frontend-dev-premium frontend-dev-premium-astra
-      jd-judge-a jd-judge-b sdd-research
-      sdd-design sdd-design-astra sdd-spec sdd-spec-astra sdd-verify sdd-verify-astra
+      jd-judge-a jd-judge-b
       review-risk review-readability review-reliability review-resilience review-refuter review-validator
       asi-review-risk asi-review-resilience asi-review-readability asi-review-reliability asi-review-refuter asi-review-validator
       advisor-design-pre-astra advisor-security-pre-astra
@@ -4843,7 +4817,7 @@ try {
   if (response?.github_ro?.status!=="connected") process.exit(1)
   const config=JSON.parse(fs.readFileSync(process.argv[3],"utf8"))
   if (config.tools?.["github_ro_*"]!==false || config.mcp?.github_ro?.url!=="https://api.githubcopilot.com/mcp/readonly" || config.mcp?.github_ro?.headers?.["X-MCP-Readonly"]!=="true") process.exit(1)
-  const readers=new Set(["gentle-orchestrator","explore","sdd-research"])
+  const readers=new Set(["gentle-orchestrator","explore"])
   for (const name of readers) {
     if (config.agent?.[name]?.tools?.["github_ro_*"]!==true ||
         config.agent[name].permission?.["github_ro_*"]!=="allow") process.exit(1)
