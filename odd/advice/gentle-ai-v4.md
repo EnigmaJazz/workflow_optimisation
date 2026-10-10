@@ -4,8 +4,8 @@
 **Class:** global-tooling-change. **Route:** `workflow-odd-secure` (delegated).
 **Unit model:** cloud `opencode-go/deepseek-v4.1-flash` (owner decision 2026-10-07; the author's
 model family is DeepSeek).
-**Status:** pre-code advice recorded (satisfies the route's advice stage); post-code advisory
-review PENDING.
+**Status:** pre-code advice recorded (satisfies the route's advice stage); slice-1 checks
+observed; post-code advisory review PENDING.
 
 ## Dispatch
 - Registered interim advisor: `advisor-integration-pre`.
@@ -50,6 +50,17 @@ advisor response was not handed to this unit; only this summary is recorded.
   `two or more non-trivial files` writer rule literal.
 - Consequential findings are resolved by the amended advice above; the pre-code gate for
   `workflow-odd-secure` is satisfied by this record.
+
+## Slice 1 record (Q30/T1, 2026-10-10)
+- Scope: `WORKFLOW.md` Mapping + Long-session backstop bullets (evidence budget, per
+  `docs/TODO.md` Q30 and the gentle-ai v4 release line), `odd/tasks/gentle-ai-v4.md`, this file.
+- Checks observed in the sandbox: doc-contract probe RED → GREEN (`PROBE_RETURNCODE=1` → `0`);
+  routing-guard suite `HOME=<mktemp -d> bun test tests/routing-guard` 94 pass / 0 fail /
+  224 `expect()` calls, `RETURNCODE=0` (baseline and post-edit). Raw invocations are recorded in
+  the tracker.
+- Post-code advisory review: STILL PENDING — independent `advisor-integration-post` (not
+  DeepSeek) before the slice-1 work-unit commit; its findings must inform the committed
+  candidate.
 
 ## Post-code advisory review (PENDING)
 - Owed before each T1 work-unit commit: independent `advisor-integration-post` (not DeepSeek);
