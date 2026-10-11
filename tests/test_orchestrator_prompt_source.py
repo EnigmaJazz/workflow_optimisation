@@ -60,7 +60,7 @@ SIGNATURES = {
 FORBIDDEN_RESIDUE = ("engram", "mem_", "sdd-", "openspec", "/sdd")
 # Explicit allowlist of (term, allowed line substring, reason); empty by design.
 ALLOWED_RESIDUE = ()
-VALID_CLASSIFICATIONS = ("kept", "moved", "superseded-by-base", "removed-by-design")
+VALID_CLASSIFICATIONS = ("kept", "moved", "split", "superseded-by-base", "removed-by-design")
 
 HEADING_RE = re.compile(r"^#{1,6} ")
 BEGIN_RE = re.compile(r"^<!-- SECURE:BEGIN (?P<attrs>.*) -->$")
@@ -238,6 +238,12 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
         ):
             self.assertIn(needle, text, "base.md metadata must record %r" % needle)
 
+    def test_base_headings_are_unique(self):
+        base_lines = strip_metadata_header(BASE.read_text(encoding="utf-8")).split("\n")
+        headings = [section["heading"] for section in base_sections(base_lines)]
+        duplicates = sorted({heading for heading in headings if headings.count(heading) > 1})
+        self.assertEqual(duplicates, [], "base.md anchor headings must be unique: %s" % duplicates)
+
     def test_overlay_markers_balanced_and_ids_unique(self):
         blocks = parse_overlay(OVERLAY.read_text(encoding="utf-8"))
         ids = [block["id"] for block in blocks]
@@ -274,6 +280,31 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
                 section_sha256(matches[0]["text"]),
                 block["sha256"],
                 "block %s: declared sha256 must match the base section %r" % (block["id"], block["supersedes"]),
+            )
+
+    def test_shared_anchor_adds_insert_in_file_order(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp) / "base.md"
+            overlay = Path(tmp) / "overlay.md"
+            base.write_text(
+                "<!--\nprobe header\n-->\n\n### Anchor\n\nanchor body\n\n### Next\n\nnext body\n",
+                encoding="utf-8",
+            )
+            overlay.write_text(
+                "<!-- SECURE:BEGIN id=test:first kind=add after=### Anchor -->\n"
+                "### First\n\nfirst body\n<!-- SECURE:END id=test:first -->\n\n"
+                "<!-- SECURE:BEGIN id=test:second kind=add after=### Anchor -->\n"
+                "### Second\n\nsecond body\n<!-- SECURE:END id=test:second -->\n",
+                encoding="utf-8",
+            )
+            result = run_assembler(("--base", str(base), "--overlay", str(overlay)))
+            self.assertEqual(result.returncode, 0, "assembler must exit 0: %s" % result.stderr)
+            self.assertIn("### First", result.stdout)
+            self.assertIn("### Second", result.stdout)
+            self.assertLess(
+                result.stdout.index("### First"),
+                result.stdout.index("### Second"),
+                "add blocks sharing one anchor must land in file order",
             )
 
     def test_assembled_output_is_clean_and_complete(self):

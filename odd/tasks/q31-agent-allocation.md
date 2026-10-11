@@ -389,6 +389,38 @@ Run each check for every slice:
   exist in `global-config/opencode.json` (V1 literal inclusion), but inclusion is positional and
   cannot express the overlay's replace/remove semantics, and its V2 support is UNVERIFIED
   (`docs/TODO.md` Q41), so the assembler stays. Next: S5b.
+- 2026-10-11: S5a and the repin are committed; the S5a post-code advisories returned; and the
+  advisory corrections were applied in a second sandbox worker (sandbox result exported for PM
+  apply; no commit, no host apply, `verify-workflow.sh` not run, `opencode.json`/`tui.json`
+  untouched; UNWIRED by design). Commits on `feat/gentle-ai-v4`: `4550b7a` S5a source (7 files,
+  +1294/−2) and `c07b489` Magic Context + AFT plugin version repin
+  (`global-config/opencode.json`, +2/−2). Post-code advisory: design **GO**; integration **GO**,
+  flagging (a) the `verify-workflow.sh` orchestrator-prompt assertion list that S5b must rewrite
+  and (b) the `<!-- user:subagent-search-contract -->` question for the orchestrator prompt.
+  **Search-contract determination (correction 1): no change.** `verify-workflow.sh:2082-2090`
+  applies the marker requirement only to deployed agents with `mode === "subagent"` — line 2083
+  `continue`s for every other mode — and only to repo-capable ones; `gentle-orchestrator` is
+  `mode: "primary"` and is the only non-subagent agent the emulated check exempts, so its prompt
+  (current or assembled) needs no marker and no overlay block was added. Corrections applied:
+  (2) new `test_base_headings_are_unique()` (base.md has 31 unique headings); (3) ledger row 13
+  reclassified `moved` → `split` (overlay:user:secure-odd-protocol carries budget-shapes-slicing /
+  never-shrink; WORKFLOW.md "Substantial ODD work units and review" carries the
+  recompute/apply-strategy mechanics) and `split` added to the ledger vocabulary; (4) the
+  assembler documents END-of-anchor insertion and deterministic file-order shared-anchor adds,
+  backed by a minimal per-anchor insertion-cursor fix — the pre-fix probe measured reverse order,
+  the fixed probe measured file order — plus the new
+  `test_shared_anchor_adds_insert_in_file_order`; (5) ledger structural-coupling note: the
+  superseded `#### Cost and Context Balance` extent carries the opening half of the
+  `<!-- gentle-ai:opencode-desktop-delegation-progress -->` pair, and the closing half sits in
+  `#### Delegation Visibility (OpenCode Desktop)`, outside every sha256-guarded extent. Checks:
+  `python3 -m unittest tests.test_orchestrator_prompt_source -v` **11/11 pass**; assembler rc 0,
+  **52,540 bytes**, sha256
+  `b740f5713800d0b6975f1196da7c5cf1fb59a9c76b514396f469948cd2cb61a1` — byte-identical to the
+  pre-correction render (no live overlay blocks share an anchor); the assembled output contains
+  the v3 `SEARCH CONTRACT` prose required at `verify-workflow.sh:2943`;
+  `python3 -m json.tool global-config/opencode.json` rc 0 (unchanged); routing-guard
+  **94 pass / 0 fail**; `verify-workflow.sh` not run. Magic Context mirror 1121 updated in place
+  (marker + full tracker body) and read back.
 
 ## Route, triggers, and actual dispatches
 

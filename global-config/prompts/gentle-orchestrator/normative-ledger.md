@@ -4,13 +4,14 @@ Scope: every sentence in the CURRENT prompt (`global-config/opencode.json` →
 `agent["gentle-orchestrator"].prompt`, sha256
 `47618dbb90b57c52ca07a20cbac1100e1d4ca7663934ef22b10e4089baaa63bc`, 542 lines)
 containing MUST, NEVER, ALWAYS (case-insensitive, word boundary) or "hard rule".
-69 candidate sentences: **43 kept, 1 moved, 10 superseded-by-base, 15
+69 candidate sentences: **43 kept, 1 split, 10 superseded-by-base, 15
 removed-by-design; zero unclassified.**
 
 Classification meanings:
 
 - `kept` — the rule survives in an overlay block (destination = overlay id).
 - `moved` — the rule now lives in another authoritative document (destination = document + section).
+- `split` — the sentence's normative content survives in more than one destination; the destination cell names each part.
 - `superseded-by-base` — the rendered v4 base states the same rule; our copy is dropped (destination = base heading).
 - `removed-by-design` — the rule is deliberately gone (destination = `removed: reason`).
 
@@ -32,7 +33,7 @@ wiring are produced by `scripts/assemble-orchestrator-prompt.py` from `base.md`
 | 10 | L43 | "Never dispatch a review Task to the plain review-* names while the installed transport is loaded." | kept | overlay:user:review-boundary |
 | 11 | L44 | "Never grant review lanes to implementation workers or isolated reviewers." | kept | overlay:user:review-boundary |
 | 12 | L46 | "On correction_context_budget_exceeded, obtain the exact review abandon binding template through the reviewed host boundary; never substitute review invalidate." | kept | overlay:user:review-boundary |
-| 13 | L48 | "Recompute from work-unit commits; when forecast or running total crosses about 400, apply the chosen strategy before the next commit. The accumulated delivery budget controls slices, never code shrinking." | moved | WORKFLOW.md "Substantial ODD work units and review"; overlay:user:secure-odd-protocol |
+| 13 | L48 | "Recompute from work-unit commits; when forecast or running total crosses about 400, apply the chosen strategy before the next commit. The accumulated delivery budget controls slices, never code shrinking." | split | overlay:user:secure-odd-protocol (budget shapes slicing; never shrink correct code) + WORKFLOW.md "Substantial ODD work units and review" (recompute/apply-strategy mechanics) |
 | 14 | L48 | "A routed work-unit commit trailer states the task/class at commit time; later review outcome belongs in tracker and router log, never rewritten retroactively into that commit." | kept | overlay:user:secure-odd-protocol |
 | 15 | L51 | "Never edit/write project files, never use native host Bash, never run project mutation/execution yourself, and never use sandbox mutation, sandbox execution, or sandbox lifecycle tools." | kept | overlay:user:read-only-boundary |
 | 16 | L64 | "Known uncertainties, hazards, or questions the worker must resolve rather than silently guess." | kept | overlay:user:technical-lead-contract |
@@ -89,3 +90,12 @@ wiring are produced by `scripts/assemble-orchestrator-prompt.py` from `base.md`
 | 67 | L534 | "Never grant relay lanes to implementation workers or isolated reviewers." | kept | overlay:user:review-boundary |
 | 68 | L534 | "Never use fallback session replay for either set because replay bypasses Task prompt injection." | kept | overlay:user:review-boundary |
 | 69 | L540 | "Always launch the three baseline reviewers (correctness, testing, project standards) and any candidate-specific reviewers selected by screening in the same independent wave." | kept | overlay:user:review-boundary |
+
+## Structural coupling note
+
+The superseded `#### Cost and Context Balance` extent ends with the opening half of the
+`<!-- gentle-ai:opencode-desktop-delegation-progress -->` comment pair, so the
+`user:always-delegate-cost-context` replacement re-emits that opening half to keep the pair
+bracketing `#### Delegation Visibility (OpenCode Desktop)`. The closing half lives in that next
+base section, outside any sha256-guarded extent, so an upstream move of the closing half would not
+be caught by any section sha256.
