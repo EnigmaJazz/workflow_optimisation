@@ -770,7 +770,6 @@ describe("8. PM own-route key binding", () => {
     for (const [pm, route] of [
       ["pm-odd", ODD],
       ["pm-systematic", SYS],
-      ["pm-sdd", "workflow-sdd-secure"],
     ]) {
       const sid = `ses_pm_map_${pm.replace(/-/g, "_")}`
       await message(sid, pm)
@@ -895,7 +894,6 @@ describe("8. PM own-route key binding", () => {
       "host_plan_append",
       "host_register_project",
       "host_sandbox_result_install",
-      "host_sdd_archive_compose",
     ]
     await message("ses_pm_hosts", "pm-odd")
     for (const tool of tools) {
@@ -905,14 +903,14 @@ describe("8. PM own-route key binding", () => {
     }
   })
 
-  test("host mutation PM gates are derived from the routing gate set", async () => {
+  test("the retired pm-sdd identity is no longer host-mutation gated", async () => {
     const tools = ["host_sandbox_result_install", "host_sdd_archive_compose"]
     await message("ses_pm_derived_hosts", "pm-sdd")
     for (const tool of tools) {
       await before(tool, "ses_pm_derived_hosts", {})
-      expect(logCount(pmWarning("pm-sdd", "workflow-sdd-secure", tool))).toBe(1)
-      expect(logText()).toContain(`workflow key status=missing (session: ses_pm_derived_hosts)`)
+      expect(logCount(pmWarning("pm-sdd", "workflow-sdd-secure", tool))).toBe(0)
     }
+    await probe()
   })
 
   test("the PM rule does not gate sandbox writes or task dispatch", async () => {
@@ -965,7 +963,7 @@ describe("9. PM adapter map own-property lookup", () => {
   test("resolves each configured PM identity to its adapter skill", () => {
     expect(pmRequiredRouteSkill("pm-odd")).toBe("workflow-odd-secure")
     expect(pmRequiredRouteSkill("pm-systematic")).toBe("workflow-systematic")
-    expect(pmRequiredRouteSkill("pm-sdd")).toBe("workflow-sdd-secure")
+    expect(pmRequiredRouteSkill("pm-sdd")).toBeNull()
   })
 
   test("constructor is not a PM identity", () => {
@@ -992,6 +990,17 @@ describe("9. PM adapter map own-property lookup", () => {
     // real absence, not a broken log.
     await message("ses_pm_proto_ctl", "pm-odd")
     await before("host_git_commit", "ses_pm_proto_ctl", {})
+    expect(logCount(`pm-odd requires its own ${ODD} route key before host_git_commit`)).toBe(1)
+  })
+
+  test("a retired pm-sdd identity does not trip the PM warning", async () => {
+    await message("ses_pm_sdd_retired", "pm-sdd")
+    await before("host_git_commit", "ses_pm_sdd_retired", {})
+    expect(logCount("requires its own")).toBe(0)
+    // Positive control: the same run still warns for a live PM, so the zero above is a
+    // real absence, not a broken log.
+    await message("ses_pm_sdd_retired_ctl", "pm-odd")
+    await before("host_git_commit", "ses_pm_sdd_retired_ctl", {})
     expect(logCount(`pm-odd requires its own ${ODD} route key before host_git_commit`)).toBe(1)
   })
 })

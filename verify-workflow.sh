@@ -368,7 +368,7 @@ if not local_auto_update_path.is_file():
 required_agents = {
     "gentle-orchestrator", "general", "explore",
     "gentle-ai-explore", "gentle-ai-worker", "gentle-ai-worker-local", "gentle-ai-verify",
-    "pm-odd", "pm-systematic", "pm-sdd", "odd-apply",
+    "pm-odd", "pm-systematic", "odd-apply",
     "frontend-dev", "frontend-dev-premium",
     "asi-review-risk", "asi-review-resilience", "asi-review-readability",
     "asi-review-reliability", "asi-review-refuter", "asi-review-validator",
@@ -2793,7 +2793,7 @@ for (const name of v4MutationTools) {
   if (cfgTool(deployedAgents["gentle-ai-verify"],name)!==false) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-verify.${name} must be false`)
 }
 
-const pmAgents=["pm-odd","pm-systematic","pm-sdd"]
+const pmAgents=["pm-odd","pm-systematic"]
 const pmAndAgents=[...pmAgents]
 const pmNoExecutionTools=["sandbox_write","sandbox_edit","sandbox_apply_patch","sandbox_apply","sandbox_bash","sandbox_finish","sandbox_discard","sandbox_copy_in","sandbox_copy_out","bash","edit","write"]
 const pmNoSandboxReadTools=["sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"]
@@ -2817,6 +2817,7 @@ for (const name of pmAndAgents) {
 // (which requires `allow`), this deny assertion is their only authority.
 for (const name of registeredHostReads) if (name.startsWith("host_sdd_")) fail(`HOST_SDD_READ_STILL_REGISTERED: ${name}`)
 for (const name of Object.keys(deployedAgents)) if (name.startsWith("sdd-")) fail(`SDD_AGENT_REAPPEARED: ${name}`)
+for (const name of Object.keys(deployedAgents)) if (name==="pm-sdd") fail(`PM_SDD_REAPPEARED: ${name}`)
 const hostSddNames=Object.keys(gp).filter((name)=>name.startsWith("host_sdd_")).sort()
 for (const name of hostSddNames) {
   if (gp[name]!=="deny") fail(`HOST_SDD_PERMISSION_NOT_DENY: <global defaults>.${name}=${show(gp[name])}`)
@@ -2851,7 +2852,7 @@ else {
 const ordinaryMemoryAgents=new Set([
   "explore","frontend-apply","frontend-apply-local","frontend-dev","frontend-dev-premium","general",
   "gentle-ai-explore","gentle-ai-verify","gentle-ai-worker","gentle-ai-worker-local",
-  "gentle-orchestrator","jd-fix-agent","vision","pm-odd","pm-systematic","pm-sdd","odd-apply",
+  "gentle-orchestrator","jd-fix-agent","vision","pm-odd","pm-systematic","odd-apply",
 ])
 const isolatedMemoryAgents=new Set([
   "jd-judge-a","jd-judge-b",
