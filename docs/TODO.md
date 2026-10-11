@@ -34,7 +34,7 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 - **Phase 3, recipe and policy:** Q05, Q09, the Q10 items, Q12, Q14, Q24, Q50, then the remaining
   READY and PLANNED items in listed order (Q11, Q13, Q15-Q23).
 - **Phase 4, gentle-ai v4 upgrade (owner-triggered):** Q29, then Q30-Q33 and Q35-Q39 delivered as
-  the Q36 change set, then Q34. Q49 runs throughout.
+  the Q36 change set, then Q34, plus Q65 and Q66. Q49 runs throughout.
 - **Phase 5, OpenCode V2 upgrade (owner-triggered, after Phase 4):** Q40-Q47.
 - **Project-manager layer (owner, 2026-10-04; runs alongside Phases 2 and 3):** Q53 and Q54 are
   complete as reports. Removal check (c) PASSED by a failed `pm-probe` Task dispatch. Checks (a)
@@ -545,7 +545,8 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   `host_gh_issue_create` and `host_plan_append` are absent by design. Resuming the earlier
   `pm-odd` session retained its prior conversation, a second independent observation of `task_id`
   resume behaviour (the first was the synthetic probe). In this unit, `pm-sdd` was extended to the
-  same host-mutation set, retaining `host_sdd_archive_compose` as its route-specific extra.
+  same host-mutation set, retaining `host_sdd_archive_compose` as its route-specific extra. This
+  extension is superseded by Q65's retirement of `pm-sdd`.
 - **Observed removal-check reconciliation (2026-10-08):** check (c) PASSED by the failed dispatch
   recorded above. Check (b) is PARTIALLY PASSED: installed `/home/james/.config/opencode/plugins/
   sandbox-tools.ts`, `READ_ONLY_AGENTS` lines 64–69, lists `gentle-orchestrator`, `pm-odd`,
@@ -640,7 +641,8 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 ### Q61. PM layer: remaining routes and close
 - **Status:** PLANNED.
 - **Prerequisites:** Q57, Q58, Q59, Q60.
-- **Description:** move the Systematic and SDD routes to `pm-systematic` and `pm-sdd`; remove
+- **Description:** move the Systematic route to `pm-systematic` (SDD is retired by v4; `pm-sdd` is
+  retired under Q65); remove
   `gentle-orchestrator-legacy`; `ce:compound`. Require relay-delivery proof from a dispatch
   outside the coordinating PM session, carrying a genuine provider-issued binding; Q54 showed
   reachability only, not delivery. Do not require the PM itself to dispatch or prove its own relay
@@ -805,7 +807,8 @@ Release facts that drive the group:
   - Update `docs/PLAN.md` at the cited lines.
 
 ### Q31. Agent allocation (`global-config/opencode.json`, `tui.json`, `systematic.jsonc` if needed)
-- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Status:** IN PROGRESS — source complete, committed and reviewed; deploy (verifier mirror +
+  restart) is the owner's pending step.
 - **Prerequisites:** Q29.
 - **Source:** v4.0.0 release notes. `global-config/opencode.json`: `gentle-orchestrator` :522
   ("Gentle AI SDD Orchestrator"), :647 (local prompt "# Gentle AI — SDD Orchestrator
@@ -861,6 +864,13 @@ Release facts that drive the group:
   - Add checks: no `sdd-*` agent or `host_sdd_*` grant present; v4 generic agents registered with
     the expected tools; `gentle-ai sync` exit status handled; review plugin binary-skew awareness.
   - Re-pin `VERIFY_SCRIPT_SHA256` (`:76` and the health plugin) after the edits.
+  - **S5b verifier findings (Q31 S5b native review `review-8b540c67721bcaa1`, 2026-10-11):**
+    - `R3-WORKSPACE-001` (`verify-workflow.sh:2895`): an empty `workspaceRoot` silently falls back to
+      a relative path.
+    - `R4-001` (`:3041`): the Magic Context scrubber lookahead silently no-ops if the following
+      heading level changes.
+    - `R4-002` (`:4800`): `workspaceRoot` undefined at another call site would throw before `fail()`.
+    - `R4-003` (`:4813`): the assembler-missing/failed codes leak an absolute host path + raw error.
 
 ### Q33. Guard and plugins
 - **Status:** PLANNED, gated by "owner decides to upgrade".
@@ -1067,6 +1077,32 @@ Release facts that drive the group:
 - **Record:** a row per change in the project's tracker or `ROUTER-LOG.md` with its disposition.
   The Q36 journal references them.
 - **Gate:** the apply preflight is the enforcement point (Q28).
+
+### Q65. Retire `pm-sdd`
+- **Status:** PLANNED.
+- **Prerequisites:** Q30 (the `workflow-sdd-secure` skill disposition) and Q31 (done); coordinate
+  with Q61, which currently lists `pm-sdd` as the SDD route PM.
+- **Source:** `odd/tasks/q31-agent-allocation.md` S5b post-code advisory (2026-10-11); Q54's
+  host-mutation extension of `pm-sdd`; `odd/tasks/pm-layer.md:24,315`.
+- **Description:** gentle-ai v4 retires SDD, so `pm-sdd` has no route left to coordinate. Decide
+  retire (default) vs repurpose, then: remove the `pm-sdd` agent block from
+  `global-config/opencode.json` (prompt loads `workflow-sdd-secure`); drop `pm-sdd` from the
+  orchestrator `permission.task` allows, the guard's coordinator map (`pm-sdd`→`workflow-sdd-secure`),
+  the verifier PM lists, and `docs/specs/pm-handoff.md` if named; drop `pm-sdd` from the external
+  `sandbox-tools.ts` `READ_ONLY_AGENTS` list; pair the verifier edits with the config change and
+  re-pin `VERIFY_SCRIPT_SHA256` (Q31 pattern); correct Q61 to drop `pm-sdd`.
+
+### Q66. Q31 S5a assembler-finding follow-ups
+- **Status:** PLANNED.
+- **Prerequisites:** Q31 (done).
+- **Source:** Q31 S5a native review (`review-1633e87da601f9dd`), 2026-10-11.
+- **Description:** harden `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py`
+  per six non-blocking findings: `R3-ASSEMBLER-FAILURE-PATHS-UNTESTED` (WARNING — loud-failure paths
+  untested: nested markers, unknown kind, empty body, duplicate ids, malformed markers),
+  `R3-ASSEMBLER-ATTR-PARSER-FRAGILE`, `R3-ASSEMBLER-ORDERING-HAZARD-UNGUARDED` (replace-after-add /
+  add-after-remove), `R4-ATTRPARSE-001`, `R4-EXITCODE-001` (environment failures exit 1 vs the
+  documented exit 2), `R4-MARKER-COUPLING-001` (WARNING — the delegation-progress comment pair is
+  split across a guarded and an unguarded base section).
 
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).

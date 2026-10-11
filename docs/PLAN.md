@@ -30,7 +30,7 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
 10. Deployment gating matrix (Q28): every workflow rule gets an enforcement point or an
     advisory-only record.
 11. gentle-ai v4 upgrade (planned; owner-triggered): decisions, then docs/agents/verifier/guard
-    changes on one gated branch, then the runbook (queue Q29-Q39).
+    changes on one gated branch, then the runbook (queue Q29-Q39 and Q65-Q66).
 
 12. OpenCode V2 upgrade (planned; owner-triggered; after the gentle-ai v4 upgrade): probe side by
     side, port plugins dual-mode, verifier V2 mode, change set and runbook (queue Q40-Q47).

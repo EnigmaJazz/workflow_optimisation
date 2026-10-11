@@ -535,10 +535,11 @@ Run each check for every slice:
   `review-reliability`) were admitted; outcome **approved** and acknowledged; `authority: burned`;
   consumed revision `sha256:053607edb22401a9a648e866d844c44a64ec8c40f26485a868428e246b8f7a73`.
   Post-code advisory before review: design **GO** (no changes required; overlay correctly overrides
-  the v4 base); integration **GO**, with residual-SDD findings deferred to Q36/Q37 (`pm-sdd` still
-  wired + points at `workflow-sdd-secure`; routing-guard still lists retired SDD specialists;
-  `AGENTS.md` still carries the `host-sdd-runtime-boundaries` block; the `workflow-sdd-secure` skill
-  still advertises SDD). Advisory corrections applied in `444244b`: assembler-equality check
+  the v4 base); integration **GO**, with residual-SDD findings now attributed to their real
+  owners (`pm-sdd` still wired + points at `workflow-sdd-secure` → **Q65**; routing-guard still
+  lists retired SDD specialists → **Q33**; `AGENTS.md` still carries the
+  `host-sdd-runtime-boundaries` block → **Q30**; the `workflow-sdd-secure` skill still advertises
+  SDD → **Q30**). Advisory corrections applied in `444244b`: assembler-equality check
   (`ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT`), retired-SDD negative list
   (`ORCHESTRATOR_PROMPT_RETIRED_SDD_FRAGMENT_PRESENT`), and three stabilized fragments.
   Advisory findings are non-blocking, informational, and later work: `R3-WORKSPACE-001`
@@ -652,7 +653,8 @@ authorized list. Keep `global-config/opencode.json`, `global-config/tui.json`, `
 S1's, S2/S2b's, S3's, S4/S4b's, S5a's, and S5b's committed candidates passed native review and were
 acknowledged. Q31 is complete at source level. Do not apply these records to the host as part of
 this update. Deployment (the verifier mirror and the OpenCode restart) remains the owner's pending
-action and is NOT done; the residual SDD surface is deferred to Q36/Q37.
+action and is NOT done; the residual SDD surface is owned by **Q30** (`AGENTS.md` block +
+`workflow-sdd-secure` skill), **Q33** (routing guard), and **Q65** (`pm-sdd` retirement).
 
 ### Deploy checklist (owner)
 
