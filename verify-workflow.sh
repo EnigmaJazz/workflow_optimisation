@@ -113,7 +113,7 @@ WORKSPACE="${WORKFLOW_VERIFY_WORKSPACE:-/home/james/ai-workspace/workflow_optimi
 OPENCODE_CONFIG_DIR="${WORKFLOW_VERIFY_OPENCODE_CONFIG_DIR:-/home/james/.config/opencode}"
 OPENCODE_CONFIG_FILE="$OPENCODE_CONFIG_DIR/opencode.json"
 TUI_CONFIG_FILE="${WORKFLOW_VERIFY_TUI_CONFIG_FILE:-$OPENCODE_CONFIG_DIR/tui.json}"
-SKILLS_DIR="$OPENCODE_CONFIG_DIR/skills"
+SKILLS_DIR="${WORKFLOW_VERIFY_SKILLS_DIR:-$OPENCODE_CONFIG_DIR/skills}"
 ROUTER_SKILLS_SOURCE="$WORKSPACE/global-config/skills"
 PLUGINS_DIR="$OPENCODE_CONFIG_DIR/plugins"
 OPENCODE_CACHE_DIR="${WORKFLOW_VERIFY_OPENCODE_CACHE_DIR:-/home/james/.cache/opencode}"
@@ -3913,6 +3913,22 @@ if [ -n "$ACTIVE_SKILLS" ]; then
   else
     echo "   ok: removed $REMOVED_LINKS redundant Systematic skill symlink(s)"
   fi
+fi
+
+# gentle-ai v4 retired the secure SDD route. Detect-only: a stale deployed copy
+# is a hard failure because the owner removes it once (no auto-delete here). The
+# reviewed recovery manifest never lists these names, so this fixed list is the
+# only detection surface. Do not derive it from the manifest.
+retiredWorkflowSkills=("workflow-sdd-secure")
+retiredWorkflowSkillsFound=0
+for retired_skill in "${retiredWorkflowSkills[@]}"; do
+  if [ -d "$SKILLS_DIR/$retired_skill" ]; then
+    fail "RETIRED_WORKFLOW_SKILL_PRESENT: $SKILLS_DIR/$retired_skill exists; remove it once with: rm -rf $SKILLS_DIR/$retired_skill"
+    retiredWorkflowSkillsFound=$((retiredWorkflowSkillsFound + 1))
+  fi
+done
+if [ "${#retiredWorkflowSkills[@]}" -gt 0 ] && [ "$retiredWorkflowSkillsFound" -eq 0 ]; then
+  echo "   ok: no retired workflow skill directories present"
 fi
 
 # --- 4. Global AGENTS.md routing section ---
