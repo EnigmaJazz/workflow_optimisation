@@ -1807,6 +1807,8 @@ EOF_NODE
 cat > "$RUNTIME_AGENT_CHECKER" <<'EOF_RUNTIME_AGENT'
 const fs = require("fs")
 const path = require("path")
+const crypto = require("crypto")
+const { execFileSync } = require("child_process")
 
 const nodeModules = process.env.SYSTEMATIC_NODE_MODULES
 if (!nodeModules) {
@@ -1821,7 +1823,7 @@ try {
   process.exit(2)
 }
 
-const [systematicConfigPath, agentsRoot, agentListPath, debugDir, openCodeConfigPath, fallbackPolicySourcePath] = process.argv.slice(2)
+const [systematicConfigPath, agentsRoot, agentListPath, debugDir, openCodeConfigPath, fallbackPolicySourcePath, workspaceRoot] = process.argv.slice(2)
 const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj ?? {}, key)
 let failures = 0
 function fail(msg) { console.error(`   !! ${msg}`); failures++ }
@@ -2890,6 +2892,27 @@ else {
   }
 
   const orchPrompt=typeof orch.prompt==="string" ? orch.prompt : ""
+  const orchestratorAssemblerRel="global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py"
+  const orchestratorAssemblerPath=path.join(workspaceRoot,orchestratorAssemblerRel)
+  if (!fs.existsSync(orchestratorAssemblerPath)) {
+    fail(`ORCHESTRATOR_PROMPT_ASSEMBLER_MISSING: ${orchestratorAssemblerPath}`)
+  } else {
+    let assembledBytes
+    try {
+      assembledBytes=execFileSync("python3",[orchestratorAssemblerRel],{cwd:workspaceRoot,maxBuffer:16*1024*1024})
+    } catch (error) {
+      fail(`ORCHESTRATOR_PROMPT_ASSEMBLER_FAILED: command: python3 ${orchestratorAssemblerRel} (cwd=${workspaceRoot}); ${error.message}`)
+    }
+    if (assembledBytes) {
+      const embeddedDigest=crypto.createHash("sha256").update(Buffer.from(orchPrompt,"utf8")).digest("hex")
+      const assembledDigest=crypto.createHash("sha256").update(assembledBytes).digest("hex")
+      if (embeddedDigest!==assembledDigest) {
+        fail(`ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT: embedded=${embeddedDigest} assembled=${assembledDigest}; command: python3 ${orchestratorAssemblerRel} (cwd=${workspaceRoot})`)
+      } else {
+        console.log(`   ok: embedded orchestrator prompt equals assembler output (sha256 ${embeddedDigest}; command: python3 ${orchestratorAssemblerRel})`)
+      }
+    }
+  }
   const forbiddenPromptFragments=[
     "Implementation runs as **direct inline**",
     "Write one mechanical, already-understood file | ✅",
@@ -2900,8 +2923,8 @@ else {
   for (const fragment of forbiddenPromptFragments) {
     if (orchPrompt.includes(fragment)) fail(`ORCHESTRATOR_PROMPT_INLINE_DRIFT: forbidden managed prompt fragment reappeared: ${JSON.stringify(fragment)}`)
   }
-  if (!orchPrompt.includes("strictly read-only technical lead") ||
-      !orchPrompt.includes("no native host Bash") ||
+  if (!orchPrompt.includes("### Secure Read-only Orchestrator Boundary") ||
+      !orchPrompt.includes("It has no native host Bash, native edit/write/apply-patch, sandbox shell, or sandbox mutation/lifecycle authority.") ||
       !orchPrompt.includes("delegated to a sandbox writer/executor")) {
     fail("ORCHESTRATOR_PROMPT_BOUNDARY_MISSING: dedicated prompt no longer encodes strict read-only/delegated execution")
   }
@@ -2959,7 +2982,7 @@ else {
     "grouped wave without waiting between launches",
     "correction_context_budget_exceeded",
     "lens_context_budget_exceeded",
-    "`review-<lens>` -> `asi-review-<lens>`",
+    "Map `provider_task.agent` to the relay lane (`review-<lens>` -> `asi-review-<lens>`, `review-refuter` -> `asi-review-refuter`, `review-validator` -> `asi-review-validator`) and copy `provider_task.prompt` unchanged",
     "two transports cannot own one Task",
     "never grant review lanes to implementation workers or isolated reviewers",
     "asi-review-*",
@@ -2973,6 +2996,20 @@ else {
   for (const retired of ["### Gentle AI v2.7 workflow compatibility", "### Research and Pre-Proposal Gate — Gentle AI v2.7", "### Native Runtime Attempt Authority", "confirmed preproposal + explore", "400-line budget risk: High"]) if (orchPrompt.includes(retired)) fail(`GENTLE_AI_V3_RETIRED_ORCHESTRATOR_GATE: ${JSON.stringify(retired)}`)
   for (const retired of ["generated negotiated v2.1 lifecycle", "Native RAR owns verification applicability", "creates or discovers the terminal receipt", "staged_delivery_candidate_required", "must never substitute for a v8 `provider_task.agent`", "copy `provider_task.agent` unchanged as `subagent_type`"]) {
     if (orchPrompt.includes(retired)) fail(`GENTLE_AI_RETIRED_REVIEW_CONTRACT_PRESENT: ${JSON.stringify(retired)}`)
+  }
+  const retiredSddOrchestratorFragments=[
+    "SDD_ARTIFACT key=",
+    "### Dependency Graph — Gentle AI 3.5.0",
+    "optional research → propose",
+    "optional verify → archive",
+    "Inside SDD, do not start review",
+    "/sdd-new",
+    "/sdd-continue",
+    "workflow-sdd-secure",
+    "artifact-store"
+  ]
+  for (const fragment of retiredSddOrchestratorFragments) {
+    if (orchPrompt.includes(fragment)) fail(`ORCHESTRATOR_PROMPT_RETIRED_SDD_FRAGMENT_PRESENT: ${JSON.stringify(fragment)}`)
   }
   const magicContextContractRequired=[
     "### Secure Magic Context Contract (MANDATORY)",
@@ -4711,7 +4748,7 @@ else
       fail "one or more per-agent runtime probes failed"
     elif SYSTEMATIC_NODE_MODULES="$SYSTEMATIC_NODE_MODULES" "$JS_RUNTIME" "$RUNTIME_AGENT_CHECKER" \
       "$SYSTEMATIC_CONFIG" "$ACTIVE_AGENTS" "$AGENT_LIST_OUT" "$DEBUG_AGENT_DIR" "$OPENCODE_CONFIG_FILE" \
-      "$FALLBACK_POLICY_SOURCE"; then
+      "$FALLBACK_POLICY_SOURCE" "$WORKSPACE"; then
       echo "   ok: runtime agent registration/model/tool and GGA fallback checks passed"
     else
       fail "OpenCode runtime agent registration/model/tool or GGA fallback policy check failed"

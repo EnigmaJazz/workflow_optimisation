@@ -501,6 +501,33 @@ Run each check for every slice:
   truly absent fragment, and a planted retired fragment; `bash -n verify-workflow.sh` rc 0;
   routing-guard `94 pass / 0 fail`; `sha256sum verify-workflow.sh` == `44878c729e7f2a111f9f0ceeb29f686d1d8afb50f3fbf5625404ce19ebdfcf75`
   == the pin. No deleted check.
+- 2026-10-11: S5b post-code advisory corrections applied in a sandbox worker (sandbox result
+  exported for PM apply; no commit, no host apply, `verify-workflow.sh` not run,
+  `opencode.json`/`tui.json` and `base.md`/`overlay.md` untouched). Edits: `verify-workflow.sh`
+  adds an assembler-output equality check in the orchestrator-prompt region — it runs
+  `python3 global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py` from the repo
+  root (passed to the runtime checker as its new 7th argv, `$WORKSPACE`) and fails
+  `ORCHESTRATOR_PROMPT_ASSEMBLER_MISSING` / `ORCHESTRATOR_PROMPT_ASSEMBLER_FAILED` /
+  `ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT` when the assembler is absent, errors, or its sha256 differs
+  from the decoded embedded prompt; adds a retired-SDD negative list (`retiredSddOrchestratorFragments`,
+  9 fragments: `SDD_ARTIFACT key=`, `### Dependency Graph — Gentle AI 3.5.0`,
+  `optional research → propose`, `optional verify → archive`, `Inside SDD, do not start review`,
+  `/sdd-new`, `/sdd-continue`, `workflow-sdd-secure`, `artifact-store`) failing
+  `ORCHESTRATOR_PROMPT_RETIRED_SDD_FRAGMENT_PRESENT`; and stabilizes three brittle fragments per the
+  design advisor (`strictly read-only technical lead` → `### Secure Read-only Orchestrator Boundary`;
+  `no native host Bash` → `It has no native host Bash, native edit/write/apply-patch, sandbox shell,
+  or sandbox mutation/lifecycle authority.`; `` `review-<lens>` -> `asi-review-<lens>` `` → the full
+  relay-map sentence `` Map `provider_task.agent` to the relay lane (`review-<lens>` ->
+  `asi-review-<lens>`, `review-refuter` -> `asi-review-refuter`, `review-validator` ->
+  `asi-review-validator`) and copy `provider_task.prompt` unchanged ``).
+  `global-config/plugins/workflow-health-check.ts:93` digest re-pin `44878c72…` →
+  `e6823599735a4f8521ec4aa5b79054683c6e83dd3e3dd86691a2c323aebeb17d`.
+  Checks: `bash -n verify-workflow.sh` rc 0; assembler rc 0, **52,540 bytes**, sha256
+  `b740f5713800d0b6975f1196da7c5cf1fb59a9c76b514396f469948cd2cb61a1` == the decoded embedded prompt
+  (equality PASS) with a temp-copy control that fires drift when the prompt is altered; retired list
+  0/9 present with a planted-fragment positive control; all three stabilized fragments present in the
+  assembled prompt; routing-guard **94 pass / 0 fail**; `sha256sum verify-workflow.sh` equals the new
+  pin; `verify-workflow.sh` not run.
 
 ## Route, triggers, and actual dispatches
 
@@ -613,3 +640,18 @@ exported for PM apply; it still needs a PM commit and its own native review. Do 
 records to the host as part of this update. All Q31 implementation slices are now implemented;
 deployment (the verifier mirror and the OpenCode restart) remains the owner's pending action and is
 NOT done.
+
+### Deploy checklist (owner)
+
+After the S5b candidate (with these corrections) is committed and reviewed:
+
+- Run the verifier mirror: `bash verify-workflow.sh` (regenerates the live config from
+  `global-config/`).
+- Confirm both `global-config/opencode.json` and `global-config/tui.json` parse as valid JSON
+  (`python3 -m json.tool`).
+- Confirm the live `~/.config/opencode/opencode.json` orchestrator prompt is 52,540 bytes and
+  carries the ODD description (`Gentle AI ODD Orchestrator - coordinates sub-agents, never does
+  work inline`).
+- Confirm the live `~/.config/opencode/tui.json` lists 7 plugins (no `opencode-sdd-engram-manage`).
+- Confirm the health-check plugin loads and pins the new verifier digest.
+- Restart `secure-opencode.service` and `ai-proxy.service`.
