@@ -1038,7 +1038,7 @@ Release facts that drive the group:
     the owner.
 
 ### Q38. Remove strict-TDD references (v4 retires `strict_tdd`)
-- **Status:** PLANNED, gated by "owner decides to upgrade"; delivered in the Q36 change set.
+- **Status:** DONE-AT-SOURCE (commit `5ba5226`; the three live wording sites rewritten; the orchestrator prompt regenerated and its digest + ledger citation updated; no re-pin; the proposed verifier Gate DEFERRED — it would fire on `docs/PLAN.md:80`, which retains `strict_tdd` as a forbidden dependency).
 - **Prerequisites:** Q29c (the orchestrator prompt decision decides how its block is removed).
 - **Source:** v4.0.0 release notes (`sync --strict-tdd` rejected; a saved `strict_tdd` enables
   nothing; test-first guidance installed by default). Read-only survey 2026-10-01.
@@ -1061,8 +1061,10 @@ Release facts that drive the group:
     touch user-owned files.
   - Saved `strict_tdd` keys in SDD init records (Magic Context, Engram): leave them. They are
     inert on v4, and v4 preserves persisted SDD keys.
-  - **Gate:** a verifier check fails if `strict_tdd`, `--strict-tdd` or "STRICT TDD MODE"
-    reappears in the canonical config, the workflow docs or the skills.
+  - **Gate (DEFERRED):** the proposed verifier check — fails if `strict_tdd`, `--strict-tdd` or
+    "STRICT TDD MODE" reappears in the canonical config, the workflow docs or the skills — is
+    NOT implemented: it would false-fire on `docs/PLAN.md:80`, which keeps `strict_tdd` as a
+    forbidden v4 dependency, and would force a re-pin plus another high-risk review.
 
 ### Q39. SDD changes in flight at upgrade time
 - **Status:** PLANNED, gated by "owner decides to upgrade". It is a preflight of the Q36 apply.
