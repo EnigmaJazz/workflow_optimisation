@@ -4,7 +4,7 @@
 **Task ID:** q65-retire-pm-sdd (stable)
 **Class:** global-tooling-change
 **Route:** `workflow-odd-secure` (delegated)
-**Unit status:** T0 IN PROGRESS (tracker created; implementation T1 pending)
+**Unit status:** T0–T1 DONE — Q65 source complete (committed; T1 native review approved+acknowledged). Q30 and the external sandbox-tools follow-up remain.
 **Model:** cloud `opencode-go/deepseek-v4.1-flash` (owner decision 2026-10-07)
 **Decision:** RETIRE (owner-confirmed 2026-10-11; gentle-ai v4 leaves `pm-sdd` no route to coordinate)
 
@@ -59,11 +59,14 @@ Source edits: `global-config/opencode.json`, `global-config/plugins/lib/routing-
 
 ## Tasks
 
-- [ ] T1 — remove "pm-sdd" from the orchestrator permission.task (opencode.json:540) and delete the pm-sdd agent block (:2165-2285); remove the pm-sdd row from PM_ROUTE_ADAPTER_SKILLS (helpers:35); remove "host_sdd_archive_compose" from ROUTING_GATE_TOOLS (guard:224); remove "pm-sdd" from verify-workflow.sh:371/:2796/:2854 and ADD a PM_SDD_REAPPEARED sentinel parallel to the SDD_AGENT_REAPPEARED check (~:2819); update the tests (:773 tuple, :968 assertion, :908-916 → negative assertion, the :898 region) and ADD the positive controls in describe 9; re-pin VERIFY_SCRIPT_SHA256 LAST.
+- [x] T1 — remove "pm-sdd" from the orchestrator permission.task (opencode.json:540) and delete the pm-sdd agent block (:2165-2285); remove the pm-sdd row from PM_ROUTE_ADAPTER_SKILLS (helpers:35); remove "host_sdd_archive_compose" from ROUTING_GATE_TOOLS (guard:224); remove "pm-sdd" from verify-workflow.sh:371/:2796/:2854 and ADD a PM_SDD_REAPPEARED sentinel parallel to the SDD_AGENT_REAPPEARED check (~:2819); update the tests (:773 tuple, :968 assertion, :908-916 → negative assertion, the :898 region) and ADD the positive controls in describe 9; re-pin VERIFY_SCRIPT_SHA256 LAST.
 
 ## Progress
 
 - 2026-10-11: T0 — tracker and advice record created; owner confirmed RETIRE. Route: delegated. No source edit yet.
+- 2026-10-11: T1 committed `5aadb9f` (6 files, +21/−135). Edits: `global-config/opencode.json` drops `"pm-sdd": "allow"` from the orchestrator `permission.task` and deletes the whole `pm-sdd` agent block (121 lines; JSON revalidated with `python3 -m json.tool`), leaving the orchestrator and global `host_sdd_*` denials intact; `lib/routing-guard-helpers.ts` drops the `pm-sdd` row from `PM_ROUTE_ADAPTER_SKILLS`; `systematic-routing-guard.ts` drops `"host_sdd_archive_compose"` from `ROUTING_GATE_TOOLS`; `verify-workflow.sh` drops `"pm-sdd"` from `required_agents`/`pmAgents`/`ordinaryMemoryAgents` and ADDS the `PM_SDD_REAPPEARED` sentinel beside `SDD_AGENT_REAPPEARED` (the previous check keyed on `startsWith("sdd-")` and never covered `pm-sdd`); the guard tests drop the retired tuple/mapping and add the negative + positive controls; `VERIFY_SCRIPT_SHA256` re-pinned `fd37badc…` → `14d37ce9…`. Checks: guard suite 96 pass / 0 fail (the ADDED test is the delta); non-vacuous retirement control — temporarily re-adding the `pm-sdd` map row produced 93 pass / 3 fail at exactly the three negative controls, then reverted; the extracted `PM_SDD_REAPPEARED` predicate fires on a fixture agents object containing `pm-sdd` and does not fire without it; `python3 -m unittest discover -s tests` 95 tests OK; out-of-band `sha256sum verify-workflow.sh` equals the pin.
+- 2026-10-11: T1 native review: lineage `review-f62be81619a7b2db`; tier **high**; candidate 6 files / 156 lines; four lenses admitted (risk first returned `opencode_reviewer_result_refused` and readability `opencode_task_output_malformed` — transport faults, no capture — both re-dispatched successfully after a fresh STATUS); outcome **approved** and **acknowledged**; `authority: burned`; consumed revision `sha256:0a79a5b2…`.
+- 2026-10-11: T1 advisory findings (non-blocking, informational; separate later work, never re-review triggers): `R4-migration-vacuous-zero` (resilience SUGGESTION, deterministic — the retired-identity host-mutation test asserts `logCount(...)==0` for `host_sandbox_result_install` and `host_sdd_archive_compose` without an in-test positive control for those two tools, so an empty or broken log would also read zero; the added control covers only `host_git_commit`); `R3-001` (reliability SUGGESTION — the digest pin cannot be proven from the patch alone; resolved out of band by `sha256sum` == pin).
 
 ## Route / trigger evidence
 
@@ -73,4 +76,4 @@ Source edits: `global-config/opencode.json`, `global-config/plugins/lib/routing-
 
 ## Next step
 
-T1 implementation, then Q30 (delete the skill directory), then the owner's deployment (verifier mirror + OpenCode restart), then re-verify.
+Q30 (delete `global-config/skills/workflow-sdd-secure/`) next. Remaining follow-ups (non-blocking): the external `sandbox-tools.ts READ_ONLY_AGENTS` `pm-sdd` entry (separate agent-sandbox-integration project — not reachable from this repo); T1's `R4-migration-vacuous-zero` and `R3-001`. Then the owner's deployment (verifier mirror + OpenCode restart) and re-verification.
