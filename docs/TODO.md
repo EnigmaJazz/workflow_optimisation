@@ -389,11 +389,12 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
   replaces the literals.
 - **Source:** advisor-maintainability (`docs/TODO-HISTORY.md` "2026-10-01 — Advisor dispatch verification PASSED").
 - **Description:**
-  - About 15 hardcoded prose literals must appear in `WORKFLOW.md`/`AGENTS.md` or the verifier
-    fails, so routine doc edits break it.
+  - The section-7 region carries on the order of ~170 hardcoded grep predicates over prose in
+    `WORKFLOW.md`/`AGENTS.md`/skill references; if a literal drifts the verifier fails, so routine
+    doc edits break it.
   - Replace prose matching with stable machine markers (e.g. `<!-- workflow:anchor ... -->`) or a
     single declared anchor list, so wording can change freely.
-  - Inputs for Q04: 4,772 lines and only 13 functions, all ending by line 1231; the rest is one
+  - Inputs for Q04: 5,008 lines and only 14 functions, all ending by line 1,276; the rest is one
     top-level body. The 16 numbered section markers are the natural seams, and section numbers are
     cited externally, so numbering and order are preserved. Any split re-pins the digest in the
     same change.
