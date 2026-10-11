@@ -363,6 +363,32 @@ Run each check for every slice:
   verifier run. The verifier mirror and restart remain the owner's action and are NOT done.
 
 - 2026-10-10: Revised the S5 plan after all pre-code advice returned; S5a is next. Advisory evidence does not authorize implementation.
+- 2026-10-11: S5a core completed in a sandbox worker (sandbox result exported for PM apply; no
+  commit, no host apply, `verify-workflow.sh` not run, `opencode.json`/`tui.json` untouched; the
+  unit is UNWIRED by design). Both v4.0.0 sources are vendored and committed: `f571937`
+  (`global-config/prompts/gentle-orchestrator/upstream/orchestrator.template.md`, git blob sha1
+  `bb8b9ac34962d0be407f8b895fa1c0429b280b37`, sha256
+  `6a5fde7b3a5df218e12902ea4663dbcab783726aa3bd66a7e1b33b2dc6248c91`, 20991 bytes) and
+  `2075809` (`upstream/odd-orchestrator-sections.md`, git blob sha1
+  `5dc3be455da7284d710767acd762bcc5cb9595f9`, sha256
+  `f75b016c2964bdf45d7f4f76cdeeaa401e1e7d26737370a96c00dd2481fa5508`, 20357 bytes). Added in
+  this unit: `base.md` (metadata header + byte-exact v4 render; 0 placeholders, 5/5 resolved;
+  base sha256 `fb8810621381542bc3c7775ef6a2ec0403d4d4164b89537f62f2aabb87721957`), `overlay.md`
+  (18 `SECURE` blocks: the 12 required ids plus 6 derived companions; every replace/remove
+  carries a `supersedes` sha256 verified against the base section), `scripts/assemble-orchestrator-prompt.py`
+  (deterministic; fails loudly; `--report-file-substitution`), `tests/test_orchestrator_prompt_source.py`,
+  and `normative-ledger.md` (69 candidate sentences from the current prompt sha256
+  `47618dbb90b57c52ca07a20cbac1100e1d4ca7663934ef22b10e4089baaa63bc`: 43 kept, 1 moved,
+  10 superseded-by-base, 15 removed-by-design, 0 unclassified). Checks:
+  `python3 -m unittest tests.test_orchestrator_prompt_source -v` 9/9 pass (byte-exact render,
+  balanced/unique overlay markers, verifiable supersedes hashes, loud-failure cases, residue scan
+  with a planted positive control, ledger classification); assembler rc 0, **52,540 bytes**,
+  forbidden residue `engram`/`mem_`/`sdd-`/`openspec`/`/sdd` = 0; `python3 -m json.tool
+  global-config/opencode.json` rc 0 (unchanged); routing-guard 94 pass / 0 fail;
+  `verify-workflow.sh` not run. `{file:./…}` finding: five live `{file:./prompts/...}` includes
+  exist in `global-config/opencode.json` (V1 literal inclusion), but inclusion is positional and
+  cannot express the overlay's replace/remove semantics, and its V2 support is UNVERIFIED
+  (`docs/TODO.md` Q41), so the assembler stays. Next: S5b.
 
 ## Route, triggers, and actual dispatches
 
@@ -467,5 +493,5 @@ authorized list. Keep `global-config/opencode.json`, `global-config/tui.json`, `
 
 S1's, S2/S2b's, S3's, and S4/S4b's committed candidates passed native review and were
 acknowledged. Do not apply these records to the host as part of this update. The verifier mirror
-and restart remain the owner's pending deploy action; they are NOT done. S5a is next; implementation
-remains pending owner go. S5 is the only remaining Q31 slice.
+and restart remain the owner's pending deploy action; they are NOT done. S5a's source is complete and unwired (see the 2026-10-11 Progress bullet); S5b (cut over +
+verifier) is next; implementation remains pending owner go. S5 is the only remaining Q31 slice.
