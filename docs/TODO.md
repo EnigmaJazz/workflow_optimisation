@@ -908,26 +908,46 @@ Release facts that drive the group:
   10. Rollback: keep the v3.7.0 binary and the verifier backup in `backups/workflow-recovery/`.
 
 ### Q35. Remove mandatory Engram instructions everywhere (Magic Context is the default memory)
-- **Status:** IN PROGRESS.
+- **Status:** CLOSED — OpenCode side DONE-AT-SOURCE; Claude-side remainders OUT OF SCOPE.
+  - Closure finding (read-only sweep 2026-10-11): no live OpenCode mandatory-Engram instruction
+    and no Engram-requiring enforcement remains in this repository. The only literal
+    mandatory-Engram text is vendored upstream prompt source
+    (`global-config/prompts/gentle-orchestrator/upstream/orchestrator.template.md:155-160`,
+    `:179-183`) and its byte-exact render
+    (`global-config/prompts/gentle-orchestrator/base.md:303-306`, `:326-329`); the overlay
+    (`overlay.md:152-182`) replaces exactly those sections at assembly, and the deployed prompt
+    (`global-config/opencode.json:590`) is the assembled artifact verified to contain zero
+    `engram`/`mem_` residue by `tests/test_orchestrator_prompt_source.py:310-324` (with a planted
+    positive control). The `ENGRAM_*` verifier checks are presence-guards that must be KEPT
+    (`verify-workflow.sh:3267`, `:4625-4629`, `:3099-3110`, plus the `recover_agents_file` strip
+    `:883-884`, `:929-939`). Magic Context is the OpenCode memory rule (`WORKFLOW.md:66`,
+    `:131`), deployed via the four generic-agent adapters in `global-config/opencode.json`. No
+    verifier re-pin: Q35 makes no `verify-workflow.sh` edit.
   - Done 2026-10-01: Claude Code text stripped. The `gentle-ai:engram-protocol` block was removed
     from `~/.claude/CLAUDE.md`, and the ODD lines now make the task file the durable record, with
     a Magic Context mirror where the runtime has it and Engram "never required". Backup:
     `backups/claude-md/CLAUDE.md.20261001T222932Z.before`.
   - Owner choice: the Engram plugin stays installed until Q14b brings Engram back as an
-    inter-agent MCP.
-  - Remaining: the plugin's SessionStart hook still injects its own "MANDATORY" protocol text.
-    The ODD lines sit inside the gentle-ai-managed `agent-routing` block, and the protocol block
-    is gentle-ai-managed too, so the next `gentle-ai sync` will restore both. The enforcement
-    check below is what makes the removal stick.
+    inter-agent MCP. Q14b (an optional, never-mandatory scoped Engram MCP for OpenCode) is a
+    separate queue item and is NOT part of Q35.
+  - Claude-side remainders — SKIPPED by owner decision (2026-10-11): the plugin's SessionStart
+    hook (which injects its own "MANDATORY" protocol text) and the planned Claude Code enforcement
+    check are Claude-side and outside this repository (`~/.claude/CLAUDE.md` + the Claude Code
+    Engram plugin). Engram is deliberately RETAINED as the Claude Code <-> external-advisor memory
+    channel, so neither remainder is removed or enforced against. The ODD lines sit inside the
+    gentle-ai-managed `agent-routing` block and the protocol block is gentle-ai-managed too, so a
+    future `gentle-ai sync` may restore both; that is accepted, not a Q35 open item.
 - **Prerequisites:** none for the OpenCode side (already done). Claude Code side: owner confirms
   the scope of edits to `~/.claude` (outside this repo).
 - **Source:** owner decision; read-only survey 2026-10-01.
 - **Description:**
-  - **OpenCode: already enforced.** `WORKFLOW.md:129` makes Magic Context mandatory. The
-    verifier fails on `LEGACY_ENGRAM_PROTOCOL_REAPPEARED` (`verify-workflow.sh:4388`) and on
-    `ENGRAM_UNEXPECTEDLY_ENABLED` (`:3086`). Keep both checks through Q32 and the v4 upgrade. Q14b
-    must not reintroduce a mandatory protocol, only a scoped opt-in channel.
-  - **Claude Code: still mandatory.** Remove:
+  - **OpenCode: already enforced.** Magic Context is the OpenCode memory rule (`WORKFLOW.md:66`,
+    `:131`). The verifier fails on `LEGACY_ENGRAM_PROTOCOL_REAPPEARED` (`verify-workflow.sh:4625-4629`)
+    and on `ENGRAM_UNEXPECTEDLY_ENABLED` (`:3267`); these presence-guards fire on Engram
+    REAPPEARING and must be kept through the v4 upgrade. Q14b must not reintroduce a mandatory
+    protocol, only a scoped opt-in channel.
+  - **Claude Code (Claude-side; OUT OF SCOPE per the 2026-10-11 owner decision — kept for
+    history).** The original plan was to remove:
     - the gentle-ai-managed `<!-- gentle-ai:engram-protocol -->` block in `~/.claude/CLAUDE.md`
       (lines 536-564 today);
     - the ODD lines that require an Engram mirror of the tracker (`:579`, `:620-622`, and the
@@ -938,10 +958,11 @@ Release facts that drive the group:
     pathway is Engram only, used mainly in its advisory role. What is removed is the blanket
     mandatory-protocol text, not Engram itself. `~/.claude/CLAUDE.md` now states the
     per-runtime pathway.
-  - **Enforcement (per the deployment-gating constraint, Q28):** gentle-ai sync rewrites the
-    CLAUDE.md block. Add a check (in the verifier, or a Claude Code-side health check) that fails
-    when `<!-- gentle-ai:engram-protocol -->` or a mandatory Engram hook reappears, and relates to
-    Q24 (sync drift).
+  - **Enforcement (Claude-side, OUT OF SCOPE per the owner decision 2026-10-11):** the planned
+    check — failing when `<!-- gentle-ai:engram-protocol -->` or a mandatory Engram hook reappears
+    (per the deployment-gating constraint, Q28; relates to Q24 sync drift) — is Claude-side and is
+    NOT implemented here. No OpenCode enforcement against Engram is wanted; the OpenCode
+    `ENGRAM_*` checks guard against re-introduction and stay.
   - **v4:** apply the same rule to v4's managed orchestrator prompts (Q29b, Q30).
 
 ### Q36. Non-destructive change set for the v4 upgrade: apply and revert without clobbering drift
