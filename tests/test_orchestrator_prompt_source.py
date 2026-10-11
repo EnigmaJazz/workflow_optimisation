@@ -25,7 +25,7 @@ TEMPLATE = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstrea
 SECTIONS = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstream" / "odd-orchestrator-sections.md"
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
 
-CURRENT_PROMPT_SHA256 = "47618dbb90b57c52ca07a20cbac1100e1d4ca7663934ef22b10e4089baaa63bc"
+CURRENT_PROMPT_SHA256 = "cece24ff93db6155f8800dca56bc8f517d9b5a0accbdf1801e21c7d4324c2155"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
