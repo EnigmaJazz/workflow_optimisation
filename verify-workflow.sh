@@ -3023,6 +3023,7 @@ else {
     "gentle-ai review mode status",
     "deciding source",
     "#### Secure Native Review Boundary (MANDATORY)",
+    "Native RAR owns verification applicability",
     "--base-ref <last reviewed boundary> --committed-only --json",
     "--agent opencode",
     "candidate.consumed",
@@ -3047,7 +3048,7 @@ else {
   ]
   for (const fragment of v3Required) if (!orchPrompt.includes(fragment)) fail(`GENTLE_AI_V3_ORCHESTRATOR_CONTRACT_MISSING: ${JSON.stringify(fragment)}`)
   for (const retired of ["### Gentle AI v2.7 workflow compatibility", "### Research and Pre-Proposal Gate — Gentle AI v2.7", "### Native Runtime Attempt Authority", "confirmed preproposal + explore", "400-line budget risk: High"]) if (orchPrompt.includes(retired)) fail(`GENTLE_AI_V3_RETIRED_ORCHESTRATOR_GATE: ${JSON.stringify(retired)}`)
-  for (const retired of ["generated negotiated v2.1 lifecycle", "Native RAR owns verification applicability", "creates or discovers the terminal receipt", "staged_delivery_candidate_required", "must never substitute for a v8 `provider_task.agent`", "copy `provider_task.agent` unchanged as `subagent_type`"]) {
+  for (const retired of ["generated negotiated v2.1 lifecycle", "creates or discovers the terminal receipt", "staged_delivery_candidate_required", "must never substitute for a v8 `provider_task.agent`", "copy `provider_task.agent` unchanged as `subagent_type`"]) {
     if (orchPrompt.includes(retired)) fail(`GENTLE_AI_RETIRED_REVIEW_CONTRACT_PRESENT: ${JSON.stringify(retired)}`)
   }
   const retiredSddOrchestratorFragments=[
