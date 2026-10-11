@@ -11,6 +11,11 @@ runs to the next heading line of any level; trailing blank lines are excluded.
 (heading included) before applying. Every block fails loudly (exit 2) on a
 missing anchor, a hash mismatch, an unknown kind, or unbalanced markers.
 
+`add` inserts its body at the END of the anchor section (immediately after the
+section's last line). When several `add` blocks share one anchor, each later body
+is appended after the bodies already added at that anchor, so shared-anchor adds
+land in file order (deterministic).
+
 OpenCode `{file:./...}` substitution: literal prompt includes of that form are
 used live in this repository (five `{file:./prompts/...}` includes in
 `global-config/opencode.json` for frontend/vision agents), so the mechanism
@@ -175,11 +180,29 @@ def find_section(lines, heading, context):
 
 def apply_overlay(base_body, blocks):
     working = base_body.split("\n")
+    # Insertion cursor per `add` anchor. An `add` inserts its body at the END of
+    # the anchor section; when several add blocks share one anchor, each later
+    # body is appended after the bodies already added there, so they land in
+    # file order. Splices shift every recorded cursor so the map stays absolute.
+    add_cursors = {}
+
+    def splice(start, end, new_lines):
+        working[start:end] = new_lines
+        delta = len(new_lines) - (end - start)
+        for anchor, cursor in list(add_cursors.items()):
+            if cursor >= end:
+                add_cursors[anchor] = cursor + delta
+            elif cursor > start:
+                add_cursors[anchor] = start
+
     for block in blocks:
         context = "overlay id=%s" % block["id"]
         if block["kind"] == "add":
             section = find_section(working, block["after"], context)
-            working[section["end"]:section["end"]] = [""] + list(block["body"])
+            position = add_cursors.get(block["after"], section["end"])
+            body = [""] + list(block["body"])
+            splice(position, position, body)
+            add_cursors[block["after"]] = position + len(body)
             continue
         section = find_section(working, block["supersedes"], context)
         actual = hashlib.sha256(section["text"].encode("utf-8")).hexdigest()
@@ -189,9 +212,9 @@ def apply_overlay(base_body, blocks):
                 % (context, block["supersedes"], block["sha256"], actual)
             )
         if block["kind"] == "replace":
-            working[section["start"]:section["end"]] = list(block["body"])
+            splice(section["start"], section["end"], list(block["body"]))
         else:
-            del working[section["start"]:section["end"]]
+            splice(section["start"], section["end"], [])
     return "\n".join(working)
 
 
