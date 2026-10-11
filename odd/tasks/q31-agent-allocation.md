@@ -125,12 +125,11 @@ otherwise configuration validation or the health-check plugin can fail.
     `permission.task` allows; add the agents to `required_agents`. Pair with verifier changes and
     digest re-pin. **Done 2026-10-10 (sandbox result; not committed or applied):** see the S4
     Progress bullet for the agent models/tools, the measured verifier sites, and the checks.
-  - [ ] **S5 — Retitle and remove TUI entry.** BLOCKED: `internal/assets/opencode/orchestrator.md`
-    does not exist in this repository, so the orchestrator description (`:264`) and prompt (`:398`)
-    cannot yet be authored from the v4 managed prompt source. Keep the agent key exactly
-    `gentle-orchestrator`; resume the retitle only after the source location is provided. Remove
-    `opencode-sdd-engram-manage` from `global-config/tui.json:6` and update the `required_agents`
-    check when unblocked. Pair verifier changes and digest re-pin.
+  - [x] **S5 — Retitle, wire the prompt, and remove the TUI entry.** Implemented as two slices per
+    the "S5 — revised plan" section: **S5a** (source, unwired) is committed (`4550b7a`, `c07b489`);
+    **S5b** (cut over + verifier) is implemented in a sandbox worker and exported for PM apply (no
+    commit, no host apply, `verify-workflow.sh` not run). See the 2026-10-11 S5a and S5b Progress
+    bullets. `gentle-orchestrator` keeps its exact key.
 
 ### Paired verifier-edit inventory
 
@@ -445,6 +444,63 @@ Run each check for every slice:
   - `R4-ATTRPARSE-001` (SUGGESTION; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:54-63`).
   - `R4-EXITCODE-001` (SUGGESTION; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:258-264`).
   - `R4-MARKER-COUPLING-001` (WARNING; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:142-154`).
+- 2026-10-11: S5b cut-over implemented in a sandbox worker (sandbox result exported for PM apply;
+  no commit, no host apply, `verify-workflow.sh` not run). Edits: `global-config/opencode.json`
+  wires the assembled orchestrator prompt (`agent["gentle-orchestrator"].prompt`; decoded sha256
+  `b740f5713800d0b6975f1196da7c5cf1fb59a9c76b514396f469948cd2cb61a1`, 52,540 bytes, byte-identical
+  to the S5a assembler output) and retitles the description `Gentle AI SDD Orchestrator - coordinates
+  sub-agents, never does work inline` → `Gentle AI ODD Orchestrator - coordinates sub-agents, never
+  does work inline`; `global-config/tui.json` drops the `opencode-sdd-engram-manage` plugin entry
+  (7 plugins remain); `verify-workflow.sh` rewrites the orchestrator-prompt content-assertion region
+  (`:2892-3038`); `global-config/plugins/workflow-health-check.ts` digest re-pins `06fa864e93dcf853419c4db06e7e07eb0b55ab4a20af1f1740091db38593a4eb`
+  → `44878c729e7f2a111f9f0ceeb29f686d1d8afb50f3fbf5625404ce19ebdfcf75`.
+  Verifier before→after:
+  - Boundary trio: `strictly read-only coordinator` / `never use native host Bash` / `Every source
+    edit or project execution is delegated to a sandbox worker` → `strictly read-only technical lead`
+    / `no native host Bash` / `delegated to a sandbox writer/executor`.
+  - `technicalLeadContractRequired` (8 → 6): now `### Secure Technical-Lead Contract (MANDATORY)`,
+    the authority-boundary sentence, blind-routing, `issue a proportionate implementation contract`,
+    no-reimplementation, advisor/deliberation. Dropped the old heading,
+    `For **non-SDD implementation work**`, `**implementation contract**`,
+    `do not merely forward the user's wording`, `Do not independently reimplement…`, the
+    intelligence-spend sentence, and `respect the SDD artifact graph and phase ownership`.
+  - `frontendEscalationRequired` (7 → 6): now `### Frontend / UI Lane and Premium Escalation`,
+    `use frontend-dev as the normal design/verify lane`, `frontend-dev-premium`, `major redesign`,
+    `materially ambiguous UX/product decisions`, the convergence sentence. Dropped
+    `### Frontend lane model escalation` and `same read-only frontend contract`.
+  - `v3Required` (63 → 38): every fragment is one the new prompt contains (route-loading heading,
+    ODD protocol heading + order, `ODD_TASKS key=odd/{project}/{feature-name}/tasks`, first-source-edit,
+    `route: delegated`, Task dispatch/result, SEARCH CONTRACT, `EXTERNAL_CONTEXT_REQUIRED`,
+    `skill({name:"workflow-route"})`, compaction reload, `basis: WORKFLOW.md`, ROUTE line, RDD mode +
+    deciding source, native-review-boundary heading, assess flags, `next_transition.command`,
+    status/v8, `provider_task.*`, grouped wave, both budget guards, the relay mapping, the two-ports
+    rule, the deny-lanes rule, advisory heading, host-tools relay, always-delegate heading + core
+    principle, separate push/PR intent). Retired every SDD-only fragment
+    (`### Dependency Graph — Gentle AI 3.5.0`, `optional research → propose`,
+    `optional verify → archive`, `Partial research pauses only unsafe dependent choices`,
+    `Inside SDD, do not start review`, `### Review Workload Advisory`,
+    `## Gentle AI 3.5.0 and Systematic 3.18.4 secure integration`) and every absent v3-only fragment.
+  - `magicContextContractRequired` (12 → 11): now `### Secure Magic Context Contract (MANDATORY)`,
+    the primary-and-mandatory sentence, `ctx_search`/`ctx_expand`/`ctx_memory`,
+    `Ordinary working agents may persist durable knowledge`, the isolated-actor memory-write-denied
+    sentence, `### Secure Project Registration`, `host_register_project`, orchestrator-only ask,
+    `Remote creation`. Dropped `Do NOT probe Engram first`, `SDD_ARTIFACT key=<stable-key>`,
+    `magic-context`, `engram is NOT a canonical store value`, the old registration heading, and
+    `pending activation`.
+  - Scrubber: `/### Mandatory Magic Context memory\/context[\s\S]*?### Commands/` (matched nothing in
+    the new prompt) → `/### Secure Magic Context Contract \(MANDATORY\)[\s\S]*?(?=\n#{2,3} )/`.
+  Kept unchanged: `forbiddenPromptFragments` + its inline-drift negative check; the two retired
+  negative lists (`### Gentle AI v2.7 workflow compatibility` … and the review-contract list); all
+  seven `legacyMemoryPatterns` regexes incl. the `LEGACY_ENGRAM_ORCHESTRATOR_DRIFT` fail path. No
+  check became a no-op and no list was deleted entirely.
+  Checks: `python3 -m json.tool global-config/opencode.json` rc 0 (same for `global-config/tui.json`,
+  `opencode-sdd-engram-manage` absent, 7 plugins remain); decoded round-trip sha256 `b740f571…` /
+  52,540 bytes; fragment probe reads the four required lists out of the rewritten verifier and reports
+  64/64 required fragments present, 0 retired SDD fragments present, 0 legacy-pattern hits after a
+  scrub that matches (removed ~1,849 chars); positive controls detect a planted required fragment, a
+  truly absent fragment, and a planted retired fragment; `bash -n verify-workflow.sh` rc 0;
+  routing-guard `94 pass / 0 fail`; `sha256sum verify-workflow.sh` == `44878c729e7f2a111f9f0ceeb29f686d1d8afb50f3fbf5625404ce19ebdfcf75`
+  == the pin. No deleted check.
 
 ## Route, triggers, and actual dispatches
 
@@ -458,7 +514,10 @@ Run each check for every slice:
   worker (sandbox result exported; not committed or applied). 2026-10-10 S3 implementation
   dispatched to the `odd-apply` sandbox worker (sandbox result exported; not committed or
   applied). 2026-10-10 S4 implementation dispatched to the `odd-apply` sandbox worker (sandbox
-  result exported; not committed or applied).
+  result exported; not committed or applied). 2026-10-11 S5a and its advisory-correction and
+  relocation follow-ups were dispatched to the `odd-apply` sandbox worker and committed; 2026-10-11
+  S5b cut-over was dispatched to the `odd-apply` sandbox worker (sandbox result exported; not
+  committed or applied).
 
 ## S5 — revised plan (2026-10-10, after design + integration + two external advisories)
 
@@ -548,8 +607,9 @@ authorized list. Keep `global-config/opencode.json`, `global-config/tui.json`, `
 
 ## Next step
 
-S1's, S2/S2b's, S3's, and S4/S4b's committed candidates passed native review and were
-acknowledged. Do not apply these records to the host as part of this update. The verifier mirror
-and restart remain the owner's pending deploy action; they are NOT done. S5a's source is complete and unwired (see the 2026-10-11 Progress bullet); S5b (cut over +
-verifier) is the only remaining Q31 slice, and implementation remains pending owner go. Deployment
-(the verifier mirror and restart) remains the owner's action and is NOT done.
+S1's, S2/S2b's, S3's, S4/S4b's, and S5a's committed candidates passed native review and were
+acknowledged. S5b (cut over + verifier) is implemented in a sandbox worker and its result is
+exported for PM apply; it still needs a PM commit and its own native review. Do not apply these
+records to the host as part of this update. All Q31 implementation slices are now implemented;
+deployment (the verifier mirror and the OpenCode restart) remains the owner's pending action and is
+NOT done.

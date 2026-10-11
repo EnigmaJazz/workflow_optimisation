@@ -2900,61 +2900,53 @@ else {
   for (const fragment of forbiddenPromptFragments) {
     if (orchPrompt.includes(fragment)) fail(`ORCHESTRATOR_PROMPT_INLINE_DRIFT: forbidden managed prompt fragment reappeared: ${JSON.stringify(fragment)}`)
   }
-  if (!orchPrompt.includes("strictly read-only coordinator") ||
-      !orchPrompt.includes("never use native host Bash") ||
-      !orchPrompt.includes("Every source edit or project execution is delegated to a sandbox worker")) {
+  if (!orchPrompt.includes("strictly read-only technical lead") ||
+      !orchPrompt.includes("no native host Bash") ||
+      !orchPrompt.includes("delegated to a sandbox writer/executor")) {
     fail("ORCHESTRATOR_PROMPT_BOUNDARY_MISSING: dedicated prompt no longer encodes strict read-only/delegated execution")
   }
   const technicalLeadContractRequired=[
-    "### Read-only technical-lead responsibility (MANDATORY)",
+    "### Secure Technical-Lead Contract (MANDATORY)",
     "Read-only is an authority boundary, not a reasoning-depth boundary.",
-    "For **non-SDD implementation work**",
-    "**implementation contract**",
-    "do not merely forward the user's wording",
-    "Do not independently reimplement or duplicate a specialist's completed implementation",
-    "Spend orchestrator intelligence on project understanding, architecture, decomposition, dependency analysis, precise task framing, conflict resolution, escalation decisions, and synthesis.",
-    "respect the SDD artifact graph and phase ownership"
+    "must not degrade into blind routing",
+    "issue a proportionate implementation contract",
+    "Do not reimplement or duplicate a specialist's completed work",
+    "Difficult or disputed architecture uses the configured advisor/deliberation route"
   ]
   const missingTechnicalLeadContract=technicalLeadContractRequired.filter((fragment)=>!orchPrompt.includes(fragment))
   if (missingTechnicalLeadContract.length) {
     fail(`ORCHESTRATOR_TECHNICAL_LEAD_CONTRACT_MISSING: missing=${JSON.stringify(missingTechnicalLeadContract)}`)
   }
   const frontendEscalationRequired=[
-    "### Frontend lane model escalation",
-    "`frontend-dev` as the normal design/verify lane",
+    "### Frontend / UI Lane and Premium Escalation",
+    "use `frontend-dev` as the normal design/verify lane",
     "`frontend-dev-premium`",
     "major redesign",
-    "ambiguous UX/product decisions",
-    "failed to converge after two substantive visual iteration rounds",
-    "same read-only frontend contract"
+    "materially ambiguous UX/product decisions",
+    "failed to converge after two substantive visual iteration rounds"
   ]
   const missingFrontendEscalation=frontendEscalationRequired.filter((fragment)=>!orchPrompt.includes(fragment))
   if (missingFrontendEscalation.length) {
     fail(`ORCHESTRATOR_FRONTEND_ESCALATION_CONTRACT_MISSING: missing=${JSON.stringify(missingFrontendEscalation)}`)
   }
   const v3Required=[
-    "### Gentle AI 3.5.0 secure ODD route (first on every request)",
-    "### Gentle AI 3.5.0 substantial ODD work-unit and review boundary (MANDATORY)",
-    "### Gentle AI 3.5.0 mandatory ODD delegation (SECURE)",
-    "### Skill-based route entrypoint (MANDATORY)",
-    'skill({name:"workflow-route"})',
-    "load it again after compaction",
-    "For the orchestrator, prefer available authorized `aft_outline`/`aft_zoom`",
+    "### Secure Route Loading and Task Classification (MANDATORY)",
+    "## Implementation Routing",
+    "### ODD protocol",
+    "Authorize → Explore → Resolve uncertainty → Classify → Track → Implement → Close",
+    "ODD_TASKS key=odd/{project}/{feature-name}/tasks",
+    "before the first implementation source edit",
+    "route: delegated",
+    "actual named Task dispatch and result",
     "SEARCH CONTRACT: AFT=navigation; CodeGraph=relationships/impact; AST-grep=structure; sandbox_grep=bounded literal fallback; native grep unavailable; no shell-search bypass.",
     "EXTERNAL_CONTEXT_REQUIRED",
-    "four or more files",
-    "two or more non-trivial files",
-    "about 20 tool calls or five exploratory reads",
-    "Before implementing every substantial ODD task",
-    "actual named Task dispatch and result",
-    "tell the user in one line which feature document was created and how many tasks it holds",
-    "gentle-ai review mode enable|disable|status",
-    "defaults to on when unset",
+    'skill({name:"workflow-route"})',
+    "load it again after compaction",
+    "basis: WORKFLOW.md",
+    "ROUTE: <class> | intent: <read-only/authorized change>",
+    "gentle-ai review mode status",
     "deciding source",
-    "reason unassessable",
-    "targeted_validation_inconclusive",
-    "validator_result_not_admissible",
-    "role_capture_failed",
+    "#### Secure Native Review Boundary (MANDATORY)",
     "--base-ref <last reviewed boundary> --committed-only --json",
     "--agent opencode",
     "candidate.consumed",
@@ -2964,37 +2956,18 @@ else {
     "gentle-ai.review-integration.status/v8",
     "provider_task.agent",
     "provider_task.prompt",
-    "reviewer's raw JSON object",
     "grouped wave without waiting between launches",
     "correction_context_budget_exceeded",
-    "OpenCode V2 native review remains unavailable and fails closed",
-    "## 4R review lane routing (mandatory)",
-    "`review-<lens>` → `asi-review-<lens>`",
-    "Forward the provider-issued task line verbatim",
-    "TRANSPORT-LANE FAILURE",
-    "re-dispatch through the mapped `asi-review-*` lane",
+    "lens_context_budget_exceeded",
+    "`review-<lens>` -> `asi-review-<lens>`",
     "two transports cannot own one Task",
-    "Never grant review lanes to implementation workers or isolated reviewers",
-    "feature delivery strategy",
-    "Do not leave the evidence update uncommitted",
-    "PR creation, push and merge require separate user intent",
-    "Authorize → Explore → Resolve uncertainty → Classify → Track → Implement → Close",
-    "ODD_TASKS key=odd/{project}/{feature-name}/tasks",
-    "before the first source edit",
-    "Confirm actual Task dispatch and returned result",
-    "### Canonical WORKFLOW.md route decision (MANDATORY on every request)",
-    "ROUTE: <class> | intent: <read-only/authorized change>",
-    "basis: WORKFLOW.md",
-    "Read the active selected skill",
-    "### Dependency Graph — Gentle AI 3.5.0",
-    "optional research → propose",
-    "optional verify → archive",
-    "Partial research pauses only unsafe dependent choices",
-    "Inside SDD, do not start review",
-    "### Review Workload Advisory",
-    "## Gentle AI 3.5.0 and Systematic 3.18.4 secure integration",
-    "screen`, `prepare`, `merge`, and `finalize`",
+    "never grant review lanes to implementation workers or isolated reviewers",
     "asi-review-*",
+    "#### Secure Advisory Lifecycle (MANDATORY)",
+    "### Secure Fixed Host Tools and Review Relay",
+    "### Secure Always-Delegate Rules (MANDATORY)",
+    "the orchestrator coordinates; specialist agents execute",
+    "PR creation, push, and merge require separate user intent"
   ]
   for (const fragment of v3Required) if (!orchPrompt.includes(fragment)) fail(`GENTLE_AI_V3_ORCHESTRATOR_CONTRACT_MISSING: ${JSON.stringify(fragment)}`)
   for (const retired of ["### Gentle AI v2.7 workflow compatibility", "### Research and Pre-Proposal Gate — Gentle AI v2.7", "### Native Runtime Attempt Authority", "confirmed preproposal + explore", "400-line budget risk: High"]) if (orchPrompt.includes(retired)) fail(`GENTLE_AI_V3_RETIRED_ORCHESTRATOR_GATE: ${JSON.stringify(retired)}`)
@@ -3002,21 +2975,17 @@ else {
     if (orchPrompt.includes(retired)) fail(`GENTLE_AI_RETIRED_REVIEW_CONTRACT_PRESENT: ${JSON.stringify(retired)}`)
   }
   const magicContextContractRequired=[
-    "### Mandatory Magic Context memory/context",
-    "Do NOT probe Engram first",
+    "### Secure Magic Context Contract (MANDATORY)",
+    "Magic Context is the primary and mandatory project context/memory layer",
     "ctx_search",
     "ctx_expand",
     "ctx_memory",
-    "Ordinary working agents may save memories",
-    "Isolated evaluation actors remain memory-write denied",
-    "SDD_ARTIFACT key=<stable-key>",
-    "`magic-context`",
-    "`engram` is NOT a canonical store value",
-    "### Secure project registration control plane",
+    "Ordinary working agents may persist durable knowledge",
+    "Isolated evaluation actors (review lanes, refuters, validators, judges) remain memory-write denied",
+    "### Secure Project Registration",
     "`host_register_project`",
     "only `gentle-orchestrator` receives `host_register_project: ask`",
-    "Remote creation is separate and explicit",
-    "pending activation"
+    "Remote creation"
   ]
   const missingMagicContextContract=magicContextContractRequired.filter((fragment)=>!orchPrompt.includes(fragment))
   if (missingMagicContextContract.length) {
@@ -3032,7 +3001,7 @@ else {
     /mem_update\s*\(/
   ]
   for (const rx of legacyMemoryPatterns) {
-    const scrubbed=orchPrompt.replace(/### Mandatory Magic Context memory\/context[\s\S]*?### Commands/, "### Commands")
+    const scrubbed=orchPrompt.replace(/### Secure Magic Context Contract \(MANDATORY\)[\s\S]*?(?=\n#{2,3} )/, "")
     if (rx.test(scrubbed)) fail(`LEGACY_ENGRAM_ORCHESTRATOR_DRIFT: ${rx}`)
   }
 }
