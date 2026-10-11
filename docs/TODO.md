@@ -1067,7 +1067,7 @@ Release facts that drive the group:
     forbidden v4 dependency, and would force a re-pin plus another high-risk review.
 
 ### Q39. SDD changes in flight at upgrade time
-- **Status:** PLANNED, gated by "owner decides to upgrade". It is a preflight of the Q36 apply.
+- **Status:** RECORDED — inventory captured 2026-10-11; dispositions deferred to the owning projects; gate not yet implemented (Q28 PLANNED). Still gated by "owner decides to upgrade" and remains a preflight of the Q36 apply.
 - **Prerequisites:** none to inventory. Each disposition needs the owner and runs in that
   project's repository.
 - **Source:** v4.0.0 removes SDD commands and phases but preserves user-owned files and persisted
@@ -1101,6 +1101,20 @@ Release facts that drive the group:
 - **Record:** a row per change in the project's tracker or `ROUTER-LOG.md` with its disposition.
   The Q36 journal references them.
 - **Gate:** the apply preflight is the enforcement point (Q28).
+
+#### Q39 inventory (read-only, 2026-10-11)
+Six unarchived SDD changes exist across four external projects (roots: `/home/james/agent-sandbox-integration`, `/home/james/opencode-workspace/vision`, `/home/james/peak-redir`, `/home/james/sdd-quality/mini-sdd`). The premise that they are stale is only partly true — two are live work. Per the 2026-10-11 decision, no disposition is made from this repository; each change's disposition is OWNED BY ITS PROJECT, and `agent-sandbox-integration` has already begun its own v4 retirement (`docs/upgrades/gentle-ai-4.md`).
+
+| Change | Project | State observed | Disposition owner/status |
+|---|---|---|---|
+| `agent-host-tools` | agent-sandbox-integration | every task complete except Phase 5.1–5.6, each explicitly marked "Superseded by the gentle-ai 4 retirement" with a pointer to `docs/upgrades/gentle-ai-4.md` | superseded; project-owned archive |
+| `reviewer-relay-transport` | agent-sandbox-integration | complete; has `archive-report.md` ("PASS; 13/13 complete; 7/7 requirements, 13/13 scenarios, zero findings; runtime ledger complete") which states the change directory "MUST NOT be deleted or moved" | done; leave in place |
+| `role-based-subagents` | agent-sandbox-integration | Phase 0 and Phase A complete; Phases B, C and D unstarted | ACTIVE — project-owned |
+| `peak-hour-routing` | peak-redir | 1.1–1.3 complete; task 1.4 BLOCKED on a host write with the finished config preserved as `rate-limit-fallback.json.new`; Phases 2–4 unstarted | ACTIVE/BLOCKED — project-owned |
+| `mock-ui-test` | opencode-workspace/vision | header reads "Status: MOCK — planning simulated; apply runs for real in two lanes"; T1–T3 all pending | test fixture — project-owned |
+| `local-apply-test` | sdd-quality/mini-sdd | NOT READABLE from this repository (read denied) | unknown — needs another route |
+
+Gate reality: the "apply refuses while unarchived SDD changes exist" behaviour is NOT implemented — `docs/specs/changeset-tool.md:31-32` places that preflight out of scope, `scripts/changeset.py` exposes only a caller-supplied `--verify-cmd`, and the planned enforcement point is Q28 (status PLANNED). Nothing therefore blocks the Q36 apply today. Q39's own disposition rule (finish on 3.7.0; convert to ODD; or abandon-archive with a one-line reason) is exercised by each owning project, not here.
 
 ### Q65. Retire `pm-sdd`
 - **Status:** DONE-AT-SOURCE (T0–T1 committed and reviewed — `odd/tasks/q65-retire-pm-sdd.md`; commit `5aadb9f`; the decision was RETIRE; two follow-ups remain: the external `sandbox-tools.ts` `READ_ONLY_AGENTS` entry and T1's `R4-migration-vacuous-zero`).
