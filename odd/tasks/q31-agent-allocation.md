@@ -375,7 +375,7 @@ Run each check for every slice:
   this unit: `base.md` (metadata header + byte-exact v4 render; 0 placeholders, 5/5 resolved;
   base sha256 `fb8810621381542bc3c7775ef6a2ec0403d4d4164b89537f62f2aabb87721957`), `overlay.md`
   (18 `SECURE` blocks: the 12 required ids plus 6 derived companions; every replace/remove
-  carries a `supersedes` sha256 verified against the base section), `scripts/assemble-orchestrator-prompt.py`
+  carries a `supersedes` sha256 verified against the base section), `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py`
   (deterministic; fails loudly; `--report-file-substitution`), `tests/test_orchestrator_prompt_source.py`,
   and `normative-ledger.md` (69 candidate sentences from the current prompt sha256
   `47618dbb90b57c52ca07a20cbac1100e1d4ca7663934ef22b10e4089baaa63bc`: 43 kept, 1 moved,
@@ -421,6 +421,22 @@ Run each check for every slice:
   `python3 -m json.tool global-config/opencode.json` rc 0 (unchanged); routing-guard
   **94 pass / 0 fail**; `verify-workflow.sh` not run. Magic Context mirror 1121 updated in place
   (marker + full tracker body) and read back.
+- 2026-10-11: Relocated the assembler out of the broker-protected `scripts/` path so future work
+  commits normally (sandbox result exported for PM apply; no commit, no host apply,
+  `verify-workflow.sh` not run, `opencode.json`/`tui.json` untouched). New path
+  `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py` carries the exact
+  former content with only its repo-root computation moved to the new depth (four `.parent`
+  levels, plus a clarifying comment); `scripts/assemble-orchestrator-prompt.py` is deleted.
+  References updated: `tests/test_orchestrator_prompt_source.py` (`ASSEMBLER` constant),
+  `global-config/prompts/gentle-orchestrator/overlay.md`, `normative-ledger.md`, this tracker
+  (the S5a Progress bullet and the S5 Authorized-paths line), and the two `ROUTER-LOG.md` S5a
+  rows. The only unchanged mention is the assembler's own `assemble-orchestrator-prompt: FAILED:`
+  program label (a name, not a path). Assembled output unchanged: from the NEW path the assembler
+  exits 0, **52,540 bytes**, sha256
+  `b740f5713800d0b6975f1196da7c5cf1fb59a9c76b514396f469948cd2cb61a1`. Checks:
+  `python3 -m unittest tests.test_orchestrator_prompt_source -v` 11/11 pass; `python3 -m json.tool
+  global-config/opencode.json` rc 0 (unchanged); routing-guard 94 pass / 0 fail;
+  `verify-workflow.sh` not run. Next: S5b.
 
 ## Route, triggers, and actual dispatches
 
@@ -517,7 +533,8 @@ implementation.
 
 ### Authorized paths (S5)
 
-Add `global-config/prompts/gentle-orchestrator/**` and the assembler under `scripts/` to the
+Add `global-config/prompts/gentle-orchestrator/**` and the assembler under
+`global-config/prompts/gentle-orchestrator/` to the
 authorized list. Keep `global-config/opencode.json`, `global-config/tui.json`, `verify-workflow.sh`,
 `global-config/plugins/workflow-health-check.ts` (digest pin only), and this tracker.
 

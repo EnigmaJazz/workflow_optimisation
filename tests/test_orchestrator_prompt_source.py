@@ -23,7 +23,7 @@ OVERLAY = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "overlay.
 LEDGER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "normative-ledger.md"
 TEMPLATE = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstream" / "orchestrator.template.md"
 SECTIONS = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstream" / "odd-orchestrator-sections.md"
-ASSEMBLER = ROOT / "scripts" / "assemble-orchestrator-prompt.py"
+ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
 
 CURRENT_PROMPT_SHA256 = "47618dbb90b57c52ca07a20cbac1100e1d4ca7663934ef22b10e4089baaa63bc"
 

@@ -16,7 +16,7 @@ Classification meanings:
 - `removed-by-design` — the rule is deliberately gone (destination = `removed: reason`).
 
 Source line numbers refer to the current prompt. The assembled prompt and its
-wiring are produced by `scripts/assemble-orchestrator-prompt.py` from `base.md`
+wiring are produced by `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py` from `base.md`
 + `overlay.md` (unwired until S5b).
 
 | # | Source | Sentence (short) | Classification | Destination |

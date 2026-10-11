@@ -9,7 +9,7 @@ a matching end comment with the same id.
 A "base section" runs from its heading line (^#{1,6} + space) to the next heading
 line of any level, with trailing blank lines excluded; the declared sha256 is
 computed over that exact section text (heading included) of base.md. Blocks apply
-in file order. `scripts/assemble-orchestrator-prompt.py` fails loudly on a
+in file order. `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py` fails loudly on a
 missing anchor, a hash mismatch, an unknown kind, or unbalanced markers.
 -->
 

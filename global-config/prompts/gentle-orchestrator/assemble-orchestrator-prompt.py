@@ -33,7 +33,9 @@ import re
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent
+# This script lives in global-config/prompts/gentle-orchestrator/, so the repo
+# root is four levels above the file.
+REPO = Path(__file__).resolve().parent.parent.parent.parent
 DEFAULT_BASE = REPO / "global-config" / "prompts" / "gentle-orchestrator" / "base.md"
 DEFAULT_OVERLAY = REPO / "global-config" / "prompts" / "gentle-orchestrator" / "overlay.md"
 
