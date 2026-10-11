@@ -90,3 +90,32 @@ advisor response was not handed to this unit; only this summary is recorded.
 ## Post-commit assessment (required)
 - Each T1 work-unit commit is assessed against `5387c24dfa9a96c80ef93e27e8bcc9abd58d6860`; the
   observed outcome is recorded. This preparation unit has no commit.
+
+## advisor-integration-pre (2026-10-11)
+Q30 T1 pre-code advice (integration lens); load-bearing points only:
+- Place the new retirement check right after the obsolete-Systematic-symlink sweep: it uses the
+  same `$SKILLS_DIR` and must run before section 4.
+- A hard `fail()` is correct rather than a warning: the check is detect-only and cannot
+  self-heal, and a warning would be swallowed by later sections.
+- Use a FIXED retired list (`workflow-sdd-secure`), never "anything absent from the reviewed
+  manifest": the latter would flag a user's own skill.
+- `SKILLS_DIR` was not fixture-overridable; add `WORKFLOW_VERIFY_SKILLS_DIR` so the check can be
+  exercised against a planted directory.
+- Deleting the source is hazard-free: the recovery manifest (`:809-813`) and the routing-contract
+  `cat` (`:4522-4528`) already exclude the skill, and no assertion counts skills.
+- Re-pin `VERIFY_SCRIPT_SHA256` LAST and prove coherence with `sha256sum verify-workflow.sh` ==
+  the pin.
+- Document the one-time `rm` as a deploy step.
+
+## advisor-testing-pre (2026-10-11)
+Q30 T1 pre-code advice (testing lens); load-bearing points only:
+- The honest absence proof is to extract and execute the predicate (matching Q32 T4's
+  `recover_agents_file` and the Q65 sentinel), NOT a full fixture verifier run: an empty fixture
+  trips unrelated checks.
+- KEEP the two `workflow-sdd-secure` literals at `tests/routing-guard/routing-guard.test.ts:200`
+  and `:911` (absence controls; no test enumerates skills).
+- The guard count must stay unchanged.
+- Vacuous-pass risks and how the control rules each out: a wrong path literal, a wrong directory,
+  silent auto-cleanup, checking a parent directory, and an e2e vacuum via deployment. The
+  planted-fixture control that fired on the stale directory and stayed clean without it, plus the
+  decoy `OPENCODE_CONFIG_DIR`, rules out the path/directory/parent/vacuum cases.

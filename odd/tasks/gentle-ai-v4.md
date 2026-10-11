@@ -98,8 +98,11 @@ may never receive `chat.message`). Disposition: accepted as a known limitation (
 
 ## Tasks
 - [ ] **T1 (Q30) — Workflow documents.** Deliverables:
-  - [ ] Delete the SDD sections/rows and `workflow-sdd-secure/` (`SKILL.md`,
-    `references/sdd-magic-adapter.md`).
+  - [x] Delete the SDD sections/rows and `workflow-sdd-secure/` (`SKILL.md`,
+    `references/sdd-magic-adapter.md`). DONE at source in Q30 T1 (`522683b`). The earlier
+    deferral to Q32 was superseded: Q32 T3 dropped the manifest/contract `cat`, Q32 T4 retired
+    the AGENTS host-SDD block, Q33 owns the routing guard, and Q65 retired `pm-sdd`; Q30 T1
+    itself now deletes the source skill files.
   - [ ] Rewrite Task Classes and selection rules to the Q29a former-SDD route.
   - [ ] Replace file-count mapping delegation with the evidence budget; keep the 2+ writer rule
     literal. (Slice 1: WORKFLOW.md Mapping + Long-session backstop bullets done; route-skill
@@ -134,6 +137,7 @@ and are referenced here only to bound T1.
    verifier is not run and expected failures are documented, never faked.
 8. Per-commit receipts, slice boundaries, post-code advice, and post-commit assessment outcomes
    are recorded; tracker and Magic Context mirror agree on readback.
+- OWNER ACTION (one-time, not yet performed): `rm -rf ~/.config/opencode/skills/workflow-sdd-secure`. Until this runs, `verify-workflow.sh` will FAIL with `RETIRED_WORKFLOW_SKILL_PRESENT` — that is the intended detect-only behaviour, not a defect.
 
 ## Authorized paths (exact) and exclusions
 **Authorized edit paths for T1:**
@@ -272,6 +276,8 @@ planned), and any host/live deployment path.
 - Expected verifier reds until Q32: routing-contract pins `verify-workflow.sh:4545/:4546/:4548/:4550` (3.5.0 headings, `four or more files`, `20 tool calls or five exploratory reads`).
 - Q30 conclusion: the DOCS surface is now complete (`WORKFLOW.md`, `docs/PLAN.md`, the route skills, residue). The two remaining Q30 items — the `global-config/AGENTS.md` host-SDD block removal + routing-line rewrite, and retiring `global-config/skills/workflow-sdd-secure/**` — are NOT docs-only: the AGENTS.md route block deploys from the verifier heredoc (`:1307-1321`/`:1315`) so a doc-only edit is inert and drifts, its host block is read by the recovery engine (`:908-915`,`:987-1001`,`:4461`), and the verifier manifest (`:812`) + assembly (`:4506-4507`) require `workflow-sdd-secure/**` to keep existing. Both therefore belong with Q32 (or a widened co-ship). Owner chose docs-only (a); this remainder cannot land under it.
 - Next step: decide the Q30 remainder disposition (defer to Q32 vs widen) and the next queue item.
+- 2026-10-11: Q30 T1 committed `522683b` (4 files, +18/−112). `global-config/skills/workflow-sdd-secure/SKILL.md` and `references/sdd-magic-adapter.md` deleted; `verify-workflow.sh:116` gains the `WORKFLOW_VERIFY_SKILLS_DIR` override; a detect-only `retiredWorkflowSkills` block (`:3917-3932`) hard-fails `RETIRED_WORKFLOW_SKILL_PRESENT` for a stale deployed copy and names the one-time removal; `VERIFY_SCRIPT_SHA256` re-pinned `14d37ce9…` → `12ebaf72…`. Checks: guard suite 96/0; python suite 95 OK; extracted-predicate control fired on a planted fixture dir and was clean without it (decoy `OPENCODE_CONFIG_DIR` proved the override is used); `workflow-sdd-secure` 0 hits in `global-config/`.
+- 2026-10-11: Q30 T1 native review `review-8edd6e893e508f3a` (high; 4 files / 130 lines; 4 lenses admitted) — approved + acknowledged, `authority: burned`. Advisory findings (non-blocking): `R1-001`/`R3-rmrf-guidance` (the failure message's `rm -rf` guidance leaves the path variables unquoted), `R3-retired-skill-coverage` (the new detection has no committed automated test — its proof is the extracted-predicate control), `R4-001` (detect-only means the verifier stays RED until the owner removes the deployed copy, and the `fail` call may abort the run before later sections).
 
 ## Route, triggers, and actual dispatches
 - **Route:** delegated (secure ODD). No inline mutation anywhere; orchestrator/PM read-only.

@@ -776,7 +776,8 @@ Release facts that drive the group:
     Keep `asi-review-*`, `advisor-*`, `jd-*` and Astra aliases, re-checking family diversity.
 
 ### Q30. Workflow documents
-- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Status:** DONE-AT-SOURCE (T1 committed `522683b`: both skill files deleted; a detect-only `RETIRED_WORKFLOW_SKILL_PRESENT` check added; pin `12ebaf72…`).
+- **Deploy (OWNER, pending):** after the verifier mirror and OpenCode restart, run `rm -rf ~/.config/opencode/skills/workflow-sdd-secure`; the verifier will fail with `RETIRED_WORKFLOW_SKILL_PRESENT` until it is done (intended).
 - **Prerequisites:** Q29.
 - **Source:** v4.0.0 release notes. `WORKFLOW.md` :7, :11, :35, :39, :86, :100 (Substantial feature
   row), :105-111 (Classification and SDD Selection Rules), :123, :125 (`sdd-verify` verifies
