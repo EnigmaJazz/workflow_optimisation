@@ -1,9 +1,12 @@
 # Session model, registration and upstream decisions
 
+<!-- workflow:anchor workflow.session-decisions.shell:begin -->
 ### Interactive shell environment
 
 The user works interactively in **Fish shell**. Any terminal command intended for the user to copy/paste must be Fish-compatible. Bash syntax is appropriate inside Bash script files or when explicitly invoking Bash; do not provide Bash-only interactive syntax by default.
 
+<!-- workflow:anchor workflow.session-decisions.shell:end -->
+<!-- workflow:anchor workflow.session-decisions.coding-model:begin -->
 ### Coding Model Decision (MANDATORY)
 
 This rule is a per-project/session choice. When a coding/implementation task begins (any request to write code), FIRST ask the user with one `question` tool call containing exactly two semantic choices, localized to the conversation language:
@@ -18,6 +21,8 @@ For frontend/UI-shaped work, **Linked directly to OpenCode** routes implementati
 
 Cache the main and, when applicable, frontend follow-up choices for the current project/session. Never silently choose. Planning and review phases retain their configured models; this decision controls only the agent that writes implementation code.
 
+<!-- workflow:anchor workflow.session-decisions.coding-model:end -->
+<!-- workflow:anchor workflow.session-decisions.astra:begin -->
 ### Sol-to-Astra upgrade decision (MANDATORY)
 
 Astra is a selectable per-project/session upgrade only for a phase or specialist whose fully resolved base agent currently uses `openai/gpt-6.1-sol`. Astra is never an implementation agent and never changes the coding-model decision above.
@@ -33,26 +38,34 @@ When Astra is selected, delegate to the base agent name plus `-astra` only after
 
 Never use Astra for `general`, any agent matching `*-apply*`, `jd-fix-agent`, `systematic-implementer`, `pr-comment-resolver`, `design-iterator`, `bug-reproduction-validator`, or any other code implementation/mutation role. Selection must not edit `opencode.json` or `systematic.jsonc`, select a global profile, or require an OpenCode restart.
 
+<!-- workflow:anchor workflow.session-decisions.astra:end -->
 ### Secure fixed host tools and isolated review relay
 
 The orchestrator may use the allowed `host_review_*` read operations for workflow state. The registered `host_review_*`, `host_git_*`, `host_gh_issue_create`, `host_plan_append`, and `host_register_project` mutations remain globally denied and explicitly `ask`-gated only for `gentle-orchestrator`; the plugin and broker enforce their own authorization as well. Eight retired v2 operations remain denied, even if an older host plugin still registers them. Use exact provider-returned operation arguments where the native lifecycle supplies them. A fixed host operation never grants ordinary host Bash, project file editing, or sandbox mutation to the orchestrator. The ten `host_system`/service/network/Docker inspection names in the handover remain unavailable until a registering plugin is implemented and reviewed.
 
 The six `asi-review-*` Task targets are the mandatory fixed-host relay lane for OpenCode V1 v8 review work while the installed transport is loaded. They have no tools, no memory writes, and no permission to delegate, inspect the worktree, or mutate. Map each provider-returned plain `review-*` name to its `asi-review-*` target while forwarding the provider-issued task line verbatim; never dispatch the plain name because two transports cannot own one Task. A reply that the required `GENTLE_AI_REVIEW_CONTEXT` block was not supplied is a transport-lane failure, not a review finding, and must be re-dispatched through the mapped relay without recording or adjudicating it. Never grant relay lanes to implementation workers or isolated reviewers. Never use fallback session replay for either set because replay bypasses Task prompt injection. If the mapped fallback plugin has not excluded all twelve, stop before launching a bound review. Add the two relay plugin files to the host installer and rollback lists, and keep the mapped fallback plugin source exclusions current.
 
+<!-- workflow:anchor workflow.session-decisions.4r-lanes:begin -->
 #### 4R review lane routing (mandatory)
 
 For every OpenCode V1 v8 provider task, map `review-risk`, `review-resilience`, `review-readability`, `review-reliability`, `review-refuter`, and `review-validator` to the same name prefixed with `asi-`. Forward the provider-issued task line verbatim. A reply stating that `GENTLE_AI_REVIEW_CONTEXT` was not supplied is a **TRANSPORT-LANE FAILURE**: do not record, adjudicate, or count it as a lens result; re-dispatch through the mapped `asi-review-*` lane. While the installed transport is loaded, never dispatch the plain `review-*` target and never grant review lanes to implementation workers or isolated reviewers.
 
+<!-- workflow:anchor workflow.session-decisions.4r-lanes:end -->
+<!-- workflow:anchor workflow.session-decisions.reviewability-budget:begin -->
 ### Gentle AI 3.4 reviewability budget
 
 Before a commit intended for native RDD, the sandbox writer must report `authored_changed_lines`, `authored_patch_bytes`, and `generated_or_binary_paths`. The secure local default caps one work-unit commit at 400 authored changed lines and 100 KiB of authored textual patch; split coherent behavior before committing when either is exceeded, unless an indivisible `review-size-exception` and reason were recorded in the ODD tracker and complete Magic Context mirror. This is only a safety margin beneath the native 200 KiB serialized per-runtime START budget. Native admission remains authoritative. Never retry an unchanged `lens_context_budget_exceeded` candidate; for `correction_context_budget_exceeded`, follow the exact `review abandon` continuation and then split. Never use `review capture-result --input` or `review recover` to route around the guard.
 
+<!-- workflow:anchor workflow.session-decisions.reviewability-budget:end -->
+<!-- workflow:anchor workflow.session-decisions.upstream-lifecycle:begin -->
 ### Current upstream review lifecycle
 
 Gentle AI 3.5.0 OpenCode consent uses supported native `question` choices. Runtime attempt governance has been retired. Review mode defaults to on only when neither a global nor clone-local choice overrides it; at route entry read mode status and record the effective mode and deciding source without changing either. Preserve `review_due`, `review_due_reason`, `candidate.consumed`, opaque OpenCode `provider_task`, native status and continuation arguments without inventing a phase or review result. Preserve `unassessable` high-risk assessment envelopes and typed OpenCode capture-refusal causes without treating them as review findings. Run `gentle-ai sync` when adopting a new upstream install, then review the resulting managed file changes before accepting them; v3.5 records `last_synced_at` only on a successful sync.
 
 Systematic 3.18.4+ `ce:review` uses the bundled `screen`, `prepare`, `merge`, and `finalize` helper pipeline. Always launch the three baseline reviewers (correctness, testing, project standards) and any candidate-specific reviewers selected by screening in the same independent wave. Validate raw reviewer results through the bundled helper before persisting; if a helper phase fails, report the failure and do not synthesize its output. Execute helper commands only in an authorized sandbox worker. Run `ce-review-cleanup` separately, with its preview and explicit deletion approval; it does not prune OpenCode plugin caches.
 
+<!-- workflow:anchor workflow.session-decisions.upstream-lifecycle:end -->
+<!-- workflow:anchor workflow.session-decisions.project-registration:begin -->
 ### Secure project registration (pre-routing gate)
 
 A new project must be registered with the secure host control plane before ordinary project inspection, Systematic work, CodeGraph initialization, or sandbox-worker activation can rely on that project root.
@@ -73,6 +86,8 @@ A new project must be registered with the secure host control plane before ordin
 - Treat registration as **pending activation** until the required services have restarted. After restart, re-check the project through the normal secure runtime before beginning project work.
 - Invoking this already-reviewed fixed tool is an approval-gated bootstrap action and does not itself start native review. Editing the tool implementation or its control files by hand is a global-tooling change and must follow the normal source → native RDD review checkpoint (when enabled) → verified mirror route.
 
+<!-- workflow:anchor workflow.session-decisions.project-registration:end -->
+<!-- workflow:anchor workflow.session-decisions.technical-lead:begin -->
 ### Orchestrator technical-lead responsibility
 
 The `gentle-orchestrator` is read-only in **authority**, not shallow in **reasoning**. It is the read-only technical lead for the project and must understand enough of the affected architecture, control/data flow, conventions, constraints, dependencies, and change surface to make sound delegation decisions.
@@ -85,3 +100,4 @@ For implementation work:
 - Small changes require proportionate analysis, not ceremony; the goal is to know what the implementation model should do, not to create unnecessary process.
 - After delegation, compare the result with the implementation contract and user intent. Resolve discrepancies with bounded read-only inspection, targeted follow-up delegation, or review.
 - Do **not** independently reimplement or duplicate completed specialist work. Spend orchestrator intelligence on project understanding, architecture, decomposition, dependency analysis, precise task framing, conflict resolution, escalation, and synthesis.
+<!-- workflow:anchor workflow.session-decisions.technical-lead:end -->

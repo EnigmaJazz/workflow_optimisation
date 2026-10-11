@@ -1,5 +1,6 @@
 # Existing secure ODD and native review contract
 
+<!-- workflow:anchor workflow.odd-and-review.odd-delegation:begin -->
 ### Mandatory ODD delegation (SECURE)
 
 These upstream triggers are mandatory. When a trigger fires, stop inline work and use the available Task/subagent mechanism; successful inline work never excuses a missed trigger. The secure orchestrator delegates every project mutation or execution, even a mechanical one-file fix. A trigger selects the direct delegation topology only; it never selects a route or creates route artifacts.
@@ -10,6 +11,8 @@ These upstream triggers are mandatory. When a trigger fires, stop inline work an
 - Long-session backstop: the same evidence budget applies: after one parallel batch (at most 3 tool/read calls, about 10k tokens), more than about 5 sequential lookups or a long session pauses and delegates the next bounded unit to one read-only explorer returning at most about 2k tokens with `path:line`. Two non-mechanical inline edits are already forbidden by the secure execution boundary. If Task is missing or denied, report blocked instead of working inline.
 - Route declaration: before implementing every substantial ODD task record `route: delegated`, intended specialist, and trigger evidence (or the secure policy when no upstream threshold fired) in `odd/tasks/<feature-name>.md` and the complete Magic Context mirror. After delegation record actual named Task dispatch and result, then read both back before marking the task complete. The session ROUTE line does not substitute for per-task evidence.
 
+<!-- workflow:anchor workflow.odd-and-review.odd-delegation:end -->
+<!-- workflow:anchor workflow.odd-and-review.odd-protocol:begin -->
 ### Secure ODD protocol (MANDATORY)
 
 Every request follows **Authorize → Explore → Resolve uncertainty → Classify → Track → Implement → Close**, in that order. For each substantial ODD tracker creation, tell the user in one line which `odd/tasks/<feature-name>.md` document was created and how many tasks it holds. Read-only requests end after findings; never create a tracker or delegate a writer. For authorized changes, gather enough project evidence to form the implementation contract before a writer starts. Ask for an unresolved product choice only when it affects the decision. Use a named Systematic specialist when its active skill owns the work.
@@ -20,6 +23,8 @@ The orchestrator remains read-only for project files and execution: it delegates
 
 The four readiness boundaries are observable: (1) explicit change intent before any writer; (2) complete tracker and Magic Context readback before first substantial source edit; (3) actual Task dispatch to the named specialist and receipt of its result, including all independent tasks in one launch wave; (4) checks and applicable review before claiming completion. If a Task tool is absent or denied, stop with a visible blocked status rather than doing that specialist's work inline. Never substitute the orchestrator for an implementation worker or for independent reviewer personas. Report status at each boundary so silent route escape is detectable.
 
+<!-- workflow:anchor workflow.odd-and-review.odd-protocol:end -->
+<!-- workflow:anchor workflow.odd-and-review.work-unit-review:begin -->
 ### Substantial ODD work-unit and review boundary (MANDATORY)
 
 After checks for each substantial authorized ODD task, delegate a Conventional Commit work-unit commit on a feature branch through an authorized sandbox worker or reviewed fixed Git operation; create the branch first if on the default branch. Keep behavior, tests and docs in the same work unit. Record the actual commit identity and applicable checks in `odd/tasks/<feature-name>.md` and its complete Magic Context mirror, then read back both. This work-unit commit is included in the existing authorization for substantial implementation. When the commit identity is known only after committing code, commit the updated tracker as a follow-up metadata work unit; mirror and read back the final tracker body. Assess every resulting commit against the correct prior boundary when RDD is enabled. Do not leave the evidence update uncommitted while claiming a completed task. It does not authorize push, PR creation, merge or release; those follow the user's explicit intent and ordinary repository policy. Do not run host Bash or Git mutation from the orchestrator. Do not mark an ODD task complete if commit or verified mirror is unavailable; preserve the pending task and report the blocker.
@@ -30,6 +35,8 @@ When the user-owned RDD switch is enabled, after each work-unit commit obtain `g
 
 At tracker creation forecast authored additions plus deletions (excluding generated files) and select one feature delivery strategy: `ask-on-risk` (default), `auto-chain`, `single-pr`, or `exception-ok`. Recompute from work-unit commits; when forecast or running total crosses about 400, apply the chosen strategy before the next commit. Ask once for `stacked-to-main` or `feature-branch-chain` when `ask-on-risk` requires a choice; follow `auto-chain` only with a resolved strategy, and honor explicit exceptions. Resolve `work-unit-commits` and `chained-pr` from the installed registry before planning PRs; do not hardcode skill paths. The accumulated about-400-line delivery budget is a separate PR/slice planning threshold; it does not replace the mandatory per-commit reviewability receipt and cap above, and neither budget justifies shrinking correct code. Record slice boundaries, commit membership, reviewability receipts, and any exception in the tracker and Magic Context mirror. PR creation, push and merge require separate user intent. A routed work-unit commit trailer states the task/class at commit time; later review outcome belongs in tracker and router log, never rewritten retroactively into that commit.
 
+<!-- workflow:anchor workflow.odd-and-review.work-unit-review:end -->
+<!-- workflow:anchor workflow.odd-and-review.native-rdd:begin -->
 ### Native risk assessment and RDD checkpoint
 
 The RDD kill switch is user-owned: `gentle-ai review mode enable|disable|status`. Gentle AI 3.5 resolves an unset switch to on by default; obtain read-only `gentle-ai review mode status --cwd <repo>` and record both the effective mode and deciding source (`default`, `global`, or `clone-local`) at route entry. Only the user may explicitly enable or disable RDD; route a requested change through the reviewed fixed integration or authorized executor, then verify status. Neither agent nor verifier toggles it to clear a health warning. Native review remains available when enabled; substantial ODD follows the work-unit/slice candidate rule above. No phase launches it or treats it as archive authority.
@@ -44,6 +51,8 @@ The RDD kill switch is user-owned: `gentle-ai review mode enable|disable|status`
 - A v3.5 `opencode_provider_role_result_refused (cause: X)` is a transport refusal, not an admitted reviewer result. Preserve the typed cause: `targeted_validation_inconclusive` follows the native reoffered slot, `validator_result_not_admissible` requires correcting the payload, and `role_capture_failed` requires store/closure diagnosis. Never manufacture a terminal review receipt.
 - For each v8 lens input invoke one foreground OpenCode Task. Map `provider_task.agent` to the corresponding `asi-review-*` relay `subagent_type` using the mandatory 4R route below, and copy `provider_task.prompt` unchanged as `prompt`. Never parse, append to, fence, or reconstruct the provider-issued task line or build `GENTLE_AI_REVIEW_BINDING` from other fields. Keep a valid Task result as the reviewer's raw JSON object; the live transport owns capture submission. Launch independent lens inputs in one grouped wave without waiting between launches and never set a background flag.
 
+<!-- workflow:anchor workflow.odd-and-review.native-rdd:end -->
+<!-- workflow:anchor workflow.odd-and-review.4r-lanes:begin -->
 #### 4R review lane routing (mandatory)
 
 Map `review-risk`, `review-resilience`, `review-readability`, and `review-reliability` to `asi-review-risk`, `asi-review-resilience`, `asi-review-readability`, and `asi-review-reliability`; map `review-refuter` to `asi-review-refuter` and `review-validator` to `asi-review-validator`. Forward the provider-issued task line verbatim. A response stating that the required `GENTLE_AI_REVIEW_CONTEXT` block was not supplied is a **TRANSPORT-LANE FAILURE**, not a review result: do not record, adjudicate, or count it, and re-dispatch through the mapped `asi-review-*` lane. While the installed transport is loaded, never dispatch the plain `review-*` name because two transports cannot own one Task. Never grant review lanes to implementation workers or isolated reviewers.
@@ -56,6 +65,7 @@ Map `review-risk`, `review-resilience`, `review-readability`, and `review-reliab
 - After each routed task, ensure one row is written to `/home/james/ai-workspace/workflow_optimisation/ROUTER-LOG.md` (date, task, class, reclassification, review outcome, probe flag, evidence). The orchestrator never writes it inline: include it in the active writer's work or delegate a final `general` worker.
 - The runnable-router encoding decision (R12) triggers after ten consecutive routed tasks across at least four task classes without re-classification or route escape, per the recipe.
 
+<!-- workflow:anchor workflow.odd-and-review.4r-lanes:end -->
 ### Independent sub-agent fan-out
 
 When two or more delegated tasks are independent at launch time, dispatch them concurrently. Independence means no task needs another task's result, files, decisions, locks, or state before it can begin.

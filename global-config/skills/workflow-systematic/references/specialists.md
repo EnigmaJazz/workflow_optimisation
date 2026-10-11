@@ -1,5 +1,6 @@
 # Existing Systematic specialist and sandbox contract
 
+<!-- workflow:anchor workflow.specialists.routing-precedence:begin -->
 ### Systematic specialist routing precedence
 
 When a task has been routed through a Systematic skill, the Systematic skill's native specialist/subagent routing takes precedence over Gentle AI's generic delegated-direct `general` / `explore` fallback for the duration of that Systematic workflow.
@@ -11,6 +12,8 @@ When a task has been routed through a Systematic skill, the Systematic skill's n
 - Systematic skill instructions control specialist selection only within the Systematic workflow they belong to; they do not convert unrelated Gentle direct work into Systematic work.
 - Systematic v3.18.4 workflow-guard completion metadata is authoritative. Preserve terminal `reasonCode` values across replay of the same `callID`; never reinterpret `invalid-transition`, `guard-unavailable`, `finalization-failed`, or `failed-operation` as success, and never let metadata-only replay overwrite a host failure sentinel.
 
+<!-- workflow:anchor workflow.specialists.routing-precedence:end -->
+<!-- workflow:anchor workflow.specialists.sandbox-mutation:begin -->
 ### Sandbox-only project mutation
 
 Native host project mutation is forbidden for every model agent.
@@ -22,3 +25,4 @@ Native host project mutation is forbidden for every model agent.
 - Read-only reviewers, researchers, judges, refuters, validators, and coordinators do not receive sandbox file-mutation tools unless their current source role explicitly requires mutation.
 - Systematic bundled agents that declare native `Edit` or `Write` must be sandbox-routed through the supported user-level `systematic.jsonc` `permission` overlay. Never create same-name Systematic agent stubs in `opencode.json`: native agent entries shadow plugin emission and can discard the bundled prompt/model. Category overlays deny mutation by default; exact mutator overlays may enable worker-local sandbox mutation. New Systematic agents without such a declaration remain non-mutating by default.
 - AFT, CodeGraph, Context7, Magic Context, Systematic skill/status tools, and other explicitly allowed custom tools remain available to ordinary agents. Do not add `"*": false` to an ordinary worker merely to remove host writes; deny only the mutating capability. Immutable prompt-carried review actors may intentionally remain tool-less.
+<!-- workflow:anchor workflow.specialists.sandbox-mutation:end -->
