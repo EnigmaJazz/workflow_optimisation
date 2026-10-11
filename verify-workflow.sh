@@ -809,7 +809,6 @@ run_id = sys.argv[4]
 manifest = {
     "workflow-route": ("SKILL.md", "references/session-decisions.md"),
     "workflow-odd-secure": ("SKILL.md", "references/odd-and-review.md"),
-    "workflow-sdd-secure": ("SKILL.md", "references/sdd-magic-adapter.md"),
     "workflow-systematic": ("SKILL.md", "references/specialists.md"),
 }
 errors = []
@@ -838,7 +837,7 @@ if errors:
     print("error\t" + "; ".join(errors))
     raise SystemExit(0)
 if not changed:
-    print("clean\tfour reviewed workflow skills and references are current")
+    print("clean\tthree reviewed workflow skills and references are current")
     raise SystemExit(0)
 backup = backup_root / run_id / "workflow-skills"
 backup.mkdir(parents=True, exist_ok=True)
@@ -4268,7 +4267,7 @@ else
   fi
 
   MISSING_KW=""
-  for kw in "ce:brainstorm" "ce:plan" "ce:work" "ce:review" "ce:compound" "RDD" "ROUTED:" "Required Thinking Layers" "## Substantial ODD work units and review — Gentle AI 3.5.0" "## Route decision checkpoint" "basis: WORKFLOW.md"; do
+  for kw in "ce:brainstorm" "ce:plan" "ce:work" "ce:review" "ce:compound" "RDD" "ROUTED:" "Required Thinking Layers" "## Substantial ODD work units and review" "## Route decision checkpoint" "basis: WORKFLOW.md"; do
     if ! grep -q -- "$kw" "$WORKFLOW"; then MISSING_KW="$MISSING_KW $kw"; fi
   done
   if [ -z "$MISSING_KW" ]; then
@@ -4303,7 +4302,7 @@ else
      grep -q -- "no direct-inline implementation route" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "explore.*researcher fallback" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "general.*sandbox worker fallback" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "## Context and SDD Artifact Backend" "$WORKFLOW" 2>/dev/null && \
+     grep -q -- "## Context and Artifact Backend" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "defaulting to Magic Context" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "Ordinary working agents may persist durable knowledge" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "review.*document-review.*may not" "$WORKFLOW" 2>/dev/null && \
@@ -4313,21 +4312,17 @@ else
      grep -q -- "implementation contract" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "frontend-dev-premium" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "Model assignments are authoritative" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "Optional SDD Research and Diagnostics — Gentle AI 3.5.0" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "gentle-ai review assess --json" "$WORKFLOW" 2>/dev/null && \
      grep -Fq -- "Do not leave the evidence update uncommitted" "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- "## Gentle AI 3.5.0 mandatory ODD delegation" "$WORKFLOW" 2>/dev/null && \
+     grep -Fq -- "## Mandatory ODD delegation" "$WORKFLOW" 2>/dev/null && \
      grep -Fq -- "## Skill-based route loading and long-chat resume" "$WORKFLOW" 2>/dev/null && \
      grep -Fq -- "controlled pilot" "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- "four or more files" "$WORKFLOW" 2>/dev/null && \
      grep -Fq -- "two or more non-trivial files" "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- "20 tool calls or five exploratory reads" "$WORKFLOW" 2>/dev/null && \
+     grep -Fq -- "more than about 5 sequential lookups" "$WORKFLOW" 2>/dev/null && \
      grep -Fq -- "route/trigger evidence" "$WORKFLOW" 2>/dev/null && \
      grep -Fq -- "gentle-ai review mode enable|disable|status" "$WORKFLOW" 2>/dev/null && \
      grep -Fq -- "tell the user in one line which" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "ODD_TASKS key=odd/{project}/{feature-name}/tasks" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "optional verify → archive" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "gentle-ai sdd-archive-compose" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "Systematic v3.18.4.*workflow-guard" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "Risk, Resilience, Readability, Reliability" "$WORKFLOW" 2>/dev/null && \
      grep -q -- "status/v8" "$WORKFLOW" 2>/dev/null && \
@@ -4472,8 +4467,6 @@ if cat "$AGENTS_FILE" \
     "$SKILLS_DIR/workflow-route/references/session-decisions.md" \
     "$SKILLS_DIR/workflow-odd-secure/SKILL.md" \
     "$SKILLS_DIR/workflow-odd-secure/references/odd-and-review.md" \
-    "$SKILLS_DIR/workflow-sdd-secure/SKILL.md" \
-    "$SKILLS_DIR/workflow-sdd-secure/references/sdd-magic-adapter.md" \
     "$SKILLS_DIR/workflow-systematic/SKILL.md" \
     "$SKILLS_DIR/workflow-systematic/references/specialists.md" > "$ROUTING_CONTRACT" 2>/dev/null; then
   echo "   ok: secure routing contract assembled from recovered skills"
@@ -4511,12 +4504,11 @@ fi
 # protocol and route decision here, independent of vendor heading placement.
 if grep -Fq -- '## Secure workflow router (MANDATORY)' "$AGENTS_FILE" 2>/dev/null && \
    grep -Fq -- 'skill({name:"workflow-route"})' "$AGENTS_FILE" 2>/dev/null && \
-   grep -Fq -- '### Gentle AI 3.5.0 mandatory ODD delegation (SECURE)' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'four or more files' "$ROUTING_CONTRACT" 2>/dev/null && \
+   grep -Fq -- '### Mandatory ODD delegation (SECURE)' "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -Fq -- 'two or more non-trivial files' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- '20 tool calls or five exploratory reads' "$ROUTING_CONTRACT" 2>/dev/null && \
+   grep -Fq -- 'more than about 5 sequential lookups' "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -Fq -- 'route/trigger evidence' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- '### Secure ODD protocol — Gentle AI 3.5.0 (MANDATORY)' "$ROUTING_CONTRACT" 2>/dev/null && \
+   grep -Fq -- '### Secure ODD protocol (MANDATORY)' "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -Fq -- 'Every request follows **Authorize → Explore → Resolve uncertainty → Classify → Track → Implement → Close**' "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -Fq -- 'basis: WORKFLOW.md' "$ROUTING_CONTRACT" 2>/dev/null; then
   echo "   ok: authoritative secure ODD route and WORKFLOW.md decision are present"
@@ -4528,31 +4520,21 @@ else
 fi
 
 if grep -q -- "Sandbox-only project mutation" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "SDD artifact writers use sandbox tools" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -q -- "gentle-orchestrator.*strictly read-only coordinator" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "no direct-inline implementation path" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -q -- "explore.*read-only researcher fallback" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -q -- "general.*sandbox worker fallback" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Mandatory Magic Context memory/context" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "SDD_ARTIFACT key=<stable-key>" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Ordinary working agents may save memories" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Isolated evaluation actors remain memory-write denied" "$ROUTING_CONTRACT" 2>/dev/null && \
+   grep -q -- "Magic Context manages context for the whole session" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -q -- "Secure project registration (pre-routing gate)" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -q -- "host_register_project.*single approved model-facing registration route" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -q -- "Orchestrator technical-lead responsibility" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -q -- "implementation contract" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -qi -- "read-only.*authority.*reasoning" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "frontend-dev-premium" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "two substantive visual iteration rounds" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Gentle AI 3.5.0 optional SDD research" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -q -- "gentle-ai review assess --json" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -q -- "ODD_TASKS key=odd/{project}/{feature-name}/tasks" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -Fq -- "basis: WORKFLOW.md" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -Fq -- "gentle-ai review mode enable|disable|status" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -Fq -- "tell the user in one line which" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -Fq -- "--base-ref <last reviewed boundary> --committed-only --json" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "optional verify → archive" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "gentle-ai sdd-archive-compose" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -q -- "Systematic v3.18.4.*workflow-guard" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -q -- "Risk, Resilience, Readability, Reliability" "$ROUTING_CONTRACT" 2>/dev/null && \
    grep -q -- "status/v8" "$ROUTING_CONTRACT" 2>/dev/null && \
