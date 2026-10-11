@@ -189,6 +189,24 @@ describe("7. exported stage table", () => {
   test("READ_ONLY_SPECIALIST_PATTERNS is exported", () => {
     expect(Array.isArray(READ_ONLY_SPECIALIST_PATTERNS)).toBe(true)
   })
+
+  // ADAPTER_WORKFLOW_SKILLS is module-private, so membership is exercised through its
+  // observable consequence: the orchestrator-writer warning fires only when the session holds a
+  // valid key whose skill is in that set. A workflow-sdd-secure-only key must NOT satisfy it,
+  // while an odd-secure key must, so the absence assertion cannot pass on an empty fixture.
+  test("workflow-sdd-secure is not an adapter workflow skill (key detection control)", async () => {
+    const exSdd = "ses_adapter_sdd_absent"
+    await message(exSdd, "gentle-orchestrator")
+    seedKey(exSdd, "workflow-sdd-secure")
+    await dispatch(exSdd, "systematic-implementer")
+    expect(logCount("orchestrator dispatched writing specialist systematic-implementer")).toBe(0)
+
+    const control = "ses_adapter_odd_present"
+    await message(control, "gentle-orchestrator")
+    seedKey(control, ODD)
+    await dispatch(control, "systematic-implementer")
+    expect(logCount("orchestrator dispatched writing specialist systematic-implementer")).toBe(1)
+  })
 })
 
 describe("1. specialist rule: deny by default", () => {
@@ -270,7 +288,7 @@ describe("1. specialist rule: deny by default", () => {
     markAdvice("ses_s5b")
     for (const name of ["general", "systematic-implementer", "frontend-dev", "frontend-dev-premium",
       "frontend-apply", "frontend-apply-local", "jd-fix-agent", "pr-comment-resolver",
-      "bug-reproduction-validator", "design-iterator", "sdd-apply", "sdd-apply-local",
+      "bug-reproduction-validator", "design-iterator",
       "gentle-ai-worker", "gentle-ai-worker-local"]) {
       await dispatch("ses_s5b", name)
     }
@@ -288,8 +306,7 @@ describe("1. specialist rule: deny by default", () => {
 
   test("read-only specialists are exempt", async () => {
     seedKey("ses_s6", ODD)
-    for (const name of ["explore", "gentle-ai-explore", "gentle-ai-verify", "sdd-explore", "sdd-verify",
-      "sdd-research", "vision", "architecture-strategist", "spec-flow-analyzer", "git-history-analyzer",
+    for (const name of ["explore", "gentle-ai-explore", "gentle-ai-verify", "vision", "architecture-strategist", "spec-flow-analyzer", "git-history-analyzer",
       "issue-intelligence-analyst", "pattern-recognition-specialist", "deployment-verification-agent",
       "repo-research-analyst", "best-practices-researcher", "framework-docs-researcher",
       "learnings-researcher", "correctness-reviewer", "review-refuter", "review-risk",

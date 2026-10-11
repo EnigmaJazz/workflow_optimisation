@@ -15,7 +15,7 @@ export type RouteStage = {
   allowsSpecialists?: readonly string[]
 }
 
-const SPECIALIST_WRITERS: readonly string[] = ["general", "systematic-implementer", "frontend-dev", "frontend-dev-premium", "frontend-apply", "frontend-apply-local", "jd-fix-agent", "pr-comment-resolver", "bug-reproduction-validator", "design-iterator", "sdd-apply", "sdd-apply-local", "gentle-ai-worker", "gentle-ai-worker-local"]
+const SPECIALIST_WRITERS: readonly string[] = ["general", "systematic-implementer", "frontend-dev", "frontend-dev-premium", "frontend-apply", "frontend-apply-local", "jd-fix-agent", "pr-comment-resolver", "bug-reproduction-validator", "design-iterator", "gentle-ai-worker", "gentle-ai-worker-local"]
 const ODD_SPECIALIST_WRITERS: readonly string[] = [...SPECIALIST_WRITERS, "odd-apply"]
 
 /** PM coordinators are dispatch routers, never route-stage implementation writers. */
@@ -43,7 +43,7 @@ export const pmRequiredRouteSkill = (agent: string): string | null =>
 
 // Anchored on purpose: under deny-by-default a loose match would let a writer through.
 export const READ_ONLY_SPECIALIST_PATTERNS: readonly RegExp[] = [
-  /^(?:explore|gentle-ai-explore|gentle-ai-verify|sdd-explore|sdd-verify|sdd-research|vision|architecture-strategist|spec-flow-analyzer|git-history-analyzer|issue-intelligence-analyst|pattern-recognition-specialist|deployment-verification-agent|repo-research-analyst|best-practices-researcher|framework-docs-researcher|learnings-researcher)$/,
+  /^(?:explore|gentle-ai-explore|gentle-ai-verify|vision|architecture-strategist|spec-flow-analyzer|git-history-analyzer|issue-intelligence-analyst|pattern-recognition-specialist|deployment-verification-agent|repo-research-analyst|best-practices-researcher|framework-docs-researcher|learnings-researcher)$/,
   /^review-/,
   /^asi-review-/,
   /^advisor-/,

@@ -279,7 +279,6 @@ const MAX_INHERITANCE_HOPS = 3
 const ROUTING_KEY_REFRESH_INTERVAL_MS = 60 * 1000
 const ADAPTER_WORKFLOW_SKILLS = new Set([
   "workflow-odd-secure",
-  "workflow-sdd-secure",
   "workflow-systematic",
 ])
 const isReadOnlySpecialist = (name: string): boolean =>
@@ -580,8 +579,7 @@ async function getOwnWorkflowKeyStatus(
 function isRoutingGateTool(tool: string): boolean {
   return (
     ROUTING_GATE_TOOLS.has(tool) ||
-    tool.startsWith("host_review_") ||
-    tool.startsWith("host_sdd_")
+    tool.startsWith("host_review_")
   )
 }
 
