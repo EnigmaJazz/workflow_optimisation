@@ -280,7 +280,7 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
   - Replace the current "do not invoke `mem_*`" rule with this scoped rule.
 
 ### Q15. Routing guard T7 — `workflow-sdd-secure` phase-agent gating
-- **Status:** PLANNED; obsolete on v4 (see Q33).
+- **Status:** CLOSED — obsolete on v4. It was obsolete-by-absence: the guard's `ROUTE_STAGES` only ever held `workflow-odd-secure` and `workflow-systematic` (`global-config/plugins/lib/routing-guard-helpers.ts:67-103`), so the SDD phase-agent gating was never implemented (see Q33/Q65).
 - **Prerequisites:** Q03.
 - **Source:** `odd/tasks/routing-guard-keys.md` T7c "Implementation order" 3.
 
@@ -641,8 +641,8 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 ### Q61. PM layer: remaining routes and close
 - **Status:** PLANNED.
 - **Prerequisites:** Q57, Q58, Q59, Q60.
-- **Description:** move the Systematic route to `pm-systematic` (SDD is retired by v4; `pm-sdd` is
-  retired under Q65); remove
+- **Description:** move the Systematic route to `pm-systematic` (SDD is retired by v4; `pm-sdd` was
+  RETIRED by Q65 on 2026-10-11, so Q61 no longer lists it); remove
   `gentle-orchestrator-legacy`; `ce:compound`. Require relay-delivery proof from a dispatch
   outside the coordinating PM session, carrying a genuine provider-issued binding; Q54 showed
   reachability only, not delivery. Do not require the PM itself to dispatch or prove its own relay
@@ -834,7 +834,7 @@ Release facts that drive the group:
   - Remove the `./prompts/sdd/` prompt files no agent references.
 
 ### Q32. Verifier (`verify-workflow.sh`)
-- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Status:** DONE-AT-SOURCE (T0–T5 are committed and reviewed — `odd/tasks/q32-verifier-v4.md`; final pin `14d37ce9…` after Q65; deployment is pending the owner).
 - **Prerequisites:** Q29, Q31. Q26 strongly preferred, Q04 preferred.
 - **Source:** v4.0.0 release notes; `verify-workflow.sh` line refs below (read-only mapping,
   2026-10-01).
@@ -873,7 +873,7 @@ Release facts that drive the group:
     - `R4-003` (`:4813`): the assembler-missing/failed codes leak an absolute host path + raw error.
 
 ### Q33. Guard and plugins
-- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Status:** DONE-AT-SOURCE (T0–T1 committed and reviewed — `odd/tasks/q33-guard-plugins.md`; commit `f10468b`; Q15 is closed as obsolete; the `astra-sol-upgrade.ts` name check was resolved — it names only `jd-fix-agent`/`gentle-orchestrator`, both present — its runtime resolution remains statically unprovable).
 - **Prerequisites:** Q29; Q03 (route namespacing).
 - **Source:** v4.0.0 release notes. `systematic-routing-guard.ts` :219 (skill list contains
   `workflow-sdd-secure`), :505 (`host_sdd_` prefix); `workflow-health-check.ts` :8, :40 (comments);
@@ -1079,7 +1079,7 @@ Release facts that drive the group:
 - **Gate:** the apply preflight is the enforcement point (Q28).
 
 ### Q65. Retire `pm-sdd`
-- **Status:** PLANNED.
+- **Status:** DONE-AT-SOURCE (T0–T1 committed and reviewed — `odd/tasks/q65-retire-pm-sdd.md`; commit `5aadb9f`; the decision was RETIRE; two follow-ups remain: the external `sandbox-tools.ts` `READ_ONLY_AGENTS` entry and T1's `R4-migration-vacuous-zero`).
 - **Prerequisites:** Q30 (the `workflow-sdd-secure` skill disposition) and Q31 (done); coordinate
   with Q61, which currently lists `pm-sdd` as the SDD route PM.
 - **Source:** `odd/tasks/q31-agent-allocation.md` S5b post-code advisory (2026-10-11); Q54's
