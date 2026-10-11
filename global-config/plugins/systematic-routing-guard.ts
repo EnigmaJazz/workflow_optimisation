@@ -221,7 +221,6 @@ const ROUTING_GATE_TOOLS = new Set([
   "host_plan_append",
   "host_register_project",
   "host_sandbox_result_install",
-  "host_sdd_archive_compose",
 ])
 
 /** Host mutations additionally require a PM's own route adapter key. */

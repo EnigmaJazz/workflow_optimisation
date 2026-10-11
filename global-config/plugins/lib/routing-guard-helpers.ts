@@ -32,7 +32,6 @@ export const isCoordinator = (name: string): boolean =>
 export const PM_ROUTE_ADAPTER_SKILLS: Readonly<Record<string, string>> = {
   "pm-odd": "workflow-odd-secure",
   "pm-systematic": "workflow-systematic",
-  "pm-sdd": "workflow-sdd-secure",
 }
 
 /** The adapter skill a PM session must own, or null for any non-PM agent name. */
