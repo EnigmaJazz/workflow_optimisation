@@ -1828,6 +1828,15 @@ const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj ?? {}, key
 let failures = 0
 function fail(msg) { console.error(`   !! ${msg}`); failures++ }
 function show(value) { return value === undefined ? "<inherit/none>" : JSON.stringify(value) }
+// R3-WORKSPACE-001 / R4-002: the 7th argument is the repository root used to
+// resolve repo-relative inputs (notably the orchestrator prompt assembler).
+// `path.join` throws on undefined/non-string and silently yields a relative
+// path on "", so fail once here, before any use, and gate path construction on
+// this flag instead of letting it throw.
+const workspaceRootAvailable = typeof workspaceRoot === "string" && workspaceRoot.length > 0
+if (!workspaceRootAvailable) {
+  fail("WORKSPACE_ROOT_UNAVAILABLE: runtime checker requires a non-empty workspace root argument")
+}
 
 function parseJsonc(file) {
   const text = fs.readFileSync(file, "utf8")
@@ -2893,23 +2902,29 @@ else {
 
   const orchPrompt=typeof orch.prompt==="string" ? orch.prompt : ""
   const orchestratorAssemblerRel="global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py"
-  const orchestratorAssemblerPath=path.join(workspaceRoot,orchestratorAssemblerRel)
-  if (!fs.existsSync(orchestratorAssemblerPath)) {
-    fail(`ORCHESTRATOR_PROMPT_ASSEMBLER_MISSING: ${orchestratorAssemblerPath}`)
+  if (!workspaceRootAvailable) {
+    // WORKSPACE_ROOT_UNAVAILABLE was already reported above; repo-relative
+    // resolution is impossible, so never call path.join with an invalid root.
   } else {
-    let assembledBytes
-    try {
-      assembledBytes=execFileSync("python3",[orchestratorAssemblerRel],{cwd:workspaceRoot,maxBuffer:16*1024*1024})
-    } catch (error) {
-      fail(`ORCHESTRATOR_PROMPT_ASSEMBLER_FAILED: command: python3 ${orchestratorAssemblerRel} (cwd=${workspaceRoot}); ${error.message}`)
-    }
-    if (assembledBytes) {
-      const embeddedDigest=crypto.createHash("sha256").update(Buffer.from(orchPrompt,"utf8")).digest("hex")
-      const assembledDigest=crypto.createHash("sha256").update(assembledBytes).digest("hex")
-      if (embeddedDigest!==assembledDigest) {
-        fail(`ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT: embedded=${embeddedDigest} assembled=${assembledDigest}; command: python3 ${orchestratorAssemblerRel} (cwd=${workspaceRoot})`)
-      } else {
-        console.log(`   ok: embedded orchestrator prompt equals assembler output (sha256 ${embeddedDigest}; command: python3 ${orchestratorAssemblerRel})`)
+    const orchestratorAssemblerPath=path.join(workspaceRoot,orchestratorAssemblerRel)
+    if (!fs.existsSync(orchestratorAssemblerPath)) {
+      fail(`ORCHESTRATOR_PROMPT_ASSEMBLER_MISSING: ${orchestratorAssemblerRel}`)
+    } else {
+      let assembledBytes
+      try {
+        assembledBytes=execFileSync("python3",[orchestratorAssemblerRel],{cwd:workspaceRoot,maxBuffer:16*1024*1024})
+      } catch (error) {
+        const assemblerErrorLine=String(error&&error.message?error.message:error).split("\n")[0]
+        fail(`ORCHESTRATOR_PROMPT_ASSEMBLER_FAILED: command: python3 ${orchestratorAssemblerRel}; ${assemblerErrorLine}`)
+      }
+      if (assembledBytes) {
+        const embeddedDigest=crypto.createHash("sha256").update(Buffer.from(orchPrompt,"utf8")).digest("hex")
+        const assembledDigest=crypto.createHash("sha256").update(assembledBytes).digest("hex")
+        if (embeddedDigest!==assembledDigest) {
+          fail(`ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT: embedded=${embeddedDigest} assembled=${assembledDigest}; command: python3 ${orchestratorAssemblerRel}`)
+        } else {
+          console.log(`   ok: embedded orchestrator prompt equals assembler output (sha256 ${embeddedDigest}; command: python3 ${orchestratorAssemblerRel})`)
+        }
       }
     }
   }
@@ -3028,6 +3043,19 @@ else {
   if (missingMagicContextContract.length) {
     fail(`MAGIC_CONTEXT_ORCHESTRATOR_CONTRACT_MISSING: missing=${JSON.stringify(missingMagicContextContract)}`)
   }
+  // R4-001: the Secure Magic Context Contract section may be followed by a
+  // heading of any level, so the scrub lookahead must accept #{1,6}. Scrubbing
+  // is a precondition for the legacy-memory drift check, so require that the
+  // section is present and that the scrub actually removed it; a silent no-op
+  // must never let the drift check pass.
+  const magicContextHeadingRe=/### Secure Magic Context Contract \(MANDATORY\)/
+  if (!magicContextHeadingRe.test(orchPrompt)) {
+    fail("MAGIC_CONTEXT_SECTION_MISSING: orchestrator prompt has no Secure Magic Context Contract section to scrub")
+  }
+  const scrubbedOrchPrompt=orchPrompt.replace(/### Secure Magic Context Contract \(MANDATORY\)[\s\S]*?(?=\n#{1,6} )/, "")
+  if (magicContextHeadingRe.test(orchPrompt) && scrubbedOrchPrompt === orchPrompt) {
+    fail("MAGIC_CONTEXT_SECTION_SCRUB_NOOP: Secure Magic Context Contract section was not removed before the legacy-memory drift check")
+  }
   const legacyMemoryPatterns=[
     /Search Engram:/,
     /Artifacts:\s*OpenSpec,\s*Engram,\s*Both/,
@@ -3038,8 +3066,7 @@ else {
     /mem_update\s*\(/
   ]
   for (const rx of legacyMemoryPatterns) {
-    const scrubbed=orchPrompt.replace(/### Secure Magic Context Contract \(MANDATORY\)[\s\S]*?(?=\n#{2,3} )/, "")
-    if (rx.test(scrubbed)) fail(`LEGACY_ENGRAM_ORCHESTRATOR_DRIFT: ${rx}`)
+    if (rx.test(scrubbedOrchPrompt)) fail(`LEGACY_ENGRAM_ORCHESTRATOR_DRIFT: ${rx}`)
   }
 }
 
