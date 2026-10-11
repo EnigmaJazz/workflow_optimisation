@@ -437,6 +437,14 @@ Run each check for every slice:
   `python3 -m unittest tests.test_orchestrator_prompt_source -v` 11/11 pass; `python3 -m json.tool
   global-config/opencode.json` rc 0 (unchanged); routing-guard 94 pass / 0 fail;
   `verify-workflow.sh` not run. Next: S5b.
+- 2026-10-11: S5a native review outcome: lineage `review-1633e87da601f9dd`; tier **high** (`process_boundary` on the assembler); candidate 10 files / 1807 lines (S5a source + corrections + relocation + repin). All four lenses (`review-risk`, `review-resilience`, `review-readability`, `review-reliability`) were admitted; outcome **approved** and acknowledged; `authority: burned`; consumed revision `sha256:2ec2a3824cc18eb69c3dd15c686a79e55e628a15c44a9708244a68701eb5fbac`.
+  Advisory findings (non-blocking, informational; separate later work, never a re-review trigger):
+  - `R3-ASSEMBLER-FAILURE-PATHS-UNTESTED` (WARNING; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:253-260`).
+  - `R3-ASSEMBLER-ATTR-PARSER-FRAGILE` (SUGGESTION; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:54-63`).
+  - `R3-ASSEMBLER-ORDERING-HAZARD-UNGUARDED` (SUGGESTION; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:191-207`).
+  - `R4-ATTRPARSE-001` (SUGGESTION; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:54-63`).
+  - `R4-EXITCODE-001` (SUGGESTION; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:258-264`).
+  - `R4-MARKER-COUPLING-001` (WARNING; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:142-154`).
 
 ## Route, triggers, and actual dispatches
 
@@ -543,4 +551,5 @@ authorized list. Keep `global-config/opencode.json`, `global-config/tui.json`, `
 S1's, S2/S2b's, S3's, and S4/S4b's committed candidates passed native review and were
 acknowledged. Do not apply these records to the host as part of this update. The verifier mirror
 and restart remain the owner's pending deploy action; they are NOT done. S5a's source is complete and unwired (see the 2026-10-11 Progress bullet); S5b (cut over +
-verifier) is next; implementation remains pending owner go. S5 is the only remaining Q31 slice.
+verifier) is the only remaining Q31 slice, and implementation remains pending owner go. Deployment
+(the verifier mirror and restart) remains the owner's action and is NOT done.
