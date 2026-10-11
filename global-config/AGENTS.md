@@ -226,6 +226,7 @@ Read-only agents that have neither `bash` nor `sandbox_bash` must say so and rep
 <!-- /user:grep-tool-enforcement -->
 
 <!-- user:workflow-routing -->
+<!-- workflow:anchor workflow.agents.secure-router:begin -->
 ## Secure workflow router (MANDATORY)
 
 This global user-owned block is a lightweight entrypoint. Keep `/home/james/ai-workspace/workflow_optimisation/WORKFLOW.md` as the single task-class and route policy. On every new user task, before choosing a phase or specialist, call the native `skill({name:"workflow-route"})` tool and follow its classification; after a long-chat compaction/resume or meaningful scope change, load it again and reconcile the route. Read the current recipe with an authorized read-only tool when the skill requests it. The absence of `skill` or a required named Task tool blocks dependent mutation; do not substitute inline execution. A read-only response may explain the limitation.
@@ -237,6 +238,7 @@ Use the router's selected adapters: `workflow-odd-secure` for authorized default
 Before coding, honor the per-project/session local-vs-cloud writing-model choice already specified in the canonical recipe; never silently reuse an unknown decision. Astra is a user-selectable upgrade only for Sol-assigned non-implementation phases on extremely critical changes; recommend it with a concrete reason and never assign it to an implementation worker or edit global config to select it. The active model and plugin permissions remain in `opencode.json`.
 
 Emit `ROUTE: <class> | intent: <read-only/authorized change> | route: <skill/phase> | specialist: <name> | basis: WORKFLOW.md`. A route line alone does not prove execution: verify loaded skill, named Task result and relevant checks. Keep user-facing terminal commands Fish-compatible.
+<!-- workflow:anchor workflow.agents.secure-router:end -->
 <!-- /user:workflow-routing -->
 
 <!-- gentle-ai:sandbox-tool-contract -->

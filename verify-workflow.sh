@@ -1304,6 +1304,7 @@ mkdir -p "$PROBE_CWD" "$DEBUG_AGENT_DIR"
 
 cat > "$ROUTING_CANONICAL" <<'EOF_ROUTING'
 <!-- user:workflow-routing -->
+<!-- workflow:anchor workflow.agents.secure-router:begin -->
 ## Secure workflow router (MANDATORY)
 
 This global user-owned block is a lightweight entrypoint. Keep `/home/james/ai-workspace/workflow_optimisation/WORKFLOW.md` as the single task-class and route policy. On every new user task, before choosing a phase or specialist, call the native `skill({name:"workflow-route"})` tool and follow its classification; after a long-chat compaction/resume or meaningful scope change, load it again and reconcile the route. Read the current recipe with an authorized read-only tool when the skill requests it. The absence of `skill` or a required named Task tool blocks dependent mutation; do not substitute inline execution. A read-only response may explain the limitation.
@@ -1315,6 +1316,7 @@ Use the router's selected adapters: `workflow-odd-secure` for authorized default
 Before coding, honor the per-project/session local-vs-cloud writing-model choice already specified in the canonical recipe; never silently reuse an unknown decision. Astra is a user-selectable upgrade only for Sol-assigned non-implementation phases on extremely critical changes; recommend it with a concrete reason and never assign it to an implementation worker or edit global config to select it. The active model and plugin permissions remain in `opencode.json`.
 
 Emit `ROUTE: <class> | intent: <read-only/authorized change> | route: <skill/phase> | specialist: <name> | basis: WORKFLOW.md`. A route line alone does not prove execution: verify loaded skill, named Task result and relevant checks. Keep user-facing terminal commands Fish-compatible.
+<!-- workflow:anchor workflow.agents.secure-router:end -->
 <!-- /user:workflow-routing -->
 EOF_ROUTING
 
@@ -4311,6 +4313,140 @@ fi
 
 # --- 7. Recipe consistency ---
 echo "--- 7. Recipe consistency ---"
+
+# Q26 stable anchors. Every row is "<id>~<owning file>~<artifact>~<keystone>".
+# Markers are unindented whole lines. Each anchor is validated ONLY in its
+# owning file (never in the assembled routing contract): exactly one begin and
+# one end line, begin before end, a non-empty interior after comment/heading/
+# blank lines are removed, and a keystone literal inside the block. A block
+# emptied behind intact markers, a duplicated/traversed pair, or a marker that
+# migrated to another artifact therefore fails. Assembled-contract searches
+# cannot satisfy these checks.
+ANCHOR_FILES=(
+  "$WORKFLOW"
+  "$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md"
+  "$ROUTER_SKILLS_SOURCE/workflow-route/SKILL.md"
+  "$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md"
+  "$ROUTER_SKILLS_SOURCE/workflow-systematic/references/specialists.md"
+  "$AGENTS_SOURCE"
+  "$ROUTING_CANONICAL"
+)
+ODD_REVIEW_REF="$SKILLS_DIR/workflow-odd-secure/references/odd-and-review.md"
+SESSION_DECISIONS_REF="$SKILLS_DIR/workflow-route/references/session-decisions.md"
+ROUTE_SKILL_REF="$SKILLS_DIR/workflow-route/SKILL.md"
+
+anchor_block_body() {
+  awk -v b="<!-- workflow:anchor $2:begin -->" -v e="<!-- workflow:anchor $2:end -->" '
+    $0 == b { if (seen) dup = 1; seen = 1; want = 1; next }
+    $0 == e { if (!want) bad = 1; else { closed = 1; want = 0 } next }
+    want { print }
+    END { if (!seen || !closed || dup || bad) exit 1 }
+  ' "$1"
+}
+
+anchor_has() {
+  local body
+  body=$(anchor_block_body "$1" "$2") || return 2
+  printf '%s\n' "$body" | grep -Fq -- "$3"
+}
+
+anchor_check_row() {
+  local id="$1" file="$2" artifact="$3" keystone="$4"
+  local begin_marker="<!-- workflow:anchor $id:begin -->"
+  local end_marker="<!-- workflow:anchor $id:end -->"
+  local begin_count end_count first last body substantive other
+  if [ ! -f "$file" ]; then
+    fail "ANCHOR_MISSING: $artifact $id: owning file unreadable"
+    return
+  fi
+  begin_count=$(grep -Fxc -- "$begin_marker" "$file" 2>/dev/null || true)
+  end_count=$(grep -Fxc -- "$end_marker" "$file" 2>/dev/null || true)
+  begin_count=${begin_count:-0}
+  end_count=${end_count:-0}
+  if [ "$begin_count" -eq 0 ] || [ "$end_count" -eq 0 ]; then
+    for other in "${ANCHOR_FILES[@]}"; do
+      [ "$other" = "$file" ] && continue
+      if [ -f "$other" ] && grep -Fxq -- "$begin_marker" "$other" 2>/dev/null; then
+        fail "ANCHOR_WRONG_FILE: $artifact $id: begin marker found in $other, not in its owning file"
+        return
+      fi
+    done
+    fail "ANCHOR_MISSING: $artifact $id: owning file has begin=$begin_count end=$end_count"
+    return
+  fi
+  if [ "$begin_count" -gt 1 ] || [ "$end_count" -gt 1 ]; then
+    fail "ANCHOR_DUPLICATE: $artifact $id: owning file has begin=$begin_count end=$end_count"
+    return
+  fi
+  first=$(grep -Fxn -- "$begin_marker" "$file" 2>/dev/null | head -n1 | cut -d: -f1)
+  last=$(grep -Fxn -- "$end_marker" "$file" 2>/dev/null | head -n1 | cut -d: -f1)
+  if [ -z "$first" ] || [ -z "$last" ] || [ "$first" -ge "$last" ]; then
+    fail "ANCHOR_UNORDERED: $artifact $id: begin line $first is not before end line $last"
+    return
+  fi
+  if ! body=$(anchor_block_body "$file" "$id"); then
+    fail "ANCHOR_UNORDERED: $artifact $id: marker pair could not be extracted from the owning file"
+    return
+  fi
+  substantive=$(printf '%s\n' "$body" | awk '
+    /^[[:space:]]*$/ { next }
+    /^[[:space:]]*#/ { next }
+    /^[[:space:]]*<!--/ { next }
+    { count++ }
+    END { print count + 0 }
+  ')
+  if [ "${substantive:-0}" -eq 0 ]; then
+    fail "ANCHOR_EMPTY: $artifact $id: interior empty after comments, headings and whitespace"
+    return
+  fi
+  if ! printf '%s\n' "$body" | grep -Fq -- "$keystone" 2>/dev/null; then
+    fail "ANCHOR_KEYSTONE_MISSING: $artifact $id: keystone literal absent from block interior"
+  fi
+}
+
+ANCHOR_MANIFEST=(
+  "workflow.project-registration~$WORKFLOW~WORKFLOW.md~host_register_project"
+  "workflow.technical-lead~$WORKFLOW~WORKFLOW.md~gentle-orchestrator"
+  "workflow.odd-delegation~$WORKFLOW~WORKFLOW.md~odd/tasks/<feature-name>.md"
+  "workflow.odd-protocol~$WORKFLOW~WORKFLOW.md~ODD_TASKS key=odd/{project}/{feature-name}/tasks"
+  "workflow.route-decision~$WORKFLOW~WORKFLOW.md~basis: WORKFLOW.md"
+  "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~authored_changed_lines"
+  "workflow.skill-routing-search~$WORKFLOW~WORKFLOW.md~EXTERNAL_CONTEXT_REQUIRED"
+  "workflow.execution-boundary~$WORKFLOW~WORKFLOW.md~gentle-ai-verify"
+  "workflow.context-backend~$WORKFLOW~WORKFLOW.md~document-review"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~review.acknowledge-approved"
+  "workflow.frontend-lane~$WORKFLOW~WORKFLOW.md~subagent_depth: 3"
+  "workflow.execution-skills~$WORKFLOW~WORKFLOW.md~test-driven-development"
+  "workflow.astra-escalation~$WORKFLOW~WORKFLOW.md~astra-sol-upgrade.ts"
+  "workflow.session-defaults~$WORKFLOW~WORKFLOW.md~ctx_reduce"
+  "workflow.prove-out~$WORKFLOW~WORKFLOW.md~R12"
+  "workflow.odd-and-review.odd-delegation~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~route: delegated"
+  "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~ODD_TASKS key=odd/{project}/{feature-name}/tasks"
+  "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~authored_changed_lines"
+  "workflow.odd-and-review.native-rdd~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~lens_context_budget_exceeded"
+  "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~GENTLE_AI_REVIEW_CONTEXT"
+  "workflow.route-skill.route-statement~$ROUTER_SKILLS_SOURCE/workflow-route/SKILL.md~global-config/skills/workflow-route/SKILL.md~workflow-odd-secure"
+  "workflow.session-decisions.shell~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Fish shell"
+  "workflow.session-decisions.coding-model~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~gentle-ai-worker-local"
+  "workflow.session-decisions.astra~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~openai/gpt-6.1-sol"
+  "workflow.session-decisions.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~GENTLE_AI_REVIEW_CONTEXT"
+  "workflow.session-decisions.reviewability-budget~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~authored_patch_bytes"
+  "workflow.session-decisions.upstream-lifecycle~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~last_synced_at"
+  "workflow.session-decisions.project-registration~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~BROKER_PROJECTS"
+  "workflow.session-decisions.technical-lead~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~gentle-orchestrator"
+  "workflow.specialists.routing-precedence~$ROUTER_SKILLS_SOURCE/workflow-systematic/references/specialists.md~global-config/skills/workflow-systematic/references/specialists.md~systematic-implementer"
+  "workflow.specialists.sandbox-mutation~$ROUTER_SKILLS_SOURCE/workflow-systematic/references/specialists.md~global-config/skills/workflow-systematic/references/specialists.md~sandbox_apply_patch"
+  "workflow.agents.secure-router~$AGENTS_SOURCE~global-config/AGENTS.md~skill({name:\"workflow-route\"})"
+)
+ANCHOR_FAIL_BEFORE=${#FAIL_MESSAGES[@]}
+for anchor_row in "${ANCHOR_MANIFEST[@]}"; do
+  IFS='~' read -r anchor_id anchor_file anchor_label anchor_key <<< "$anchor_row"
+  anchor_check_row "$anchor_id" "$anchor_file" "$anchor_label" "$anchor_key"
+done
+if [ "${#FAIL_MESSAGES[@]}" -eq "$ANCHOR_FAIL_BEFORE" ]; then
+  echo "   ok: ${#ANCHOR_MANIFEST[@]} stable anchor blocks validated in their owning files"
+fi
+
 if [ ! -f "$WORKFLOW" ]; then
   fail "WORKFLOW.md missing: $WORKFLOW"
 else
@@ -4334,79 +4470,50 @@ else
     fail "missing keywords:$MISSING_KW"
   fi
 
-  REVIEW_BUDGET_REF="$SKILLS_DIR/workflow-odd-secure/references/odd-and-review.md"
-  REVIEW_DECISIONS_REF="$SKILLS_DIR/workflow-route/references/session-decisions.md"
-  if grep -Fq -- '`authored_changed_lines`' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- '`authored_patch_bytes`' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- '`generated_or_binary_paths`' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- '400 authored changed lines and 100 KiB' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- '200 KiB serialized per-runtime review-input budget' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- '`review-size-exception`' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- '`lens_context_budget_exceeded`' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- '`correction_context_budget_exceeded`' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- '`review capture-result --input`, `review recover`' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- 'separate PR/slice planning threshold' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- '400 authored changed lines and 100 KiB' "$REVIEW_BUDGET_REF" 2>/dev/null && \
-     grep -Fq -- '200 KiB serialized per-runtime review-input budget' "$REVIEW_BUDGET_REF" 2>/dev/null && \
-     grep -Fq -- 'Gentle AI 3.4 reviewability budget' "$REVIEW_DECISIONS_REF" 2>/dev/null && \
-     grep -Fq -- 'staged reviewability receipt' "$AGENTS_FILE" 2>/dev/null && \
-     grep -Fq -- 'final 200 KiB serialized-input authority' "$AGENTS_FILE" 2>/dev/null; then
+  # Q26: the review-budget chain keeps only contractual literals (receipt
+  # fields, caps, error codes, split/abandon commands), each scoped inside its
+  # owning anchor; the prose sentence "separate PR/slice planning threshold"
+  # and the session-decisions heading are covered by the anchor checker.
+  if anchor_has "$WORKFLOW" workflow.work-unit-review '`authored_changed_lines`' && \
+     anchor_has "$WORKFLOW" workflow.work-unit-review '`authored_patch_bytes`' && \
+     anchor_has "$WORKFLOW" workflow.work-unit-review '`generated_or_binary_paths`' && \
+     anchor_has "$WORKFLOW" workflow.work-unit-review '400 authored changed lines and 100 KiB' && \
+     anchor_has "$WORKFLOW" workflow.work-unit-review '200 KiB serialized per-runtime review-input budget' && \
+     anchor_has "$WORKFLOW" workflow.work-unit-review '`review-size-exception`' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd '`lens_context_budget_exceeded`' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd '`correction_context_budget_exceeded`' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd '`review capture-result --input`, `review recover`' && \
+     anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.work-unit-review '400 authored changed lines and 100 KiB' && \
+     anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.work-unit-review '200 KiB serialized per-runtime review-input budget' && \
+     anchor_has "$AGENTS_FILE" workflow.agents.secure-router 'final 200 KiB serialized-input authority'; then
     echo "   ok: Gentle AI 3.4 review-input budget limits work-unit commit size"
   else
     fail "GENTLE_AI_V3_4_REVIEWABILITY_BUDGET_MISSING: staged commit receipt, local cap, native 200 KiB authority, or split/abandon route absent"
   fi
 
-  if grep -q -- "## Orchestrator Execution Boundary" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "no direct-inline implementation route" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "explore.*researcher fallback" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "general.*sandbox worker fallback" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "## Context and Artifact Backend" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "defaulting to Magic Context" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "Ordinary working agents may persist durable knowledge" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "review.*document-review.*may not" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "Secure Project Registration — Pre-Routing Gate" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "host_register_project" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "Orchestrator Technical-Lead Contract" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "implementation contract" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "frontend-dev-premium" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "Model assignments are authoritative" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "gentle-ai review assess --json" "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- "Do not leave the evidence update uncommitted" "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- "## Mandatory ODD delegation" "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- "## Skill-based route loading and long-chat resume" "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- "controlled pilot" "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- "two or more non-trivial files" "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- "more than about 5 sequential lookups" "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- "route/trigger evidence" "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- "gentle-ai review mode enable|disable|status" "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- "tell the user in one line which" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "ODD_TASKS key=odd/{project}/{feature-name}/tasks" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "Systematic v3.18.4.*workflow-guard" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "Risk, Resilience, Readability, Reliability" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "status/v8" "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- 'candidate.consumed' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- 'review_due_reason' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- 'next_transition.command' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- 'provider_task.agent' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- 'provider_task.prompt' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- "reviewer's raw JSON object" "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- 'grouped wave without waiting between launches' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- 'correction_context_budget_exceeded' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- '## 4R review lane routing (mandatory)' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- '`review-<lens>` → `asi-review-<lens>`' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- 'Forward the provider-issued task line verbatim' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- 'TRANSPORT-LANE FAILURE' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- 're-dispatch through the mapped `asi-review-*` lane' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- 'two transports cannot own one Task' "$WORKFLOW" 2>/dev/null && \
-     grep -Fq -- 'Never grant review lanes to implementation workers or isolated reviewers' "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "eligible_untracked_inventory" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "## Per-session Sol-to-Astra escalation" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "astra-sol-upgrade.ts" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "It never writes implementation code" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "selection never edits global config or requires an OpenCode restart" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "review.acknowledge-approved" "$WORKFLOW" 2>/dev/null && \
+  # Q26: this 50-predicate prose chain collapses to its contractual literals
+  # (tool names, markers, protocol fields, sentinels), each pinned inside its
+  # owning anchor block. The negative absence check at the end is unchanged.
+  if anchor_has "$WORKFLOW" workflow.project-registration 'host_register_project' && \
+     anchor_has "$WORKFLOW" workflow.frontend-lane 'frontend-dev-premium' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd 'gentle-ai review assess --json' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd 'gentle-ai review mode enable|disable|status' && \
+     anchor_has "$WORKFLOW" workflow.odd-protocol 'ODD_TASKS key=odd/{project}/{feature-name}/tasks' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd 'Risk, Resilience, Readability, Reliability' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd 'status/v8' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd 'candidate.consumed' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd 'review_due_reason' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd 'next_transition.command' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd 'provider_task.agent' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd 'provider_task.prompt' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd 'correction_context_budget_exceeded' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd '`review-<lens>` → `asi-review-<lens>`' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd 'TRANSPORT-LANE FAILURE' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd 'eligible_untracked_inventory' && \
+     anchor_has "$WORKFLOW" workflow.astra-escalation 'astra-sol-upgrade.ts' && \
+     anchor_has "$WORKFLOW" workflow.native-rdd 'review.acknowledge-approved' && \
      ! grep -q -- "frontend-dev.*=.*openai/gpt-6.1-sol" "$WORKFLOW" 2>/dev/null && \
-     grep -q -- "Fish shell" "$WORKFLOW" 2>/dev/null; then
+     anchor_has "$WORKFLOW" workflow.project-registration 'Fish shell'; then
     echo "   ok: workflow encodes read-only technical leadership, Magic Context, secure project registration, and Fish-shell UX"
   else
     fail "workflow missing read-only orchestrator / delegated researcher-worker execution contract"
@@ -4498,8 +4605,10 @@ else
   fail "AGENTS_BOUNDED_BLOCK_DRIFT: reviewed CodeGraph, cancellation or search-tool block differs from active AGENTS.md"
 fi
 
-if grep -Fq -- 'prefer narrow read-only tools (ENFORCED)' "$AGENTS_FILE" 2>/dev/null && \
-   grep -Fq -- 'built-in `grep` remains `ask`-gated' "$AGENTS_FILE" 2>/dev/null && \
+# Q26: these two blocks are byte-compared by PY_COMPARE_BOUNDED, so read the
+# reviewed source directly instead of the deployed copy's redundant content.
+if grep -Fq -- 'prefer narrow read-only tools (ENFORCED)' "$AGENTS_SOURCE" 2>/dev/null && \
+   grep -Fq -- 'built-in `grep` remains `ask`-gated' "$AGENTS_SOURCE" 2>/dev/null && \
    grep -Fq -- 'SEARCH CONTRACT: AFT=navigation' "$SKILLS_DIR/workflow-route/SKILL.md" 2>/dev/null && \
    grep -Fq -- 'all subagents have it disabled' "$WORKFLOW" 2>/dev/null && \
    grep -Fq -- 'EXTERNAL_CONTEXT_REQUIRED' "$WORKFLOW" 2>/dev/null; then
@@ -4508,10 +4617,10 @@ else
   fail "SEARCH_TOOL_ROUTING_DRIFT: reviewed search-tool order or grep ask boundary missing"
 fi
 
-if grep -Fq -- '.atl/rate-limit-fallback.log' "$AGENTS_FILE" 2>/dev/null && \
-   ! grep -Fq -- '.git/gentle-ai/rate-limit-fallback.log' "$AGENTS_FILE" 2>/dev/null && \
-   grep -Fq -- 'never substitute the shared OpenCode server cwd' "$AGENTS_FILE" 2>/dev/null && \
-   grep -Fq -- 'separate from the workflow decision ledger `ROUTER-LOG.md`' "$AGENTS_FILE" 2>/dev/null; then
+if grep -Fq -- '.atl/rate-limit-fallback.log' "$AGENTS_SOURCE" 2>/dev/null && \
+   ! grep -Fq -- '.git/gentle-ai/rate-limit-fallback.log' "$AGENTS_SOURCE" 2>/dev/null && \
+   grep -Fq -- 'never substitute the shared OpenCode server cwd' "$AGENTS_SOURCE" 2>/dev/null && \
+   grep -Fq -- 'separate from the workflow decision ledger `ROUTER-LOG.md`' "$AGENTS_SOURCE" 2>/dev/null; then
   echo "   ok: fallback reconciliation uses the exact session repo .atl mirror"
 else
   fail "FALLBACK_REPO_LOG_ROUTING_DRIFT: canonical .atl mirror or fail-closed session routing missing"
@@ -4556,18 +4665,11 @@ fi
 # Gentle AI v3 renders its native ODD guidance with a specific heading, but
 # sync does not guarantee that that prose appears in this global AGENTS.md.
 # Our reviewed user-owned block is the effective secure adapter: it delegates
-# project writes and mirrors ODD to Magic Context instead of Engram. The
-# canonical marker/body is checked separately above; require the actual ODD
-# protocol and route decision here, independent of vendor heading placement.
-if grep -Fq -- '## Secure workflow router (MANDATORY)' "$AGENTS_FILE" 2>/dev/null && \
-   grep -Fq -- 'skill({name:"workflow-route"})' "$AGENTS_FILE" 2>/dev/null && \
-   grep -Fq -- '### Mandatory ODD delegation (SECURE)' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'two or more non-trivial files' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'more than about 5 sequential lookups' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'route/trigger evidence' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- '### Secure ODD protocol (MANDATORY)' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'Every request follows **Authorize → Explore → Resolve uncertainty → Classify → Track → Implement → Close**' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'basis: WORKFLOW.md' "$ROUTING_CONTRACT" 2>/dev/null; then
+# project writes and mirrors ODD to Magic Context instead of Engram. Q26: the
+# block's own structure is validated by the owning-anchor checker; keep only
+# the runtime router keystone and the WORKFLOW.md route-decision literal here.
+if anchor_has "$AGENTS_FILE" workflow.agents.secure-router 'skill({name:"workflow-route"})' && \
+   anchor_has "$ROUTE_SKILL_REF" workflow.route-skill.route-statement 'basis: WORKFLOW.md'; then
   echo "   ok: authoritative secure ODD route and WORKFLOW.md decision are present"
   if ! grep -Fq -- 'ODD protocol (MANDATORY, in this order, on every request)' "$ROUTING_CONTRACT" 2>/dev/null; then
     echo "   info: upstream managed ODD prose absent from global AGENTS.md; secure user-owned v3 route is effective"
@@ -4576,47 +4678,26 @@ else
   fail "GENTLE_AI_V3_SECURE_ODD_ROUTING_MISSING: reviewed user-owned ODD block or WORKFLOW.md route decision missing from active AGENTS.md; run --recover-config-only"
 fi
 
-if grep -q -- "Sandbox-only project mutation" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "gentle-orchestrator.*strictly read-only coordinator" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "explore.*read-only researcher fallback" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "general.*sandbox worker fallback" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Magic Context manages context for the whole session" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Secure project registration (pre-routing gate)" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "host_register_project.*single approved model-facing registration route" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Orchestrator technical-lead responsibility" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "implementation contract" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -qi -- "read-only.*authority.*reasoning" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "gentle-ai review assess --json" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "ODD_TASKS key=odd/{project}/{feature-name}/tasks" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- "basis: WORKFLOW.md" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- "gentle-ai review mode enable|disable|status" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- "tell the user in one line which" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- "--base-ref <last reviewed boundary> --committed-only --json" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Systematic v3.18.4.*workflow-guard" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Risk, Resilience, Readability, Reliability" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "status/v8" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'candidate.consumed' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'review_due_reason' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'next_transition.command' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'provider_task.agent' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'provider_task.prompt' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- "reviewer's raw JSON object" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'grouped wave without waiting between launches' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'correction_context_budget_exceeded' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- '4R review lane routing (mandatory)' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'Forward the provider-issued task line verbatim' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'TRANSPORT-LANE FAILURE' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 're-dispatch through the mapped `asi-review-*` lane' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'two transports cannot own one Task' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -Fq -- 'never grant review lanes to implementation workers or isolated reviewers' "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "eligible_untracked_inventory" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Coding Model Decision (MANDATORY)" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Sol-to-Astra upgrade decision (MANDATORY)" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Use Astra upgrade (Recommended)" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Astra is never an implementation agent" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Selection must not edit .*systematic.jsonc" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "review.acknowledge-approved" "$ROUTING_CONTRACT" 2>/dev/null && \
-   grep -q -- "Fish shell" "$ROUTING_CONTRACT" 2>/dev/null; then
+# Q26: the assembled-contract chain keeps only contractual literals, each
+# scoped to its owning anchor block in the reviewed source or its deployed
+# byte-copy. Prose predicates are covered by the owning-anchor checker.
+if anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.odd-protocol 'ODD_TASKS key=odd/{project}/{feature-name}/tasks' && \
+   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.native-rdd 'gentle-ai review assess --json' && \
+   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.native-rdd 'gentle-ai review mode enable|disable|status' && \
+   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.work-unit-review '--base-ref <last reviewed boundary> --committed-only --json' && \
+   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.native-rdd 'status/v8' && \
+   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.work-unit-review 'candidate.consumed' && \
+   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.work-unit-review 'review_due_reason' && \
+   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.work-unit-review 'next_transition.command' && \
+   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.native-rdd 'provider_task.agent' && \
+   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.native-rdd 'provider_task.prompt' && \
+   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.native-rdd 'correction_context_budget_exceeded' && \
+   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.native-rdd 'eligible_untracked_inventory' && \
+   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.4r-lanes 'Risk, Resilience, Readability, Reliability' && \
+   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.4r-lanes 'TRANSPORT-LANE FAILURE' && \
+   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.4r-lanes 'review.acknowledge-approved' && \
+   anchor_has "$SESSION_DECISIONS_REF" workflow.session-decisions.astra 'Use Astra upgrade (Recommended)' && \
+   anchor_has "$SESSION_DECISIONS_REF" workflow.session-decisions.shell 'Fish shell'; then
   echo "   ok: sandbox/read-only/Magic-Context + technical-lead + secure-project-registration + Fish-shell contract present"
 else
   fail "sandbox-only mutation/read-only orchestrator/researcher-worker/Magic Context contract missing"
