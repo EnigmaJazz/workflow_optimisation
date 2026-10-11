@@ -1,6 +1,6 @@
 # Q26 — Stable anchors for the verifier's prose assertions
 
-Metadata: Feature: gentle-ai v4 upgrade / queue Q26 (stable anchors). Task ID: q26-stable-anchors (stable). Class: global-tooling-change. Route: `workflow-odd-secure` (delegated). Unit status: T0 IN PROGRESS (tracker created; T1 docs anchors and T2 verifier checker pending). Model: cloud `opencode-go/deepseek-v4.1-flash` (owner decision 2026-10-07). Ordering: Q26 lands BEFORE Q04 (Q04 owns the verifier split and must preserve the anchor checker).
+Metadata: Feature: gentle-ai v4 upgrade / queue Q26 (stable anchors). Task ID: q26-stable-anchors (stable). Class: global-tooling-change. Route: `workflow-odd-secure` (delegated). Unit status: T1 DONE-AT-SOURCE (committed; medium risk, review not due — under budget). T2 pending. Model: cloud `opencode-go/deepseek-v4.1-flash` (owner decision 2026-10-07). Ordering: Q26 lands BEFORE Q04 (Q04 owns the verifier split and must preserve the anchor checker).
 
 ## Objective
 
@@ -40,12 +40,14 @@ T1: `WORKFLOW.md`, `global-config/AGENTS.md` (source), `global-config/skills/wor
 
 ## Tasks
 
-- [ ] T1 — docs-only anchors: add the paired markers + keystone tokens around the load-bearing blocks in `WORKFLOW.md` and the three `workflow-*` skills/references (source), sync `global-config/AGENTS.md` where its routing block is anchored, and correct the stale `docs/TODO.md:392-399` figures ("~15 literals", "4,772 lines / 13 functions"). No `verify-workflow.sh` edit, therefore NO re-pin; every existing grep still passes, so this is a green intermediate state.
+- [x] T1 — docs-only anchors: add the paired markers + keystone tokens around the load-bearing blocks in `WORKFLOW.md` and the three `workflow-*` skills/references (source), sync `global-config/AGENTS.md` where its routing block is anchored, and correct the stale `docs/TODO.md:392-399` figures ("~15 literals", "4,772 lines / 13 functions"). No `verify-workflow.sh` edit, therefore NO re-pin; every existing grep still passes, so this is a green intermediate state.
 - [ ] T2 — verifier: add the artifact-specific anchor checker (exactly-one begin/end, ordered, non-empty interior, keystone present, owning-file scope); migrate the load-bearing long chains (`:4339-4353`, `:4359-4409`, `:4562-4570`, `:4579-4619`); RE-TARGET the AGENTS greps already covered by `PY_COMPARE_BOUNDED` (`:4501-4505`, `:4511-4514`) at `$AGENTS_SOURCE`/`$ROUTING_CANONICAL`; PRESERVE the negative checks, the deployment-equality block, the task classes and the R1–R14 numbering; add the fixture-based positive/negative/regression controls; re-pin `VERIFY_SCRIPT_SHA256` LAST and prove coherence.
 
 ## Progress
 
 - 2026-10-11: T0 — tracker and advice record created. Route: delegated. No source edit yet. Scope settled from two pre-code advisories (see `odd/advice/q26-stable-anchors.md`): migrate the load-bearing prose chains, re-target the redundant AGENTS greps, preserve the negative and equality checks.
+- 2026-10-11: T1 committed `65beb19` (6 files, +66/−3). Added 31 paired anchor blocks around the prose-asserted doc blocks (15 WORKFLOW.md; 5 odd-and-review.md; 1 workflow-route/SKILL.md; 8 session-decisions.md; 2 specialists.md), mapping 32 assertions to 31 blocks; every block carries a keystone token. Additive only — no verifier edit, so no re-pin and no behaviour change yet. Also corrected the stale `docs/TODO.md` Q26 figures (~15 literals → ~170 predicates; 4,772/13/1231 → 5,008/14/1,276). DELIBERATE EXCLUSION: the AGENTS.md `## Secure workflow router (MANDATORY)` block is not anchored here — its bytes must equal the verifier heredoc (`:1305-1319`, byte-compared at `:4453-4472`), so it belongs to T2.
+- 2026-10-11: T1 evidence — 132/132 literals still present after the edit (0 miss); anchor integrity 31/31; positive control (deleting `workflow.prove-out:begin` fails a count==1 probe, restoring passes byte-identical); routing-guard 96/0.
 
 ## Route / trigger evidence
 
@@ -53,4 +55,4 @@ Route: delegated. Specialist: `odd-apply` writer (direct; PM layer unusable — 
 
 ## Next step
 
-T1 (docs-only anchors, no re-pin), then T2 (the verifier checker + re-pin), each as its own commit; then the owner's deployment (mirror + restart) and a re-verify.
+T2 (the artifact-specific anchor checker + migration of the four chains + re-targeting the AGENTS greps + anchoring the AGENTS router block via the heredoc + fixture controls + `VERIFY_SCRIPT_SHA256` re-pinned LAST); then the owner's deployment (mirror + restart) and a re-verify.

@@ -384,7 +384,8 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
   - Drop the file-mode defect if listed (fixed).
 
 ### Q26. Verifier prose coupling
-- **Status:** READY.
+- **Status:** IN PROGRESS — T1 (docs anchors) DONE-AT-SOURCE (commit `65beb19`, 31 anchor blocks); T2 (verifier checker + re-pin) pending.
+- **Deferred (T2):** the `AGENTS.md` `## Secure workflow router (MANDATORY)` block is not anchored in T1 — its bytes must equal the verifier heredoc (`verify-workflow.sh:1305-1319`, byte-compared at `:4453-4472`), so anchoring it requires a verifier edit + re-pin.
 - **Prerequisites:** none. Do it with or before Q04; the split must preserve whatever contract
   replaces the literals.
 - **Source:** advisor-maintainability (`docs/TODO-HISTORY.md` "2026-10-01 — Advisor dispatch verification PASSED").
@@ -971,6 +972,7 @@ Release facts that drive the group:
   `docs/specs/changeset-tool.md` v1.3, 72 tests, three native reviews approved (tracker
   `odd/tasks/changeset-tool.md`; follow-up T5). The v4 change-set CONTENT is authored at upgrade
   time (Q30-Q33), per the build-late rule.
+- Status note (2026-10-11): the TOOL is DONE; the CONTENT is build-late by design (docs/specs/changeset-tool.md:17). Q30–Q33, Q35, Q38 are committed to feat/gentle-ai-v4 and Q39's gate is deferred, so the only content Q36 still carries at upgrade time is the NON-GIT surfaces (live ~/.config/opencode, ~/.claude/CLAUDE.md, gentle-ai-managed blocks). Nothing is authorable inside the repo now; no re-pin.
 - **Prerequisites:** Q29 (the changes to encode); Q26 (stable anchors make markdown edits
   addressable).
 - **Source:** owner, 2026-10-01: build it all non-destructively, with a simple process to insert
