@@ -904,14 +904,11 @@ def canonical_block(start, end):
 
 codegraph_start = "<!-- gentle-ai:codegraph-guidance -->"
 codegraph_end = "<!-- /gentle-ai:codegraph-guidance -->"
-host_start = "<!-- user:host-sdd-runtime-boundaries -->"
-host_end = "<!-- /user:host-sdd-runtime-boundaries -->"
 cancel_start = "<!-- gentle-ai:subagent-cancellation -->"
 cancel_end = "<!-- /gentle-ai:subagent-cancellation -->"
 search_start = "<!-- user:grep-tool-enforcement -->"
 search_end = "<!-- /user:grep-tool-enforcement -->"
 canonical_codegraph = canonical_block(codegraph_start, codegraph_end)
-canonical_host = canonical_block(host_start, host_end)
 canonical_cancel = canonical_block(cancel_start, cancel_end)
 canonical_search = canonical_block(search_start, search_end)
 
@@ -983,21 +980,23 @@ try:
                               canonical_cancel, "<!-- user:grep-tool-enforcement -->")
     new_text = replace_marked(new_text, search_start, search_end,
                               canonical_search, "<!-- user:workflow-routing -->")
-    if new_text.count(host_start) == new_text.count(host_end) == 0:
-        legacy_heading = "### Host-side SDD runtime and review boundaries\n"
-        if new_text.count(legacy_heading) == 1:
-            a = new_text.index(legacy_heading)
-            b = new_text.find("\n## Personality", a)
-            if b < 0:
-                raise ValueError("host SDD runtime section has no Personality boundary")
-            new_text = new_text[:a] + canonical_host + new_text[b:]
-        elif new_text.count(legacy_heading) == 0:
-            new_text = replace_marked(new_text, host_start, host_end,
-                                      canonical_host, "## Personality")
-        else:
-            raise ValueError("multiple unmarked host SDD runtime sections")
+    # gentle-ai v4 retired the host SDD runtime block. Converge the deployed
+    # file by REMOVAL only; never re-insert a canonical copy. Zero markers is a
+    # no-op; one correct pair is deleted with its trailing newlines; anything
+    # ambiguous (differing counts or reversed order) fails closed.
+    retired = ("<!-- user:host-sdd-runtime-boundaries -->", "<!-- /user:host-sdd-runtime-boundaries -->")
+    hs = new_text.count(retired[0])
+    he = new_text.count(retired[1])
+    if hs == 0 and he == 0:
+        pass
+    elif hs == 1 and he == 1 and new_text.index(retired[0]) < new_text.index(retired[1]):
+        a = new_text.index(retired[0])
+        b = new_text.index(retired[1], a) + len(retired[1])
+        while b < len(new_text) and new_text[b] == "\n":
+            b += 1
+        new_text = new_text[:a] + new_text[b:]
     else:
-        new_text = replace_marked(new_text, host_start, host_end, canonical_host)
+        raise ValueError(f"ambiguous host SDD runtime boundaries markers ({hs} starts, {he} ends)")
 except ValueError as exc:
     print(f"error\tAGENTS bounded-section recovery refused: {exc}")
     raise SystemExit(0)
@@ -1311,7 +1310,7 @@ This global user-owned block is a lightweight entrypoint. Keep `/home/james/ai-w
 
 Before any writer, establish explicit change intent, and check project registration using only the reviewed `host_register_project` path when required. The `gentle-orchestrator` is a read-only technical lead: no host Bash or project edit/write, no sandbox mutation/lifecycle authority. Every project mutation/execution goes to an authorized sandbox worker, including an upstream inline one-file fix. Do not weaken `grep: ask` or the host/sandbox permission overlays. Read-only requests have no writer or ODD tracker.
 
-Use the router's selected adapters: `workflow-odd-secure` for authorized default ODD, `workflow-sdd-secure` only when SDD is explicitly requested or accepted, and `workflow-systematic` when the route invokes its installed skills. The selected Systematic, SDD, frontend and review skills keep their named agent precedence. No file-count or risk threshold automatically selects SDD. For substantial ODD record route/trigger evidence and actual Task dispatch in the task file and complete Magic Context mirror before claiming progress; on long-chat resume read both. Any commit intended for native RDD must carry the staged reviewability receipt and obey the local per-commit line/byte cap defined by `workflow-odd-secure`; native Gentle AI START remains the final 200 KiB serialized-input authority. Gentle AI 3.5 RDD defaults on when unset: read effective mode and deciding source per project; never toggle it automatically, and honor explicit off. Native review remains user-owned and separate from SDD. Fail closed when the requested specialist or safe tool surface is unavailable.
+Use the router's selected adapters: `workflow-odd-secure` for authorized default ODD, and `workflow-systematic` when the route invokes its installed skills. The selected Systematic, frontend and review skills keep their named agent precedence. No file-count or risk threshold automatically selects SDD. For substantial ODD record route/trigger evidence and actual Task dispatch in the task file and complete Magic Context mirror before claiming progress; on long-chat resume read both. Any commit intended for native RDD must carry the staged reviewability receipt and obey the local per-commit line/byte cap defined by `workflow-odd-secure`; native Gentle AI START remains the final 200 KiB serialized-input authority. RDD defaults on when unset: read effective mode and deciding source per project; never toggle it automatically, and honor explicit off. Native review remains user-owned and separate. Fail closed when the requested specialist or safe tool surface is unavailable.
 
 Before coding, honor the per-project/session local-vs-cloud writing-model choice already specified in the canonical recipe; never silently reuse an unknown decision. Astra is a user-selectable upgrade only for Sol-assigned non-implementation phases on extremely critical changes; recommend it with a concrete reason and never assign it to an implementation worker or edit global config to select it. The active model and plugin permissions remain in `opencode.json`.
 
@@ -2774,6 +2773,26 @@ function assertCfgWriter(name) {
 }
 for (const name of ["frontend-apply","frontend-apply-local","general","jd-fix-agent","odd-apply","gentle-ai-worker","gentle-ai-worker-local"]) assertCfgWriter(name)
 
+// gentle-ai v4 generic agents: registration + tool shape. The two writers are
+// fully covered by assertCfgWriter above; the read-only explorer and the
+// read-only verifier that may only run sandbox_bash must expose exactly those
+// tools and no mutation surface.
+const v4GenericAgents=["gentle-ai-explore","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify"]
+for (const name of v4GenericAgents) if (!deployedAgents[name]) fail(`V4_GENERIC_AGENT_TOOL_MISSING: ${name} is not registered`)
+const v4ReadTools=["sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"]
+const v4MutationTools=["sandbox_edit","sandbox_write","sandbox_apply_patch","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]
+for (const name of v4ReadTools) {
+  if (cfgTool(deployedAgents["gentle-ai-explore"],name)!==true) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-explore.${name}`)
+  if (cfgTool(deployedAgents["gentle-ai-verify"],name)!==true) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-verify.${name}`)
+}
+for (const name of ["sandbox_bash",...v4MutationTools]) {
+  if (cfgTool(deployedAgents["gentle-ai-explore"],name)!==false) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-explore.${name} must be false`)
+}
+if (cfgTool(deployedAgents["gentle-ai-verify"],"sandbox_bash")!==true) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-verify.sandbox_bash`)
+for (const name of v4MutationTools) {
+  if (cfgTool(deployedAgents["gentle-ai-verify"],name)!==false) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-verify.${name} must be false`)
+}
+
 const pmAgents=["pm-odd","pm-systematic","pm-sdd"]
 const pmAndAgents=[...pmAgents]
 const pmNoExecutionTools=["sandbox_write","sandbox_edit","sandbox_apply_patch","sandbox_apply","sandbox_bash","sandbox_finish","sandbox_discard","sandbox_copy_in","sandbox_copy_out","bash","edit","write"]
@@ -2788,6 +2807,27 @@ for (const name of pmAndAgents) {
     if (Object.prototype.hasOwnProperty.call(pm.tools??{},t) || Object.prototype.hasOwnProperty.call(pm.permission??{},t)) {
       fail(`PM_SANDBOX_READ_TOOL_PRESENT: ${name}.${t}`)
     }
+  }
+}
+
+// gentle-ai v4 retired SDD. No `sdd-*` agent may reappear, no `host_sdd_*`
+// read may stay in registeredHostReads, and every `host_sdd_*` permission must
+// stay `deny` for the global defaults, the orchestrator and every pm-*
+// coordinator. Because those reads are deliberately NOT in registeredHostReads
+// (which requires `allow`), this deny assertion is their only authority.
+for (const name of registeredHostReads) if (name.startsWith("host_sdd_")) fail(`HOST_SDD_READ_STILL_REGISTERED: ${name}`)
+for (const name of Object.keys(deployedAgents)) if (name.startsWith("sdd-")) fail(`SDD_AGENT_REAPPEARED: ${name}`)
+const hostSddNames=Object.keys(gp).filter((name)=>name.startsWith("host_sdd_")).sort()
+for (const name of hostSddNames) {
+  if (gp[name]!=="deny") fail(`HOST_SDD_PERMISSION_NOT_DENY: <global defaults>.${name}=${show(gp[name])}`)
+}
+for (const scopeName of ["gentle-orchestrator",...pmAgents]) {
+  const scopeAgent=deployedAgents[scopeName]
+  if (!scopeAgent) { fail(`HOST_SDD_PERMISSION_NOT_DENY: ${scopeName} is not registered`); continue }
+  const scopePermission=scopeAgent.permission && typeof scopeAgent.permission==="object" ? scopeAgent.permission : {}
+  for (const name of hostSddNames) {
+    const value=hasOwn(scopePermission,name) ? scopePermission[name] : gp[name]
+    if (value!=="deny") fail(`HOST_SDD_PERMISSION_NOT_DENY: ${scopeName}.${name}=${show(value)}`)
   }
 }
 const reviewRelayAgents=[
@@ -4422,7 +4462,6 @@ active = Path(sys.argv[1]).read_text(encoding="utf-8")
 source = Path(sys.argv[2]).read_text(encoding="utf-8")
 for start,end in (
     ("<!-- gentle-ai:codegraph-guidance -->", "<!-- /gentle-ai:codegraph-guidance -->"),
-    ("<!-- user:host-sdd-runtime-boundaries -->", "<!-- /user:host-sdd-runtime-boundaries -->"),
     ("<!-- gentle-ai:subagent-cancellation -->", "<!-- /gentle-ai:subagent-cancellation -->"),
     ("<!-- user:grep-tool-enforcement -->", "<!-- /user:grep-tool-enforcement -->"),
 ):
@@ -4436,9 +4475,9 @@ for start,end in (
         raise SystemExit(1)
 PY_COMPARE_BOUNDED
 then
-  echo "   ok: CodeGraph, host SDD, cancellation and search-tool blocks match reviewed source"
+  echo "   ok: CodeGraph, cancellation and search-tool blocks match reviewed source"
 else
-  fail "AGENTS_BOUNDED_BLOCK_DRIFT: reviewed CodeGraph, host SDD, cancellation or search-tool block differs from active AGENTS.md"
+  fail "AGENTS_BOUNDED_BLOCK_DRIFT: reviewed CodeGraph, cancellation or search-tool block differs from active AGENTS.md"
 fi
 
 if grep -Fq -- 'prefer narrow read-only tools (ENFORCED)' "$AGENTS_FILE" 2>/dev/null && \
