@@ -25,6 +25,8 @@ Project registration is environment bootstrap, not a task class. Run this gate *
 - **Idempotence:** re-registration must be safe and should report existing/skipped entries rather than duplicate them.
 - **Activation:** after the tool returns, the user restarts `sandbox-broker.service` and `secure-opencode.service`; `openchamber-secure` does not require restart. Registration is pending until those restarts complete and the secure runtime can re-open the project.
 
+Gentle AI v4 upgrade activation is a separate operation from project registration and is covered by the runbook `docs/upgrades/gentle-ai-v4.md`.
+
 Invoking the reviewed fixed tool is an approval-gated control-plane operation and does **not** start native review. Any code/config change to the registration tool itself remains a **Global tooling change** and follows source → native RDD review checkpoint (when enabled) → verified mirror.
 
 The user's interactive terminal is **Fish shell**. User-facing terminal commands in this workflow must be Fish-compatible; Bash-only syntax is reserved for Bash script files or commands that explicitly invoke Bash.

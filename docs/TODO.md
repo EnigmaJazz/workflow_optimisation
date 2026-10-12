@@ -894,20 +894,9 @@ Release facts that drive the group:
 - **Status:** PLANNED, gated by "owner decides to upgrade".
 - **Prerequisites:** Q29-Q33 on one gated branch.
 - **Source:** v4.0.0 release notes; Q24 (sync overwrites the live config).
-- **Description:**
-  1. Confirm the install method (`command -v gentle-ai`; Homebrew formula present, so
-     `brew upgrade gentle-ai`).
-  2. `gentle-ai sync --dry-run` first.
-  3. Upgrade the binary.
-  4. `gentle-ai sync`; expect it to overwrite managed agents and prompts, and handle a non-zero
-     exit when it cannot detect the OpenCode version.
-  5. Apply Q30-Q33 with the Q36 change-set tool (`apply --dry-run`, then `apply`). Do not
-     hand-copy.
-  6. Run the verifier (recovery plus checks).
-  7. Restart OpenCode.
-  8. `verify-workflow.sh --behavioral`.
-  9. Dispatch checks: `advisor-*`, the v4 generic agents, `asi-review-*`.
-  10. Rollback: keep the v3.7.0 binary and the verifier backup in `backups/workflow-recovery/`.
+- **Deliverable:** [`docs/upgrades/gentle-ai-v4.md`](upgrades/gentle-ai-v4.md) is the sole
+  authority for Gentle AI v4 upgrade execution, activation, recovery and completion checks. Q34
+  tracks document readiness only; publishing the runbook does not authorize the upgrade.
 
 ### Q35. Remove mandatory Engram instructions everywhere (Magic Context is the default memory)
 - **Status:** CLOSED — OpenCode side DONE-AT-SOURCE; Claude-side remainders OUT OF SCOPE.
