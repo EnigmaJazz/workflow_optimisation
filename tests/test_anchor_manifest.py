@@ -2,9 +2,11 @@
 
 Parses verify-workflow.sh and validates the ANCHOR_MANIFEST and ANCHOR_TOKENS
 tables: every row has non-empty fields, every token row's anchor id exists in
-the manifest, and the literal is the last (remainder) field. A positive control
-proves the validator rejects a synthetic empty-token row and an unknown anchor,
-so a clean result cannot be vacuous. Dependency-free and fast.
+the manifest, and the literal is the last (remainder) field. ANCHOR_MANIFEST
+holds exactly one structural row per anchor, so its ids are unique.
+ANCHOR_TOKENS repeats an anchor id, one row per contractual literal, so its ids
+are intentionally NOT unique. A positive control proves the validator rejects a
+synthetic empty-token row, an unknown anchor, or a duplicated manifest id.
 
 Run: python3 -m unittest tests/test_anchor_manifest.py -v
 """
@@ -62,6 +64,12 @@ def validate_rows(body, manifest_ids=None):
     return errors
 
 
+def duplicate_manifest_ids(body):
+    """Anchor ids appearing more than once in a manifest body; [] when unique."""
+    ids = [row.split(SEP)[0] for _, row in rows(body)]
+    return sorted({i for i in ids if ids.count(i) > 1})
+
+
 class RealTables(unittest.TestCase):
     def setUp(self):
         self.assertTrue(SCRIPT.is_file(), f"{SCRIPT} missing")
@@ -85,8 +93,7 @@ class RealTables(unittest.TestCase):
 
     def test_every_manifest_anchor_is_unique(self):
         body = table_body(self.text, "ANCHOR_MANIFEST")
-        ids = [row.split(SEP)[0] for _, row in rows(body)]
-        self.assertEqual(sorted(ids), sorted(set(ids)), "duplicate anchor id in ANCHOR_MANIFEST")
+        self.assertEqual(duplicate_manifest_ids(body), [], "duplicate anchor id in ANCHOR_MANIFEST")
 
 
 class PositiveControl(unittest.TestCase):
@@ -110,6 +117,10 @@ class PositiveControl(unittest.TestCase):
         errors = validate_rows('"only~two"\n')
         self.assertTrue(errors)
         self.assertIn("at least 4 fields", errors[0])
+
+    def test_duplicate_manifest_id_is_detected(self):
+        body = '"a.anchor~$FILE~FILE~one"\n"a.anchor~$FILE~FILE~two"\n'
+        self.assertEqual(duplicate_manifest_ids(body), ["a.anchor"])
 
 
 if __name__ == "__main__":
