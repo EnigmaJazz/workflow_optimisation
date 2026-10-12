@@ -192,6 +192,26 @@ def run_assembler(extra_args=()):
     )
 
 
+# A minimal valid base for the failure-path and ordering probes: one metadata
+# header plus unique '### ' headings. Body prose deliberately avoids any
+# `<!-- SECURE:` substring so probes fail for the intended reason.
+OVERRIDE_BASE = (
+    "<!--\nprobe header\n-->\n\n"
+    "### Anchor\n\nanchor body\n\n"
+    "### Next\n\nnext body\n"
+)
+
+
+def run_with_files(base_text, overlay_text):
+    """Run the assembler over temp --base/--overlay files (never the real ones)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        base = Path(tmp) / "base.md"
+        overlay = Path(tmp) / "overlay.md"
+        base.write_text(base_text, encoding="utf-8")
+        overlay.write_text(overlay_text, encoding="utf-8")
+        return run_assembler(("--base", str(base), "--overlay", str(overlay)))
+
+
 def scan_residue(text):
     """Return [(term, line_no, line)] for forbidden residue not on the allowlist."""
     violations = []
@@ -344,7 +364,7 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
                 encoding="utf-8",
             )
             result = run_assembler(("--overlay", str(bad)))
-            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(result.returncode, 2, result.stderr)
             self.assertIn("not found", result.stderr)
 
     def test_assembler_fails_loudly_on_sha_mismatch(self):
@@ -356,7 +376,7 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
                 encoding="utf-8",
             )
             result = run_assembler(("--overlay", str(bad)))
-            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(result.returncode, 2, result.stderr)
             self.assertIn("sha256 mismatch", result.stderr)
 
     def test_assembler_fails_loudly_on_unbalanced_markers(self):
@@ -368,8 +388,178 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
                 encoding="utf-8",
             )
             result = run_assembler(("--overlay", str(bad)))
-            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(result.returncode, 2, result.stderr)
             self.assertIn("missing SECURE:END", result.stderr)
+
+    def test_assembler_fails_loudly_on_missing_input_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = Path(tmp) / "does-not-exist.md"
+            result = run_assembler(("--base", str(missing)))
+        self.assertEqual(result.returncode, 2, result.stderr)
+        # The FAILED prefix is the control that the handled AssemblyError/OSError
+        # path was taken rather than Python's default traceback (which exits 1).
+        self.assertIn("FAILED", result.stderr)
+
+    def test_assembler_fails_loudly_on_nested_begin(self):
+        nested = (
+            "<!-- SECURE:BEGIN id=test:outer kind=add after=### Anchor -->\n"
+            "### Outer\n\nouter body\n"
+            "<!-- SECURE:BEGIN id=test:inner kind=add after=### Anchor -->\n"
+            "### Inner\n\ninner body\n"
+            "<!-- SECURE:END id=test:inner -->\n"
+            "<!-- SECURE:END id=test:outer -->\n"
+        )
+        result = run_with_files(OVERRIDE_BASE, nested)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("nested SECURE:BEGIN", result.stderr)
+        # Positive control: closing the outer block before the second BEGIN
+        # differs by exactly the nesting property and must assemble cleanly.
+        control = (
+            "<!-- SECURE:BEGIN id=test:outer kind=add after=### Anchor -->\n"
+            "### Outer\n\nouter body\n<!-- SECURE:END id=test:outer -->\n\n"
+            "<!-- SECURE:BEGIN id=test:inner kind=add after=### Anchor -->\n"
+            "### Inner\n\ninner body\n<!-- SECURE:END id=test:inner -->\n"
+        )
+        ok = run_with_files(OVERRIDE_BASE, control)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+
+    def test_assembler_fails_loudly_on_unknown_kind(self):
+        unknown = (
+            "<!-- SECURE:BEGIN id=test:bad kind=upsert after=### Anchor -->\n"
+            "### Body\n\ncontent\n<!-- SECURE:END id=test:bad -->\n"
+        )
+        result = run_with_files(OVERRIDE_BASE, unknown)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("kind must be one of", result.stderr)
+        control = unknown.replace("kind=upsert", "kind=add")
+        ok = run_with_files(OVERRIDE_BASE, control)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+
+    def test_assembler_fails_loudly_on_empty_body(self):
+        empty = (
+            "<!-- SECURE:BEGIN id=test:empty kind=add after=### Anchor -->\n"
+            "\n"
+            "<!-- SECURE:END id=test:empty -->\n"
+        )
+        result = run_with_files(OVERRIDE_BASE, empty)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("empty body", result.stderr)
+        control = (
+            "<!-- SECURE:BEGIN id=test:empty kind=add after=### Anchor -->\n"
+            "### Body\n\ncontent\n<!-- SECURE:END id=test:empty -->\n"
+        )
+        ok = run_with_files(OVERRIDE_BASE, control)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+
+    def test_assembler_fails_loudly_on_duplicate_ids(self):
+        duplicate = (
+            "<!-- SECURE:BEGIN id=test:dup kind=add after=### Anchor -->\n"
+            "### One\n\none body\n<!-- SECURE:END id=test:dup -->\n\n"
+            "<!-- SECURE:BEGIN id=test:dup kind=add after=### Anchor -->\n"
+            "### Two\n\ntwo body\n<!-- SECURE:END id=test:dup -->\n"
+        )
+        result = run_with_files(OVERRIDE_BASE, duplicate)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("ids must be unique", result.stderr)
+        # Positive control: the same overlay with the second id made unique.
+        control = (
+            "<!-- SECURE:BEGIN id=test:dup kind=add after=### Anchor -->\n"
+            "### One\n\none body\n<!-- SECURE:END id=test:dup -->\n\n"
+            "<!-- SECURE:BEGIN id=test:dup2 kind=add after=### Anchor -->\n"
+            "### Two\n\ntwo body\n<!-- SECURE:END id=test:dup2 -->\n"
+        )
+        ok = run_with_files(OVERRIDE_BASE, control)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+
+    def test_assembler_fails_loudly_on_malformed_marker(self):
+        malformed = (
+            "<!-- SECURE:BEGIN id=test:ok kind=add after=### Anchor -->\n"
+            "### Body\n\ncontent\n"
+            "<!-- SECURE:END test:ok -->\n"
+        )
+        result = run_with_files(OVERRIDE_BASE, malformed)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("malformed SECURE marker", result.stderr)
+        control = malformed.replace(
+            "<!-- SECURE:END test:ok -->", "<!-- SECURE:END id=test:ok -->"
+        )
+        ok = run_with_files(OVERRIDE_BASE, control)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+
+    def test_overlapping_regions_preserve_file_order(self):
+        # The positive control proving this probe can detect an anchor-ordering
+        # violation is test_shared_anchor_adds_insert_in_file_order.
+        base_text = (
+            "<!--\nprobe header\n-->\n\n"
+            "### A\n\na body\n\n"
+            "### B\n\nb body\n\n"
+            "### C\n\nc body\n"
+        )
+        base_body = strip_metadata_header(base_text)
+        sections = {s["heading"]: s for s in base_sections(base_body.split("\n"))}
+        overlay = (
+            "<!-- SECURE:BEGIN id=test:added1 kind=add after=### A -->\n"
+            "### Added1\n\nadded1 body\n<!-- SECURE:END id=test:added1 -->\n\n"
+            "<!-- SECURE:BEGIN id=test:remove kind=remove supersedes=### B sha256=%s -->\n"
+            "placeholder\n<!-- SECURE:END id=test:remove -->\n\n"
+            "<!-- SECURE:BEGIN id=test:added2 kind=add after=### A -->\n"
+            "### Added2\n\nadded2 body\n<!-- SECURE:END id=test:added2 -->\n"
+            % section_sha256(sections["### B"]["text"])
+        )
+        result = run_with_files(base_text, overlay)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("### Added1", result.stdout)
+        self.assertIn("### Added2", result.stdout)
+        # The PROPERTY: two add blocks sharing one anchor land in file order
+        # even across an intervening remove of another section.
+        self.assertLess(
+            result.stdout.index("### Added1"),
+            result.stdout.index("### Added2"),
+            "later add blocks on a shared anchor must land after earlier ones",
+        )
+
+    def test_replace_body_carrying_half_a_marker_pair_drops_the_other_half(self):
+        begin = "<!-- gentle-ai:opencode-desktop-delegation-progress -->"
+        end = "<!-- /gentle-ai:opencode-desktop-delegation-progress -->"
+        base_text = (
+            "<!--\nprobe header\n-->\n\n"
+            "### Anchor\n\n" + begin + "\nanchor body\n" + end + "\n"
+        )
+        anchor = [
+            s for s in base_sections(strip_metadata_header(base_text).split("\n"))
+            if s["heading"] == "### Anchor"
+        ][0]
+        sha = section_sha256(anchor["text"])
+        partial = (
+            "<!-- SECURE:BEGIN id=test:partial kind=replace supersedes=### Anchor sha256=%s -->\n"
+            "### Anchor\n\n" + begin + "\nreplaced body\n<!-- SECURE:END id=test:partial -->\n"
+        ) % sha
+        result = run_with_files(base_text, partial)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        # The count-based balance check in test_assembled_output_is_clean_and_complete
+        # is vacuous here (a dropped END still counts 0 == 0); this pins the
+        # partial-drop hazard so the invariant is asserted rather than assumed.
+        self.assertIn(begin, result.stdout)
+        self.assertNotIn(end, result.stdout)
+        # Positive control A: a replace body carrying BOTH halves keeps the pair.
+        both = (
+            "<!-- SECURE:BEGIN id=test:both kind=replace supersedes=### Anchor sha256=%s -->\n"
+            "### Anchor\n\n" + begin + "\nreplaced body\n" + end
+            + "\n<!-- SECURE:END id=test:both -->\n"
+        ) % sha
+        ok = run_with_files(base_text, both)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+        self.assertIn(begin, ok.stdout)
+        self.assertIn(end, ok.stdout)
+        # Positive control B: without touching the anchor the base pair is intact.
+        untouched = run_with_files(
+            base_text,
+            "<!-- SECURE:BEGIN id=test:noop kind=add after=### Anchor -->\n"
+            "### Noop\n\nnoop body\n<!-- SECURE:END id=test:noop -->\n",
+        )
+        self.assertEqual(untouched.returncode, 0, untouched.stderr)
+        self.assertIn(begin, untouched.stdout)
+        self.assertIn(end, untouched.stdout)
 
     def test_file_substitution_report(self):
         result = run_assembler(("--report-file-substitution",))
