@@ -11,6 +11,12 @@ runs to the next heading line of any level; trailing blank lines are excluded.
 (heading included) before applying. Every block fails loudly (exit 2) on a
 missing anchor, a hash mismatch, an unknown kind, or unbalanced markers.
 
+The assembler does not inspect block bodies for balanced HTML-comment marker
+pairs: a `replace`/`remove` body that carries only one half of a paired marker
+(for example the `<!-- gentle-ai:opencode-desktop-delegation-progress -->`
+pair) drops the other half instead of failing. Keep a marker pair inside a
+single section, and carry both halves in any replacement body.
+
 `add` inserts its body at the END of the anchor section (immediately after the
 section's last line). When several `add` blocks share one anchor, each later body
 is appended after the bodies already added at that anchor, so shared-anchor adds
@@ -42,7 +48,8 @@ DEFAULT_OVERLAY = REPO / "global-config" / "prompts" / "gentle-orchestrator" / "
 HEADING_RE = re.compile(r"^#{1,6} ")
 BEGIN_RE = re.compile(r"^<!-- SECURE:BEGIN (?P<attrs>.*) -->$")
 END_RE = re.compile(r"^<!-- SECURE:END id=(?P<id>[^ ]+) -->$")
-ATTR_RE = re.compile(r"(?:^|\s)(?P<key>id|kind|after|supersedes|sha256)=")
+ATTR_KEY_RE = re.compile(r"(?:^|\s)(?P<key>[A-Za-z][A-Za-z0-9_]*)=")
+KNOWN_ATTRS = ("id", "kind", "after", "supersedes", "sha256")
 KNOWN_KINDS = ("add", "replace", "remove")
 HEX64_RE = re.compile(r"[0-9a-f]{64}")
 
@@ -53,13 +60,22 @@ class AssemblyError(Exception):
 
 def parse_attrs(raw, line_no):
     attrs = {}
-    matches = list(ATTR_RE.finditer(raw))
+    matches = list(ATTR_KEY_RE.finditer(raw))
     if not matches:
         raise AssemblyError("overlay line %d: SECURE:BEGIN carries no attributes" % line_no)
     for i, match in enumerate(matches):
+        key = match.group("key")
         start = match.end()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(raw)
-        attrs[match.group("key")] = raw[start:end].strip()
+        if key not in KNOWN_ATTRS:
+            raise AssemblyError(
+                "overlay line %d: unknown SECURE:BEGIN attribute %r" % (line_no, key)
+            )
+        if key in attrs:
+            raise AssemblyError(
+                "overlay line %d: duplicate SECURE:BEGIN attribute %r" % (line_no, key)
+            )
+        attrs[key] = raw[start:end].strip()
     return attrs
 
 
@@ -193,15 +209,23 @@ def apply_overlay(base_body, blocks):
         delta = len(new_lines) - (end - start)
         for anchor, cursor in list(add_cursors.items()):
             if cursor >= end:
+                # The splice lies entirely at or before the cursor: shift it.
                 add_cursors[anchor] = cursor + delta
             elif cursor > start:
+                # The cursor fell inside the spliced region: pin it to the
+                # region start so a later add stays in file order.
                 add_cursors[anchor] = start
+            # A cursor strictly before `start` is already correctly placed.
 
     for block in blocks:
         context = "overlay id=%s" % block["id"]
         if block["kind"] == "add":
             section = find_section(working, block["after"], context)
             position = add_cursors.get(block["after"], section["end"])
+            # Ordering guard: an add must never land before the current end of
+            # its anchor section, so bodies sharing one anchor stay in file
+            # order even across intervening replace/remove splices.
+            position = max(position, section["end"])
             body = [""] + list(block["body"])
             splice(position, position, body)
             add_cursors[block["after"]] = position + len(body)
@@ -255,7 +279,7 @@ def main(argv=None):
         base_body = strip_metadata_header(base_text)
         blocks = parse_overlay(overlay_text)
         assembled = apply_overlay(base_body, blocks)
-    except AssemblyError as error:
+    except (AssemblyError, OSError) as error:
         print("assemble-orchestrator-prompt: FAILED: %s" % error, file=sys.stderr)
         return 2
     if not assembled.endswith("\n"):
