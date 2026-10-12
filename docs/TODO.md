@@ -1159,7 +1159,8 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   re-pin `VERIFY_SCRIPT_SHA256` (Q31 pattern); correct Q61 to drop `pm-sdd`.
 
 ### Q66. Q31 S5a assembler-finding follow-ups
-- **Status:** PLANNED.
+- **Status:** DONE-AT-SOURCE (T0–T2 committed and reviewed — `odd/tasks/q66-assembler-hardening.md`; deployment is pending the owner).
+- **Note:** implementation commits `61f85e4` (T1 assembler hardening) and `9d85764` (T2 marker coupling); deployment is pending.
 - **Prerequisites:** Q31 (done).
 - **Source:** Q31 S5a native review (`review-1633e87da601f9dd`), 2026-10-11.
 - **Description:** harden `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py`

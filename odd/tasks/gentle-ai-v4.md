@@ -97,26 +97,25 @@ may never receive `chat.message`). Disposition: accepted as a known limitation (
 2026-10-10). The reviewed boundary is unchanged: `5387c24dfa9a96c80ef93e27e8bcc9abd58d6860`.
 
 ## Tasks
-- [ ] **T1 (Q30) — Workflow documents.** Deliverables:
+- [ ] **T1 (Q30) — Workflow documents.** Deliverables (reconciled 2026-10-12; every document deliverable verified landed, 1 standing process subitem remains):
   - [x] Delete the SDD sections/rows and `workflow-sdd-secure/` (`SKILL.md`,
     `references/sdd-magic-adapter.md`). DONE at source in Q30 T1 (`522683b`). The earlier
     deferral to Q32 was superseded: Q32 T3 dropped the manifest/contract `cat`, Q32 T4 retired
     the AGENTS host-SDD block, Q33 owns the routing guard, and Q65 retired `pm-sdd`; Q30 T1
     itself now deletes the source skill files.
-  - [ ] Rewrite Task Classes and selection rules to the Q29a former-SDD route.
-  - [ ] Replace file-count mapping delegation with the evidence budget; keep the 2+ writer rule
-    literal. (Slice 1: WORKFLOW.md Mapping + Long-session backstop bullets done; route-skill
-    file-count triggers pending in a later slice.)
-  - [ ] Retitle "Gentle AI 3.5.0" headings to version-neutral/4.x.
-  - [ ] Remove TDD-mode-selection assumptions; forward the exact runner.
-  - [ ] Remove the `user:host-sdd-runtime-boundaries` block and the `workflow-sdd-secure`
-    routing line from `global-config/AGENTS.md`.
-  - [ ] Update the Astra table and the session-decisions write path (Q29d agents).
-  - [ ] Update route skills and their references (`workflow-route`, `workflow-odd-secure`,
-    `workflow-systematic`).
-  - [ ] Update `docs/PLAN.md`; regenerate the SDD mention list first.
+  - [x] Rewrite Task Classes and selection rules to the Q29a former-SDD route. — landed in 411f689.
+  - [x] Replace file-count mapping delegation with the evidence budget; keep the 2+ writer rule
+    literal. — landed in 70a6524 (WORKFLOW.md Mapping) + 3b630b5 (route skills).
+  - [x] Retitle "Gentle AI 3.5.0" headings to version-neutral/4.x. — landed in 411f689.
+  - [x] Remove TDD-mode-selection assumptions; forward the exact runner. — landed in 5ba5226.
+  - [x] Remove the `user:host-sdd-runtime-boundaries` block and the `workflow-sdd-secure`
+    routing line from `global-config/AGENTS.md`. — landed in 9a809fe.
+  - [x] Update the Astra table and the session-decisions write path (Q29d agents). — landed in 411f689 (Astra table) + 3b630b5 (session-decisions).
+  - [x] Update route skills and their references (`workflow-route`, `workflow-odd-secure`,
+    `workflow-systematic`). — landed in 3b630b5.
+  - [x] Update `docs/PLAN.md`; regenerate the SDD mention list first. — landed in 411f689.
   - [ ] Checks, reviewability receipts, independent post-code advice, post-commit assessment,
-    and tracker/mirror readback per slice.
+    and tracker/mirror readback per slice. (Standing process item; the per-slice records exist in Progress below, but it has no single landed artifact — left unchecked for the reconciler.)
 
 **Future gate references (not tasks):** Q31 agent allocation, Q32 verifier, Q33 guard/plugins,
 Q34 runbook, Q36-Q38 change set, Q39 in-flight SDD preflight. They gate the eventual deployment
