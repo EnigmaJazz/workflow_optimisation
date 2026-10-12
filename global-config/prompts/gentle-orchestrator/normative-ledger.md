@@ -2,7 +2,7 @@
 
 Scope: every sentence in the CURRENT prompt (`global-config/opencode.json` →
 `agent["gentle-orchestrator"].prompt`, sha256
-`cece24ff93db6155f8800dca56bc8f517d9b5a0accbdf1801e21c7d4324c2155`, 402 lines)
+`c90727b3fc99ed1de2ff073685b435d58e6379668d92b3cad6644ea125d7b360`, 403 lines)
 containing MUST, NEVER, ALWAYS (case-insensitive, word boundary) or "hard rule".
 69 candidate sentences: **43 kept, 1 split, 10 superseded-by-base, 15
 removed-by-design; zero unclassified.**
@@ -93,9 +93,11 @@ wiring are produced by `global-config/prompts/gentle-orchestrator/assemble-orche
 
 ## Structural coupling note
 
-The superseded `#### Cost and Context Balance` extent ends with the opening half of the
-`<!-- gentle-ai:opencode-desktop-delegation-progress -->` comment pair, so the
-`user:always-delegate-cost-context` replacement re-emits that opening half to keep the pair
-bracketing `#### Delegation Visibility (OpenCode Desktop)`. The closing half lives in that next
-base section, outside any sha256-guarded extent, so an upstream move of the closing half would not
-be caught by any section sha256.
+The `<!-- gentle-ai:opencode-desktop-delegation-progress -->` /
+`<!-- /gentle-ai:opencode-desktop-delegation-progress -->` comment pair lives entirely inside the
+single base section `#### Delegation Visibility (OpenCode Desktop)`, so a replace/remove of that
+section carries or drops both halves together and can never leave half the pair behind. The
+`#### Cost and Context Balance` extent no longer carries either half, so the
+`user:always-delegate-cost-context` replacement does not re-emit one. The assembler documents this
+managed-marker invariant (a pair must not straddle a section boundary) but deliberately does not
+lint block bodies for balanced pairs.

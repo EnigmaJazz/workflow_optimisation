@@ -59,7 +59,7 @@ These are parent-orchestrator routing boundaries; do not pass them to child agen
 7. **Blocked rule**: a missing or denied Task tool blocks dependent work with a visible blocked status; it never authorizes inline work.
 <!-- SECURE:END id=user:always-delegate-triggers -->
 
-<!-- SECURE:BEGIN id=user:always-delegate-cost-context kind=replace supersedes=#### Cost and Context Balance sha256=ed7c0cab8ceaf02c36021c8062bee315b80d2202ada102e12321b98b60fe4662 -->
+<!-- SECURE:BEGIN id=user:always-delegate-cost-context kind=replace supersedes=#### Cost and Context Balance sha256=42802342db921d3156d15ab8b706cddf382946b7102280c1bf0ee739b37ef3e1 -->
 #### Secure Cost and Context Balance
 
 - Use exploration workers to compress broad repository reading into a short handoff.
@@ -68,8 +68,6 @@ These are parent-orchestrator routing boundaries; do not pass them to child agen
 - The approximately 150k parent-context backstop is advisory guidance, not mechanically enforced: pause and delegate the next bounded unit rather than claiming runtime telemetry.
 - There is no local one-file inline exception: quick state checks stay read-only, and every mutation or execution still goes to one delegated worker.
 - Let native review select its bounded checking plan; delivery remains human-owned under ordinary repository policy.
-
-<!-- gentle-ai:opencode-desktop-delegation-progress -->
 <!-- SECURE:END id=user:always-delegate-cost-context -->
 
 <!-- SECURE:BEGIN id=user:technical-lead-contract kind=add after=### Core Role -->

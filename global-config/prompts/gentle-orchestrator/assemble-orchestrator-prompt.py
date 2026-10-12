@@ -11,11 +11,13 @@ runs to the next heading line of any level; trailing blank lines are excluded.
 (heading included) before applying. Every block fails loudly (exit 2) on a
 missing anchor, a hash mismatch, an unknown kind, or unbalanced markers.
 
-The assembler does not inspect block bodies for balanced HTML-comment marker
-pairs: a `replace`/`remove` body that carries only one half of a paired marker
-(for example the `<!-- gentle-ai:opencode-desktop-delegation-progress -->`
-pair) drops the other half instead of failing. Keep a marker pair inside a
-single section, and carry both halves in any replacement body.
+Managed-marker invariant: a paired HTML-comment marker (for example the
+`<!-- gentle-ai:opencode-desktop-delegation-progress -->` /
+`<!-- /gentle-ai:opencode-desktop-delegation-progress -->` pair) must not
+straddle a section boundary. The assembler deliberately does not lint block
+bodies for balanced pairs: a `replace`/`remove` body that carries only one half
+of a pair drops the other half instead of failing. Keep both halves inside one
+base section, and carry both halves in any replacement body.
 
 `add` inserts its body at the END of the anchor section (immediately after the
 section's last line). When several `add` blocks share one anchor, each later body
@@ -48,8 +50,17 @@ DEFAULT_OVERLAY = REPO / "global-config" / "prompts" / "gentle-orchestrator" / "
 HEADING_RE = re.compile(r"^#{1,6} ")
 BEGIN_RE = re.compile(r"^<!-- SECURE:BEGIN (?P<attrs>.*) -->$")
 END_RE = re.compile(r"^<!-- SECURE:END id=(?P<id>[^ ]+) -->$")
-ATTR_KEY_RE = re.compile(r"(?:^|\s)(?P<key>[A-Za-z][A-Za-z0-9_]*)=")
+# A key is recognised only where a key is expected: the start of the attribute
+# region, or the end of the previous value. An `identifier=` sequence inside a
+# value (for example a heading value such as `after=### Foo=Bar`) is therefore
+# value text, never a key. A key position accepts only a known attribute name;
+# an unknown name there fails loudly, and a repeated name is a duplicate.
+ATTR_NAME_RE = re.compile(r"(?P<key>[A-Za-z][A-Za-z0-9_]*)=")
 KNOWN_ATTRS = ("id", "kind", "after", "supersedes", "sha256")
+# `after`/`supersedes` take a markdown heading, which may itself contain `=`
+# and ` X=`; every other value is a single whitespace-delimited token.
+HEADING_VALUE_ATTRS = ("after", "supersedes")
+KNOWN_ATTR_KEY_RE = re.compile(r"(?:^|\s)(?P<key>%s)=" % "|".join(KNOWN_ATTRS))
 KNOWN_KINDS = ("add", "replace", "remove")
 HEX64_RE = re.compile(r"[0-9a-f]{64}")
 
@@ -59,14 +70,31 @@ class AssemblyError(Exception):
 
 
 def parse_attrs(raw, line_no):
+    """Parse `key=value` pairs, recognising keys only where a key is expected.
+
+    Scanning left to right, each key position reads `name=`: the name must be a
+    known attribute, and a repeated name is a duplicate. The value runs to the
+    next key position — for a heading-valued attribute (`after`, `supersedes`)
+    that is the next known key, so a heading value may contain `=` and ` X=`; for
+    every other attribute the value is one whitespace-delimited token. An unknown
+    name in key position raises AssemblyError, as does a duplicate; an
+    `identifier=` sequence inside a value is value text, never a key.
+    """
     attrs = {}
-    matches = list(ATTR_KEY_RE.finditer(raw))
-    if not matches:
-        raise AssemblyError("overlay line %d: SECURE:BEGIN carries no attributes" % line_no)
-    for i, match in enumerate(matches):
-        key = match.group("key")
-        start = match.end()
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(raw)
+    length = len(raw)
+    pos = 0
+    while pos < length:
+        while pos < length and raw[pos].isspace():
+            pos += 1
+        if pos >= length:
+            break
+        name_match = ATTR_NAME_RE.match(raw, pos)
+        if not name_match:
+            raise AssemblyError(
+                "overlay line %d: malformed SECURE:BEGIN attribute near %r"
+                % (line_no, raw[pos:pos + 40])
+            )
+        key = name_match.group("key")
         if key not in KNOWN_ATTRS:
             raise AssemblyError(
                 "overlay line %d: unknown SECURE:BEGIN attribute %r" % (line_no, key)
@@ -75,7 +103,18 @@ def parse_attrs(raw, line_no):
             raise AssemblyError(
                 "overlay line %d: duplicate SECURE:BEGIN attribute %r" % (line_no, key)
             )
-        attrs[key] = raw[start:end].strip()
+        value_start = name_match.end()
+        if key in HEADING_VALUE_ATTRS:
+            next_key = KNOWN_ATTR_KEY_RE.search(raw, value_start)
+            value_end = next_key.start() if next_key else length
+        else:
+            value_end = value_start
+            while value_end < length and not raw[value_end].isspace():
+                value_end += 1
+        attrs[key] = raw[value_start:value_end].strip()
+        pos = value_end
+    if not attrs:
+        raise AssemblyError("overlay line %d: SECURE:BEGIN carries no attributes" % line_no)
     return attrs
 
 
