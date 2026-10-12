@@ -1074,7 +1074,7 @@ Release facts that drive the group:
     forbidden v4 dependency, and would force a re-pin plus another high-risk review.
 
 ### Q39. SDD changes in flight at upgrade time
-- **Status:** RECORDED — inventory captured 2026-10-11; dispositions deferred to the owning projects; gate not yet implemented (Q28 PLANNED). Still gated by "owner decides to upgrade" and remains a preflight of the Q36 apply.
+- **Status:** RECORDED — inventory captured 2026-10-11; owner dispositions recorded 2026-10-12; gate not yet implemented (Q28 PLANNED). Still gated by "owner decides to upgrade" and remains a preflight of the Q36 apply.
 - **Prerequisites:** none to inventory. Each disposition needs the owner and runs in that
   project's repository.
 - **Source:** v4.0.0 removes SDD commands and phases but preserves user-owned files and persisted
@@ -1122,6 +1122,27 @@ Six unarchived SDD changes exist across four external projects (roots: `/home/ja
 | `local-apply-test` | sdd-quality/mini-sdd | NOT READABLE from this repository (read denied) | unknown — needs another route |
 
 Gate reality: the "apply refuses while unarchived SDD changes exist" behaviour is NOT implemented — `docs/specs/changeset-tool.md:31-32` places that preflight out of scope, `scripts/changeset.py` exposes only a caller-supplied `--verify-cmd`, and the planned enforcement point is Q28 (status PLANNED). Nothing therefore blocks the Q36 apply today. Q39's own disposition rule (finish on 3.7.0; convert to ODD; or abandon-archive with a one-line reason) is exercised by each owning project, not here.
+
+#### Q39 dispositions — OWNER DECISION (2026-10-12)
+
+After reviewing `gentle-ai sdd-status` against the live projects, the owner records that ALL SIX in-flight SDD changes are ABANDONED as SUPERSEDED:
+
+| Change | Project | Disposition | One-line reason |
+|---|---|---|---|
+| `agent-host-tools` | agent-sandbox-integration | abandon-archive | superseded |
+| `reviewer-relay-transport` | agent-sandbox-integration | abandon-archive | superseded |
+| `role-based-subagents` | agent-sandbox-integration | abandon-archive | superseded |
+| `peak-hour-routing` | peak-redir | abandon-archive | superseded |
+| `mock-ui-test` | opencode-workspace/vision | abandon-archive | superseded |
+| `local-apply-test` | sdd-quality/mini-sdd | abandon-archive | superseded |
+
+**Recorded 2026-10-12, BEFORE the binary upgrade** — `gentle-ai sdd-status` exists only on 3.7.0, so this had to precede the binary upgrade; it satisfies the runbook's "Q39 in-flight SDD dispositions are RECORDED" precondition (`docs/upgrades/gentle-ai-v4.md`, the checklist item after the Q39 item).
+
+**Differential for the record (do not drop it):** the 2026-10-11 read-only inventory classified `role-based-subagents` (Phases B–D unstarted) and `peak-hour-routing` (task 1.4 blocked on a host write, config preserved as `rate-limit-fallback.json.new`) as ACTIVE, and `agent-host-tools` as self-marked superseded. The owner's review of the live `sdd-status` is the authority; the earlier classification is retained here so the change of judgement is visible.
+
+**Scope of "abandon":** the changes are NOT implemented. NO change directory is deleted, moved or modified by this decision — in particular `reviewer-relay-transport` carries an `archive-report.md` stating its directory MUST NOT be deleted or moved, and that constraint is unaffected.
+
+**Gate:** the change-set gate for Q39 remains unimplemented (`docs/specs/changeset-tool.md:31-32`); the operator is the only enforcement, and this recorded decision IS that enforcement for this upgrade.
 
 ### Q65. Retire `pm-sdd`
 - **Status:** DONE-AT-SOURCE (T0–T1 committed and reviewed — `odd/tasks/q65-retire-pm-sdd.md`; commit `5aadb9f`; the decision was RETIRE; two follow-ups remain: the external `sandbox-tools.ts` `READ_ONLY_AGENTS` entry and T1's `R4-migration-vacuous-zero`).

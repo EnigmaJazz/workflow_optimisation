@@ -2,6 +2,17 @@
 
 **Feature:** gentle-ai v4 upgrade / queue Q34 (upgrade runbook). **Task ID:** `q34-upgrade-runbook` (stable). **Class:** global-tooling-change. **Route:** `workflow-odd-secure` (delegated). **Unit status:** T0–T1 DONE-AT-SOURCE (Q34 source complete; committed). The runbook is authored and the four sources point at it; runtime validation of its steps is PENDING — it has never been executed. **Model:** cloud `opencode-go/deepseek-v4.1-flash` (owner decision 2026-10-07). **Prerequisites:** Q29–Q33 on the gated branch; Q36's change set (non-git surfaces only); Q63's post-upgrade repair is part of the sequence.
 
+## Pre-install preconditions (recorded 2026-10-12)
+
+All four runbook preconditions are satisfied and observed before Step 2:
+
+- [x] **Verifier pin MATCHES.** `sha256sum verify-workflow.sh` = `621a7f93c2fc9dee8469793e751069b016e1121ece9d92eaaf3d342e605ad468`; `VERIFY_SCRIPT_SHA256` in `global-config/plugins/workflow-health-check.ts:93` = the same digest. The verifier will accept its own script.
+- [x] **Installed version recorded.** `gentle-ai --version` → `gentle-ai 3.7.0`; `command -v gentle-ai` → `/home/linuxbrew/.linuxbrew/bin/gentle-ai` (symlink into `/home/linuxbrew/.linuxbrew/Cellar/gentle-ai/3.7.0/bin/gentle-ai`); `brew list --versions gentle-ai` → `gentle-ai 3.7.0`.
+- [x] **Rollback artifact created and verified.** `ls (brew --prefix)/Cellar/gentle-ai/` showed ONLY `3.7.0` — no prior keg — so the binary was copied aside BEFORE any upgrade: `cp /home/linuxbrew/.linuxbrew/Cellar/gentle-ai/3.7.0/bin/gentle-ai ~/gentle-ai-3.7.0.bin`. Proven standalone: `~/gentle-ai-3.7.0.bin --version` → `gentle-ai 3.7.0` (resolves without the Homebrew symlink). **This path is the rollback artifact the runbook requires.**
+- [x] **Q39 dispositions RECORDED** (owner, 2026-10-12) — see `docs/TODO.md` "Q39 dispositions — OWNER DECISION (2026-10-12)".
+
+Not yet done: Steps 1–12 themselves (never executed). The runbook's first execution is its validation.
+
 ## Objective
 
 Publish ONE authoritative upgrade runbook that an operator can execute alone, mid-upgrade, on a live machine, replacing a procedure currently stated four times and inconsistently.
