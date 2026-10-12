@@ -40,12 +40,15 @@ Work through this checklist in order. The last item is the one most easily place
 The order is forced; do not reorder. Each step is `Action` → `Expected result` → `If it fails`.
 A `ONE-WAY DOOR` step cannot be undone in place; the named artifact is the recovery.
 
-### Step 1: Confirm the install method and preview
+### Step 1: Confirm the install method
 
-- **Action:** `command -v gentle-ai` then `gentle-ai sync --dry-run`.
-- **Expected result:** the `gentle-ai` path is printed, and the sync dry run lists the planned
-  managed-asset changes and exits 0.
+- **Action:** `command -v gentle-ai`.
+- **Expected result:** the `gentle-ai` path is printed.
 - **If it fails:** [Binary rollback](#binary-rollback).
+
+The sync preview moved to [Step 3](#step-3-sync-v4-managed-assets): the dry run must follow the
+binary upgrade ([Step 2](#step-2-upgrade-the-binary-one-way-door)) so it previews the v4.1 assets;
+run before it, the dry run would preview 3.7.0's assets.
 
 ### Step 2: Upgrade the binary (ONE-WAY DOOR)
 
@@ -57,11 +60,14 @@ A `ONE-WAY DOOR` step cannot be undone in place; the named artifact is the recov
 
 ### Step 3: Sync v4 managed assets
 
-- **Action:** `gentle-ai sync`.
-- **Expected result:** managed agents and prompts are overwritten with the v4 assets. A non-zero
-  exit is possible when sync cannot detect the OpenCode version. The verifier re-establishes the
-  reviewed config in [Step 6](#step-6-mirror-the-config), so that non-zero is tolerated, not a
-  stop.
+- **Action (preview):** `gentle-ai sync --dry-run`. This MUST run after
+  [Step 2](#step-2-upgrade-the-binary-one-way-door): it is the first point at which the dry run
+  previews the v4.1 managed-asset changes; earlier it would preview 3.7.0's.
+- **Action (apply):** `gentle-ai sync`.
+- **Expected result:** the dry run lists the planned v4.1 managed-asset changes and exits 0, then
+  the apply overwrites managed agents and prompts with the v4 assets. A non-zero exit is possible
+  when sync cannot detect the OpenCode version. The verifier re-establishes the reviewed config in
+  [Step 6](#step-6-mirror-the-config), so that non-zero is tolerated, not a stop.
 - **If it fails:** a hard failure other than the version-detection exit →
   [Config recovery](#config-recovery).
 
