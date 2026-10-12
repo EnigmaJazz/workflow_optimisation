@@ -891,7 +891,7 @@ Release facts that drive the group:
   - Confirm `astra-sol-upgrade.ts` still resolves its agent names after Q31.
 
 ### Q34. Upgrade procedure (runbook)
-- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Status:** DONE-AT-SOURCE (T0–T1 committed — `odd/tasks/q34-upgrade-runbook.md`; commit `3789cc1` authored `docs/upgrades/gentle-ai-v4.md`, 257 lines). The runbook has never been executed; its first execution is its validation.
 - **Prerequisites:** Q29-Q33 on one gated branch.
 - **Source:** v4.0.0 release notes; Q24 (sync overwrites the live config).
 - **Deliverable:** [`docs/upgrades/gentle-ai-v4.md`](upgrades/gentle-ai-v4.md) is the sole
