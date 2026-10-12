@@ -4,7 +4,7 @@
 **Task ID:** `q66-assembler-hardening` (stable).
 **Class:** global-tooling-change.
 **Route:** `workflow-odd-secure` (delegated).
-**Unit status:** T0 IN PROGRESS (tracker + advice created; T1 and T2 pending).
+**Unit status:** T0–T1 DONE-AT-SOURCE (T1 committed and reviewed; T2 pending).
 **Model:** cloud `opencode-go/deepseek-v4.1-flash` (owner decision 2026-10-07).
 **Target:** `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py`.
 
@@ -41,7 +41,7 @@ In scope: T1 the assembler-only hardening; T2 the marker-coupling fix and its re
 - All six findings closed or explicitly accounted.
 - The five failure paths are asserted with `rc == 2` and a stable stderr substring (not the full message).
 - The missing-file path exits 2 with the `FAILED` prefix.
-- The ordering test is RED before the fix and GREEN after.
+- the ordering property test passes and the guard is in place — the "RED before the fix" requirement was CORRECTED during T1 because the hazard is LATENT: it does not reproduce (see T1 Progress and the T1 advisories).
 - The marker pair lives entirely inside one section.
 - The assembled prompt is regenerated and its sha pin, ledger and the verifier's content assertions agree.
 - No test is vacuous.
@@ -63,12 +63,21 @@ In scope: T1 the assembler-only hardening; T2 the marker-coupling fix and its re
 
 ## Tasks
 
-- [ ] T1 — assembler-only hardening: fix the exit-code contract (catch `OSError` → 2), harden `parse_attrs` (per-key uniqueness, reject unknown/duplicate keys), guard overlapping-region ordering, and ADD the five failure-path tests plus the missing-file exit-2 test; tighten the three `assertNotEqual(rc, 0)` sites to `assertEqual(rc, 2)`. MUST leave the assembled bytes unchanged.
+- [x] T1 — assembler-only hardening: fix the exit-code contract (catch `OSError` → 2), harden `parse_attrs` (per-key uniqueness, reject unknown/duplicate keys), guard overlapping-region ordering, and ADD the five failure-path tests plus the missing-file exit-2 test; tighten the three `assertNotEqual(rc, 0)` sites to `assertEqual(rc, 2)`. MUST leave the assembled bytes unchanged.
 - [ ] T2 — marker coupling: move the `opencode-desktop-delegation-progress` pair into ONE base section, then run the regeneration chain (opencode.json, `CURRENT_PROMPT_SHA256`, normative-ledger.md, affected overlay `supersedes`, verify-workflow.sh content assertions) and re-pin `VERIFY_SCRIPT_SHA256` LAST.
 
 ## Progress
 
 - 2026-10-11: T0 — tracker and advice record created from two pre-code advisories; no source edit yet. Route: delegated.
+- 2026-10-11: T1 committed `61f85e4` (2 files, +221/−7; authored 228 lines). Fixes: (1) the exit-code contract — `main()` now catches `(AssemblyError, OSError)` and still returns 2, so a missing `--base`/`--overlay` no longer escapes as a traceback with exit 1 against the docstring's documented exit 2 (`:11-12`); (2) `parse_attrs` hardened with an explicit `KNOWN_ATTRS` allowlist that rejects unknown and duplicate keys; (3) the `splice`/add ordering guard `position = max(position, section["end"])` plus explanatory cursor comments; (4) tests — the five failure-path tests (nested BEGIN, unknown kind, empty body, duplicate ids, malformed marker) each asserting `assertEqual(rc, 2)` plus a stable stderr SUBSTRING and each carrying a one-edit-away positive control through the same `parse_overlay` path; a missing-input-file test asserting `rc == 2` plus the `FAILED` prefix as the control that the handled path was taken; the property test `test_overlapping_regions_preserve_file_order`; and the R4 partial-drop guardrail test `test_replace_body_carrying_half_a_marker_pair_drops_the_other_half`. The three loose `assertNotEqual(rc, 0)` sites were tightened to `assertEqual(rc, 2, result.stderr)`.
+- 2026-10-11: T1 byte invariant OBSERVED: the assembled prompt is IDENTICAL before and after (52,332 bytes, 402 lines, sha256 `cece24ff93db6155f8800dca56bc8f517d9b5a0accbdf1801e21c7d4324c2155`), equal to `CURRENT_PROMPT_SHA256` (`tests/test_orchestrator_prompt_source.py:28`). `python3 -m unittest tests.test_orchestrator_prompt_source -v` 11 → 19 tests, `OK`; `python3 -m unittest discover -s tests` 110 `OK`; routing-guard 96/0.
+- 2026-10-11: T1 HONEST DEVIATION — finding 3's "RED before the fix" could NOT be produced and was NOT fabricated. The worker brute-forced the assembler's topology space in three sweeps (per-anchor × target × kind × section-order × headed/headingless; then 0/1/2 intervening ops over {add,rep,rem}×{A,B,C}; then anchor==target with heading-preserving replace) and found ZERO ordering reversals; the exact prescribed scenario printed `ordered=True` on UNMODIFIED HEAD. Root cause: a cursor set after an `add` is always at/after the anchor's recomputed section end, so the branch named in the brief never fires. `R3-ASSEMBLER-ORDERING-HAZARD-UNGUARDED` was therefore a LATENT structural hazard, not a demonstrated bug; the guard is a structural close and a no-op for every constructible case tested, and the property test is a regression guard rather than a RED-to-GREEN fix.
+- 2026-10-11: T1 native review: lineage `review-2762b6b8ca261f0c`; tier high; 2 files / 228 lines; four lenses (readability and reliability each needed a re-dispatch after a relay concurrency refusal and a relay deadline expiry); outcome **approved** and **acknowledged**; `authority: burned`; consumed revision `sha256:4e63f4d0…`.
+
+## T1 advisory findings (non-blocking, informational; separate later work, never re-review triggers)
+- `R3-ATTR-PARSER-REGRESSION` (reliability WARNING, `assemble-orchestrator-prompt.py:48`) — REAL REGRESSION INTRODUCED BY T1's FIX 2, to be fixed in T2. The generalised `ATTR_KEY_RE` (`(?:^|\s)([A-Za-z][A-Za-z0-9_]*)=`) also matches an `identifier=` sequence INSIDE an attribute value, so an overlay such as `after=### Foo=Bar` is misparsed as an unknown attribute `Foo` and rejected, where the previous fixed-key split accepted it. Deterministic; disposition "worsened".
+- `R3-ATTR-VALIDATION-UNTESTED` (reliability WARNING, `tests/test_orchestrator_prompt_source.py:388-566`) — the new unknown-attribute and duplicate-attribute raises introduced by fix 2 have NO test coverage. Fix in T2 alongside the regression.
+- `R4-half-marker-drop` (resilience WARNING, `assemble-orchestrator-prompt.py:14-18`) — PRE-EXISTING, not introduced: a replace/remove body carrying only one half of a marker pair drops the other half with exit 0 and the count-based balance check is vacuous (0 == 0). T1 documents and pins it; the fail-loudly invariant is T2's structural fix (the marker pair move).
 
 ## Route / trigger evidence
 
@@ -76,4 +85,4 @@ Route: delegated. Specialist: `odd-apply` writer (direct; the PM layer is unusab
 
 ## Next step
 
-T1 (assembler-only), then T2 (the marker move + regeneration chain), then the owner's deploy.
+T2 (the marker-pair move into one base section; the `R3-ATTR-PARSER-REGRESSION` fix + the missing attribute-validation tests; the full regeneration chain — `global-config/opencode.json`, `CURRENT_PROMPT_SHA256`, `normative-ledger.md`, any affected overlay `supersedes`, the `verify-workflow.sh` content assertions — with `VERIFY_SCRIPT_SHA256` re-pinned LAST), then the owner's deploy. Carry-forward: T2 is the byte-changing unit, so the two commits must never be merged without the regeneration chain.
