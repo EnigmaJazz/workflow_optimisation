@@ -112,8 +112,9 @@ The canonical native bounded-review contract is injected from the shared provide
 - Let native review select its bounded checking plan; delivery remains human-owned under ordinary repository policy.
 - Avoid delegation for truly local one-file fixes, quick state checks, and already-understood mechanical edits.
 
-<!-- gentle-ai:opencode-desktop-delegation-progress -->
 #### Delegation Visibility (OpenCode Desktop)
+
+<!-- gentle-ai:opencode-desktop-delegation-progress -->
 
 For every native `delegate` or `task` call, emit exactly one concise, assistant-visible status line immediately before the call:
 

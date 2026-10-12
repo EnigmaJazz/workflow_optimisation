@@ -25,7 +25,7 @@ TEMPLATE = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstrea
 SECTIONS = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstream" / "odd-orchestrator-sections.md"
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
 
-CURRENT_PROMPT_SHA256 = "cece24ff93db6155f8800dca56bc8f517d9b5a0accbdf1801e21c7d4324c2155"
+CURRENT_PROMPT_SHA256 = "c90727b3fc99ed1de2ff073685b435d58e6379668d92b3cad6644ea125d7b360"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
@@ -432,6 +432,58 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stderr)
         self.assertIn("kind must be one of", result.stderr)
         control = unknown.replace("kind=upsert", "kind=add")
+        ok = run_with_files(OVERRIDE_BASE, control)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+
+    def test_attribute_value_may_contain_equals_sequences(self):
+        # R3-ATTR-PARSER-REGRESSION: an `identifier=` sequence inside a value
+        # must not be read as an unknown attribute. `after=### Foo=Bar` is the
+        # regression case: key `after`, value `### Foo=Bar` (intact), not a key
+        # `Foo`. The heading anchor being found proves the value survived whole.
+        base_text = (
+            "<!--\nprobe header\n-->\n\n"
+            "### Foo=Bar\n\nfoo body\n\n"
+            "### Next\n\nnext body\n"
+        )
+        overlay = (
+            "<!-- SECURE:BEGIN id=test:equals kind=add after=### Foo=Bar -->\n"
+            "### Added\n\nadded body\n<!-- SECURE:END id=test:equals -->\n"
+        )
+        result = run_with_files(base_text, overlay)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("### Added", result.stdout)
+        # The heading value anchors the insert: `Added` lands after `foo body`,
+        # so `after` carried the full `### Foo=Bar` value.
+        self.assertLess(result.stdout.index("foo body"), result.stdout.index("### Added"))
+
+    def test_assembler_fails_loudly_on_unknown_attribute(self):
+        # R3-ATTR-VALIDATION-UNTESTED (unknown key): an unknown name where a key
+        # is expected fails loudly.
+        unknown = (
+            "<!-- SECURE:BEGIN id=test:attr bogus=1 kind=add after=### Anchor -->\n"
+            "### Body\n\ncontent\n<!-- SECURE:END id=test:attr -->\n"
+        )
+        result = run_with_files(OVERRIDE_BASE, unknown)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("unknown SECURE:BEGIN attribute", result.stderr)
+        # Positive control: dropping the one unknown attribute differs by one
+        # edit and reaches the same parse_overlay path.
+        control = unknown.replace("bogus=1 ", "")
+        ok = run_with_files(OVERRIDE_BASE, control)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+
+    def test_assembler_fails_loudly_on_duplicate_attribute(self):
+        # R3-ATTR-VALIDATION-UNTESTED (duplicate key): an empty value makes the
+        # repeat look like a second key; the pair must still be rejected.
+        duplicate = (
+            "<!-- SECURE:BEGIN id=test:dupa kind= kind=add after=### Anchor -->\n"
+            "### Body\n\ncontent\n<!-- SECURE:END id=test:dupa -->\n"
+        )
+        result = run_with_files(OVERRIDE_BASE, duplicate)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("duplicate SECURE:BEGIN attribute", result.stderr)
+        # Positive control: giving the first `kind` a value leaves one `kind=`.
+        control = duplicate.replace("kind= kind=add", "kind=add")
         ok = run_with_files(OVERRIDE_BASE, control)
         self.assertEqual(ok.returncode, 0, ok.stderr)
 

@@ -3,8 +3,11 @@ base.md - rendered gentle-ai v4.0.0 ODD orchestrator prompt (assembly input; nev
 Source repo: Gentleman-Programming/gentle-ai
 Tag: v4.0.0
 Template: global-config/prompts/gentle-orchestrator/upstream/orchestrator.template.md
-  git blob sha1: bb8b9ac34962d0be407f8b895fa1c0429b280b37
-  sha256: 6a5fde7b3a5df218e12902ea4663dbcab783726aa3bd66a7e1b33b2dc6248c91
+  upstream v4.0.0 git blob sha1: bb8b9ac34962d0be407f8b895fa1c0429b280b37
+  upstream v4.0.0 sha256: 6a5fde7b3a5df218e12902ea4663dbcab783726aa3bd66a7e1b33b2dc6248c91
+  local patch (Q66 T2): delegation-progress marker pair moved into one section
+  git blob sha1: 35a6c7ed2f938f00ffd1582113a5ace69697dc86
+  sha256: 6e52f378fae7e0f6b64f030e01d1bda1a56bc28a0bcb56300fb4673b78343ae8
 Sections: global-config/prompts/gentle-orchestrator/upstream/odd-orchestrator-sections.md
   git blob sha1: 5dc3be455da7284d710767acd762bcc5cb9595f9
   sha256: f75b016c2964bdf45d7f4f76cdeeaa401e1e7d26737370a96c00dd2481fa5508
@@ -159,8 +162,9 @@ The canonical native bounded-review contract is injected from the shared provide
 - Let native review select its bounded checking plan; delivery remains human-owned under ordinary repository policy.
 - Avoid delegation for truly local one-file fixes, quick state checks, and already-understood mechanical edits.
 
-<!-- gentle-ai:opencode-desktop-delegation-progress -->
 #### Delegation Visibility (OpenCode Desktop)
+
+<!-- gentle-ai:opencode-desktop-delegation-progress -->
 
 For every native `delegate` or `task` call, emit exactly one concise, assistant-visible status line immediately before the call:
 
