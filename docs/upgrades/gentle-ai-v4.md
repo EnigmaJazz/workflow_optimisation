@@ -28,6 +28,10 @@ Work through this checklist in order. The last item is the one most easily place
       3.7.0, so this MUST happen before the binary upgrade — a prerequisite placed after the
       upgrade cannot run. The change-set gate for Q39 is **not implemented**; the operator is the
       only enforcement.
+- [ ] **The upcoming sync is DESTRUCTIVE for SDD residue.** Gentle AI v4.1.x removes
+      Gentle-owned SDD agents, skills, commands, hooks and prompt blocks, so Step 3
+      (`gentle-ai sync`) deletes any SDD residue. Record the rollback artifact (see above) and the
+      Q39 dispositions (see above) before it runs; neither can be recovered afterwards.
 
 **Already mid-upgrade? Go to [Recovery](#recovery).**
 
