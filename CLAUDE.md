@@ -84,7 +84,10 @@ blocks, other projects' plugins) with compare-and-swap writes, a journal, and a 
 reports drift instead of overwriting it. It is the mechanism for the gentle-ai v4 and OpenCode V2
 upgrades.
 
-**Deployment is not complete at commit.** A source change takes effect only after: verifier run
+**Deployment is not complete at commit.** For the Gentle AI v4 upgrade,
+[`docs/upgrades/gentle-ai-v4.md`](docs/upgrades/gentle-ai-v4.md) is the authority for execution,
+activation, recovery and completion checks; restarts remain the owner's action. A source change
+takes effect only after: verifier run
 (mirror) → owner restarts OpenCode (`secure-opencode.service`, and `ai-proxy.service` for the
 port-18900 server) → verifier passes. Restarts are the owner's action.
 
