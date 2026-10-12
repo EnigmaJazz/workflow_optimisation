@@ -4318,10 +4318,23 @@ echo "--- 7. Recipe consistency ---"
 # Markers are unindented whole lines. Each anchor is validated ONLY in its
 # owning file (never in the assembled routing contract): exactly one begin and
 # one end line, begin before end, a non-empty interior after comment/heading/
-# blank lines are removed, and a keystone literal inside the block. A block
-# emptied behind intact markers, a duplicated/traversed pair, or a marker that
-# migrated to another artifact therefore fails. Assembled-contract searches
-# cannot satisfy these checks.
+# blank lines are removed, and a non-empty keystone literal inside the block. A
+# block emptied behind intact markers, a duplicated/traversed pair, a blank
+# keystone, or a marker that migrated to another artifact therefore fails.
+# Assembled-contract searches cannot satisfy these checks.
+#
+# What the anchor layer verifies: block structure (exactly one ordered begin/end
+# pair in the owning file), a non-empty interior, one non-empty keystone, and the
+# ANCHOR_TOKENS table below for specific contractual literals.
+# What it deliberately does NOT verify: headings, section titles and transitional
+# prose. Heading retitles were the original brittleness (Q30), so those are
+# intentionally not asserted here.
+#
+# ANCHOR_TOKENS classification rule — include a literal ONLY when it is
+# contractual and machine-checkable: error codes, CLI verbs, tool names,
+# protocol field names, exact caps/thresholds, version pins, sentinel strings,
+# and invariant "never/must" sentences. Headings, section titles and
+# transitional prose are NOT token-worthy; assert the owning block instead.
 ANCHOR_FILES=(
   "$WORKFLOW"
   "$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md"
@@ -4331,9 +4344,7 @@ ANCHOR_FILES=(
   "$AGENTS_SOURCE"
   "$ROUTING_CANONICAL"
 )
-ODD_REVIEW_REF="$SKILLS_DIR/workflow-odd-secure/references/odd-and-review.md"
-SESSION_DECISIONS_REF="$SKILLS_DIR/workflow-route/references/session-decisions.md"
-ROUTE_SKILL_REF="$SKILLS_DIR/workflow-route/SKILL.md"
+
 
 anchor_block_body() {
   awk -v b="<!-- workflow:anchor $2:begin -->" -v e="<!-- workflow:anchor $2:end -->" '
@@ -4355,6 +4366,10 @@ anchor_check_row() {
   local begin_marker="<!-- workflow:anchor $id:begin -->"
   local end_marker="<!-- workflow:anchor $id:end -->"
   local begin_count end_count first last body substantive other
+  if [ -z "$keystone" ]; then
+    fail "ANCHOR_KEYSTONE_EMPTY: $artifact $id: keystone field is blank"
+    return
+  fi
   if [ ! -f "$file" ]; then
     fail "ANCHOR_MISSING: $artifact $id: owning file unreadable"
     return
@@ -4414,6 +4429,7 @@ ANCHOR_MANIFEST=(
   "workflow.skill-routing-search~$WORKFLOW~WORKFLOW.md~EXTERNAL_CONTEXT_REQUIRED"
   "workflow.execution-boundary~$WORKFLOW~WORKFLOW.md~gentle-ai-verify"
   "workflow.context-backend~$WORKFLOW~WORKFLOW.md~document-review"
+  "workflow.review-relay~$WORKFLOW~WORKFLOW.md~asi-review-*"
   "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~review.acknowledge-approved"
   "workflow.frontend-lane~$WORKFLOW~WORKFLOW.md~subagent_depth: 3"
   "workflow.execution-skills~$WORKFLOW~WORKFLOW.md~test-driven-development"
@@ -4447,6 +4463,111 @@ if [ "${#FAIL_MESSAGES[@]}" -eq "$ANCHOR_FAIL_BEFORE" ]; then
   echo "   ok: ${#ANCHOR_MANIFEST[@]} stable anchor blocks validated in their owning files"
 fi
 
+# Q26 contractual anchor tokens — the ONE literal-checking mechanism. Every row
+# is "<anchor id>~<owning file>~<label>~<literal>" with the literal LAST so a
+# literal containing '~', '|', '→', backticks, quotes or spaces still parses.
+# Each row extracts its anchor interior and fails ANCHOR_TOKEN_MISSING when the
+# literal is absent. This replaces the former per-chain anchor_has calls so no
+# mixed literal-checking scheme remains. See the classification rule above.
+ANCHOR_TOKENS=(
+  # WORKFLOW.md
+  "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`authored_changed_lines\`"
+  "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`authored_patch_bytes\`"
+  "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`generated_or_binary_paths\`"
+  "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~400 authored changed lines and 100 KiB"
+  "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~200 KiB serialized per-runtime review-input budget"
+  "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`review-size-exception\`"
+  "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~Do not leave the evidence update uncommitted"
+  "workflow.project-registration~$WORKFLOW~WORKFLOW.md~host_register_project"
+  "workflow.project-registration~$WORKFLOW~WORKFLOW.md~Fish shell"
+  "workflow.odd-delegation~$WORKFLOW~WORKFLOW.md~two or more non-trivial files"
+  "workflow.odd-delegation~$WORKFLOW~WORKFLOW.md~more than about 5 sequential lookups"
+  "workflow.odd-protocol~$WORKFLOW~WORKFLOW.md~route/trigger evidence"
+  "workflow.odd-protocol~$WORKFLOW~WORKFLOW.md~ODD_TASKS key=odd/{project}/{feature-name}/tasks"
+  "workflow.frontend-lane~$WORKFLOW~WORKFLOW.md~frontend-dev-premium"
+  "workflow.frontend-lane~$WORKFLOW~WORKFLOW.md~Model assignments are authoritative"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~gentle-ai review assess --json"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~gentle-ai review mode enable|disable|status"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~Risk, Resilience, Readability, Reliability"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~status/v8"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~candidate.consumed"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~review_due_reason"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~next_transition.command"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~provider_task.agent"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~provider_task.prompt"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~\`review-<lens>\` → \`asi-review-<lens>\`"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~TRANSPORT-LANE FAILURE"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~eligible_untracked_inventory"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~review.acknowledge-approved"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~\`lens_context_budget_exceeded\`"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~\`correction_context_budget_exceeded\`"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~\`review capture-result --input\`, \`review recover\`"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~Forward the provider-issued task line verbatim"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~two transports cannot own one Task"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~Never grant review lanes to implementation workers or isolated reviewers"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~reviewer's raw JSON object"
+  "workflow.native-rdd~$WORKFLOW~WORKFLOW.md~grouped wave without waiting between launches"
+  "workflow.review-relay~$WORKFLOW~WORKFLOW.md~two transports cannot own one Task"
+  "workflow.review-relay~$WORKFLOW~WORKFLOW.md~provider-issued task line verbatim"
+  "workflow.execution-skills~$WORKFLOW~WORKFLOW.md~Systematic v3.18.4+"
+  "workflow.execution-skills~$WORKFLOW~WORKFLOW.md~workflow-guard result is authoritative"
+  "workflow.astra-escalation~$WORKFLOW~WORKFLOW.md~astra-sol-upgrade.ts"
+  "workflow.astra-escalation~$WORKFLOW~WORKFLOW.md~selection never edits global config or requires an OpenCode restart"
+  # global-config/skills/workflow-odd-secure/references/odd-and-review.md
+  "workflow.odd-and-review.odd-delegation~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~two or more non-trivial files"
+  "workflow.odd-and-review.odd-delegation~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~more than about 5 sequential lookups"
+  "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~route/trigger evidence"
+  "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~ODD_TASKS key=odd/{project}/{feature-name}/tasks"
+  "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~400 authored changed lines and 100 KiB"
+  "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~200 KiB serialized per-runtime review-input budget"
+  "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~--base-ref <last reviewed boundary> --committed-only --json"
+  "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~candidate.consumed"
+  "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~review_due_reason"
+  "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~next_transition.command"
+  "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~Do not leave the evidence update uncommitted"
+  "workflow.odd-and-review.native-rdd~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~gentle-ai review assess --json"
+  "workflow.odd-and-review.native-rdd~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~gentle-ai review mode enable|disable|status"
+  "workflow.odd-and-review.native-rdd~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~status/v8"
+  "workflow.odd-and-review.native-rdd~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~provider_task.agent"
+  "workflow.odd-and-review.native-rdd~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~provider_task.prompt"
+  "workflow.odd-and-review.native-rdd~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~correction_context_budget_exceeded"
+  "workflow.odd-and-review.native-rdd~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~eligible_untracked_inventory"
+  "workflow.odd-and-review.native-rdd~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~reviewer's raw JSON object"
+  "workflow.odd-and-review.native-rdd~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~grouped wave without waiting between launches"
+  "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~Risk, Resilience, Readability, Reliability"
+  "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~TRANSPORT-LANE FAILURE"
+  "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~review.acknowledge-approved"
+  "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~Forward the provider-issued task line verbatim"
+  "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~two transports cannot own one Task"
+  "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~Never grant review lanes to implementation workers or isolated reviewers"
+  # global-config/skills/workflow-route/references/session-decisions.md
+  "workflow.session-decisions.astra~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Use Astra upgrade (Recommended)"
+  "workflow.session-decisions.astra~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Astra is never an implementation agent"
+  "workflow.session-decisions.shell~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Fish shell"
+  "workflow.session-decisions.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Forward the provider-issued task line verbatim"
+  "workflow.session-decisions.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~never grant review lanes to implementation workers or isolated reviewers"
+  # global-config/skills/workflow-route/SKILL.md
+  "workflow.route-skill.route-statement~$ROUTER_SKILLS_SOURCE/workflow-route/SKILL.md~global-config/skills/workflow-route/SKILL.md~basis: WORKFLOW.md"
+  # global-config/AGENTS.md — checked against the reviewed SOURCE, never the deployed copy
+  "workflow.agents.secure-router~$AGENTS_SOURCE~global-config/AGENTS.md~final 200 KiB serialized-input authority"
+  "workflow.agents.secure-router~$AGENTS_SOURCE~global-config/AGENTS.md~skill({name:\"workflow-route\"})"
+  "workflow.agents.secure-router~$AGENTS_SOURCE~global-config/AGENTS.md~route/trigger evidence"
+)
+ANCHOR_TOKEN_FAIL_BEFORE=${#FAIL_MESSAGES[@]}
+for token_row in "${ANCHOR_TOKENS[@]}"; do
+  IFS='~' read -r token_anchor token_file token_label token_literal <<< "$token_row"
+  if [ -z "$token_anchor" ] || [ -z "$token_file" ] || [ -z "$token_literal" ]; then
+    fail "ANCHOR_TOKEN_EMPTY: $token_label $token_anchor: token row has a blank anchor, file or literal field"
+    continue
+  fi
+  if ! anchor_has "$token_file" "$token_anchor" "$token_literal"; then
+    fail "ANCHOR_TOKEN_MISSING: $token_anchor $token_file $token_literal"
+  fi
+done
+if [ "${#FAIL_MESSAGES[@]}" -eq "$ANCHOR_TOKEN_FAIL_BEFORE" ]; then
+  echo "   ok: ${#ANCHOR_TOKENS[@]} contractual anchor tokens present in their owning blocks"
+fi
+
 if [ ! -f "$WORKFLOW" ]; then
   fail "WORKFLOW.md missing: $WORKFLOW"
 else
@@ -4470,53 +4591,15 @@ else
     fail "missing keywords:$MISSING_KW"
   fi
 
-  # Q26: the review-budget chain keeps only contractual literals (receipt
-  # fields, caps, error codes, split/abandon commands), each scoped inside its
-  # owning anchor; the prose sentence "separate PR/slice planning threshold"
-  # and the session-decisions heading are covered by the anchor checker.
-  if anchor_has "$WORKFLOW" workflow.work-unit-review '`authored_changed_lines`' && \
-     anchor_has "$WORKFLOW" workflow.work-unit-review '`authored_patch_bytes`' && \
-     anchor_has "$WORKFLOW" workflow.work-unit-review '`generated_or_binary_paths`' && \
-     anchor_has "$WORKFLOW" workflow.work-unit-review '400 authored changed lines and 100 KiB' && \
-     anchor_has "$WORKFLOW" workflow.work-unit-review '200 KiB serialized per-runtime review-input budget' && \
-     anchor_has "$WORKFLOW" workflow.work-unit-review '`review-size-exception`' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd '`lens_context_budget_exceeded`' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd '`correction_context_budget_exceeded`' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd '`review capture-result --input`, `review recover`' && \
-     anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.work-unit-review '400 authored changed lines and 100 KiB' && \
-     anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.work-unit-review '200 KiB serialized per-runtime review-input budget' && \
-     anchor_has "$AGENTS_FILE" workflow.agents.secure-router 'final 200 KiB serialized-input authority'; then
-    echo "   ok: Gentle AI 3.4 review-input budget limits work-unit commit size"
-  else
-    fail "GENTLE_AI_V3_4_REVIEWABILITY_BUDGET_MISSING: staged commit receipt, local cap, native 200 KiB authority, or split/abandon route absent"
-  fi
+  # Q26: the review-budget literals are contractual tokens in the ANCHOR_TOKENS
+  # table above; they are checked once each, inside their owning blocks.
 
-  # Q26: this 50-predicate prose chain collapses to its contractual literals
-  # (tool names, markers, protocol fields, sentinels), each pinned inside its
-  # owning anchor block. The negative absence check at the end is unchanged.
-  if anchor_has "$WORKFLOW" workflow.project-registration 'host_register_project' && \
-     anchor_has "$WORKFLOW" workflow.frontend-lane 'frontend-dev-premium' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd 'gentle-ai review assess --json' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd 'gentle-ai review mode enable|disable|status' && \
-     anchor_has "$WORKFLOW" workflow.odd-protocol 'ODD_TASKS key=odd/{project}/{feature-name}/tasks' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd 'Risk, Resilience, Readability, Reliability' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd 'status/v8' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd 'candidate.consumed' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd 'review_due_reason' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd 'next_transition.command' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd 'provider_task.agent' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd 'provider_task.prompt' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd 'correction_context_budget_exceeded' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd '`review-<lens>` → `asi-review-<lens>`' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd 'TRANSPORT-LANE FAILURE' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd 'eligible_untracked_inventory' && \
-     anchor_has "$WORKFLOW" workflow.astra-escalation 'astra-sol-upgrade.ts' && \
-     anchor_has "$WORKFLOW" workflow.native-rdd 'review.acknowledge-approved' && \
-     ! grep -q -- "frontend-dev.*=.*openai/gpt-6.1-sol" "$WORKFLOW" 2>/dev/null && \
-     anchor_has "$WORKFLOW" workflow.project-registration 'Fish shell'; then
-    echo "   ok: workflow encodes read-only technical leadership, Magic Context, secure project registration, and Fish-shell UX"
+  # Q26: this chain's positive coverage is now contractual tokens in the
+  # ANCHOR_TOKENS table above; only the negative absence guard remains here.
+  if ! grep -q -- "frontend-dev.*=.*openai/gpt-6.1-sol" "$WORKFLOW" 2>/dev/null; then
+    echo "   ok: no frontend-dev premium model is hard-coded in the recipe"
   else
-    fail "workflow missing read-only orchestrator / delegated researcher-worker execution contract"
+    fail "workflow hard-codes a frontend-dev premium model instead of deferring to opencode.json"
   fi
 
   if grep -q -- "Direct inline edit" "$WORKFLOW" 2>/dev/null || \
@@ -4665,43 +4748,15 @@ fi
 # Gentle AI v3 renders its native ODD guidance with a specific heading, but
 # sync does not guarantee that that prose appears in this global AGENTS.md.
 # Our reviewed user-owned block is the effective secure adapter: it delegates
-# project writes and mirrors ODD to Magic Context instead of Engram. Q26: the
-# block's own structure is validated by the owning-anchor checker; keep only
-# the runtime router keystone and the WORKFLOW.md route-decision literal here.
-if anchor_has "$AGENTS_FILE" workflow.agents.secure-router 'skill({name:"workflow-route"})' && \
-   anchor_has "$ROUTE_SKILL_REF" workflow.route-skill.route-statement 'basis: WORKFLOW.md'; then
-  echo "   ok: authoritative secure ODD route and WORKFLOW.md decision are present"
-  if ! grep -Fq -- 'ODD protocol (MANDATORY, in this order, on every request)' "$ROUTING_CONTRACT" 2>/dev/null; then
-    echo "   info: upstream managed ODD prose absent from global AGENTS.md; secure user-owned v3 route is effective"
-  fi
-else
-  fail "GENTLE_AI_V3_SECURE_ODD_ROUTING_MISSING: reviewed user-owned ODD block or WORKFLOW.md route decision missing from active AGENTS.md; run --recover-config-only"
+# project writes and mirrors ODD to Magic Context instead of Engram. The block's
+# structure and its route keystones are validated by the anchor manifest and the
+# ANCHOR_TOKENS table above, so only the upstream-prose diagnostic remains here.
+if ! grep -Fq -- 'ODD protocol (MANDATORY, in this order, on every request)' "$ROUTING_CONTRACT" 2>/dev/null; then
+  echo "   info: upstream managed ODD prose absent from global AGENTS.md; secure user-owned v3 route is effective"
 fi
 
-# Q26: the assembled-contract chain keeps only contractual literals, each
-# scoped to its owning anchor block in the reviewed source or its deployed
-# byte-copy. Prose predicates are covered by the owning-anchor checker.
-if anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.odd-protocol 'ODD_TASKS key=odd/{project}/{feature-name}/tasks' && \
-   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.native-rdd 'gentle-ai review assess --json' && \
-   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.native-rdd 'gentle-ai review mode enable|disable|status' && \
-   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.work-unit-review '--base-ref <last reviewed boundary> --committed-only --json' && \
-   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.native-rdd 'status/v8' && \
-   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.work-unit-review 'candidate.consumed' && \
-   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.work-unit-review 'review_due_reason' && \
-   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.work-unit-review 'next_transition.command' && \
-   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.native-rdd 'provider_task.agent' && \
-   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.native-rdd 'provider_task.prompt' && \
-   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.native-rdd 'correction_context_budget_exceeded' && \
-   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.native-rdd 'eligible_untracked_inventory' && \
-   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.4r-lanes 'Risk, Resilience, Readability, Reliability' && \
-   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.4r-lanes 'TRANSPORT-LANE FAILURE' && \
-   anchor_has "$ODD_REVIEW_REF" workflow.odd-and-review.4r-lanes 'review.acknowledge-approved' && \
-   anchor_has "$SESSION_DECISIONS_REF" workflow.session-decisions.astra 'Use Astra upgrade (Recommended)' && \
-   anchor_has "$SESSION_DECISIONS_REF" workflow.session-decisions.shell 'Fish shell'; then
-  echo "   ok: sandbox/read-only/Magic-Context + technical-lead + secure-project-registration + Fish-shell contract present"
-else
-  fail "sandbox-only mutation/read-only orchestrator/researcher-worker/Magic Context contract missing"
-fi
+# Q26: the assembled-contract literals are contractual tokens in the
+# ANCHOR_TOKENS table above, checked once against their reviewed source blocks.
 
 if grep -q -- "<!-- gentle-ai:engram-protocol -->" "$AGENTS_FILE" 2>/dev/null; then
   fail "LEGACY_ENGRAM_PROTOCOL_REAPPEARED: user workflow uses mandatory Magic Context instead"

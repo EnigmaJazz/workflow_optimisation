@@ -152,12 +152,14 @@ The `gentle-orchestrator` is a strictly read-only technical lead.
 - Systematic `review` and `document-review` agents may not write shared memory; workflow, research, and design agents retain their explicitly configured narrow memory authority.
 
 <!-- workflow:anchor workflow.context-backend:end -->
+<!-- workflow:anchor workflow.review-relay:begin -->
 ### Secure fixed host tools and isolated review relay
 
 The orchestrator may use the allowed `host_review_*` read operations for workflow state. The registered `host_review_*`, `host_git_*`, `host_gh_issue_create`, `host_plan_append`, and `host_register_project` mutations remain globally denied and explicitly `ask`-gated only for `gentle-orchestrator`; the plugin and broker enforce their own authorization as well. Eight retired v2 operations remain denied, even if an older host plugin still registers them. Use exact provider-returned operation arguments where the native lifecycle supplies them. A fixed host operation never grants ordinary host Bash, project file editing, or sandbox mutation to the orchestrator. The ten `host_system`/service/network/Docker inspection names in the handover remain unavailable until a registering plugin is implemented and reviewed.
 
 The six `asi-review-*` Task targets are the mandatory fixed-host relay lane for OpenCode V1 v8 review work while the installed transport is loaded. They have no tools, no memory writes, and no permission to delegate, inspect the worktree, or mutate. Map each provider-returned plain `review-*` name to its `asi-review-*` target while forwarding the provider-issued task line verbatim; never dispatch the plain name because two transports cannot own one Task. A reply that the required `GENTLE_AI_REVIEW_CONTEXT` block was not supplied is a transport-lane failure, not a review finding, and must be re-dispatched through the mapped relay without recording or adjudicating it. Never grant relay lanes to implementation workers or isolated reviewers. Never use fallback session replay for either set because replay bypasses Task prompt injection. If the mapped fallback plugin has not excluded all twelve, stop before launching a bound review. Add the two relay plugin files to the host installer and rollback lists, and keep the mapped fallback plugin source exclusions current.
 
+<!-- workflow:anchor workflow.review-relay:end -->
 ### Current upstream review lifecycle
 
 ODD is the default. OpenCode consent uses supported native `question` choices. Runtime attempt governance and research admission are retired. Review assessment and STATUS are machine-directed: preserve `review_due`, `review_due_reason`, `candidate.consumed`, opaque `provider_task`, and every exact continuation argument without inventing phase or review results. Run `gentle-ai sync` when adopting a new upstream install, then review the resulting managed file changes before accepting them.
