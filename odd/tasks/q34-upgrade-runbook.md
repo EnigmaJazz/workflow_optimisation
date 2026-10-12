@@ -1,6 +1,6 @@
 # Q34 — Gentle AI v4 upgrade runbook
 
-**Feature:** gentle-ai v4 upgrade / queue Q34 (upgrade runbook). **Task ID:** `q34-upgrade-runbook` (stable). **Class:** global-tooling-change. **Route:** `workflow-odd-secure` (delegated). **Unit status:** T0 IN PROGRESS (tracker + advice created; T1 the runbook and its pointer edits pending). **Model:** cloud `opencode-go/deepseek-v4.1-flash` (owner decision 2026-10-07). **Prerequisites:** Q29–Q33 on the gated branch; Q36's change set (non-git surfaces only); Q63's post-upgrade repair is part of the sequence.
+**Feature:** gentle-ai v4 upgrade / queue Q34 (upgrade runbook). **Task ID:** `q34-upgrade-runbook` (stable). **Class:** global-tooling-change. **Route:** `workflow-odd-secure` (delegated). **Unit status:** T0–T1 DONE-AT-SOURCE (Q34 source complete; committed). The runbook is authored and the four sources point at it; runtime validation of its steps is PENDING — it has never been executed. **Model:** cloud `opencode-go/deepseek-v4.1-flash` (owner decision 2026-10-07). **Prerequisites:** Q29–Q33 on the gated branch; Q36's change set (non-git surfaces only); Q63's post-upgrade repair is part of the sequence.
 
 ## Objective
 
@@ -32,11 +32,14 @@ Every cited command/flag re-verified against its source (`path:line`); a link ch
 
 ## Tasks
 
-- [ ] T1 — author `docs/upgrades/gentle-ai-v4.md` (structure: scope/preconditions → recovery link up front → numbered upgrade steps with action/expected/stop-link → recovery section → completion and evidence → operational decisions and open questions → references) and make the scoped pointer edits in the four sources.
+- [x] T1 — author `docs/upgrades/gentle-ai-v4.md` (structure: scope/preconditions → recovery link up front → numbered upgrade steps with action/expected/stop-link → recovery section → completion and evidence → operational decisions and open questions → references) and make the scoped pointer edits in the four sources.
 
 ## Progress
 
 - 2026-10-11: T0 — tracker and advice record created from two pre-code advisories and an owner decision round; no artifact edit yet. Route: delegated.
+- 2026-10-11: T1 committed `3789cc1` (5 files, +272/−16; authored 288 lines). Authored `docs/upgrades/gentle-ai-v4.md` (257 lines): scope/preconditions with "Already mid-upgrade? Go to Recovery" up front → 12 numbered steps each as Action → Expected result → If it fails → a Recovery section (failure-state table first, then binary rollback, config recovery, change-set revert, repo-level rollback, expected-RED baselines) → completion/evidence → owner decisions/open questions → references. The sequence records the corrected order: Q39 dispositions BEFORE the binary upgrade (`gentle-ai sdd-status` exists only on 3.7.0); the change set applies NON-GIT SURFACES ONLY (Q30–Q33 are committed); the one-time `rm -rf ~/.config/opencode/skills/workflow-sdd-secure`; mirror → restart ALL THREE services → CLEAN re-verify → `--behavioral` → Q63 `inspect-authority`/`repair --preflight` → dispatch checks via the owner/TUI route → retention. Pointer edits: `docs/TODO.md` Q34 entry now names the runbook as sole authority (inline 10-step procedure removed); `CLAUDE.md` keeps the general deployment policy and points at the runbook; `docs/HANDOFF-2026-10-02.md` marked HISTORICAL with a "do not execute as a runbook" callout; `WORKFLOW.md:26`'s project-registration contract PRESERVED byte-for-byte with ONE added sentence naming the runbook for v4 activation.
+- 2026-10-11: T1 evidence — every cited flag/command re-verified against source (`--behavioral` `:85-86`; `--recover-config-only` `:88-89`; `SECURE_OPENCODE_RESTART_REQUIRED`/`RUNTIME_RESTART_REQUIRED` `:4275-4278`; behavioural skipped when earlier checks fail `:5008-5011`; `RETIRED_WORKFLOW_SKILL_PRESENT` `:3928`; `RECOVERY_BACKUP_ROOT` `:126`; `changeset.py` subcommands/options `:1008-1018`; out-of-order revert refused `:970-986`; dry-run does not execute `--verify-cmd`; the service names confirmed real). Link check: every internal link target verified present (including `odd/tasks/guard-q03.md`). Planted-duplicate control: a copy of Step 7 planted in a gitignored worker-local path made the content search return 2 hits (duplication detected), removing it returned 1 — reported with the honest limitation that sandbox tools cannot write outside the project root, and that a LINK checker alone cannot detect semantic duplication. `python3 -m unittest discover -s tests` 102 OK. No `verify-workflow.sh` edit, so NO digest re-pin.
+- 2026-10-11: T1 assessment: risk medium (`executable_change` on CLAUDE.md), 5 files / 288 changed lines, `review_due: false` (`under_budget`) — the slice accumulates rather than triggering a review.
 
 ## Route / trigger evidence
 
@@ -44,4 +47,4 @@ Route: delegated. Specialist: `odd-apply` writer (direct; the PM layer is unusab
 
 ## Next step
 
-T1 (the runbook + the pointer edits), then the owner's review of the runbook before it is ever executed.
+OWNER ACTION: READ the runbook before executing it — it has never been run. Then the deployment it describes: `bash verify-workflow.sh` to mirror, restart all three services, a CLEAN re-verify, `--behavioral`, the Q63 review-store check, and the dispatch checks. Carry-forward: the runbook's steps are unvalidated against a live upgrade; the first real execution is the validation.
