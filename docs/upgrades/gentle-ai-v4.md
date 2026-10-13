@@ -186,7 +186,7 @@ decision (2026-10-11) is all three.
 
 ### Step 12: Retention
 
-- **Action:** keep the last 10 `backups/workflow-recovery/` runs and delete older ones.
+- **Action:** keep the last 10 `backups/workflow-recovery/` runs and delete older ones — the global rule is `WORKFLOW.md` "Recovery-backup retention", which is authoritative if this step ever diverges.
 - **Expected result:** at most 10 timestamped recovery directories remain. The verifier does not
   prune them.
 - **If it fails:** no stop; retention is housekeeping.
@@ -275,10 +275,10 @@ pending**:
 1. **Restart all three services** — `sandbox-broker.service`, `secure-opencode.service`,
    `ai-proxy.service` ([Step 7](#step-7-restart-all-three-services-one-way-door)).
 2. **Keep the last 10 `backups/workflow-recovery/` runs**
-   ([Step 12](#step-12-retention)). A "recovery run" is one verifier recovery invocation's
-   timestamped directory under `backups/workflow-recovery/` (`RECOVERY_BACKUP_ROOT`,
-   `verify-workflow.sh:126`). It is NOT a change-set journal: those live under
-   `backups/changesets/`, a different root.
+   ([Step 12](#step-12-retention); authority: `WORKFLOW.md` "Recovery-backup retention"). A
+   "recovery run" is one verifier recovery invocation's timestamped directory under
+   `backups/workflow-recovery/` (`RECOVERY_BACKUP_ROOT`, `verify-workflow.sh:126`). It is NOT a
+   change-set journal: those live under `backups/changesets/`, a different root.
 
 Open questions this runbook had to decide:
 

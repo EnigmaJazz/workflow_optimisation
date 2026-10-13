@@ -344,6 +344,10 @@ The health-check plugin pins `verify-workflow.sh`'s sha256 and **refuses to exec
 
 **Checklist trigger:** ANY edit to `verify-workflow.sh` (including doc-only heredoc text) starts this cycle — a text-only change still changes the digest and still breaks the pin.
 
+### Recovery-backup retention
+
+The verifier's self-healing writes one timestamped directory per recovery run under `backups/workflow-recovery/<run-id>/` (`RECOVERY_BACKUP_ROOT`, `verify-workflow.sh:126`). **Keep the most recent 10 runs and delete older ones.** A "recovery run" is one verifier recovery invocation's timestamped directory. The verifier never prunes these itself. Retention is housekeeping, never a stop condition: a failed or skipped prune does not block work or change any check result. `backups/` is gitignored, so pruning is local-only and never rewrites repository history.
+
 <!-- workflow:anchor workflow.session-defaults:begin -->
 ## Session Defaults
 
