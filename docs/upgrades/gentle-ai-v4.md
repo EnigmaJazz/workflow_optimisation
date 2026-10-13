@@ -269,13 +269,16 @@ Record the evidence in the Q34 tracker (`odd/tasks/q34-upgrade-runbook.md`) and 
 
 ## Operational decisions and open questions
 
-Two owner decisions are recorded once, **owner-decided for this upgrade; runtime validation
-pending**:
+Two owner decisions are recorded once, **owner-decided for this upgrade and VALIDATED by the
+2026-10-13 execution** (gentle-ai 3.7.0 -> 4.1.1):
 
 1. **Restart all three services** — `sandbox-broker.service`, `secure-opencode.service`,
-   `ai-proxy.service` ([Step 7](#step-7-restart-all-three-services-one-way-door)).
+   `ai-proxy.service` ([Step 7](#step-7-restart-all-three-services-one-way-door)). Validated at
+   Step 7 of the 2026-10-13 execution: all three restarted and the immediately following Step 8
+   re-verify was CLEAN.
 2. **Keep the last 10 `backups/workflow-recovery/` runs**
-   ([Step 12](#step-12-retention); authority: `WORKFLOW.md` "Recovery-backup retention"). A
+   ([Step 12](#step-12-retention); authority: `WORKFLOW.md` "Recovery-backup retention"). Resolved
+   at Step 12 of the 2026-10-13 execution and promoted to that global rule (commit `de85e7c`). A
    "recovery run" is one verifier recovery invocation's timestamped directory under
    `backups/workflow-recovery/` (`RECOVERY_BACKUP_ROOT`, `verify-workflow.sh:126`). It is NOT a
    change-set journal: those live under `backups/changesets/`, a different root.
