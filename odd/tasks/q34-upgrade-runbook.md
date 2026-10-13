@@ -58,7 +58,7 @@ Route: delegated. Specialist: `odd-apply` writer (direct; the PM layer is unusab
 
 ## Next step
 
-OWNER ACTION: READ the runbook before executing it — it has never been run. Then the deployment it describes: `bash verify-workflow.sh` to mirror, restart all three services, a CLEAN re-verify, `--behavioral`, the Q63 review-store check, and the dispatch checks. Carry-forward: the runbook's steps are unvalidated against a live upgrade; the first real execution is the validation.
+The runbook was EXECUTED on 2026-10-13 against gentle-ai 4.1.1 and the upgrade COMPLETED (gentle-ai 3.7.0 -> 4.1.1); the per-step evidence is in the "Execution record — 2026-10-13" section above, and the prior carry-forward — that the runbook had never been run, its first real execution being the validation — is therefore SATISFIED. No upgrade step remains outstanding. Still-open follow-ups carried forward: the Q31 open items; the Q26 T3 unclosed review lineage; the Step 10 malformed compact-lineage finding (6 pre-v4 `malformed_compact_state` lineages that `review repair` cannot fix — a FINDING, not a blocker); the `~/.config/opencode/commands/sdd-code.md` survival and the `~/.config/opencode/skills/nono-sandbox` entry (both UNVERIFIED); and the Q66 template local-patch hazard.
 
 ## Execution record — 2026-10-13 (gentle-ai 3.7.0 -> 4.1.1)
 
