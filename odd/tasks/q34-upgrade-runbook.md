@@ -1,6 +1,6 @@
 # Q34 — Gentle AI v4 upgrade runbook
 
-**Feature:** gentle-ai v4 upgrade / queue Q34 (upgrade runbook). **Task ID:** `q34-upgrade-runbook` (stable). **Class:** global-tooling-change. **Route:** `workflow-odd-secure` (delegated). **Unit status:** T0–T1 DONE-AT-SOURCE (Q34 source complete; committed). The runbook is authored and the four sources point at it; runtime validation of its steps is PENDING — it has never been executed. **Model:** cloud `opencode-go/deepseek-v4.1-flash` (owner decision 2026-10-07). **Prerequisites:** Q29–Q33 on the gated branch; Q36's change set (non-git surfaces only); Q63's post-upgrade repair is part of the sequence.
+**Feature:** gentle-ai v4 upgrade / queue Q34 (upgrade runbook). **Task ID:** `q34-upgrade-runbook` (stable). **Class:** global-tooling-change. **Route:** `workflow-odd-secure` (delegated). **Unit status:** DONE — the runbook was EXECUTED on 2026-10-13 against gentle-ai 4.1.1 and the upgrade completed. Steps 1-12 all resolved (see "Execution record" below). **Model:** cloud `opencode-go/deepseek-v4.1-flash` (owner decision 2026-10-07). **Prerequisites:** Q29–Q33 on the gated branch; Q36's change set (non-git surfaces only); Q63's post-upgrade repair is part of the sequence.
 
 ## Pre-install preconditions (recorded 2026-10-12)
 
@@ -11,7 +11,7 @@ All four runbook preconditions are satisfied and observed before Step 2:
 - [x] **Rollback artifact created and verified.** `ls (brew --prefix)/Cellar/gentle-ai/` showed ONLY `3.7.0` — no prior keg — so the binary was copied aside BEFORE any upgrade: `cp /home/linuxbrew/.linuxbrew/Cellar/gentle-ai/3.7.0/bin/gentle-ai ~/gentle-ai-3.7.0.bin`. Proven standalone: `~/gentle-ai-3.7.0.bin --version` → `gentle-ai 3.7.0` (resolves without the Homebrew symlink). **This path is the rollback artifact the runbook requires.**
 - [x] **Q39 dispositions RECORDED** (owner, 2026-10-12) — see `docs/TODO.md` "Q39 dispositions — OWNER DECISION (2026-10-12)".
 
-Not yet done: Steps 1–12 themselves (never executed). The runbook's first execution is its validation.
+EXECUTED 2026-10-13 (gentle-ai 3.7.0 -> 4.1.1). See the Execution record below.
 
 ## Objective
 
@@ -59,3 +59,34 @@ Route: delegated. Specialist: `odd-apply` writer (direct; the PM layer is unusab
 ## Next step
 
 OWNER ACTION: READ the runbook before executing it — it has never been run. Then the deployment it describes: `bash verify-workflow.sh` to mirror, restart all three services, a CLEAN re-verify, `--behavioral`, the Q63 review-store check, and the dispatch checks. Carry-forward: the runbook's steps are unvalidated against a live upgrade; the first real execution is the validation.
+
+## Execution record — 2026-10-13 (gentle-ai 3.7.0 -> 4.1.1)
+
+All preconditions were satisfied first (pin MATCH; version recorded; rollback artifact `~/gentle-ai-3.7.0.bin` created and proven standalone because `ls (brew --prefix)/Cellar/gentle-ai/` held ONLY `3.7.0`; Q39 dispositions recorded on 3.7.0 while `sdd-status` still existed).
+
+| Step | Result |
+|---|---|
+| 1 Confirm install method | OK — `command -v gentle-ai` -> `/home/linuxbrew/.linuxbrew/bin/gentle-ai` |
+| 2 Upgrade the binary (ONE-WAY DOOR) | OK — `brew upgrade gentle-ai` 3.7.0 -> 4.1.1; the 3.7.0 keg and its tarball were REMOVED by Homebrew, so `~/gentle-ai-3.7.0.bin` is now the only 3.7.0 copy. A Landlock warning appeared (kernel ABI 8 < required 10): benign, it only weakens build-time network denial. |
+| 3 Sync v4 managed assets | OK — the preview ran from the NEW binary (4.1.1) and reported `Agents: opencode,windsurf,antigravity`, components `persona, engram, context7, gga, skills`, `Prepare steps: 4 / Apply steps: 21`. The apply reported `Sync actions executed: 123 files changed`. It DELETED the SDD assets (commands `sdd-*.md`, skills `sdd-*`, `prompts/sdd/*`, `plugins/sdd-task-result-artifacts.ts`) and OVERWROTE `opencode.json` and `AGENTS.md` (restored at Step 6). |
+| 4 Change set | NOT APPLICABLE (documented skip; no `upgrade/v4` set exists and none is authorable). |
+| 5 One-time manual cleanup | NO-OP — `~/.config/opencode/skills/workflow-sdd-secure` was already absent; the verifier later confirmed `no retired workflow skill directories present`. |
+| 6 Mirror the config | OK — recovered `opencode.json` (also reconciling the canonical pin `@fro.bot/systematic 3.21.5 -> 3.21.8`), `AGENTS.md`, 4 reviewed workflow skill files, and re-mirrored `workflow-health-check.ts`. It reported the EXPECTED `SECURE_OPENCODE_RESTART_REQUIRED` with `RUNTIME_RESTART_REQUIRED=1`, which is why the runtime checks were skipped at that point. |
+| 7 Restart all three services (ONE-WAY DOOR) | OK — `sandbox-broker.service`, `secure-opencode.service`, `ai-proxy.service` restarted. |
+| 8 Re-verify, require CLEAN | OK — a CLEAN full run (`All checks passed — workflow setup intact`); the restart requirement cleared and sections 9a/9b ran for real. |
+| 9 Behavioral probes | OK on the second attempt. The FIRST `--behavioral` run failed the fan-out probe with exit 1, printing only session-creation and guard-registration lines. A manual re-run of the identical probe in the same cwd shape returned exit 0 with both sentinels and `PARALLEL_FANOUT_DONE`, so the failure was TRANSIENT (exit 1, not the 180s timeout's 124). The verifier was then re-run and passed BOTH probes: 10 (fan-out emitted both Task calls in one assistant message with overlapping intervals) and 10a (planning-only request launched no writer and created no ODD tracker). |
+| 10 Q63 post-upgrade review-store check | BOTH SUBCOMMANDS EXIST (this resolves the runbook's UNVERIFIED caveat). `review inspect-authority`: `complete:false, valid:false`, 12 compact entries, 6 loaded, 0 edges, and 6 entry diagnostics all `malformed_compact_state`, with `sanctioned_exits: []`. `review repair --preflight`: `status: "unsupported"`, 12 lineages (all compact, 0 legacy), 6 `unsupported_lineages`, `eligible_candidates: 0`, `supported_operations: ["review/complete-fix","review/validate-fix"]`, `required_inputs: []`. INTERPRETATION: those two supported operations finish in-flight corrections, not malformed compact state, so the 6 malformed lineages are NOT repairable by this tool and no input is owed. FINDING, not a blocker: RDD is on and demonstrably working (a dozen 4-lens reviews ran across this session, including two after the upgrade); the 6 malformed lineages are pre-v4 residue. |
+| 11 Dispatch checks | OK — four lane families dispatched from an orchestrator session (the real Task path, not the disqualified `opencode run --agent advisor-*` fallback) and all returned evidence: `advisor-design-pre`, `gentle-ai-explore`, `gentle-ai-worker`, `gentle-ai-verify` (the last reported a digest MATCH). CAVEAT: the advisor could not prove its own runtime identity from inside the task. The `asi-review-*` lanes were NOT synthetically probed — they are provider-materialized and refuse without a live review context; that family is instead proven by this session's own 4-lens reviews and by verifier section 9a. |
+| 12 Retention | RESOLVED and PROMOTED — the rule is now global: `WORKFLOW.md` "Recovery-backup retention" (commit `de85e7c`), with the runbook citing it as the authority. |
+
+### Runbook corrections made during the walk-through (all committed)
+- Step 4 was unrunnable and is now "NOT APPLICABLE for this upgrade"; the change-set revert section is marked inert for v4 (`d3d53bd`).
+- Step 10's authoring caveat is now RESOLVED — both subcommands exist (above).
+- Completion item 4 was disambiguated: it means Step 11's manual owner/TUI checks, not the verifier's `--behavioral` probes.
+- Step 1's sync preview was MIS-ORDERED (it ran the 3.7.0 binary before Step 2 upgraded it) and was moved to the head of Step 3 (`14aa27e`).
+
+### Observations worth carrying (not blockers)
+- `~/.config/opencode/commands/sdd-code.md` SURVIVED the sync (it was not in the changed list); every other SDD command was deleted. Whether v4.1 omitted it or it is a user file is UNVERIFIED.
+- `~/.config/opencode/skills/nono-sandbox` appears as a non-directory entry among directories — UNVERIFIED.
+- Sync manages three platforms (opencode, windsurf, antigravity); the windsurf skill root is inside gentle-ai's skill-registry scan path, which is why the default all-platform sync was chosen.
+- `~/.claude/CLAUDE.md`'s managed blocks remain owner-managed post-sync (Q35 out of scope, Q38 post-sync check) and were NOT touched by this upgrade.
