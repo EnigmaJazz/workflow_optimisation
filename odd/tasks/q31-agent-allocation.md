@@ -1,0 +1,672 @@
+# gentle-ai v4 upgrade — agent allocation (Q31)
+
+**Feature:** gentle-ai v4 upgrade / queue Q31 (agent allocation). **Task ID:** T1 (stable).
+**Class:** global-tooling-change. **Route:** `workflow-odd-secure` (delegated).
+**Branch:** `feat/gentle-ai-v4`. **Prerequisite:** Q29 (done).
+
+## Objective
+
+Remove SDD agent allocation from `global-config/opencode.json` and `global-config/tui.json`, deny every
+`host_sdd_*` permission, add the four Q29d generic agents, and retitle `gentle-orchestrator` while
+preserving its exact agent key.
+
+## Problem
+
+gentle-ai v4 retires SDD. The current OpenCode agent configuration still registers twelve `sdd-*`
+agents, grants SDD tasks, and retains host-SDD capabilities. The verifier checks registered host
+reads and agent requirements, and its health-check plugin pins `verify-workflow.sh` by SHA-256.
+These changes must remain valid JSON and ship with their paired verifier updates and digest re-pin;
+otherwise configuration validation or the health-check plugin can fail.
+
+## Scope
+
+### In scope (Q31)
+- Remove the twelve `sdd-*` agent definitions from `global-config/opencode.json`:
+  `sdd-apply` through `sdd-init` (`874-1161`) and `sdd-onboard` through `sdd-verify`
+  (`1162-1401`), plus `sdd-research` (`1506-1565`). The file is currently 2935 lines;
+  TODO line references are stale and must be rechecked at implementation time.
+- Remove SDD `permission.task` grants: `gentle-orchestrator` (`283-292`, `331`) and `pm-sdd`
+  (`2654-2665`).
+- Set every `host_sdd_*` permission to `deny`: global (`2838`, `2864`, `2866`),
+  `gentle-orchestrator` (`378`, `380`), and `pm-odd`, `pm-systematic`, and `pm-sdd`.
+- Rebuild `gentle-orchestrator` from the v4 source `internal/assets/opencode/orchestrator.md`,
+  retitling its description (`:264`) and prompt (`:398`) per Q29c while keeping the agent key
+  exactly `gentle-orchestrator`.
+- Add the Q29d generic agents: `gentle-ai-explore`, `gentle-ai-worker`,
+  `gentle-ai-worker-local`, and `gentle-ai-verify`.
+- Drop `opencode-sdd-engram-manage` from `global-config/tui.json` (`:6`).
+- Pair each of the five configuration slices with its verifier edit and update
+  `VERIFY_SCRIPT_SHA256` in `global-config/plugins/workflow-health-check.ts` after each
+  `verify-workflow.sh` change.
+
+### Out of scope
+- Cleaning the live `~/.config/opencode/prompts/sdd/` directory; that is a separate live-config
+  operation outside this repository.
+- Engram MCP work (Q14b).
+- The full Q32 verifier overhaul.
+- Q33 plugins other than the Q31 digest-pin update in
+  `global-config/plugins/workflow-health-check.ts`.
+
+## Constraints
+- **Verifier work is paired per slice.** Owner-approved 2026-10-10, per `docs/PLAN.md:178`:
+  each Q31 slice includes its own verifier edit, including the `VERIFY_SCRIPT_SHA256` re-pin.
+- **Five independently valid slices.** Each slice leaves `global-config/opencode.json` valid JSON
+  and carries the corresponding `verify-workflow.sh` change and digest update.
+- **Structural hazards:** deleting the final `permission.task` entry can leave a trailing comma and
+  invalid JSON (the verifier's `json.loads` fails at `:444-450`); `required_agents` is set-based,
+  not ordered; the `vision` and `frontend-dev-premium` blocks lie between the two SDD blocks.
+- Recompute line numbers against the current tree before editing; `global-config/opencode.json` is
+  currently 2935 lines, so TODO line references are stale.
+- Do not commit or apply this preparation tracker to the host. Implementation is pending owner go.
+
+## Implementation notes
+
+- **S5 is blocked** until the owner provides the location of the v4 managed prompt source; keep the
+  `gentle-orchestrator` agent key fixed in the meantime.
+- `global-config/plugins/astra-sol-upgrade.ts` needs no edit: its regex (`:39-49`) already excludes
+  the new names and the plugin auto-aliases `gentle-ai-verify-astra`.
+- Stale `sdd-*` names in `global-config/plugins/lib/routing-guard-helpers.ts:18,46` are harmless;
+  track cleanup under Q33.
+- `global-config/opencode.json` currently parses as valid JSON. Validate it with
+  `python3 -m json.tool` after every implementation slice.
+
+## Tasks
+
+- [ ] **T1 (Q31) — Agent allocation and paired verifier updates.** Deliverables:
+  - [x] **S1 — Host-SDD lockdown.** Set all global, orchestrator, and `pm-*` `host_sdd_*`
+    permissions to `deny`. In `verify-workflow.sh:2699-2703`, remove the three entries from
+    `registeredHostReads`; move `host_sdd_attempt_grant` and `host_sdd_archive_compose` from
+    `gatedHostMutations` (`:2700`) into `retiredHostOperations` (`:2701`); and retain
+    `HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY` (`:2703`) so it asserts every `host_sdd_*`
+    permission is `deny`. Re-pin the verifier digest. **Done 2026-10-10 (sandbox result; not
+    committed or applied):** 33/33 `host_sdd_*` permission entries are `deny` (global 13;
+    `gentle-orchestrator` 13, with `host_sdd_status`/`host_sdd_continue`/`host_sdd_task_result`
+    added as `deny`; pm-odd 2; pm-systematic 2; pm-sdd 3) and 7/7 agent tool flags are `false`;
+    `retiredHostOperations` lists all 13 retired names so line 2703 (unchanged) asserts every
+    `host_sdd_*` permission is `deny`; digest re-pinned to
+    `38c5dbfaebc3bc0d1493afac1916022fba9cfb0bdbbbb15aa62b9e3986b46674`.
+  - [x] **S2 — Retire first SDD agent block.** Remove `sdd-apply` through `sdd-init`
+    (`874-1161`), remove their task grants, and drop `sdd-apply-local` from `required_agents`.
+    Pair with the relevant verifier changes and digest re-pin. **Done 2026-10-10 (sandbox
+    result; not committed or applied):** measured spans `877-924`, `925-972`, `973-1020`,
+    `1021-1068`, `1069-1116`, `1117-1164` removed (`sdd-apply`, `sdd-apply-local`,
+    `sdd-archive`, `sdd-design`, `sdd-explore`, `sdd-init`); task grants removed (5 from
+    `gentle-orchestrator`, 6 from `pm-sdd`); `verify-workflow.sh` drops `sdd-apply-local` from
+    `required_agents`, `sdd-apply` from the direct-model list, and `sdd-apply`/`sdd-explore`
+    from `PROBE_NAMES`; digest re-pinned `38c5dbfa…` →
+    `ba175ec308e84e60cde76780959b32a4769dd9700739b22156ec8e7124b43143`. Checks:
+    `python3 -m json.tool` rc 0; presence/absence probe PASS with pre-change positive controls
+    (from `HEAD`); `bash -n` rc 0; routing-guard 94 pass / 0 fail; `sha256sum
+    verify-workflow.sh` equals the pin; `verify-workflow.sh` not run (mutates host config).
+  - [x] **S3 — Retire remaining SDD agents.** Remove `sdd-onboard` through `sdd-verify`
+    (`1162-1401`) and `sdd-research` (`1506-1565`), remove their grants, and drop
+    `sdd-research` from `required_agents`. Pair with the relevant verifier changes and digest
+    re-pin. **Done 2026-10-10 (sandbox result; not committed or applied):** measured spans
+    `872-1111` (`sdd-onboard`, `sdd-propose`, `sdd-spec`, `sdd-tasks`, `sdd-verify`) and
+    `1216-1275` (`sdd-research`) removed; 12 task grants removed (6 `gentle-orchestrator`,
+    6 `pm-sdd`; the final no-comma grant line required dropping the resulting dangling
+    `explore` comma). `verify-workflow.sh`: `required_agents`, the direct-model list,
+    `PROBE_NAMES` (incl. `sdd-design`/`-astra`, `sdd-spec`/`-astra`, `sdd-verify`/`-astra`,
+    `sdd-research`), `githubReaders`/`githubReaderNames`, the `sdd-research` shape/block check,
+    the `sddResearchRuntime` block, the `sdd-research` task-grant check, the `repoCapable`
+    exclusion, the isolation-set entry, the stale comment, and the retired
+    `["sdd-apply","sdd-verify"]` family pair (S4 re-adds the generic pair) are all cleaned;
+    zero retired-AGENT references remain. Digest re-pinned `664b2b8f…` →
+    `27ce301e8493bb664877ee6e3efb9589e758f20edb1b7c9d8c13dd09230d0926`. Checks:
+    `python3 -m json.tool` rc 0; probe PASS with pre-change `HEAD` controls (5 verifier
+    sentinels; 6/6 S3 agents registered; `sdd-research` granted 2×); extractor emulation
+    returns no `sdd-` refs; `bash -n` rc 0; routing-guard 94 pass / 0 fail; pin equals the
+    computed digest; `verify-workflow.sh` not run. Deliberately kept (managed v3 assets, not
+    agent references): `sdd-archive-compose` native-command checks and the
+    `sdd-research`/`sdd-verify`/`sdd-archive` skill/command checks (15 lines), plus the
+    `gentle-orchestrator` prompt prose naming all SDD commands (`opencode.json:390`; S5 owns
+    the prompt rebuild).
+  - [x] **S4 — Add Q29d generic agents.** Add the four generic agents and the orchestrator's
+    `permission.task` allows; add the agents to `required_agents`. Pair with verifier changes and
+    digest re-pin. **Done 2026-10-10 (sandbox result; not committed or applied):** see the S4
+    Progress bullet for the agent models/tools, the measured verifier sites, and the checks.
+  - [x] **S5 — Retitle, wire the prompt, and remove the TUI entry.** Implemented as two slices per
+    the "S5 — revised plan" section: **S5a** (source, unwired) is committed (`4550b7a`, `c07b489`);
+    **S5b** (cut over + verifier) is implemented in a sandbox worker and exported for PM apply (no
+    commit, no host apply, `verify-workflow.sh` not run). See the 2026-10-11 S5a and S5b Progress
+    bullets. `gentle-orchestrator` keeps its exact key.
+
+### Paired verifier-edit inventory
+
+Apply the listed verifier edits in the same slice as the related configuration change. Every slice
+that edits `verify-workflow.sh` must also re-pin `VERIFY_SCRIPT_SHA256` in
+`global-config/plugins/workflow-health-check.ts:93`.
+
+- **S1:** In `verify-workflow.sh:2699-2703`, remove the three `host_sdd_*` reads from
+  `registeredHostReads`; move `host_sdd_attempt_grant` and `host_sdd_archive_compose` from
+  `gatedHostMutations` (`:2700`) into `retiredHostOperations` (`:2701`); ensure
+  `HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY` (`:2703`) asserts every `host_sdd_*` permission is
+  `deny`.
+- **S4:** At `:2323`, add the writer/verifier pair `["gentle-ai-worker","gentle-ai-verify"]`;
+  S3 removed the retired `["sdd-apply","sdd-verify"]` pair from this list (no-reference rule),
+  leaving `[["general","gentle-orchestrator"]]`.
+- **S2/S3/S4:** At `:3089`, remove `sdd-research`, `sdd-apply`, and `sdd-verify` from the
+  direct-model list (S2/S3), and add the generic agents (S4).
+- **S3:** Delete the `sdd-research` shape/block check at `:2802-2816`.
+- **S3:** At `:3264-3265`, remove `sdd-research`, `sdd-explore`, and `sdd-apply` from
+  `githubReaderNames`/`githubBlockedNames`. The probe-coverage extractor at `:4726-4730` requires
+  every listed name to be probeable.
+- **S2/S3:** Drop the hard-coded `sdd-*` entries and `-astra` aliases from `PROBE_NAMES`
+  (`:4679-4692`): S2 removes `sdd-apply`/`sdd-explore`; S3 removes `sdd-design`, `sdd-spec`,
+  `sdd-verify`, and their aliases.
+- **S4:** Extend the writer-shape check at `:2765-2766` to include `gentle-ai-worker` and
+  `gentle-ai-worker-local`.
+
+  - [ ] Validate JSON and changed-agent/permission presence and absence with a positive control;
+    run the routing-guard tests and `bash -n verify-workflow.sh` per slice.
+  - [ ] Record measured per-slice reviewability receipts and route evidence before any later
+    work-unit commit; do not commit as part of this tracker preparation.
+
+## Acceptance criteria
+
+1. The twelve `sdd-*` agents and their task grants are removed; all `host_sdd_*` permissions are
+   explicitly `deny`.
+2. The four Q29d generic agents are present, with the intended orchestrator task grants and
+   `required_agents` entries; retired agent requirements are absent.
+3. `gentle-orchestrator` is retitled from the v4 source and retains the exact key.
+4. `opencode-sdd-engram-manage` is absent from `global-config/tui.json`.
+5. All five slices leave `global-config/opencode.json` valid JSON, pair verifier changes with the
+   relevant configuration changes, and update the health-check digest to the current verifier
+   hash.
+6. Per-slice agent/permission probes include positive controls; the routing-guard suite remains
+   94 pass / 0 fail; `bash -n verify-workflow.sh` succeeds.
+7. The verifier itself is not run because it mutates host configuration; its pass remains a
+   deploy-time step.
+8. No live `~/.config` cleanup, commit, or host apply is included in this tracker-creation unit.
+
+## Authorized paths
+
+- `global-config/opencode.json`
+- `global-config/tui.json`
+- `verify-workflow.sh`
+- `global-config/plugins/workflow-health-check.ts` (digest pin only)
+- `odd/tasks/q31-agent-allocation.md`
+
+Not authorized: `global-config/AGENTS.md`, `global-config/systematic.jsonc`, plugins other than the
+digest pin, and all live `~/.config` paths.
+
+## Checks
+
+Run each check for every slice:
+
+- `global-config/opencode.json` parses as valid JSON.
+- A changed-agent/permission presence-and-absence probe passes and includes a positive control
+  demonstrating it detects the pre-change form.
+- `HOME=<mktemp -d> bun test tests/routing-guard` remains **94 pass / 0 fail**.
+- `bash -n verify-workflow.sh` succeeds.
+- `VERIFY_SCRIPT_SHA256` equals the new `verify-workflow.sh` SHA-256 after the slice's verifier edit.
+- Do **not** run `verify-workflow.sh`: it mutates host configuration. Its pass is a deploy-time
+  step, not an in-sandbox check.
+
+## Progress
+
+- 2026-10-10: tracker created from the owner-provided read-only mapping of the current tree.
+  `global-config/opencode.json` is 2935 lines; the old TODO line references are stale.
+  Q29 is done. No Q31 implementation, commit, verifier execution, or host apply has been
+  performed in this tracker-creation step.
+- 2026-10-10: Pre-code advice from `advisor-integration-pre`, Task
+  `ses_eda1f91bbffe3zYguWZEQT76pQ` (model family OpenAI/Sol, independent of the DeepSeek author),
+  returned **GO-with-corrections**. This is advisory evidence only; it does not authorize
+  implementation or replace required review.
+- 2026-10-10: S1 implemented in a sandbox worker (sandbox result exported for PM apply; no commit,
+  no host apply, `verify-workflow.sh` not run). Edits: `global-config/opencode.json` host-SDD
+  lockdown (33 permission entries `deny`; 7 agent tool flags `false`); `verify-workflow.sh`
+  (`registeredHostReads` drops the three `host_sdd_*` reads; `host_sdd_attempt_grant` and
+  `host_sdd_archive_compose` move from `gatedHostMutations` into `retiredHostOperations`, now all
+  13 retired `host_sdd_*` names); `global-config/plugins/workflow-health-check.ts` digest re-pin
+  `68d89eb0…` → `38c5dbfaebc3bc0d1493afac1916022fba9cfb0bdbbbb15aa62b9e3986b46674`. Checks:
+  `python3 -m json.tool` clean; probe 33/33 `deny` + 7/7 `false`, 0 non-deny, positive control
+  detects injected `"allow"`/`"ask"`; `bash -n` rc 0; routing-guard suite 94 pass / 0 fail;
+  `sha256sum verify-workflow.sh` equals the pinned digest.
+- 2026-10-10: S1 committed as `7ca78678953bec248548de57c2464eddb151eb19` (5 files, +52/−30).
+  Native review lineage `review-1e04c6684b855cc7`; tier **high** (`process_boundary` on
+  `global-config/plugins/workflow-health-check.ts`, `shell_source` on `verify-workflow.sh`);
+  candidate 5 files / 82 lines. All four lenses (`review-risk`, `review-resilience`,
+  `review-readability`, `review-reliability`) were admitted. Outcome **approved** and
+  acknowledged; `authority: burned`; consumed revision
+  `sha256:a18e5c8f14bade867cfe198de64baa61896e1ed37a13ef6863d8b48b2ff9a285`.
+  Informational, non-blocking SUGGESTION `R4-DIGEST-SKEW-WINDOW` (`workflow-health-check.ts:93`):
+  until the owner runs the verifier and restarts, the live plugin's old pin `68d89eb0…` refuses
+  the changed script and self-heal is degraded. This is the documented deploy sequence; handle as
+  separate later work, not a re-review trigger. The verifier mirror and restart remain the owner's
+  action and are NOT done.
+- 2026-10-10: S2 implemented in a sandbox worker (sandbox result exported for PM apply; no
+  commit, no host apply, `verify-workflow.sh` not run). Edits: `global-config/opencode.json`
+  removes the six first-block agents and 11 task grants (299 deleted lines, 0 added;
+  `python3 -m json.tool` clean); `verify-workflow.sh` has 3 changed lines (`required_agents`
+  drops `sdd-apply-local`; the direct-model list drops `sdd-apply`; `PROBE_NAMES` drops
+  `sdd-apply`/`sdd-explore`); `global-config/plugins/workflow-health-check.ts` digest re-pin
+  `38c5dbfa…` → `ba175ec308e84e60cde76780959b32a4769dd9700739b22156ec8e7124b43143`. Checks:
+  presence/absence probe PASS with pre-change positive controls (agents, grants, and verifier
+  lists; S3/S4 edit targets confirmed untouched); `bash -n` rc 0; routing-guard 94 pass /
+  0 fail; `sha256sum verify-workflow.sh` equals the pinned digest.
+- 2026-10-10: S2b implemented in a sandbox worker (sandbox result exported for PM apply; no
+  commit, no host apply, `verify-workflow.sh` not run). Coverage-inconsistency follow-up to S2:
+  the runtime-checker heredoc (`:1806-3305`) still lists `sdd-apply`/`sdd-explore` in
+  `githubBlockedNames` (`:3265`) while `PROBE_NAMES` (`:4679-4692`) no longer lists them, so
+  the probe-coverage extractor (`:4726-4740`) would fail `PROBE_LIST_MISSING_CHECKER_AGENT`
+  once the six S2 agents are no longer registered. Fix: `verify-workflow.sh:3265`
+  `githubBlockedNames` drops both names (now `general`, `repo-research-analyst`,
+  `review-risk`, `correctness-reviewer`); `githubReaderNames` is unchanged and keeps
+  `sdd-research` (retired in S3). This pulls the `sdd-explore`/`sdd-apply` half of the S3
+  inventory item at `:3264-3265` forward; S3's remaining work there is `sdd-research` only.
+  Digest re-pin `ba175ec3…` → `664b2b8fb77625a017f646d7e8beb3d325da6f77a6838457b5ad0643a96b4dd6`.
+  Checks: exact extractor-emulation probe PASS (removed names absent from the extraction set
+  and from `PROBE_NAMES`; all remaining extracted names present in `PROBE_NAMES`;
+  `sdd-research` present in `githubReaderNames`) with a pre-change positive control from
+  `HEAD` (control extracts both names and flags them unprobeable); `bash -n` rc 0;
+  routing-guard 94 pass / 0 fail; `sha256sum verify-workflow.sh` equals the pinned digest.
+- 2026-10-10: S2/S2b native review for commits `850fda4` (S2) and `e0d3508` (S2b),
+  candidate 5 files / 367 lines, lineage `review-7e15094e542e762d`, tier **high**; all four
+  selected lenses were admitted. `review-readability` first returned
+  `opencode_task_output_malformed` (transport failure; no capture) and was re-dispatched
+  successfully. Outcome **approved** and acknowledged; `authority: burned`; consumed revision
+  `sha256:f4f2bf289d3b2f8db5eddee9b666a73dede0ad995431e279c880ea8b6974235f`. Advisory findings
+  (non-blocking, informational; separate later work, not re-review triggers):
+  `R3-RETIRED-AGENT-LIST-COVERAGE` (`verify-workflow.sh:4680`),
+  `R4-DEFERRED-VERIFIER-RUN` (`verify-workflow.sh:3265`), and
+  `R4-DIGEST-SKEW-PERSIST` (`workflow-health-check.ts:93`). The deploy step remains the owner's
+  action.
+- 2026-10-10: S3 implemented in a sandbox worker (sandbox result exported for PM apply; no
+  commit, no host apply, `verify-workflow.sh` not run). Edits: `global-config/opencode.json`
+  removes `sdd-onboard`/`sdd-propose`/`sdd-spec`/`sdd-tasks`/`sdd-verify` (`872-1111`) and
+  `sdd-research` (`1216-1275`) plus 12 task grants (6 `gentle-orchestrator`, 6 `pm-sdd`; the
+  final no-comma grant line required dropping the resulting dangling `explore` comma);
+  `verify-workflow.sh` now has zero retired-AGENT references (`required_agents`, direct-model
+  list, `PROBE_NAMES` incl. `-astra` aliases, `githubReaders`/`githubReaderNames`, the
+  `sdd-research` shape/block check and runtime block, the `sdd-research` task-grant check, the
+  `repoCapable` exclusion, the isolation-set entry, the stale comment, and the retired
+  `["sdd-apply","sdd-verify"]` family pair); digest re-pinned `664b2b8f…` →
+  `27ce301e8493bb664877ee6e3efb9589e758f20edb1b7c9d8c13dd09230d0926`. Checks:
+  `python3 -m json.tool` rc 0; probe PASS with pre-change positive controls from `HEAD`
+  (5 verifier sentinels; 6/6 S3 agents registered; `sdd-research` granted 2×); extractor
+  emulation returns no `sdd-` refs; `bash -n` rc 0; routing-guard 94 pass / 0 fail; pin equals
+  the computed digest. Deliberately kept as managed v3 asset checks (not agent references):
+  `sdd-archive-compose` checks and the `sdd-research`/`sdd-verify`/`sdd-archive` skill/command
+  checks (15 lines), and the `gentle-orchestrator` prompt prose naming all SDD commands
+  (`opencode.json:390`; S5 scope).
+- 2026-10-10: Post-code advisory (before native review): `advisor-integration-post`, Task
+  `ses_ed8faac5affea0idh4Wh4tmd33`, and `advisor-security-post`, Task
+  `ses_ed8faa12dffencBpDyf8CesIuH`, both **GO, no blocking findings**. Security confirmed no
+  dangling authority; S1's `host_sdd_*` → `deny` is intact; no newly-exposed `allow`. Integration
+  confirmed S3 internally consistent; the writer/verifier pair is intentionally weaker until S4;
+  three `startsWith("sdd-")` verifier branches remain as verified no-ops.
+  **S4 must-do list (captured for S4):** add the four Q29d agents to `required_agents` and
+  `ordinaryMemoryAgents` (or remove the vestigial `sdd-` branch, otherwise
+  `MAGIC_CONTEXT_MEMORY_POLICY_UNCLASSIFIED_AGENT` fires); extend the writer-shape check; re-add
+  `[["gentle-ai-worker","gentle-ai-verify"]]` to the family-diversity pair; add the generic agents
+  to the direct-model list; add the orchestrator `permission.task` allows.
+- 2026-10-10: S3 native review for commit
+  `83384c105a8c1996328183aa282da03b9bfff090`; lineage `review-7637fbc42f4c0740`; tier **high**;
+  four lenses. `review-risk` first refused (`opencode_reviewer_result_refused`) and
+  `review-readability` returned malformed; STATUS was refreshed and both were re-dispatched
+  successfully. All lenses admitted; outcome **approved**, acknowledged; `authority: burned`;
+  consumed `sha256:93cbde709244ee2da7a812b8cd23fa4ae0178bf3069bfd7ba052641b4a2e8530`.
+  Advisory findings are non-blocking and informational, separate later work: `R3-DEFERRED-VERIFIER-RUN`
+  (WARNING), `R3-ORCHESTRATOR-PROMPT-STALE`, `R4-001`, `R4-002` (WARNING — guard `ROUTE_STAGES`/
+  skills still name retired SDD agents; fail-closed; S5/Q33), and `R4-003`.
+- 2026-10-10: S4 implemented in a sandbox worker (sandbox result exported for PM apply; no
+  commit, no host apply, `verify-workflow.sh` not run). Edits: `global-config/opencode.json`
+  adds the four Q29d generic agents between `general` and `gentle-orchestrator` —
+  `gentle-ai-explore` (`opencode-go/deepseek-v4.1-flash`, variant `medium`, read-only sandbox
+  tools and `ctx_memory` allow, no GitHub grant), `gentle-ai-verify` (`openai/gpt-6.1-sol`,
+  variant `high`, `sandbox_bash` execution with every mutation surface denied),
+  `gentle-ai-worker` (`opencode-go/deepseek-v4.1-flash`, variant `high`, full sandbox writer
+  shape) and `gentle-ai-worker-local` (`kinver/professional`, variant `""`, full sandbox writer
+  shape) — each carrying the Magic Context adapter and the search contract, plus the four
+  `gentle-orchestrator.permission.task` allows; `verify-workflow.sh` adds the four to
+  `required_agents` (`:371`), `ordinaryMemoryAgents` (`:2804`) and the direct-model list
+  (`:3066`), extends the writer-shape check to `gentle-ai-worker`/`gentle-ai-worker-local`
+  (`:2766`), re-adds the `["gentle-ai-worker","gentle-ai-verify"]` family pair (`:2324`), and
+  removes the three dead `startsWith("sdd-")` branches (writer-shape filter, memory-policy
+  allow, SDD-override prompt check); digest re-pinned `27ce301e…` →
+  `06fa864e93dcf853419c4db06e7e07eb0b55ab4a20af1f1740091db38593a4eb`. Checks:
+  `python3 -m json.tool` rc 0; differential agent probe PASS (new file: exactly the four generic
+  keys with the intended models/variants/tools and `ctx_memory=allow`, 0 `sdd-*` agent keys;
+  control on `HEAD` content detects 0 generic keys; control on `7ca7867` detects 12 `sdd-*` keys
+  proving the probe reads that shape); verifier membership lines confirmed by content; `bash -n`
+  rc 0; routing-guard 94 pass / 0 fail; `sha256sum verify-workflow.sh` equals the pin.
+  Reviewability receipt for the five-file staged candidate: authored_changed_lines=267,
+  authored_patch_bytes=30565; generated_or_binary_paths: none.
+- 2026-10-10: S4 post-advisory security fix in the same sandbox work unit (sandbox result
+  exported for PM apply; no commit, no host apply, `verify-workflow.sh` not run). The post-code
+  security advisor found that `gentle-ai-worker` and `gentle-ai-worker-local` omitted `task`
+  from their `tools` blocks while the baseline writer `general` declares `"task": false`; both
+  now declare `"task": false` after `"read": true`, matching `general`. Neither worker has a
+  `permission.task` map, so no contradicting grant exists. The change touches no verifier
+  bytes: `sha256sum verify-workflow.sh` is unchanged and still equals `VERIFY_SCRIPT_SHA256`
+  (`06fa864e93dcf853419c4db06e7e07eb0b55ab4a20af1f1740091db38593a4eb`), so no digest re-pin
+  is needed. Checks: `python3 -m json.tool` rc 0; probe PASS (both workers `tools.task ===
+  false`) with a positive control detecting the pre-change absent form; routing-guard
+  94 pass / 0 fail.
+- 2026-10-10: Post-code advisory (before native review): `advisor-integration-post` (Task
+  `ses_ed8ce115cffeXkbgl7aJjU3R3V`) returned **GO**; its S4 must-do list is complete.
+  `advisor-security-post` (Task `ses_ed8ce07d1ffe3e0UgrplM6Fm4x`) returned **GO with one
+  correction**: both workers omitted `tools.task`, applied in S4b by setting `task: false`.
+- 2026-10-10: S4/S4b native review for commits
+  `ab5405984c2e0673e4f3c774994f62d3e8b2cb3a` (S4) and
+  `0944830f4ea46ecebb360c67e50be23410c03424` (S4b); lineage `review-7fdd837765748b75`, tier
+  **high**. All four lenses were admitted; outcome **approved** and acknowledged;
+  `authority: burned`; consumed `sha256:6fef323cfbb44563230a7a55c1579bb028b405938ca1d429ace405e12aa737e0`.
+  Advisory findings are non-blocking and informational, for separate later work: 
+  `R3-EXPLORER-VERIFIER-SHAPE-UNTESTED` (WARNING — no shape check for `gentle-ai-explore`/
+  `gentle-ai-verify`), `R3-VERIFIER-NOT-EXECUTED` (WARNING),
+  `R3-WORKER-LOCAL-VARIANT-EMPTY` (SUGGESTION — `gentle-ai-worker-local` has `variant: ""`),
+  `R4-001` (WARNING), and `R4-002` (WARNING — the empty variant remains untested until deploy).
+  The empty variant intentionally mirrors retired `sdd-apply-local`; flag it for the deploy-time
+  verifier run. The verifier mirror and restart remain the owner's action and are NOT done.
+
+- 2026-10-10: Revised the S5 plan after all pre-code advice returned; S5a is next. Advisory evidence does not authorize implementation.
+- 2026-10-11: S5a core completed in a sandbox worker (sandbox result exported for PM apply; no
+  commit, no host apply, `verify-workflow.sh` not run, `opencode.json`/`tui.json` untouched; the
+  unit is UNWIRED by design). Both v4.0.0 sources are vendored and committed: `f571937`
+  (`global-config/prompts/gentle-orchestrator/upstream/orchestrator.template.md`, git blob sha1
+  `bb8b9ac34962d0be407f8b895fa1c0429b280b37`, sha256
+  `6a5fde7b3a5df218e12902ea4663dbcab783726aa3bd66a7e1b33b2dc6248c91`, 20991 bytes) and
+  `2075809` (`upstream/odd-orchestrator-sections.md`, git blob sha1
+  `5dc3be455da7284d710767acd762bcc5cb9595f9`, sha256
+  `f75b016c2964bdf45d7f4f76cdeeaa401e1e7d26737370a96c00dd2481fa5508`, 20357 bytes). Added in
+  this unit: `base.md` (metadata header + byte-exact v4 render; 0 placeholders, 5/5 resolved;
+  base sha256 `fb8810621381542bc3c7775ef6a2ec0403d4d4164b89537f62f2aabb87721957`), `overlay.md`
+  (18 `SECURE` blocks: the 12 required ids plus 6 derived companions; every replace/remove
+  carries a `supersedes` sha256 verified against the base section), `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py`
+  (deterministic; fails loudly; `--report-file-substitution`), `tests/test_orchestrator_prompt_source.py`,
+  and `normative-ledger.md` (69 candidate sentences from the current prompt sha256
+  `47618dbb90b57c52ca07a20cbac1100e1d4ca7663934ef22b10e4089baaa63bc`: 43 kept, 1 moved,
+  10 superseded-by-base, 15 removed-by-design, 0 unclassified). Checks:
+  `python3 -m unittest tests.test_orchestrator_prompt_source -v` 9/9 pass (byte-exact render,
+  balanced/unique overlay markers, verifiable supersedes hashes, loud-failure cases, residue scan
+  with a planted positive control, ledger classification); assembler rc 0, **52,540 bytes**,
+  forbidden residue `engram`/`mem_`/`sdd-`/`openspec`/`/sdd` = 0; `python3 -m json.tool
+  global-config/opencode.json` rc 0 (unchanged); routing-guard 94 pass / 0 fail;
+  `verify-workflow.sh` not run. `{file:./…}` finding: five live `{file:./prompts/...}` includes
+  exist in `global-config/opencode.json` (V1 literal inclusion), but inclusion is positional and
+  cannot express the overlay's replace/remove semantics, and its V2 support is UNVERIFIED
+  (`docs/TODO.md` Q41), so the assembler stays. Next: S5b.
+- 2026-10-11: S5a and the repin are committed; the S5a post-code advisories returned; and the
+  advisory corrections were applied in a second sandbox worker (sandbox result exported for PM
+  apply; no commit, no host apply, `verify-workflow.sh` not run, `opencode.json`/`tui.json`
+  untouched; UNWIRED by design). Commits on `feat/gentle-ai-v4`: `4550b7a` S5a source (7 files,
+  +1294/−2) and `c07b489` Magic Context + AFT plugin version repin
+  (`global-config/opencode.json`, +2/−2). Post-code advisory: design **GO**; integration **GO**,
+  flagging (a) the `verify-workflow.sh` orchestrator-prompt assertion list that S5b must rewrite
+  and (b) the `<!-- user:subagent-search-contract -->` question for the orchestrator prompt.
+  **Search-contract determination (correction 1): no change.** `verify-workflow.sh:2082-2090`
+  applies the marker requirement only to deployed agents with `mode === "subagent"` — line 2083
+  `continue`s for every other mode — and only to repo-capable ones; `gentle-orchestrator` is
+  `mode: "primary"` and is the only non-subagent agent the emulated check exempts, so its prompt
+  (current or assembled) needs no marker and no overlay block was added. Corrections applied:
+  (2) new `test_base_headings_are_unique()` (base.md has 31 unique headings); (3) ledger row 13
+  reclassified `moved` → `split` (overlay:user:secure-odd-protocol carries budget-shapes-slicing /
+  never-shrink; WORKFLOW.md "Substantial ODD work units and review" carries the
+  recompute/apply-strategy mechanics) and `split` added to the ledger vocabulary; (4) the
+  assembler documents END-of-anchor insertion and deterministic file-order shared-anchor adds,
+  backed by a minimal per-anchor insertion-cursor fix — the pre-fix probe measured reverse order,
+  the fixed probe measured file order — plus the new
+  `test_shared_anchor_adds_insert_in_file_order`; (5) ledger structural-coupling note: the
+  superseded `#### Cost and Context Balance` extent carries the opening half of the
+  `<!-- gentle-ai:opencode-desktop-delegation-progress -->` pair, and the closing half sits in
+  `#### Delegation Visibility (OpenCode Desktop)`, outside every sha256-guarded extent. Checks:
+  `python3 -m unittest tests.test_orchestrator_prompt_source -v` **11/11 pass**; assembler rc 0,
+  **52,540 bytes**, sha256
+  `b740f5713800d0b6975f1196da7c5cf1fb59a9c76b514396f469948cd2cb61a1` — byte-identical to the
+  pre-correction render (no live overlay blocks share an anchor); the assembled output contains
+  the v3 `SEARCH CONTRACT` prose required at `verify-workflow.sh:2943`;
+  `python3 -m json.tool global-config/opencode.json` rc 0 (unchanged); routing-guard
+  **94 pass / 0 fail**; `verify-workflow.sh` not run. Magic Context mirror 1121 updated in place
+  (marker + full tracker body) and read back.
+- 2026-10-11: Relocated the assembler out of the broker-protected `scripts/` path so future work
+  commits normally (sandbox result exported for PM apply; no commit, no host apply,
+  `verify-workflow.sh` not run, `opencode.json`/`tui.json` untouched). New path
+  `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py` carries the exact
+  former content with only its repo-root computation moved to the new depth (four `.parent`
+  levels, plus a clarifying comment); `scripts/assemble-orchestrator-prompt.py` is deleted.
+  References updated: `tests/test_orchestrator_prompt_source.py` (`ASSEMBLER` constant),
+  `global-config/prompts/gentle-orchestrator/overlay.md`, `normative-ledger.md`, this tracker
+  (the S5a Progress bullet and the S5 Authorized-paths line), and the two `ROUTER-LOG.md` S5a
+  rows. The only unchanged mention is the assembler's own `assemble-orchestrator-prompt: FAILED:`
+  program label (a name, not a path). Assembled output unchanged: from the NEW path the assembler
+  exits 0, **52,540 bytes**, sha256
+  `b740f5713800d0b6975f1196da7c5cf1fb59a9c76b514396f469948cd2cb61a1`. Checks:
+  `python3 -m unittest tests.test_orchestrator_prompt_source -v` 11/11 pass; `python3 -m json.tool
+  global-config/opencode.json` rc 0 (unchanged); routing-guard 94 pass / 0 fail;
+  `verify-workflow.sh` not run. Next: S5b.
+- 2026-10-11: S5a native review outcome: lineage `review-1633e87da601f9dd`; tier **high** (`process_boundary` on the assembler); candidate 10 files / 1807 lines (S5a source + corrections + relocation + repin). All four lenses (`review-risk`, `review-resilience`, `review-readability`, `review-reliability`) were admitted; outcome **approved** and acknowledged; `authority: burned`; consumed revision `sha256:2ec2a3824cc18eb69c3dd15c686a79e55e628a15c44a9708244a68701eb5fbac`.
+  Advisory findings (non-blocking, informational; separate later work, never a re-review trigger):
+  - `R3-ASSEMBLER-FAILURE-PATHS-UNTESTED` (WARNING; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:253-260`).
+  - `R3-ASSEMBLER-ATTR-PARSER-FRAGILE` (SUGGESTION; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:54-63`).
+  - `R3-ASSEMBLER-ORDERING-HAZARD-UNGUARDED` (SUGGESTION; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:191-207`).
+  - `R4-ATTRPARSE-001` (SUGGESTION; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:54-63`).
+  - `R4-EXITCODE-001` (SUGGESTION; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:258-264`).
+  - `R4-MARKER-COUPLING-001` (WARNING; `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py:142-154`).
+- 2026-10-11: S5b cut-over implemented in a sandbox worker (sandbox result exported for PM apply;
+  no commit, no host apply, `verify-workflow.sh` not run). Edits: `global-config/opencode.json`
+  wires the assembled orchestrator prompt (`agent["gentle-orchestrator"].prompt`; decoded sha256
+  `b740f5713800d0b6975f1196da7c5cf1fb59a9c76b514396f469948cd2cb61a1`, 52,540 bytes, byte-identical
+  to the S5a assembler output) and retitles the description `Gentle AI SDD Orchestrator - coordinates
+  sub-agents, never does work inline` → `Gentle AI ODD Orchestrator - coordinates sub-agents, never
+  does work inline`; `global-config/tui.json` drops the `opencode-sdd-engram-manage` plugin entry
+  (7 plugins remain); `verify-workflow.sh` rewrites the orchestrator-prompt content-assertion region
+  (`:2892-3038`); `global-config/plugins/workflow-health-check.ts` digest re-pins `06fa864e93dcf853419c4db06e7e07eb0b55ab4a20af1f1740091db38593a4eb`
+  → `44878c729e7f2a111f9f0ceeb29f686d1d8afb50f3fbf5625404ce19ebdfcf75`.
+  Verifier before→after:
+  - Boundary trio: `strictly read-only coordinator` / `never use native host Bash` / `Every source
+    edit or project execution is delegated to a sandbox worker` → `strictly read-only technical lead`
+    / `no native host Bash` / `delegated to a sandbox writer/executor`.
+  - `technicalLeadContractRequired` (8 → 6): now `### Secure Technical-Lead Contract (MANDATORY)`,
+    the authority-boundary sentence, blind-routing, `issue a proportionate implementation contract`,
+    no-reimplementation, advisor/deliberation. Dropped the old heading,
+    `For **non-SDD implementation work**`, `**implementation contract**`,
+    `do not merely forward the user's wording`, `Do not independently reimplement…`, the
+    intelligence-spend sentence, and `respect the SDD artifact graph and phase ownership`.
+  - `frontendEscalationRequired` (7 → 6): now `### Frontend / UI Lane and Premium Escalation`,
+    `use frontend-dev as the normal design/verify lane`, `frontend-dev-premium`, `major redesign`,
+    `materially ambiguous UX/product decisions`, the convergence sentence. Dropped
+    `### Frontend lane model escalation` and `same read-only frontend contract`.
+  - `v3Required` (63 → 38): every fragment is one the new prompt contains (route-loading heading,
+    ODD protocol heading + order, `ODD_TASKS key=odd/{project}/{feature-name}/tasks`, first-source-edit,
+    `route: delegated`, Task dispatch/result, SEARCH CONTRACT, `EXTERNAL_CONTEXT_REQUIRED`,
+    `skill({name:"workflow-route"})`, compaction reload, `basis: WORKFLOW.md`, ROUTE line, RDD mode +
+    deciding source, native-review-boundary heading, assess flags, `next_transition.command`,
+    status/v8, `provider_task.*`, grouped wave, both budget guards, the relay mapping, the two-ports
+    rule, the deny-lanes rule, advisory heading, host-tools relay, always-delegate heading + core
+    principle, separate push/PR intent). Retired every SDD-only fragment
+    (`### Dependency Graph — Gentle AI 3.5.0`, `optional research → propose`,
+    `optional verify → archive`, `Partial research pauses only unsafe dependent choices`,
+    `Inside SDD, do not start review`, `### Review Workload Advisory`,
+    `## Gentle AI 3.5.0 and Systematic 3.18.4 secure integration`) and every absent v3-only fragment.
+  - `magicContextContractRequired` (12 → 11): now `### Secure Magic Context Contract (MANDATORY)`,
+    the primary-and-mandatory sentence, `ctx_search`/`ctx_expand`/`ctx_memory`,
+    `Ordinary working agents may persist durable knowledge`, the isolated-actor memory-write-denied
+    sentence, `### Secure Project Registration`, `host_register_project`, orchestrator-only ask,
+    `Remote creation`. Dropped `Do NOT probe Engram first`, `SDD_ARTIFACT key=<stable-key>`,
+    `magic-context`, `engram is NOT a canonical store value`, the old registration heading, and
+    `pending activation`.
+  - Scrubber: `/### Mandatory Magic Context memory\/context[\s\S]*?### Commands/` (matched nothing in
+    the new prompt) → `/### Secure Magic Context Contract \(MANDATORY\)[\s\S]*?(?=\n#{2,3} )/`.
+  Kept unchanged: `forbiddenPromptFragments` + its inline-drift negative check; the two retired
+  negative lists (`### Gentle AI v2.7 workflow compatibility` … and the review-contract list); all
+  seven `legacyMemoryPatterns` regexes incl. the `LEGACY_ENGRAM_ORCHESTRATOR_DRIFT` fail path. No
+  check became a no-op and no list was deleted entirely.
+  Checks: `python3 -m json.tool global-config/opencode.json` rc 0 (same for `global-config/tui.json`,
+  `opencode-sdd-engram-manage` absent, 7 plugins remain); decoded round-trip sha256 `b740f571…` /
+  52,540 bytes; fragment probe reads the four required lists out of the rewritten verifier and reports
+  64/64 required fragments present, 0 retired SDD fragments present, 0 legacy-pattern hits after a
+  scrub that matches (removed ~1,849 chars); positive controls detect a planted required fragment, a
+  truly absent fragment, and a planted retired fragment; `bash -n verify-workflow.sh` rc 0;
+  routing-guard `94 pass / 0 fail`; `sha256sum verify-workflow.sh` == `44878c729e7f2a111f9f0ceeb29f686d1d8afb50f3fbf5625404ce19ebdfcf75`
+  == the pin. No deleted check.
+- 2026-10-11: S5b post-code advisory corrections applied in a sandbox worker (sandbox result
+  exported for PM apply; no commit, no host apply, `verify-workflow.sh` not run,
+  `opencode.json`/`tui.json` and `base.md`/`overlay.md` untouched). Edits: `verify-workflow.sh`
+  adds an assembler-output equality check in the orchestrator-prompt region — it runs
+  `python3 global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py` from the repo
+  root (passed to the runtime checker as its new 7th argv, `$WORKSPACE`) and fails
+  `ORCHESTRATOR_PROMPT_ASSEMBLER_MISSING` / `ORCHESTRATOR_PROMPT_ASSEMBLER_FAILED` /
+  `ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT` when the assembler is absent, errors, or its sha256 differs
+  from the decoded embedded prompt; adds a retired-SDD negative list (`retiredSddOrchestratorFragments`,
+  9 fragments: `SDD_ARTIFACT key=`, `### Dependency Graph — Gentle AI 3.5.0`,
+  `optional research → propose`, `optional verify → archive`, `Inside SDD, do not start review`,
+  `/sdd-new`, `/sdd-continue`, `workflow-sdd-secure`, `artifact-store`) failing
+  `ORCHESTRATOR_PROMPT_RETIRED_SDD_FRAGMENT_PRESENT`; and stabilizes three brittle fragments per the
+  design advisor (`strictly read-only technical lead` → `### Secure Read-only Orchestrator Boundary`;
+  `no native host Bash` → `It has no native host Bash, native edit/write/apply-patch, sandbox shell,
+  or sandbox mutation/lifecycle authority.`; `` `review-<lens>` -> `asi-review-<lens>` `` → the full
+  relay-map sentence `` Map `provider_task.agent` to the relay lane (`review-<lens>` ->
+  `asi-review-<lens>`, `review-refuter` -> `asi-review-refuter`, `review-validator` ->
+  `asi-review-validator`) and copy `provider_task.prompt` unchanged ``).
+  `global-config/plugins/workflow-health-check.ts:93` digest re-pin `44878c72…` →
+  `e6823599735a4f8521ec4aa5b79054683c6e83dd3e3dd86691a2c323aebeb17d`.
+  Checks: `bash -n verify-workflow.sh` rc 0; assembler rc 0, **52,540 bytes**, sha256
+  `b740f5713800d0b6975f1196da7c5cf1fb59a9c76b514396f469948cd2cb61a1` == the decoded embedded prompt
+  (equality PASS) with a temp-copy control that fires drift when the prompt is altered; retired list
+  0/9 present with a planted-fragment positive control; all three stabilized fragments present in the
+  assembled prompt; routing-guard **94 pass / 0 fail**; `sha256sum verify-workflow.sh` equals the new
+  pin; `verify-workflow.sh` not run.
+- 2026-10-11: S5b native review outcome for commits `df2e443` (cut-over) and `444244b`
+  (advisory corrections); lineage `review-8b540c67721bcaa1`; tier **high** (`process_boundary` on
+  `workflow-health-check.ts`, `shell_source` on `verify-workflow.sh`); candidate 6 files / 289
+  lines. All four lenses (`review-risk`, `review-resilience`, `review-readability`,
+  `review-reliability`) were admitted; outcome **approved** and acknowledged; `authority: burned`;
+  consumed revision `sha256:053607edb22401a9a648e866d844c44a64ec8c40f26485a868428e246b8f7a73`.
+  Post-code advisory before review: design **GO** (no changes required; overlay correctly overrides
+  the v4 base); integration **GO**, with residual-SDD findings now attributed to their real
+  owners (`pm-sdd` still wired + points at `workflow-sdd-secure` → **Q65**; routing-guard still
+  lists retired SDD specialists → **Q33**; `AGENTS.md` still carries the
+  `host-sdd-runtime-boundaries` block → **Q30**; the `workflow-sdd-secure` skill still advertises
+  SDD → **Q30**). Advisory corrections applied in `444244b`: assembler-equality check
+  (`ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT`), retired-SDD negative list
+  (`ORCHESTRATOR_PROMPT_RETIRED_SDD_FRAGMENT_PRESENT`), and three stabilized fragments.
+  Advisory findings are non-blocking, informational, and later work: `R3-WORKSPACE-001`
+  (`verify-workflow.sh:2895`), `R4-001` (`:3041`), `R4-002` (`:4800`), and `R4-003` (`:4813`).
+
+## Route, triggers, and actual dispatches
+
+- **Route:** delegated (`workflow-odd-secure`). This preparation tracker does not perform
+  implementation or execution.
+- **Trigger:** substantial change spanning `global-config/opencode.json` and its paired
+  `verify-workflow.sh` edits.
+- **Actual dispatches:** the tracker-creation writer for the preparation task; 2026-10-10 S1
+  implementation dispatched to the `odd-apply` sandbox worker (sandbox result exported; not
+  committed or applied). 2026-10-10 S2 implementation dispatched to the `odd-apply` sandbox
+  worker (sandbox result exported; not committed or applied). 2026-10-10 S3 implementation
+  dispatched to the `odd-apply` sandbox worker (sandbox result exported; not committed or
+  applied). 2026-10-10 S4 implementation dispatched to the `odd-apply` sandbox worker (sandbox
+  result exported; not committed or applied). 2026-10-11 S5a and its advisory-correction and
+  relocation follow-ups were dispatched to the `odd-apply` sandbox worker and committed; 2026-10-11
+  S5b cut-over was dispatched to the `odd-apply` sandbox worker (sandbox result exported; not
+  committed or applied).
+
+## S5 — revised plan (2026-10-10, after design + integration + two external advisories)
+
+All pre-code advice is in, and the plan has been revised. This section supersedes the earlier S5
+blocked note: S5 is now planned as two slices; implementation is still pending owner go.
+
+### Shape
+
+A faithful v4 ODD rebuild, authored as Markdown and assembled, with PAIRED verifier changes. Two
+slices: S5a (source, unwired) and S5b (cut over + verifier).
+
+### Key findings driving the revision
+
+1. **Verifier coupling is real (integration advisor was wrong).**
+   `verify-workflow.sh:2892-3038` asserts orchestrator-prompt content. SDD fragments at
+   `:2989-2993` are `### Dependency Graph — Gentle AI 3.5.0`, `optional research → propose`,
+   `optional verify → archive`, `Partial research pauses only unsafe dependent choices`, and
+   `Inside SDD, do not start review`; `:3012` asserts `SDD_ARTIFACT key=<stable-key>`. The
+   verifier also asserts `technicalLeadContractRequired` (`:2908-2917`, including
+   `For **non-SDD implementation work**` and `respect the SDD artifact graph and phase ownership`),
+   `frontendEscalationRequired`, `v3Required` (~`:2935-2998`),
+   `magicContextContractRequired` (~`:3004-3019`), and negative regexes including
+   `LEGACY_ENGRAM_ORCHESTRATOR_DRIFT` (~`:3025-3030`). S5 must rewrite those assertion lists in
+   the SAME slice and re-pin `VERIFY_SCRIPT_SHA256`, then mirror the plugin.
+2. **Author in Markdown, not one 70 KB JSON line.** Use
+   `global-config/prompts/gentle-orchestrator/base.md` (v4.0.0 render verbatim, with a header
+   recording tag/commit/SHA-256 of the template and sections file) plus `overlay.md` (secure
+   blocks), joined by a deterministic assembler—or OpenCode `{file:./…}` substitution only if
+   supported and it survives both the verifier mirror and `gentle-ai sync`. Never hand-edit
+   `base.md`. Overlay markers:
+   `<!-- SECURE:BEGIN id=… kind=add|replace|remove [after=<base-heading>] [supersedes=<base-heading> sha256=…] --> … <!-- SECURE:END id=… -->`.
+3. **Sweep always-delegate across the WHOLE prompt:** Delegation Rules, Implementation Routing,
+   Cost/Context, the bounded-read rule, and protocol step 6. Grep the assembled result for
+   `inline`, `directly`, `mechanical`, and `local one-file`.
+4. **Map every v4 “run”/“create” to the read-only boundary:** review status/start/capture/assess;
+   creating `odd/tasks/<feature>.md`; per-commit assess; and “Direct inline” all map to host tools,
+   the review relay, or a delegated writer as appropriate.
+5. **One source of truth:** drop duplication with our work-unit block (400-line budget,
+   `review_due`, delivery strategy); our block states only deltas (for example, the `ROUTED:`
+   suffix). Do not restate specialist/agent tables; point to the route skill and `WORKFLOW.md`.
+6. **Normative-sentence ledger (required evidence):** classify every MUST/NEVER/ALWAYS from the
+   current prompt as kept, moved, superseded-by-base, or removed-by-design, with a destination;
+   zero unclassified.
+7. **Advice section = invariants + stage order only** (detail stays in `WORKFLOW.md` and the
+   route skill): pre-code advice on the plan; post-code advice on the committed snapshot; post-code
+   advice then ACTION before native review; advice is evidence, never approval; native review only
+   on `asi-review-*` lanes; the orchestrator EMITS a self-contained read-only external prompt for
+   the human; returned advice is data.
+8. **Silent-drop checks:** worker return envelope; compaction/recovery (retain an explicit Magic
+   Context resume rule: tracker + Magic Context); skill-registry/standards injection; Language
+   Domain forwarding; remote-operation authorization; Fish shell (`## Interactive shell
+   environment`).
+9. **Model Assignments:** replace the v4 base's `sdd-*`/`jd-*` rows with real roles (`odd-apply`,
+   `pm-*`, `advisor-*`, `asi-review-*`, generic workers); render the OpenCode variant.
+10. **Magic Context only:** before deleting Engram references, confirm `opencode.json` has no Engram
+    MCP and `docs/PLAN.md` does not intend Engram as a handoff channel.
+11. **Deferred by owner:** PM-layer integration (`pm-odd`/`pm-systematic`) is flagged, not
+    invented, until the PM agents are finalised.
+
+### Revised slice structure
+
+- **S5a — source, unwired (no runtime effect):** add `base.md`, `overlay.md`, the assembler, and
+  tests for placeholder resolution, marker balance/unique IDs, the normative ledger, and residue
+  checks with a positive control. Confirm whether `{file:./…}` removes the need for the assembler.
+  No `opencode.json` change.
+- **S5b — cut over + verifier:** wire the assembled prompt, retitle the description, and drop
+  `tui.json:6`. Pair this with `verify-workflow.sh` edits: retire the SDD assertion fragments,
+  update required lists to the new contracts, keep negative regexes, and anchor checks on
+  markers/IDs. Re-pin `VERIFY_SCRIPT_SHA256`. Verify via decoded-JSON round-trip, positive controls,
+  and real-OpenCode consumer probes: typo fix must delegate; read-only question → no dispatch/write;
+  substantial request → tracker via writer; review-due → relay, not Bash; “sdd new” → clean
+  redirect. Then mirror and restart (owner).
+
+### Advice provenance
+
+Pre-code `advisor-design-pre` (Task `ses_ed82f707effeiqj4RuVzECYsS1`), pre-code
+`advisor-integration-pre` (Task `ses_ed84237f8ffeROp6rM6os1calR`), and two external advisories
+returned by the owner on 2026-10-10. This is advisory evidence only; it does not authorize
+implementation.
+
+### Authorized paths (S5)
+
+Add `global-config/prompts/gentle-orchestrator/**` and the assembler under
+`global-config/prompts/gentle-orchestrator/` to the
+authorized list. Keep `global-config/opencode.json`, `global-config/tui.json`, `verify-workflow.sh`,
+`global-config/plugins/workflow-health-check.ts` (digest pin only), and this tracker.
+
+## Next step
+
+S1's, S2/S2b's, S3's, S4/S4b's, S5a's, and S5b's committed candidates passed native review and were
+acknowledged. Q31 is complete at source level. Do not apply these records to the host as part of
+this update. Deployment (the verifier mirror and the OpenCode restart) remains the owner's pending
+action and is NOT done; the residual SDD surface is owned by **Q30** (`AGENTS.md` block +
+`workflow-sdd-secure` skill), **Q33** (routing guard), and **Q65** (`pm-sdd` retirement).
+
+### Deploy checklist (owner)
+
+After the S5b candidate (with these corrections) is committed and reviewed:
+
+- Run the verifier mirror: `bash verify-workflow.sh` (regenerates the live config from
+  `global-config/`).
+- Confirm both `global-config/opencode.json` and `global-config/tui.json` parse as valid JSON
+  (`python3 -m json.tool`).
+- Confirm the live `~/.config/opencode/opencode.json` orchestrator prompt is 52,540 bytes and
+  carries the ODD description (`Gentle AI ODD Orchestrator - coordinates sub-agents, never does
+  work inline`).
+- Confirm the live `~/.config/opencode/tui.json` lists 7 plugins (no `opencode-sdd-engram-manage`).
+- Confirm the health-check plugin loads and pins the new verifier digest.
+- Restart `secure-opencode.service` and `ai-proxy.service`.

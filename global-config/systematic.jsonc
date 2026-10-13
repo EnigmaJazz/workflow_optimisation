@@ -13,7 +13,7 @@
   "categories": {
     "workflow": {
       "model": "opencode-go/deepseek-v4.1-flash",
-      "variant": "high",
+      "variant": "default",
       "temperature": 0.1,
       "steps": 40,
       "permission": {
@@ -139,7 +139,7 @@
       }
     },
     "pr-comment-resolver": {
-      "model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 35,
+      "model": "opencode-go/deepseek-v4.1-flash", "variant": "default", "temperature": 0.1, "steps": 35,
       "permission": {
         "edit": "deny", "write": "deny", "bash": "deny",
         "sandbox_read": "allow", "sandbox_list": "allow", "sandbox_grep": "allow", "sandbox_diff": "allow",
@@ -147,8 +147,8 @@
         "sandbox_apply": "ask", "sandbox_copy_in": "ask", "sandbox_copy_out": "ask", "sandbox_discard": "ask", "sandbox_finish": "ask"
       }
     },
-    "spec-flow-analyzer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 20},
-    "repo-research-analyst": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 30},
+    "spec-flow-analyzer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "default", "temperature": 0.1, "steps": 20},
+    "repo-research-analyst": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "default", "temperature": 0.1, "steps": 30},
     "git-history-analyzer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 25},
     "best-practices-researcher": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 18},
     "framework-docs-researcher": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 18},
@@ -159,7 +159,7 @@
     "testing-reviewer": {"model": "openai/gpt-6-luna", "variant": "medium", "temperature": 0.1, "steps": 14},
     "maintainability-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 10},
     "project-standards-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "low", "temperature": 0.1, "steps": 10},
-    "agent-native-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 12},
+    "agent-native-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "default", "temperature": 0.1, "steps": 12},
     "adversarial-reviewer": {"model": "openai/gpt-6.1-sol", "variant": "high", "temperature": 0.1, "steps": 25},
     "security-reviewer": {"model": "openai/gpt-6.1-sol", "variant": "high", "temperature": 0.1, "steps": 25},
     "api-contract-reviewer": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 18},

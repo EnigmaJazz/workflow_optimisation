@@ -189,6 +189,24 @@ describe("7. exported stage table", () => {
   test("READ_ONLY_SPECIALIST_PATTERNS is exported", () => {
     expect(Array.isArray(READ_ONLY_SPECIALIST_PATTERNS)).toBe(true)
   })
+
+  // ADAPTER_WORKFLOW_SKILLS is module-private, so membership is exercised through its
+  // observable consequence: the orchestrator-writer warning fires only when the session holds a
+  // valid key whose skill is in that set. A workflow-sdd-secure-only key must NOT satisfy it,
+  // while an odd-secure key must, so the absence assertion cannot pass on an empty fixture.
+  test("workflow-sdd-secure is not an adapter workflow skill (key detection control)", async () => {
+    const exSdd = "ses_adapter_sdd_absent"
+    await message(exSdd, "gentle-orchestrator")
+    seedKey(exSdd, "workflow-sdd-secure")
+    await dispatch(exSdd, "systematic-implementer")
+    expect(logCount("orchestrator dispatched writing specialist systematic-implementer")).toBe(0)
+
+    const control = "ses_adapter_odd_present"
+    await message(control, "gentle-orchestrator")
+    seedKey(control, ODD)
+    await dispatch(control, "systematic-implementer")
+    expect(logCount("orchestrator dispatched writing specialist systematic-implementer")).toBe(1)
+  })
 })
 
 describe("1. specialist rule: deny by default", () => {
@@ -270,7 +288,7 @@ describe("1. specialist rule: deny by default", () => {
     markAdvice("ses_s5b")
     for (const name of ["general", "systematic-implementer", "frontend-dev", "frontend-dev-premium",
       "frontend-apply", "frontend-apply-local", "jd-fix-agent", "pr-comment-resolver",
-      "bug-reproduction-validator", "design-iterator", "sdd-apply", "sdd-apply-local",
+      "bug-reproduction-validator", "design-iterator",
       "gentle-ai-worker", "gentle-ai-worker-local"]) {
       await dispatch("ses_s5b", name)
     }
@@ -288,8 +306,7 @@ describe("1. specialist rule: deny by default", () => {
 
   test("read-only specialists are exempt", async () => {
     seedKey("ses_s6", ODD)
-    for (const name of ["explore", "gentle-ai-explore", "gentle-ai-verify", "sdd-explore", "sdd-verify",
-      "sdd-research", "vision", "architecture-strategist", "spec-flow-analyzer", "git-history-analyzer",
+    for (const name of ["explore", "gentle-ai-explore", "gentle-ai-verify", "vision", "architecture-strategist", "spec-flow-analyzer", "git-history-analyzer",
       "issue-intelligence-analyst", "pattern-recognition-specialist", "deployment-verification-agent",
       "repo-research-analyst", "best-practices-researcher", "framework-docs-researcher",
       "learnings-researcher", "correctness-reviewer", "review-refuter", "review-risk",
@@ -753,7 +770,6 @@ describe("8. PM own-route key binding", () => {
     for (const [pm, route] of [
       ["pm-odd", ODD],
       ["pm-systematic", SYS],
-      ["pm-sdd", "workflow-sdd-secure"],
     ]) {
       const sid = `ses_pm_map_${pm.replace(/-/g, "_")}`
       await message(sid, pm)
@@ -878,7 +894,6 @@ describe("8. PM own-route key binding", () => {
       "host_plan_append",
       "host_register_project",
       "host_sandbox_result_install",
-      "host_sdd_archive_compose",
     ]
     await message("ses_pm_hosts", "pm-odd")
     for (const tool of tools) {
@@ -888,14 +903,14 @@ describe("8. PM own-route key binding", () => {
     }
   })
 
-  test("host mutation PM gates are derived from the routing gate set", async () => {
+  test("the retired pm-sdd identity is no longer host-mutation gated", async () => {
     const tools = ["host_sandbox_result_install", "host_sdd_archive_compose"]
     await message("ses_pm_derived_hosts", "pm-sdd")
     for (const tool of tools) {
       await before(tool, "ses_pm_derived_hosts", {})
-      expect(logCount(pmWarning("pm-sdd", "workflow-sdd-secure", tool))).toBe(1)
-      expect(logText()).toContain(`workflow key status=missing (session: ses_pm_derived_hosts)`)
+      expect(logCount(pmWarning("pm-sdd", "workflow-sdd-secure", tool))).toBe(0)
     }
+    await probe()
   })
 
   test("the PM rule does not gate sandbox writes or task dispatch", async () => {
@@ -948,7 +963,7 @@ describe("9. PM adapter map own-property lookup", () => {
   test("resolves each configured PM identity to its adapter skill", () => {
     expect(pmRequiredRouteSkill("pm-odd")).toBe("workflow-odd-secure")
     expect(pmRequiredRouteSkill("pm-systematic")).toBe("workflow-systematic")
-    expect(pmRequiredRouteSkill("pm-sdd")).toBe("workflow-sdd-secure")
+    expect(pmRequiredRouteSkill("pm-sdd")).toBeNull()
   })
 
   test("constructor is not a PM identity", () => {
@@ -975,6 +990,17 @@ describe("9. PM adapter map own-property lookup", () => {
     // real absence, not a broken log.
     await message("ses_pm_proto_ctl", "pm-odd")
     await before("host_git_commit", "ses_pm_proto_ctl", {})
+    expect(logCount(`pm-odd requires its own ${ODD} route key before host_git_commit`)).toBe(1)
+  })
+
+  test("a retired pm-sdd identity does not trip the PM warning", async () => {
+    await message("ses_pm_sdd_retired", "pm-sdd")
+    await before("host_git_commit", "ses_pm_sdd_retired", {})
+    expect(logCount("requires its own")).toBe(0)
+    // Positive control: the same run still warns for a live PM, so the zero above is a
+    // real absence, not a broken log.
+    await message("ses_pm_sdd_retired_ctl", "pm-odd")
+    await before("host_git_commit", "ses_pm_sdd_retired_ctl", {})
     expect(logCount(`pm-odd requires its own ${ODD} route key before host_git_commit`)).toBe(1)
   })
 })

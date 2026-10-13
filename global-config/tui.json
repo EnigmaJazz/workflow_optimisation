@@ -3,7 +3,6 @@
   "plugin": [
     "@fro.bot/systematic@3.16.5",
     "opencode-subagent-statusline",
-    "opencode-sdd-engram-manage",
     "/home/james/.config/opencode/tui-plugins/gentle-logo.tsx",
     "file:///home/james/.local/share/opencode-plugin-auto-update-local/dist/index.js",
     "@cortexkit/opencode-magic-context@0.41.2",

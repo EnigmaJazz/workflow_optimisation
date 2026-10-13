@@ -5,7 +5,7 @@
  *
  * The reviewed verifier (`verify-workflow.sh`) is the source of truth for the
  * setup health check. It currently verifies and, where explicitly safe, repairs:
- *   - Gentle AI v3.5.0+, mandatory ODD delegation, optional SDD research/verification,
+ *   - Gentle AI v4, mandatory ODD delegation,
  *     the effective user-owned RDD mode/source, successful sync witness,
  *     and telemetry status are verified
  *   - required Systematic v3.18.4+ bundled skills exist in the active install
@@ -37,7 +37,7 @@
  *     another process or project may still reference them
  *   - OpenCode's resolved Systematic agent model/variant allocation matches
  *     systematic.jsonc, using a recursion-safe neutral runtime probe
- *   - output-only SDD research and retired SDD host operations stay denied
+ *   - no optional SDD research/verification and no live SDD host operations
  *   - runtime content hashes are certified against a systemd service invocation,
  *     avoiding false restart loops when startup code rewrites unchanged files
  *
@@ -90,7 +90,7 @@ const VERIFY_TIMEOUT_MS = 300_000
 // Pinned sha256 digest of the reviewed verify-workflow.sh. Keep this assignment
 // on one line: verify-workflow.sh deliberately parses this source line to confirm
 // that the reviewed plugin and verifier are bound to one another.
-const VERIFY_SCRIPT_SHA256 = "68d89eb068c7bf60c196a953023e807aa9ef47cf7203c0d1bded0b0c6760eef4";
+const VERIFY_SCRIPT_SHA256 = "621a7f93c2fc9dee8469793e751069b016e1121ece9d92eaaf3d342e605ad468";
 
 type HealthState = "clean" | "repaired" | "failed"
 

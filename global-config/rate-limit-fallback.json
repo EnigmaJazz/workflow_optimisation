@@ -30,7 +30,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -213,7 +213,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -235,7 +235,7 @@
       {
         "providerID": "opencode-go",
         "modelID": "deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -264,7 +264,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -305,7 +305,7 @@
       {
         "providerID": "opencode-go",
         "modelID": "deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -356,7 +356,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -368,7 +368,7 @@
       {
         "providerID": "opencode-go",
         "modelID": "deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -388,7 +388,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -429,7 +429,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -460,7 +460,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -492,7 +492,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -514,7 +514,7 @@
       {
         "providerID": "opencode-go",
         "modelID": "deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -534,7 +534,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -556,7 +556,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -578,7 +578,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -610,7 +610,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -642,7 +642,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -675,7 +675,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -697,7 +697,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -729,7 +729,7 @@
       {
         "providerID": "openrouter",
         "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "max",
+        "variant": "default",
         "capabilities": [
           "files",
           "tools",
@@ -752,7 +752,7 @@
     {
       "providerID": "openrouter",
       "modelID": "deepseek/deepseek-v4.1-flash",
-      "variant": "max",
+      "variant": "default",
       "capabilities": [
         "files",
         "tools",
@@ -787,6 +787,7 @@
   "holdSubagentResult": true,
   "stallDetection": true,
   "stallDefaultMs": 300000,
+  "stallRetryVariant": "low",
   "patterns": [
     "rate limit",
     "usage limit",

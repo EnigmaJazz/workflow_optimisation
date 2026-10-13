@@ -34,7 +34,7 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 - **Phase 3, recipe and policy:** Q05, Q09, the Q10 items, Q12, Q14, Q24, Q50, then the remaining
   READY and PLANNED items in listed order (Q11, Q13, Q15-Q23).
 - **Phase 4, gentle-ai v4 upgrade (owner-triggered):** Q29, then Q30-Q33 and Q35-Q39 delivered as
-  the Q36 change set, then Q34. Q49 runs throughout.
+  the Q36 change set, then Q34, plus Q65 and Q66. Q49 runs throughout.
 - **Phase 5, OpenCode V2 upgrade (owner-triggered, after Phase 4):** Q40-Q47.
 - **Project-manager layer (owner, 2026-10-04; runs alongside Phases 2 and 3):** Q53 and Q54 are
   complete as reports. Removal check (c) PASSED by a failed `pm-probe` Task dispatch. Checks (a)
@@ -280,7 +280,7 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
   - Replace the current "do not invoke `mem_*`" rule with this scoped rule.
 
 ### Q15. Routing guard T7 — `workflow-sdd-secure` phase-agent gating
-- **Status:** PLANNED; obsolete on v4 (see Q33).
+- **Status:** CLOSED — obsolete on v4. It was obsolete-by-absence: the guard's `ROUTE_STAGES` only ever held `workflow-odd-secure` and `workflow-systematic` (`global-config/plugins/lib/routing-guard-helpers.ts:67-103`), so the SDD phase-agent gating was never implemented (see Q33/Q65).
 - **Prerequisites:** Q03.
 - **Source:** `odd/tasks/routing-guard-keys.md` T7c "Implementation order" 3.
 
@@ -384,16 +384,18 @@ each other. Magic Context stays the main memory, including the ODD tracker mirro
   - Drop the file-mode defect if listed (fixed).
 
 ### Q26. Verifier prose coupling
-- **Status:** READY.
+- **Status:** IN PROGRESS — T1 (docs anchors) DONE-AT-SOURCE (commit `65beb19`, 31 anchor blocks); T2 (verifier checker + re-pin) pending.
+- **Deferred (T2):** the `AGENTS.md` `## Secure workflow router (MANDATORY)` block is not anchored in T1 — its bytes must equal the verifier heredoc (`verify-workflow.sh:1305-1319`, byte-compared at `:4453-4472`), so anchoring it requires a verifier edit + re-pin.
 - **Prerequisites:** none. Do it with or before Q04; the split must preserve whatever contract
   replaces the literals.
 - **Source:** advisor-maintainability (`docs/TODO-HISTORY.md` "2026-10-01 — Advisor dispatch verification PASSED").
 - **Description:**
-  - About 15 hardcoded prose literals must appear in `WORKFLOW.md`/`AGENTS.md` or the verifier
-    fails, so routine doc edits break it.
+  - The section-7 region carries on the order of ~170 hardcoded grep predicates over prose in
+    `WORKFLOW.md`/`AGENTS.md`/skill references; if a literal drifts the verifier fails, so routine
+    doc edits break it.
   - Replace prose matching with stable machine markers (e.g. `<!-- workflow:anchor ... -->`) or a
     single declared anchor list, so wording can change freely.
-  - Inputs for Q04: 4,772 lines and only 13 functions, all ending by line 1231; the rest is one
+  - Inputs for Q04: 5,008 lines and only 14 functions, all ending by line 1,276; the rest is one
     top-level body. The 16 numbered section markers are the natural seams, and section numbers are
     cited externally, so numbering and order are preserved. Any split re-pins the digest in the
     same change.
@@ -545,7 +547,8 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   `host_gh_issue_create` and `host_plan_append` are absent by design. Resuming the earlier
   `pm-odd` session retained its prior conversation, a second independent observation of `task_id`
   resume behaviour (the first was the synthetic probe). In this unit, `pm-sdd` was extended to the
-  same host-mutation set, retaining `host_sdd_archive_compose` as its route-specific extra.
+  same host-mutation set, retaining `host_sdd_archive_compose` as its route-specific extra. This
+  extension is superseded by Q65's retirement of `pm-sdd`.
 - **Observed removal-check reconciliation (2026-10-08):** check (c) PASSED by the failed dispatch
   recorded above. Check (b) is PARTIALLY PASSED: installed `/home/james/.config/opencode/plugins/
   sandbox-tools.ts`, `READ_ONLY_AGENTS` lines 64–69, lists `gentle-orchestrator`, `pm-odd`,
@@ -640,7 +643,8 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 ### Q61. PM layer: remaining routes and close
 - **Status:** PLANNED.
 - **Prerequisites:** Q57, Q58, Q59, Q60.
-- **Description:** move the Systematic and SDD routes to `pm-systematic` and `pm-sdd`; remove
+- **Description:** move the Systematic route to `pm-systematic` (SDD is retired by v4; `pm-sdd` was
+  RETIRED by Q65 on 2026-10-11, so Q61 no longer lists it); remove
   `gentle-orchestrator-legacy`; `ce:compound`. Require relay-delivery proof from a dispatch
   outside the coordinating PM session, carrying a genuine provider-issued binding; Q54 showed
   reachability only, not delivery. Do not require the PM itself to dispatch or prove its own relay
@@ -774,7 +778,8 @@ Release facts that drive the group:
     Keep `asi-review-*`, `advisor-*`, `jd-*` and Astra aliases, re-checking family diversity.
 
 ### Q30. Workflow documents
-- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Status:** DONE-AT-SOURCE (T1 committed `522683b`: both skill files deleted; a detect-only `RETIRED_WORKFLOW_SKILL_PRESENT` check added; pin `12ebaf72…`).
+- **Deploy (OWNER, pending):** after the verifier mirror and OpenCode restart, run `rm -rf ~/.config/opencode/skills/workflow-sdd-secure`; the verifier will fail with `RETIRED_WORKFLOW_SKILL_PRESENT` until it is done (intended).
 - **Prerequisites:** Q29.
 - **Source:** v4.0.0 release notes. `WORKFLOW.md` :7, :11, :35, :39, :86, :100 (Substantial feature
   row), :105-111 (Classification and SDD Selection Rules), :123, :125 (`sdd-verify` verifies
@@ -805,7 +810,8 @@ Release facts that drive the group:
   - Update `docs/PLAN.md` at the cited lines.
 
 ### Q31. Agent allocation (`global-config/opencode.json`, `tui.json`, `systematic.jsonc` if needed)
-- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Status:** IN PROGRESS — source complete, committed and reviewed; deploy (verifier mirror +
+  restart) is the owner's pending step.
 - **Prerequisites:** Q29.
 - **Source:** v4.0.0 release notes. `global-config/opencode.json`: `gentle-orchestrator` :522
   ("Gentle AI SDD Orchestrator"), :647 (local prompt "# Gentle AI — SDD Orchestrator
@@ -831,7 +837,7 @@ Release facts that drive the group:
   - Remove the `./prompts/sdd/` prompt files no agent references.
 
 ### Q32. Verifier (`verify-workflow.sh`)
-- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Status:** DONE-AT-SOURCE (T0–T5 are committed and reviewed — `odd/tasks/q32-verifier-v4.md`; final pin `14d37ce9…` after Q65; deployment is pending the owner).
 - **Prerequisites:** Q29, Q31. Q26 strongly preferred, Q04 preferred.
 - **Source:** v4.0.0 release notes; `verify-workflow.sh` line refs below (read-only mapping,
   2026-10-01).
@@ -861,9 +867,16 @@ Release facts that drive the group:
   - Add checks: no `sdd-*` agent or `host_sdd_*` grant present; v4 generic agents registered with
     the expected tools; `gentle-ai sync` exit status handled; review plugin binary-skew awareness.
   - Re-pin `VERIFY_SCRIPT_SHA256` (`:76` and the health plugin) after the edits.
+  - **S5b verifier findings (Q31 S5b native review `review-8b540c67721bcaa1`, 2026-10-11):**
+    - `R3-WORKSPACE-001` (`verify-workflow.sh:2895`): an empty `workspaceRoot` silently falls back to
+      a relative path.
+    - `R4-001` (`:3041`): the Magic Context scrubber lookahead silently no-ops if the following
+      heading level changes.
+    - `R4-002` (`:4800`): `workspaceRoot` undefined at another call site would throw before `fail()`.
+    - `R4-003` (`:4813`): the assembler-missing/failed codes leak an absolute host path + raw error.
 
 ### Q33. Guard and plugins
-- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Status:** DONE-AT-SOURCE (T0–T1 committed and reviewed — `odd/tasks/q33-guard-plugins.md`; commit `f10468b`; Q15 is closed as obsolete; the `astra-sol-upgrade.ts` name check was resolved — it names only `jd-fix-agent`/`gentle-orchestrator`, both present — its runtime resolution remains statically unprovable).
 - **Prerequisites:** Q29; Q03 (route namespacing).
 - **Source:** v4.0.0 release notes. `systematic-routing-guard.ts` :219 (skill list contains
   `workflow-sdd-secure`), :505 (`host_sdd_` prefix); `workflow-health-check.ts` :8, :40 (comments);
@@ -878,45 +891,54 @@ Release facts that drive the group:
   - Confirm `astra-sol-upgrade.ts` still resolves its agent names after Q31.
 
 ### Q34. Upgrade procedure (runbook)
-- **Status:** PLANNED, gated by "owner decides to upgrade".
+- **Status:** DONE-AT-SOURCE (T0–T1 committed — `odd/tasks/q34-upgrade-runbook.md`; commit `3789cc1` authored `docs/upgrades/gentle-ai-v4.md`, 257 lines). The runbook has never been executed; its first execution is its validation.
 - **Prerequisites:** Q29-Q33 on one gated branch.
 - **Source:** v4.0.0 release notes; Q24 (sync overwrites the live config).
-- **Description:**
-  1. Confirm the install method (`command -v gentle-ai`; Homebrew formula present, so
-     `brew upgrade gentle-ai`).
-  2. `gentle-ai sync --dry-run` first.
-  3. Upgrade the binary.
-  4. `gentle-ai sync`; expect it to overwrite managed agents and prompts, and handle a non-zero
-     exit when it cannot detect the OpenCode version.
-  5. Apply Q30-Q33 with the Q36 change-set tool (`apply --dry-run`, then `apply`). Do not
-     hand-copy.
-  6. Run the verifier (recovery plus checks).
-  7. Restart OpenCode.
-  8. `verify-workflow.sh --behavioral`.
-  9. Dispatch checks: `advisor-*`, the v4 generic agents, `asi-review-*`.
-  10. Rollback: keep the v3.7.0 binary and the verifier backup in `backups/workflow-recovery/`.
+- **Deliverable:** [`docs/upgrades/gentle-ai-v4.md`](upgrades/gentle-ai-v4.md) is the sole
+  authority for Gentle AI v4 upgrade execution, activation, recovery and completion checks. Q34
+  tracks document readiness only; publishing the runbook does not authorize the upgrade.
 
 ### Q35. Remove mandatory Engram instructions everywhere (Magic Context is the default memory)
-- **Status:** IN PROGRESS.
+- **Status:** CLOSED — OpenCode side DONE-AT-SOURCE; Claude-side remainders OUT OF SCOPE.
+  - Closure finding (read-only sweep 2026-10-11): no live OpenCode mandatory-Engram instruction
+    and no Engram-requiring enforcement remains in this repository. The only literal
+    mandatory-Engram text is vendored upstream prompt source
+    (`global-config/prompts/gentle-orchestrator/upstream/orchestrator.template.md:155-160`,
+    `:179-183`) and its byte-exact render
+    (`global-config/prompts/gentle-orchestrator/base.md:303-306`, `:326-329`); the overlay
+    (`overlay.md:152-182`) replaces exactly those sections at assembly, and the deployed prompt
+    (`global-config/opencode.json:590`) is the assembled artifact verified to contain zero
+    `engram`/`mem_` residue by `tests/test_orchestrator_prompt_source.py:310-324` (with a planted
+    positive control). The `ENGRAM_*` verifier checks are presence-guards that must be KEPT
+    (`verify-workflow.sh:3267`, `:4625-4629`, `:3099-3110`, plus the `recover_agents_file` strip
+    `:883-884`, `:929-939`). Magic Context is the OpenCode memory rule (`WORKFLOW.md:66`,
+    `:131`), deployed via the four generic-agent adapters in `global-config/opencode.json`. No
+    verifier re-pin: Q35 makes no `verify-workflow.sh` edit.
   - Done 2026-10-01: Claude Code text stripped. The `gentle-ai:engram-protocol` block was removed
     from `~/.claude/CLAUDE.md`, and the ODD lines now make the task file the durable record, with
     a Magic Context mirror where the runtime has it and Engram "never required". Backup:
     `backups/claude-md/CLAUDE.md.20261001T222932Z.before`.
   - Owner choice: the Engram plugin stays installed until Q14b brings Engram back as an
-    inter-agent MCP.
-  - Remaining: the plugin's SessionStart hook still injects its own "MANDATORY" protocol text.
-    The ODD lines sit inside the gentle-ai-managed `agent-routing` block, and the protocol block
-    is gentle-ai-managed too, so the next `gentle-ai sync` will restore both. The enforcement
-    check below is what makes the removal stick.
+    inter-agent MCP. Q14b (an optional, never-mandatory scoped Engram MCP for OpenCode) is a
+    separate queue item and is NOT part of Q35.
+  - Claude-side remainders — SKIPPED by owner decision (2026-10-11): the plugin's SessionStart
+    hook (which injects its own "MANDATORY" protocol text) and the planned Claude Code enforcement
+    check are Claude-side and outside this repository (`~/.claude/CLAUDE.md` + the Claude Code
+    Engram plugin). Engram is deliberately RETAINED as the Claude Code <-> external-advisor memory
+    channel, so neither remainder is removed or enforced against. The ODD lines sit inside the
+    gentle-ai-managed `agent-routing` block and the protocol block is gentle-ai-managed too, so a
+    future `gentle-ai sync` may restore both; that is accepted, not a Q35 open item.
 - **Prerequisites:** none for the OpenCode side (already done). Claude Code side: owner confirms
   the scope of edits to `~/.claude` (outside this repo).
 - **Source:** owner decision; read-only survey 2026-10-01.
 - **Description:**
-  - **OpenCode: already enforced.** `WORKFLOW.md:129` makes Magic Context mandatory. The
-    verifier fails on `LEGACY_ENGRAM_PROTOCOL_REAPPEARED` (`verify-workflow.sh:4388`) and on
-    `ENGRAM_UNEXPECTEDLY_ENABLED` (`:3086`). Keep both checks through Q32 and the v4 upgrade. Q14b
-    must not reintroduce a mandatory protocol, only a scoped opt-in channel.
-  - **Claude Code: still mandatory.** Remove:
+  - **OpenCode: already enforced.** Magic Context is the OpenCode memory rule (`WORKFLOW.md:66`,
+    `:131`). The verifier fails on `LEGACY_ENGRAM_PROTOCOL_REAPPEARED` (`verify-workflow.sh:4625-4629`)
+    and on `ENGRAM_UNEXPECTEDLY_ENABLED` (`:3267`); these presence-guards fire on Engram
+    REAPPEARING and must be kept through the v4 upgrade. Q14b must not reintroduce a mandatory
+    protocol, only a scoped opt-in channel.
+  - **Claude Code (Claude-side; OUT OF SCOPE per the 2026-10-11 owner decision — kept for
+    history).** The original plan was to remove:
     - the gentle-ai-managed `<!-- gentle-ai:engram-protocol -->` block in `~/.claude/CLAUDE.md`
       (lines 536-564 today);
     - the ODD lines that require an Engram mirror of the tracker (`:579`, `:620-622`, and the
@@ -927,10 +949,11 @@ Release facts that drive the group:
     pathway is Engram only, used mainly in its advisory role. What is removed is the blanket
     mandatory-protocol text, not Engram itself. `~/.claude/CLAUDE.md` now states the
     per-runtime pathway.
-  - **Enforcement (per the deployment-gating constraint, Q28):** gentle-ai sync rewrites the
-    CLAUDE.md block. Add a check (in the verifier, or a Claude Code-side health check) that fails
-    when `<!-- gentle-ai:engram-protocol -->` or a mandatory Engram hook reappears, and relates to
-    Q24 (sync drift).
+  - **Enforcement (Claude-side, OUT OF SCOPE per the owner decision 2026-10-11):** the planned
+    check — failing when `<!-- gentle-ai:engram-protocol -->` or a mandatory Engram hook reappears
+    (per the deployment-gating constraint, Q28; relates to Q24 sync drift) — is Claude-side and is
+    NOT implemented here. No OpenCode enforcement against Engram is wanted; the OpenCode
+    `ENGRAM_*` checks guard against re-introduction and stay.
   - **v4:** apply the same rule to v4's managed orchestrator prompts (Q29b, Q30).
 
 ### Q36. Non-destructive change set for the v4 upgrade: apply and revert without clobbering drift
@@ -938,6 +961,22 @@ Release facts that drive the group:
   `docs/specs/changeset-tool.md` v1.3, 72 tests, three native reviews approved (tracker
   `odd/tasks/changeset-tool.md`; follow-up T5). The v4 change-set CONTENT is authored at upgrade
   time (Q30-Q33), per the build-late rule.
+- Status note (2026-10-11): the TOOL is DONE; the v4 CONTENT is build-late BY DESIGN — authored at
+  upgrade time — so Q36's tool is DONE and its content is deliberately deferred: no change-set
+  content is authorable inside the repo now (no re-pin). The build-late rule is at
+  `odd/tasks/changeset-tool.md:17`; the earlier note cited `docs/specs/changeset-tool.md:17`, which
+  is the v1.2 changelog note — a citation drift corrected here. Q30–Q33, Q35, Q38 are committed to
+  feat/gentle-ai-v4 and Q39's gate is deferred, so the repo-tracked half already reaches live
+  through the verifier mirror. The live `~/.config/opencode` surfaces Q36 once claimed are
+  regenerated by the verifier's six `recover_*` functions in `verify-workflow.sh`
+  (`recover_opencode_config`, `recover_tui_config`, `recover_reviewed_router_skills`,
+  `recover_agents_file`, `recover_systematic_config`, `recover_fallback_policy`), not by change-set
+  operations. Exactly two genuine remnants remain and neither can live in a change set: (a) the
+  retired skill DIRECTORY `~/.config/opencode/skills/workflow-sdd-secure` — the `file_remove` op
+  moves a single FILE, so it cannot express a directory removal; it belongs to the Q34 runbook's
+  one-time manual `rm -rf`. (b) `~/.claude/CLAUDE.md`'s gentle-ai-managed blocks — the verifier
+  cannot reach them, the Claude side is OUT OF SCOPE per Q35, and Q38 says to check them AFTER the
+  v4 sync, so they belong to the Q38 post-sync check, not change-set ops.
 - **Prerequisites:** Q29 (the changes to encode); Q26 (stable anchors make markdown edits
   addressable).
 - **Source:** owner, 2026-10-01: build it all non-destructively, with a simple process to insert
@@ -1006,7 +1045,7 @@ Release facts that drive the group:
     the owner.
 
 ### Q38. Remove strict-TDD references (v4 retires `strict_tdd`)
-- **Status:** PLANNED, gated by "owner decides to upgrade"; delivered in the Q36 change set.
+- **Status:** DONE-AT-SOURCE (commit `5ba5226`; the three live wording sites rewritten; the orchestrator prompt regenerated and its digest + ledger citation updated; no re-pin; the proposed verifier Gate DEFERRED — it would fire on `docs/PLAN.md:80`, which retains `strict_tdd` as a forbidden dependency).
 - **Prerequisites:** Q29c (the orchestrator prompt decision decides how its block is removed).
 - **Source:** v4.0.0 release notes (`sync --strict-tdd` rejected; a saved `strict_tdd` enables
   nothing; test-first guidance installed by default). Read-only survey 2026-10-01.
@@ -1029,11 +1068,13 @@ Release facts that drive the group:
     touch user-owned files.
   - Saved `strict_tdd` keys in SDD init records (Magic Context, Engram): leave them. They are
     inert on v4, and v4 preserves persisted SDD keys.
-  - **Gate:** a verifier check fails if `strict_tdd`, `--strict-tdd` or "STRICT TDD MODE"
-    reappears in the canonical config, the workflow docs or the skills.
+  - **Gate (DEFERRED):** the proposed verifier check — fails if `strict_tdd`, `--strict-tdd` or
+    "STRICT TDD MODE" reappears in the canonical config, the workflow docs or the skills — is
+    NOT implemented: it would false-fire on `docs/PLAN.md:80`, which keeps `strict_tdd` as a
+    forbidden v4 dependency, and would force a re-pin plus another high-risk review.
 
 ### Q39. SDD changes in flight at upgrade time
-- **Status:** PLANNED, gated by "owner decides to upgrade". It is a preflight of the Q36 apply.
+- **Status:** RECORDED — inventory captured 2026-10-11; owner dispositions recorded 2026-10-12; gate not yet implemented (Q28 PLANNED). Still gated by "owner decides to upgrade" and remains a preflight of the Q36 apply.
 - **Prerequisites:** none to inventory. Each disposition needs the owner and runs in that
   project's repository.
 - **Source:** v4.0.0 removes SDD commands and phases but preserves user-owned files and persisted
@@ -1067,6 +1108,68 @@ Release facts that drive the group:
 - **Record:** a row per change in the project's tracker or `ROUTER-LOG.md` with its disposition.
   The Q36 journal references them.
 - **Gate:** the apply preflight is the enforcement point (Q28).
+
+#### Q39 inventory (read-only, 2026-10-11)
+Six unarchived SDD changes exist across four external projects (roots: `/home/james/agent-sandbox-integration`, `/home/james/opencode-workspace/vision`, `/home/james/peak-redir`, `/home/james/sdd-quality/mini-sdd`). The premise that they are stale is only partly true — two are live work. Per the 2026-10-11 decision, no disposition is made from this repository; each change's disposition is OWNED BY ITS PROJECT, and `agent-sandbox-integration` has already begun its own v4 retirement (`docs/upgrades/gentle-ai-4.md`).
+
+| Change | Project | State observed | Disposition owner/status |
+|---|---|---|---|
+| `agent-host-tools` | agent-sandbox-integration | every task complete except Phase 5.1–5.6, each explicitly marked "Superseded by the gentle-ai 4 retirement" with a pointer to `docs/upgrades/gentle-ai-4.md` | superseded; project-owned archive |
+| `reviewer-relay-transport` | agent-sandbox-integration | complete; has `archive-report.md` ("PASS; 13/13 complete; 7/7 requirements, 13/13 scenarios, zero findings; runtime ledger complete") which states the change directory "MUST NOT be deleted or moved" | done; leave in place |
+| `role-based-subagents` | agent-sandbox-integration | Phase 0 and Phase A complete; Phases B, C and D unstarted | ACTIVE — project-owned |
+| `peak-hour-routing` | peak-redir | 1.1–1.3 complete; task 1.4 BLOCKED on a host write with the finished config preserved as `rate-limit-fallback.json.new`; Phases 2–4 unstarted | ACTIVE/BLOCKED — project-owned |
+| `mock-ui-test` | opencode-workspace/vision | header reads "Status: MOCK — planning simulated; apply runs for real in two lanes"; T1–T3 all pending | test fixture — project-owned |
+| `local-apply-test` | sdd-quality/mini-sdd | NOT READABLE from this repository (read denied) | unknown — needs another route |
+
+Gate reality: the "apply refuses while unarchived SDD changes exist" behaviour is NOT implemented — `docs/specs/changeset-tool.md:31-32` places that preflight out of scope, `scripts/changeset.py` exposes only a caller-supplied `--verify-cmd`, and the planned enforcement point is Q28 (status PLANNED). Nothing therefore blocks the Q36 apply today. Q39's own disposition rule (finish on 3.7.0; convert to ODD; or abandon-archive with a one-line reason) is exercised by each owning project, not here.
+
+#### Q39 dispositions — OWNER DECISION (2026-10-12)
+
+After reviewing `gentle-ai sdd-status` against the live projects, the owner records that ALL SIX in-flight SDD changes are ABANDONED as SUPERSEDED:
+
+| Change | Project | Disposition | One-line reason |
+|---|---|---|---|
+| `agent-host-tools` | agent-sandbox-integration | abandon-archive | superseded |
+| `reviewer-relay-transport` | agent-sandbox-integration | abandon-archive | superseded |
+| `role-based-subagents` | agent-sandbox-integration | abandon-archive | superseded |
+| `peak-hour-routing` | peak-redir | abandon-archive | superseded |
+| `mock-ui-test` | opencode-workspace/vision | abandon-archive | superseded |
+| `local-apply-test` | sdd-quality/mini-sdd | abandon-archive | superseded |
+
+**Recorded 2026-10-12, BEFORE the binary upgrade** — `gentle-ai sdd-status` exists only on 3.7.0, so this had to precede the binary upgrade; it satisfies the runbook's "Q39 in-flight SDD dispositions are RECORDED" precondition (`docs/upgrades/gentle-ai-v4.md`, the checklist item after the Q39 item).
+
+**Differential for the record (do not drop it):** the 2026-10-11 read-only inventory classified `role-based-subagents` (Phases B–D unstarted) and `peak-hour-routing` (task 1.4 blocked on a host write, config preserved as `rate-limit-fallback.json.new`) as ACTIVE, and `agent-host-tools` as self-marked superseded. The owner's review of the live `sdd-status` is the authority; the earlier classification is retained here so the change of judgement is visible.
+
+**Scope of "abandon":** the changes are NOT implemented. NO change directory is deleted, moved or modified by this decision — in particular `reviewer-relay-transport` carries an `archive-report.md` stating its directory MUST NOT be deleted or moved, and that constraint is unaffected.
+
+**Gate:** the change-set gate for Q39 remains unimplemented (`docs/specs/changeset-tool.md:31-32`); the operator is the only enforcement, and this recorded decision IS that enforcement for this upgrade.
+
+### Q65. Retire `pm-sdd`
+- **Status:** DONE-AT-SOURCE (T0–T1 committed and reviewed — `odd/tasks/q65-retire-pm-sdd.md`; commit `5aadb9f`; the decision was RETIRE; two follow-ups remain: the external `sandbox-tools.ts` `READ_ONLY_AGENTS` entry and T1's `R4-migration-vacuous-zero`).
+- **Prerequisites:** Q30 (the `workflow-sdd-secure` skill disposition) and Q31 (done); coordinate
+  with Q61, which currently lists `pm-sdd` as the SDD route PM.
+- **Source:** `odd/tasks/q31-agent-allocation.md` S5b post-code advisory (2026-10-11); Q54's
+  host-mutation extension of `pm-sdd`; `odd/tasks/pm-layer.md:24,315`.
+- **Description:** gentle-ai v4 retires SDD, so `pm-sdd` has no route left to coordinate. Decide
+  retire (default) vs repurpose, then: remove the `pm-sdd` agent block from
+  `global-config/opencode.json` (prompt loads `workflow-sdd-secure`); drop `pm-sdd` from the
+  orchestrator `permission.task` allows, the guard's coordinator map (`pm-sdd`→`workflow-sdd-secure`),
+  the verifier PM lists, and `docs/specs/pm-handoff.md` if named; drop `pm-sdd` from the external
+  `sandbox-tools.ts` `READ_ONLY_AGENTS` list; pair the verifier edits with the config change and
+  re-pin `VERIFY_SCRIPT_SHA256` (Q31 pattern); correct Q61 to drop `pm-sdd`.
+
+### Q66. Q31 S5a assembler-finding follow-ups
+- **Status:** DONE-AT-SOURCE (T0–T2 committed and reviewed — `odd/tasks/q66-assembler-hardening.md`; deployment is pending the owner).
+- **Note:** implementation commits `61f85e4` (T1 assembler hardening) and `9d85764` (T2 marker coupling); deployment is pending.
+- **Prerequisites:** Q31 (done).
+- **Source:** Q31 S5a native review (`review-1633e87da601f9dd`), 2026-10-11.
+- **Description:** harden `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py`
+  per six non-blocking findings: `R3-ASSEMBLER-FAILURE-PATHS-UNTESTED` (WARNING — loud-failure paths
+  untested: nested markers, unknown kind, empty body, duplicate ids, malformed markers),
+  `R3-ASSEMBLER-ATTR-PARSER-FRAGILE`, `R3-ASSEMBLER-ORDERING-HAZARD-UNGUARDED` (replace-after-add /
+  add-after-remove), `R4-ATTRPARSE-001`, `R4-EXITCODE-001` (environment failures exit 1 vs the
+  documented exit 2), `R4-MARKER-COUPLING-001` (WARNING — the delegation-progress comment pair is
+  split across a guarded and an unguarded base section).
 
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).

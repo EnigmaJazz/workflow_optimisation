@@ -1,0 +1,23 @@
+# Q65 — Retire pm-sdd — Advice record
+
+## advisor-integration-pre (2026-10-11)
+
+- `astra-sol-upgrade.ts` enumerates `config.agent` (`:65`) and auto-creates `-astra` aliases (`:74-80`); it throws only if an alias already exists (`:84-86`), so removing `pm-sdd` is safe and produces no `pm-sdd-astra` alias.
+- `subagent_depth` (`opencode.json:2519`) is a numeric cap; unaffected.
+- The verifier task-agent check at `:2923-2925` iterates the Systematic bundled-agent inventory (`walkAgents`, `:2069`), NOT `opencode.json` agents, so removing `pm-sdd` from `permission.task` cannot trip `TASK_AGENT_NOT_ALLOWED`.
+- `COORDINATOR_PATTERNS` (`helpers:22-25`) still matches the string `pm-sdd`, but the real gate is `pmRequiredRouteSkill` — after `helpers:35` is removed it returns `null`, so no own key is minted (`guard:462-463`) and no PM warning fires (`guard:884-895`). Residual: a stale persisted binding from a pre-retirement session would be recognized as a coordinator but not gated (minor fail-open inconsistency, resolved by the agent's removal).
+- The per-`pm-sdd` `host_sdd_*` denials ARE redundant: the global permission block (`opencode.json:2431-2472`) and the orchestrator block (`:563-588`) already deny every `host_sdd_*`, so deleting the agent block loses no denial coverage.
+- Atomicity/order: one commit; config → helper → guard → verifier → tests → re-pin LAST. Out-of-step states produce: recovery abort at `verify-workflow.sh:479-482`, a pin mismatch refused by `workflow-health-check.ts:93`, and suite failures.
+- `ROUTING_GATE_TOOLS:224`: recommended REMOVAL (it is the last retired-tool residue; the tool is denied globally at `:2472` and to the orchestrator at `:573`, so the gate is inert). Consequences: drop it from the gated-tools test list and from the `pm-sdd` test that is being retired anyway.
+- External `sandbox-tools.ts READ_ONLY_AGENTS` is outside this repository (agent-sandbox-integration); it must be a follow-up, not a Q65 edit.
+- Docs fold-in hazards: close Q15 (already labelled "obsolete on v4", no deliverable to migrate); mark Q32/Q33 done-at-source only because their source changes are committed and reviewed; mark Q65 done-at-source, NOT DONE, until the verifier mirror runs and OpenCode restarts; apply the Q61 correction (`docs/TODO.md:641-650` parenthetical).
+
+## advisor-testing-pre (2026-10-11)
+
+- CORRECTIONS: the `pmRequiredRouteSkill("pm-sdd")` assertion is at `tests/routing-guard/routing-guard.test.ts:968`, not `:951`; `host_sdd_archive_compose` appears at `:898` (the `pm-odd` test, survives) and `:909` (the `pm-sdd` test, breaks); `:881` is `host_review_validate` and `:892` is `host_git_commit`. All `pm-sdd` literals: `:773`, `:863`, `:867`, `:910`, `:913`, `:914`, `:968`.
+- Breakages from removing the `helpers:35` row: (a) `:769-781` "maps each PM to its own route adapter key" — delete the `["pm-sdd","workflow-sdd-secure"]` tuple at `:773`; (b) `:965-969` — delete the `:968` assertion; (c) `:908-916` "host mutation PM gates are derived from the routing gate set" — the assertion at `:913` fails; convert to a NEGATIVE assertion (preferred — it is the only test that would positively prove retirement) or repoint to `pm-odd`; (d) `:860-869` does not fail but changes meaning (the retired name no longer triggers any warning).
+- No fixture backs `PM_ROUTE_ADAPTER_SKILLS` and no `seedKey` site uses `workflow-sdd-secure`, so no fixture change is needed.
+- Required POSITIVE CONTROL (Q33 precedent): in describe "9. PM adapter map own-property lookup" (~`:971`), add `expect(pmRequiredRouteSkill("pm-sdd")).toBeNull()` plus a behavioral control mirroring `:987-996` — a `pm-sdd` session emits no PM warning, while `pm-odd` in a second session still does (so the absence assertion cannot pass vacuously).
+- VERIFIER COVERAGE GAP (important): removing `"pm-sdd"` from `verify-workflow.sh:371`, `:2796` and `:2854` removes the only catch against reintroduction — the `SDD_AGENT_REAPPEARED` check at `:2819` keys on `name.startsWith("sdd-")` and never matched `pm-sdd`. Recommended mitigation: add a sentinel `if (deployedAgents["pm-sdd"]) fail("PM_SDD_REAPPEARED")` parallel to `:2819`. No guard-suite test catches this; the verifier is the only authority.
+- Digest coherence proof (do NOT rely on `bash -n`): `sha256sum verify-workflow.sh` must equal the pin extracted from `global-config/plugins/workflow-health-check.ts` with the verifier's own regex (`verify-workflow.sh:1268`, `read_verify_script_pin` at `:1251-1276`); the runtime comparison is `workflow-health-check.ts:112-119`.
+- No guard-suite test enumerates registered agents or reads `opencode.json`, so the config block deletion has no unit-test surface; it matters only through the verifier.
