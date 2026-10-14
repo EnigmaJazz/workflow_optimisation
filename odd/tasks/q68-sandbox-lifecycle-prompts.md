@@ -4,7 +4,7 @@
 **Task ID:** q68-sandbox-lifecycle-prompts (stable)
 **Class:** global-tooling-change
 **Route:** `workflow-odd-secure` (delegated)
-**Unit status:** T0 IN PROGRESS (tracker + advice created; T1 pending)
+**Unit status:** T0–T1 DONE (committed and reviewed; deployment pending the owner).
 **Model:** cloud `opencode-go/deepseek-v4.1-flash`
 
 ## Objective
@@ -82,7 +82,7 @@ tracker, the advice record, `ROUTER-LOG.md`.
 
 ## Tasks
 
-- [ ] T1 — insert the ordering rule into the three prompts; add
+- [x] T1 — insert the ordering rule into the three prompts; add
   tests/test_sandbox_lifecycle_prompts.py with three assertIn cases plus a PositiveControl class
   that plants a tampered prompt and asserts rejection; verify JSON parse and the scoped diff.
 
@@ -102,6 +102,10 @@ recorded only after its commits landed (a recorded process gap).
 
 - 2026-10-14: T0 — tracker, advice record and queue entry created; delivery strategy selected at
   creation. No source edit yet. Route: delegated.
+- 2026-10-14: T1 committed `a80ef09` (2 files, +118/−4; authored 117 lines). The rule was inserted into all three prompts as a byte-preserving inline string segment: `general` (:218, after its sandbox sentence), `gentle-ai-worker` (:367), `odd-apply` (:2170). `tests/test_sandbox_lifecycle_prompts.py` added (114 lines, 5 tests): module-level `NEEDLE` + `AGENT_NAMES`, a repo-relative config path resolved from `__file__`, and a `PositiveControl` class proving the validator reports a removed needle, an absent agent key and a non-string prompt — so a green run is not vacuous. Checks: presence probe [True, True, True]; `python3 -m json.tool global-config/opencode.json` exit 0 (the brief's one-liner was blocked by the sandbox argv guard because `;` is a rejected metacharacter — the equivalent `json.tool` check was used instead); new suite `Ran 5 tests OK`; `python3 -m unittest discover -s tests` 127 → 132 OK; routing-guard 96 pass / 0 fail; the scoped diff is exactly 3 hunks at :218/:367/:2170 with no whitespace drift and `git diff --check` clean.
+- 2026-10-14: T1 native review: lineage `review-a87bf254a54ea61b`; tier **medium** (configuration change in `global-config/opencode.json`); candidate 9 paths / 499 lines (the accumulated slice from base `4a2eef60`); ONE lens selected (`review-reliability`, a medium-risk consolidated review, not the 4-lens high-risk plan); outcome **approved** and **acknowledged**; `authority: burned`; consumed revision `sha256:908f47ec…`. Captured on the FIRST dispatch — the raised relay deadline removed the transport failures seen earlier the same day.
+- 2026-10-14: T1 advisory finding (non-blocking, informational; never a re-review trigger): `R3-001` (reliability SUGGESTION, `global-config/opencode.json:2366`) — the reviewer flagged that `@fro.bot/systematic` is bumped 3.21.5 → 3.21.8 without explicit justification in the Q68 scope. ANSWERED, not a defect: that bump is the VERIFIER's own canonical pin sync (a plain `bash verify-workflow.sh` run writes a newer deployed plugin pin back into the tracked source), recorded as intended behaviour. It rides in this accumulated candidate only because it was uncommitted at the time; it is unrelated to Q68's own change.
+- 2026-10-14: FOLLOW-UP identified by the T1 worker and NOT actioned here (out of the authorized scope): `gentle-ai-worker-local` carries the SAME sandbox-tools sentence at `global-config/opencode.json:416` but did NOT receive the lifecycle rule. If the ordering trap applies to it too, it needs the same one-line insertion; recorded as a candidate follow-up rather than silently widening this unit.
 
 ## Route / trigger evidence
 
@@ -112,5 +116,4 @@ recorded only after its commits landed (a recorded process gap).
 
 ## Next step
 
-T1 implementation, then its native review (risk tier to be assessed; the change touches a large
-tracked config plus a test), then the metadata record.
+Q68 source work is COMPLETE (T0–T1; T1 reviewed and acknowledged). OWNER ACTION: run `bash verify-workflow.sh` to mirror the edited config into `~/.config/opencode/opencode.json`, then restart OpenCode — the RUNNING process keeps the old prompts until then, which no check in this repo can observe. Carry-forward: `R3-001` (answered above) and the `gentle-ai-worker-local` follow-up.
