@@ -1182,6 +1182,17 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   `tests/test_retired_commands.py` with four fixtures), re-pinning `VERIFY_SCRIPT_SHA256` LAST.
   Full scope, constraints and acceptance criteria are in the tracker.
 
+### Q68. Sandbox lifecycle ordering in the worker prompts
+- **Status:** PLANNED (source not yet written).
+- **Prerequisites:** none.
+- **Source:** observed incident 2026-10-14 in this repo: a worker called `sandbox_apply` before
+  `sandbox_finish`, which reverted the worker to a fresh baseline and discarded all edits; tracker
+  `odd/tasks/q68-sandbox-lifecycle-prompts.md`.
+- **Description:** make the sandbox lifecycle order (`sandbox_finish` before `sandbox_apply`)
+  explicit in the three worker agent prompts (`general`, `gentle-ai-worker`, `odd-apply`) in
+  `global-config/opencode.json`, with a committed test and a non-vacuous positive control.
+  Tracker: `odd/tasks/q68-sandbox-lifecycle-prompts.md`.
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).
