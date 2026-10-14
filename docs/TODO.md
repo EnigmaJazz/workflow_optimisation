@@ -1171,6 +1171,17 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   documented exit 2), `R4-MARKER-COUPLING-001` (WARNING — the delegation-progress comment pair is
   split across a guarded and an unguarded base section).
 
+### Q67. Retired SDD command detector
+- **Status:** PLANNED (source not yet written).
+- **Prerequisites:** none.
+- **Source:** post-v4-upgrade incident 2026-10-13: `sdd-code.md` survived the v4 sync in the
+  deployed `~/.config/opencode/commands/` and stayed live; tracker
+  `odd/tasks/q67-retired-sdd-command-check.md`.
+- **Description:** add a detect-only `RETIRED_SDD_COMMAND_PRESENT` check to `verify-workflow.sh`
+  (a `COMMANDS_DIR`/`WORKFLOW_VERIFY_COMMANDS_DIR` seam, an explicit denylist, and a committed
+  `tests/test_retired_commands.py` with four fixtures), re-pinning `VERIFY_SCRIPT_SHA256` LAST.
+  Full scope, constraints and acceptance criteria are in the tracker.
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).
