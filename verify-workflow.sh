@@ -114,6 +114,7 @@ OPENCODE_CONFIG_DIR="${WORKFLOW_VERIFY_OPENCODE_CONFIG_DIR:-/home/james/.config/
 OPENCODE_CONFIG_FILE="$OPENCODE_CONFIG_DIR/opencode.json"
 TUI_CONFIG_FILE="${WORKFLOW_VERIFY_TUI_CONFIG_FILE:-$OPENCODE_CONFIG_DIR/tui.json}"
 SKILLS_DIR="${WORKFLOW_VERIFY_SKILLS_DIR:-$OPENCODE_CONFIG_DIR/skills}"
+COMMANDS_DIR="${WORKFLOW_VERIFY_COMMANDS_DIR:-$OPENCODE_CONFIG_DIR/commands}"
 ROUTER_SKILLS_SOURCE="$WORKSPACE/global-config/skills"
 PLUGINS_DIR="$OPENCODE_CONFIG_DIR/plugins"
 OPENCODE_CACHE_DIR="${WORKFLOW_VERIFY_OPENCODE_CACHE_DIR:-/home/james/.cache/opencode}"
@@ -3931,6 +3932,26 @@ for retired_skill in "${retiredWorkflowSkills[@]}"; do
 done
 if [ "${#retiredWorkflowSkills[@]}" -gt 0 ] && [ "$retiredWorkflowSkillsFound" -eq 0 ]; then
   echo "   ok: no retired workflow skill directories present"
+fi
+
+# gentle-ai v4 also retired the SDD slash-commands that shipped as managed
+# command files. Detect-only: a stale deployed copy is a hard failure because
+# the owner removes it once (no auto-delete here). commands/ is USER SPACE, so
+# this MUST stay a fixed denylist: a pattern such as sdd-*.md would false-
+# positive on a user's own sdd-notes.md. Never derive it from a manifest and
+# never replace it with a glob. A missing COMMANDS_DIR is a legitimate state
+# (no commands installed) and must NOT become a directory-existence failure;
+# the per-name [ -f ] test already yields no match.
+retiredSddCommands=("sdd-apply" "sdd-archive" "sdd-code" "sdd-continue" "sdd-explore" "sdd-ff" "sdd-init" "sdd-new" "sdd-onboard" "sdd-research" "sdd-status" "sdd-verify")
+retiredSddCommandsFound=0
+for retired_cmd in "${retiredSddCommands[@]}"; do
+  if [ -f "$COMMANDS_DIR/$retired_cmd.md" ]; then
+    fail "RETIRED_SDD_COMMAND_PRESENT: $COMMANDS_DIR/$retired_cmd.md exists; remove it once with: rm $COMMANDS_DIR/$retired_cmd.md"
+    retiredSddCommandsFound=$((retiredSddCommandsFound + 1))
+  fi
+done
+if [ "${#retiredSddCommands[@]}" -gt 0 ] && [ "$retiredSddCommandsFound" -eq 0 ]; then
+  echo "   ok: no retired SDD commands present"
 fi
 
 # --- 4. Global AGENTS.md routing section ---
