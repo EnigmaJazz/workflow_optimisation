@@ -2,7 +2,7 @@
 
 Parses the tracked ``global-config/opencode.json`` and asserts that each of the
 sandbox-writing agents carries the ordering rule that ``sandbox_finish`` must be
-called before ``sandbox_apply``. The rule is inlined in three agent prompts; a
+called before ``sandbox_apply``. The rule is inlined in four agent prompts; a
 future editor must not be able to "fix" a failure by deleting the assertion, so
 the stable NEEDLE is a module-level constant.
 
@@ -23,7 +23,7 @@ CONFIG_PATH = REPO / "global-config" / "opencode.json"
 # Stable part of the rule; an editor must not weaken this by editing the test.
 NEEDLE = "Sandbox lifecycle: always call `sandbox_finish` BEFORE `sandbox_apply`"
 
-AGENT_NAMES = ("general", "gentle-ai-worker", "odd-apply")
+AGENT_NAMES = ("general", "gentle-ai-worker", "gentle-ai-worker-local", "odd-apply")
 
 
 def load_config(path=CONFIG_PATH):
@@ -110,5 +110,5 @@ class PositiveControl(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print("presence probe (general, gentle-ai-worker, odd-apply):", probe())
+    print("presence probe (general, gentle-ai-worker, gentle-ai-worker-local, odd-apply):", probe())
     unittest.main()

@@ -1193,6 +1193,12 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   `global-config/opencode.json`, with a committed test and a non-vacuous positive control.
   Tracker: `odd/tasks/q68-sandbox-lifecycle-prompts.md`.
 
+### Q69. Sandbox lifecycle rule in the local worker prompt
+- **Status:** DONE-AT-SOURCE (committed; reviewed)
+- **Prerequisites:** Q68.
+- **Source:** the follow-up recorded by Q68 T1 (2026-10-14); tracker `odd/tasks/q68-sandbox-lifecycle-prompts.md`.
+- **Description:** extend the sandbox lifecycle ordering rule to the `gentle-ai-worker-local` prompt in `global-config/opencode.json` (identical text to Q68) and cover all four worker agents in `tests/test_sandbox_lifecycle_prompts.py`; deployment (mirror + restart) remains the owner's action.
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).
