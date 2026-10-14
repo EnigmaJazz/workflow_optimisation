@@ -40,7 +40,7 @@ task, each assessed against the last reviewed boundary.
   planner's own analysis). Trigger: owner request.
 - [x] T1 (Q53) — Probe with `pm-probe` and depth 4; record the eight observations. Probe work is complete; item 4 remains unobserved and its placement is deferred to Q55.
 - [x] T2 (Q54) — Complete from the owner-relayed Handover A report; identity policy, sandbox refusals and five probe answers recorded below. The later live correction records that `pm-probe` removal is unverified; see Correction C.
-- [ ] T3 (Q55) — implementation landed in commit `8980254`: `docs/specs/pm-handoff.md`, four agent registrations, guard coordinator admission, and regression tests. The post-code advisory review remains owed. The earlier claim that `pm-probe` was removed is superseded by Correction C. Route-specific classification is verified, but hard rejection is not (the guard is warning-only).
+- [ ] T3 (Q55) — implementation landed in commit `8980254`: `docs/specs/pm-handoff.md`, four agent registrations, guard coordinator admission, and regression tests. The post-code advisory review remains owed. The earlier claim that `pm-probe` was removed is superseded by Correction C. Route-specific classification is verified, but hard rejection is not (the guard is warning-only). **Q55 closure in progress (2026-10-14):** the post-code advisory review is complete (recorded at `:303-316`); what remains is the contract-completeness work recorded at `:306` plus the unit-start branch-verification mechanism. Route: delegated to `odd-apply` on branch `chore/pm-layer-completion`.
 - [ ] T4 (Q56) — Pilot `pm-odd` on global-tooling units; ten units without route escape.
   - Sequence: (1) run the verifier mirror, then restart `sandbox-broker.service` and
     `secure-opencode.service`; (2) run the `pm-odd` smoke test, recording that
@@ -294,11 +294,12 @@ task, each assessed against the last reviewed boundary.
   extended to the same 12 host-mutation tools, with `host_sdd_archive_compose` retained as its
   route-specific extra.
 
+- 2026-10-14: Q55 closure started. The contract `docs/specs/pm-handoff.md` states the unit-start branch obligation at `:15` and `:19` but names NO mechanism, so the live `pm-odd` run could not perform it and blocked. The PMs already hold `read`/`glob`, so a bounded `read` of `.git/HEAD` plus `.git/refs/heads/<branch>` is the candidate mechanism — to be confirmed by pre-code advice before it is written into the contract. Also open from the post-code advisory (`:306`): no deterministic procedure for an absent or unrecoverable tracker mirror, an unverifiable `last_reviewed_boundary`, or outstanding prerequisite checks. Branch `chore/pm-layer-completion` (owner decision: the branch is for the PM-layer completion).
+
+- 2026-10-14: T1 (Q55) — contract closure landed on branch `chore/pm-layer-completion`. `docs/specs/pm-handoff.md` now carries `feature_branch` in the brief-in schema and a deterministic unit-start branch procedure: the criterion is that the brief names the branch, and the mechanism is the PM reading `.git/HEAD` with its existing `read` grant and comparing it against `ref: refs/heads/<feature_branch>`. Detached HEAD, a worktree HEAD under `.git/worktrees/`, an unborn branch, an in-progress rebase or merge, and an unavailable read each return `BLOCKED` naming the observed state; absence of a read surface is itself blocking. Three previously-undetermined states now return `BLOCKED` with named reasons instead of proceeding on judgement: an absent/unrecoverable tracker or Magic Context mirror, an unverifiable `last_reviewed_boundary` (an explicit `none` is valid, not an error), and an outstanding prerequisite check. `odd/advice/q32-verifier-v4.md:26` was updated to CLOSED in the same commit. Honest limitation: the claim that a PM can follow this procedure is INFERRED, not repo-testable; the falsifier is a live `pm-odd` dispatch whose envelope records the check and its observed result.
+
 ## Next step
-Q54's `pm-probe` removal check (c) now PASSES after verifier mirror → restart; the failed dispatch
-is observed and the removal is live. Q55's post-code advisory review is complete; Q55 remains in
-progress for its other open acceptance items. Q56 remains gated on Q55 and its other pilot
-prerequisites.
+Q55 closure: the contract-completeness gaps and the unit-start branch-verification mechanism are being written into `docs/specs/pm-handoff.md` on branch `chore/pm-layer-completion`. Q56 remains gated on Q55 and its other pilot prerequisites. Delivery strategy for this branch: `stacked-to-main` (owner decision 2026-10-14).
 
 ## Post-code advisory review — findings and open decisions
 

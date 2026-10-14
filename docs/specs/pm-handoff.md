@@ -4,7 +4,7 @@
 
 ## Brief-in fields
 
-Every PM Task brief is exactly one work unit, never a whole feature. It carries the schema tag `pm-unit-brief/v1`, `unit_id`, `task_id` (stable tracker task identifier), `tracker_path` (repository-relative; absent only for planning that creates the tracker), `task_class`, selected `route`, the orchestrator's `initial_plan` (scope, approach, acceptance criteria, non-goals, resolved decisions), `last_reviewed_boundary` (exact commit/revision or explicit `none`), `rdd_mode` (`enabled | disabled`) and `rdd_mode_source` (`default | global | clone-local`), and `constraints` (TDD mode/source/runner, allowed paths, review/delivery policy, required evidence). The PM verifies these inputs against `WORKFLOW.md`; brief schema mismatches are invalid and stop dispatch before any writer.
+Every PM Task brief is exactly one work unit, never a whole feature. It carries the schema tag `pm-unit-brief/v1`, `unit_id`, `task_id` (stable tracker task identifier), `tracker_path` (repository-relative; absent only for planning that creates the tracker), `task_class`, selected `route`, the orchestrator's `initial_plan` (scope, approach, acceptance criteria, non-goals, resolved decisions), `last_reviewed_boundary` (exact commit/revision or explicit `none`), `feature_branch` (the exact branch the unit must be on, or explicit `none` only for planning that creates the tracker), `rdd_mode` (`enabled | disabled`) and `rdd_mode_source` (`default | global | clone-local`), and `constraints` (TDD mode/source/runner, allowed paths, review/delivery policy, required evidence). The PM verifies these inputs against `WORKFLOW.md`; brief schema mismatches are invalid and stop dispatch before any writer.
 
 ## PM prompt boundary
 
@@ -12,11 +12,11 @@ Keep each PM prompt to approximately 6,000 characters or less. It contains only 
 
 ## Route validation and ordered execution
 
-The PM loads its assigned secure route skill first, reads the current `WORKFLOW.md`, and confirms task class and route before any writer dispatch or mutation. Disagreement returns `ROUTE_DISPUTED` with the supplied and expected class/route plus concrete reasons. It dispatches no writer and performs no mutation; only route-skill loading and read-only inspection are permitted. At unit start, it verifies the appropriate feature branch before doing work. For bounded read-only investigation, the PM delegates to `explore` agents instead of doing the reading itself, reducing PM workload while retaining ownership of the resulting understanding and implementation contract.
+The PM loads its assigned secure route skill first, reads the current `WORKFLOW.md`, and confirms task class and route before any writer dispatch or mutation. Disagreement returns `ROUTE_DISPUTED` with the supplied and expected class/route plus concrete reasons. It dispatches no writer and performs no mutation; only route-skill loading and read-only inspection are permitted. At unit start, it verifies the feature branch the brief names: it compares the checked-out branch against the brief's `feature_branch` by reading `.git/HEAD` with its existing `read` grant. The check PASSES only when `.git/HEAD` contains `ref: refs/heads/<feature_branch>` exactly. It returns `BLOCKED`, naming the observed state and never passing silently, for a raw SHA (detached HEAD), a different branch name, an unborn branch with no `refs/heads/<feature_branch>`, a worktree whose HEAD lives under `.git/worktrees/`, an in-progress rebase or merge, or an unavailable read; the absence of a read surface is itself a blocking condition, not a pass. For bounded read-only investigation, the PM delegates to `explore` agents instead of doing the reading itself, reducing PM workload while retaining ownership of the resulting understanding and implementation contract.
 
 After route agreement, follow that route skill's current requirements in order:
 
-1. verify at unit start that the current branch is the appropriate feature branch; do not defer this check until commit time;
+1. verify at unit start, via the `read`-based `.git/HEAD` check above, that the checked-out branch equals the brief's `feature_branch`; do not defer this check until commit time;
 2. pre-code advice;
 3. named writer/specialist for this unit only;
 4. required checks, each captured with its observed result;
@@ -24,6 +24,8 @@ After route agreement, follow that route skill's current requirements in order:
 6. staged reviewability receipt and authorized PM-owned work-unit commit;
 7. native review only when the selected non-SDD route and user-owned RDD state require it; it remains separately driven and is never run by the PM; then
 8. tracker, `docs/TODO.md`, and `docs/PLAN.md` updates as applicable.
+
+When any required artifact or check is unavailable, the PM returns `BLOCKED` with the named reason rather than proceeding on judgement: an absent or unrecoverable tracker file or Magic Context mirror, naming which artifact is unavailable (a divergent mirror included); an unverifiable `last_reviewed_boundary`, naming the value and the resolution failure (an explicit `none` is a valid value and is not an error); and an outstanding prerequisite check that cannot be run or whose result is unknown, naming the check (an unrun check is never treated as passed).
 
 When a writer's result needs refinement, install the result first, then dispatch a fresh writer to refine the installed base; never reconstruct the changes from the original base. Repeat as needed. Sandbox workers are single-lifecycle and terminal after apply, so every iteration uses a fresh worker regardless. Installing each iteration makes progress durable immediately, which matters because worker sessions routinely stall or are cancelled. Only the reviewed result is committed; intermediate installed states are not committed. The host tree therefore carries uncommitted intermediate states: maintain tree hygiene and deliberately reconcile the intended feature branch before continuing.
 
