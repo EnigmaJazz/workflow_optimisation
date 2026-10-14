@@ -86,6 +86,18 @@ record, `ROUTER-LOG.md`.
 - 2026-10-14: T1 advisories (all non-blocking, informational; never re-review triggers): `R3-001` (reliability SUGGESTION, tests/test_retired_commands.py:88-89 — the block-extraction heuristic depends on the outer `fi` sitting at column 0; a future indentation change could silently truncate the extracted snippet and break the clean-state fixtures); `R4-HARDFAIL-MASKING-1` (resilience WARNING, verify-workflow.sh:3947-3949 — the hard fail masks sections 10/10a/11, the pre-accepted trade-off the skill check already makes, documented in this tracker and the advice record); `R4-RM-UNQUOTED-GUIDANCE-1` (resilience SUGGESTION, verify-workflow.sh:3949 — the advisory `rm` text embeds the path unquoted, so a spaced install path would break a verbatim paste; guidance polish only).
 - 2026-10-14: two status drifts the review flagged were REAL and are fixed in this metadata commit: the Q67 queue entry still read "source not yet written" while T1 had landed, and the Q34 queue line still read "the runbook has never been executed" while the execution record shows it ran on 2026-10-13.
 - 2026-10-14: relay-deadline incident (external, not this repo): the resilience lane failed 4× with `reviewer_relay_deadline_expired` (600000 ms) while the reviewer needed 26m18s, then `reviewer_result_not_admissible` because the reviewer echoed a mismatched subject_hash (`…53c5514a31388266…` vs the binding's `…53c5514a3ab026ac…`). The owner permanently increased the relay timeout; the lane then completed and was captured. Root cause and location are recorded in docs/TODO.md (the external review-relay-deadline item).
+- 2026-10-14: delivery strategy recorded as `stacked-to-main` (owner decision); the running total of 468 authored lines crossed the ~400 accumulated threshold, so the strategy applies. The four commits stay stacked on `main`.
+- 2026-10-14: OWNER-REPORTED deployment: the owner ran `bash verify-workflow.sh` after the Q67 work and reported "All checks clean". This is recorded AS THE OWNER'S REPORT — not independently verified by this worker, which cannot read the deployed `~/.config/opencode` tree or run the verifier. The re-pinned verifier digest is `d89dc81a…`.
+
+## Delivery strategy
+
+**Chosen strategy:** `stacked-to-main` (owner decision, 2026-10-14).
+
+**Forecast and actual (authored additions + deletions, generated files excluded):** T0 tracker+advice+queue `3501880` = 167; T1 detector+test `365b718` = 283; T1 metadata `d89a404` = 18. **Running total 468**, which crosses the about-400 accumulated delivery threshold, so the strategy applies to this feature.
+
+**Applied:** the work-unit commits `3501880`, `365b718` and `d89a404` stay STACKED ON `main`; no separate feature branch and no branch reconciliation were performed, by owner decision. The next change starts on its own feature branch (owner decision, 2026-10-14).
+
+**Process note (recorded, not hidden):** this strategy was selected AFTER the commits landed rather than at tracker creation as the contract specifies (`odd-and-review.md:36`), and the per-commit reviewability receipts were recorded late (`058ef47`). Both gaps are acknowledged; the commits themselves were assessed normally (medium / `under_budget`).
 
 ## Route / trigger evidence
 
@@ -96,4 +108,4 @@ record, `ROUTER-LOG.md`.
 
 ## Next step
 
-Q67 source work is COMPLETE (T0–T1; T1 reviewed and acknowledged). Carry-forward advisories: R3-001, R4-HARDFAIL-MASKING-1, R4-RM-UNQUOTED-GUIDANCE-1. Deployment: run `bash verify-workflow.sh` to mirror the re-pinned verifier, then restart OpenCode. The deferred items (content-based detection of retired-agent references in a renamed command file; the windsurf/antigravity command directories) remain out of scope by decision.
+Q67 is CLOSED at source (T0–T1; T1 reviewed and acknowledged). The owner separately reported the post-Q67 deployment clean: the owner ran `bash verify-workflow.sh`, which re-mirrored the re-pinned verifier and passed. The mirror and the OpenCode restart were the owner's action — not performed or verified by this worker, which cannot read the deployed `~/.config/opencode` tree or run the verifier. Carry-forward advisories: R3-001, R4-HARDFAIL-MASKING-1, R4-RM-UNQUOTED-GUIDANCE-1. The deferred items (content-based detection of retired-agent references in a renamed command file; the windsurf/antigravity command directories) remain out of scope by decision.
