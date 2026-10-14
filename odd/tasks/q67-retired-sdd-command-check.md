@@ -4,7 +4,7 @@
 **Task ID:** q67-retired-sdd-command-check (stable)
 **Class:** global-tooling-change
 **Route:** `workflow-odd-secure` (delegated)
-**Unit status:** T0 IN PROGRESS (tracker + advice created; T1 pending)
+**Unit status:** T0–T1 DONE-AT-SOURCE (committed and reviewed).
 **Model:** cloud `opencode-go/deepseek-v4.1-flash`
 
 ## Objective
@@ -70,7 +70,7 @@ record, `ROUTER-LOG.md`.
 
 ## Tasks
 
-- [ ] T1 — add COMMANDS_DIR + WORKFLOW_VERIFY_COMMANDS_DIR (mirroring SKILLS_DIR at
+- [x] T1 — add COMMANDS_DIR + WORKFLOW_VERIFY_COMMANDS_DIR (mirroring SKILLS_DIR at
   `verify-workflow.sh:116`); add the RETIRED_SDD_COMMAND_PRESENT block in section 3 immediately
   after the retired-skill block (`:3920-3934`) and before section 4 (`:3936`), using an explicit
   denylist of the retired command basenames and a per-name `[ -f ]` test, with the message shape:
@@ -81,6 +81,11 @@ record, `ROUTER-LOG.md`.
 ## Progress
 
 - 2026-10-14: T0 — tracker and advice record created; no source edit yet. Route: delegated.
+- 2026-10-14: T1 committed `365b718` (3 files, +282/−1): the COMMANDS_DIR/WORKFLOW_VERIFY_COMMANDS_DIR seam, the RETIRED_SDD_COMMAND_PRESENT detect-only block in section 3 with a 12-name explicit denylist, and tests/test_retired_commands.py (14 tests). Checks: unittest discover 127 OK; routing-guard 96 pass / 0 fail; the four fixtures plus PositiveControls observed; the planted/clean integration runs observed message-level; `sha256sum verify-workflow.sh` == the re-pinned `d89dc81a…` (MATCH).
+- 2026-10-14: T1 native review: lineage `review-01bc0dd6dde6aeeb`; tier high; 11-path accumulated candidate (692 lines); four lenses; outcome approved and acknowledged (`authority: burned`).
+- 2026-10-14: T1 advisories (all non-blocking, informational; never re-review triggers): `R3-001` (reliability SUGGESTION, tests/test_retired_commands.py:88-89 — the block-extraction heuristic depends on the outer `fi` sitting at column 0; a future indentation change could silently truncate the extracted snippet and break the clean-state fixtures); `R4-HARDFAIL-MASKING-1` (resilience WARNING, verify-workflow.sh:3947-3949 — the hard fail masks sections 10/10a/11, the pre-accepted trade-off the skill check already makes, documented in this tracker and the advice record); `R4-RM-UNQUOTED-GUIDANCE-1` (resilience SUGGESTION, verify-workflow.sh:3949 — the advisory `rm` text embeds the path unquoted, so a spaced install path would break a verbatim paste; guidance polish only).
+- 2026-10-14: two status drifts the review flagged were REAL and are fixed in this metadata commit: the Q67 queue entry still read "source not yet written" while T1 had landed, and the Q34 queue line still read "the runbook has never been executed" while the execution record shows it ran on 2026-10-13.
+- 2026-10-14: relay-deadline incident (external, not this repo): the resilience lane failed 4× with `reviewer_relay_deadline_expired` (600000 ms) while the reviewer needed 26m18s, then `reviewer_result_not_admissible` because the reviewer echoed a mismatched subject_hash (`…53c5514a31388266…` vs the binding's `…53c5514a3ab026ac…`). The owner permanently increased the relay timeout; the lane then completed and was captured. Root cause and location are recorded in docs/TODO.md (the external review-relay-deadline item).
 
 ## Route / trigger evidence
 
@@ -91,4 +96,4 @@ record, `ROUTER-LOG.md`.
 
 ## Next step
 
-T1 implementation, then its native review (high risk: shell_source), then the metadata record.
+Q67 source work is COMPLETE (T0–T1; T1 reviewed and acknowledged). Carry-forward advisories: R3-001, R4-HARDFAIL-MASKING-1, R4-RM-UNQUOTED-GUIDANCE-1. Deployment: run `bash verify-workflow.sh` to mirror the re-pinned verifier, then restart OpenCode. The deferred items (content-based detection of retired-agent references in a renamed command file; the windsurf/antigravity command directories) remain out of scope by decision.

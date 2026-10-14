@@ -623,7 +623,7 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   tools, so a PM can start a review it cannot complete without relay lanes. Options:
   (a) the PM keeps `host_review_start` and another actor drives the lens; or
   (b) review start also leaves the PM session. Do not resolve this in Q58.
-- **Open external/upstream item — review relay deadline:** two review lenses expired with `reviewer_relay_deadline_expired: review relay deadline of 600000 ms expired` despite taking 16–19 minutes. The deadline is `RELAY_DEADLINE_MS = 600_000` at `~/.config/opencode/plugins/lib/reviewer-relay-core.ts:112`, overridable through `config.deadlineMs` at `:778` and `:1294`. That file is not tracked here (this repository tracks only `global-config/plugins/lib/routing-guard-helpers.ts`), and nothing in this repository sets the deadline. The fix belongs to the external plugin owner, not local Q58 work; details are in `odd/tasks/pm-layer.md`.
+- **Open external/upstream item — review relay deadline:** two review lenses expired with `reviewer_relay_deadline_expired: review relay deadline of 600000 ms expired` despite taking 16–19 minutes. The deadline is `RELAY_DEADLINE_MS = 600_000` at `~/.config/opencode/plugins/lib/reviewer-relay-core.ts:112`, overridable through `config.deadlineMs` at `:778` and `:1294`. That file is not tracked here (this repository tracks only `global-config/plugins/lib/routing-guard-helpers.ts`), and nothing in this repository sets the deadline. The fix belongs to the external plugin owner, not local Q58 work; details are in `odd/tasks/pm-layer.md`. New data point (2026-10-14): a resilience review lens needed 26m18s against the 600000 ms deadline; the owner permanently increased the relay timeout, and because that file is not tracked here the fix lives with the external plugin owner.
 
 ### Q59. PM layer: verifier
 - **Status:** PLANNED.
@@ -891,7 +891,7 @@ Release facts that drive the group:
   - Confirm `astra-sol-upgrade.ts` still resolves its agent names after Q31.
 
 ### Q34. Upgrade procedure (runbook)
-- **Status:** DONE-AT-SOURCE (T0–T1 committed — `odd/tasks/q34-upgrade-runbook.md`; commit `3789cc1` authored `docs/upgrades/gentle-ai-v4.md`, 257 lines). The runbook has never been executed; its first execution is its validation.
+- **Status:** DONE-AT-SOURCE (T0–T1 committed — `odd/tasks/q34-upgrade-runbook.md`; commit `3789cc1` authored `docs/upgrades/gentle-ai-v4.md`, 257 lines). The runbook WAS executed on 2026-10-13 (gentle-ai 3.7.0 → 4.1.1, Steps 1–12), recorded in the Q34 tracker's execution record.
 - **Prerequisites:** Q29-Q33 on one gated branch.
 - **Source:** v4.0.0 release notes; Q24 (sync overwrites the live config).
 - **Deliverable:** [`docs/upgrades/gentle-ai-v4.md`](upgrades/gentle-ai-v4.md) is the sole
@@ -1172,7 +1172,7 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   split across a guarded and an unguarded base section).
 
 ### Q67. Retired SDD command detector
-- **Status:** PLANNED (source not yet written).
+- **Status:** DONE-AT-SOURCE (T0–T1 committed and reviewed — `odd/tasks/q67-retired-sdd-command-check.md`; T1 commit `365b718`; native review `review-01bc0dd6dde6aeeb`; `VERIFY_SCRIPT_SHA256` re-pinned `d89dc81a`; deployment pending the owner).
 - **Prerequisites:** none.
 - **Source:** post-v4-upgrade incident 2026-10-13: `sdd-code.md` survived the v4 sync in the
   deployed `~/.config/opencode/commands/` and stayed live; tracker
