@@ -72,14 +72,14 @@ otherwise configuration validation or the health-check plugin can fail.
 
 ## Tasks
 
-- [ ] **T1 (Q31) — Agent allocation and paired verifier updates.** Deliverables:
+- [x] **T1 (Q31) — Agent allocation and paired verifier updates.** Deliverables:
   - [x] **S1 — Host-SDD lockdown.** Set all global, orchestrator, and `pm-*` `host_sdd_*`
     permissions to `deny`. In `verify-workflow.sh:2699-2703`, remove the three entries from
     `registeredHostReads`; move `host_sdd_attempt_grant` and `host_sdd_archive_compose` from
     `gatedHostMutations` (`:2700`) into `retiredHostOperations` (`:2701`); and retain
     `HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY` (`:2703`) so it asserts every `host_sdd_*`
-    permission is `deny`. Re-pin the verifier digest. **Done 2026-10-10 (sandbox result; not
-    committed or applied):** 33/33 `host_sdd_*` permission entries are `deny` (global 13;
+    permission is `deny`. Re-pin the verifier digest. **Done 2026-10-10; committed as `7ca7867` and reviewed
+    (`review-1e04c6684b855cc7`):** 33/33 `host_sdd_*` permission entries are `deny` (global 13;
     `gentle-orchestrator` 13, with `host_sdd_status`/`host_sdd_continue`/`host_sdd_task_result`
     added as `deny`; pm-odd 2; pm-systematic 2; pm-sdd 3) and 7/7 agent tool flags are `false`;
     `retiredHostOperations` lists all 13 retired names so line 2703 (unchanged) asserts every
@@ -87,8 +87,8 @@ otherwise configuration validation or the health-check plugin can fail.
     `38c5dbfaebc3bc0d1493afac1916022fba9cfb0bdbbbb15aa62b9e3986b46674`.
   - [x] **S2 — Retire first SDD agent block.** Remove `sdd-apply` through `sdd-init`
     (`874-1161`), remove their task grants, and drop `sdd-apply-local` from `required_agents`.
-    Pair with the relevant verifier changes and digest re-pin. **Done 2026-10-10 (sandbox
-    result; not committed or applied):** measured spans `877-924`, `925-972`, `973-1020`,
+    Pair with the relevant verifier changes and digest re-pin. **Done 2026-10-10;
+    committed as `850fda4` and reviewed with S2b (`review-7e15094e542e762d`):** measured spans `877-924`, `925-972`, `973-1020`,
     `1021-1068`, `1069-1116`, `1117-1164` removed (`sdd-apply`, `sdd-apply-local`,
     `sdd-archive`, `sdd-design`, `sdd-explore`, `sdd-init`); task grants removed (5 from
     `gentle-orchestrator`, 6 from `pm-sdd`); `verify-workflow.sh` drops `sdd-apply-local` from
@@ -101,7 +101,8 @@ otherwise configuration validation or the health-check plugin can fail.
   - [x] **S3 — Retire remaining SDD agents.** Remove `sdd-onboard` through `sdd-verify`
     (`1162-1401`) and `sdd-research` (`1506-1565`), remove their grants, and drop
     `sdd-research` from `required_agents`. Pair with the relevant verifier changes and digest
-    re-pin. **Done 2026-10-10 (sandbox result; not committed or applied):** measured spans
+    re-pin. **Done 2026-10-10; committed as `83384c1` and reviewed
+    (`review-7637fbc42f4c0740`):** measured spans
     `872-1111` (`sdd-onboard`, `sdd-propose`, `sdd-spec`, `sdd-tasks`, `sdd-verify`) and
     `1216-1275` (`sdd-research`) removed; 12 task grants removed (6 `gentle-orchestrator`,
     6 `pm-sdd`; the final no-comma grant line required dropping the resulting dangling
@@ -123,13 +124,16 @@ otherwise configuration validation or the health-check plugin can fail.
     the prompt rebuild).
   - [x] **S4 — Add Q29d generic agents.** Add the four generic agents and the orchestrator's
     `permission.task` allows; add the agents to `required_agents`. Pair with verifier changes and
-    digest re-pin. **Done 2026-10-10 (sandbox result; not committed or applied):** see the S4
+    digest re-pin. **Done 2026-10-10; committed as `ab54059`, with S4b as `0944830`,
+    reviewed (`review-7fdd837765748b75`):** see the S4
     Progress bullet for the agent models/tools, the measured verifier sites, and the checks.
   - [x] **S5 — Retitle, wire the prompt, and remove the TUI entry.** Implemented as two slices per
-    the "S5 — revised plan" section: **S5a** (source, unwired) is committed (`4550b7a`, `c07b489`);
-    **S5b** (cut over + verifier) is implemented in a sandbox worker and exported for PM apply (no
-    commit, no host apply, `verify-workflow.sh` not run). See the 2026-10-11 S5a and S5b Progress
-    bullets. `gentle-orchestrator` keeps its exact key.
+    the "S5 — revised plan" section: **S5a** (source, unwired) is committed (`4550b7a`, `b0c7e93`, `805612b`; vendored sources
+    `f571937`, `2075809`) and reviewed (`review-1633e87da601f9dd`);
+    **S5b** (cut over + verifier) is committed (`df2e443` cut-over, `444244b` advisory corrections)
+    and reviewed (`review-8b540c67721bcaa1`). (`c07b489`, routed `@auto-update`, separately repinned
+    the Magic Context and AFT plugin versions; it is not an S5a source commit.) See the 2026-10-11
+    S5a and S5b Progress bullets. `gentle-orchestrator` keeps its exact key.
 
 ### Paired verifier-edit inventory
 
@@ -157,10 +161,80 @@ that edits `verify-workflow.sh` must also re-pin `VERIFY_SCRIPT_SHA256` in
 - **S4:** Extend the writer-shape check at `:2765-2766` to include `gentle-ai-worker` and
   `gentle-ai-worker-local`.
 
-  - [ ] Validate JSON and changed-agent/permission presence and absence with a positive control;
-    run the routing-guard tests and `bash -n verify-workflow.sh` per slice.
-  - [ ] Record measured per-slice reviewability receipts and route evidence before any later
-    work-unit commit; do not commit as part of this tracker preparation.
+  - [x] Validate JSON and changed-agent/permission presence and absence with a positive control;
+    run the routing-guard tests and `bash -n verify-workflow.sh` per slice. Every slice's Progress
+    bullet records these; e.g. S2 (2026-10-10): `python3 -m json.tool` rc 0, presence/absence probe
+    PASS with pre-change positive controls, `bash -n` rc 0, routing-guard 94 pass / 0 fail.
+  - [x] Record measured per-slice reviewability receipts and route evidence before any later
+    work-unit commit; do not commit as part of this tracker preparation. The receipts are measured
+    and recorded in "Reviewability receipts (measured 2026-10-14)" below; every committed slice has
+    a receipt, and each slice commit added its `ROUTER-LOG.md` route row.
+
+## Reviewability receipts (measured 2026-10-14)
+
+Measured with `git show --numstat --format= <sha>` against the committed candidates. "Authored
+changed lines" is added+removed over all paths in the commit (including this tracker and
+`ROUTER-LOG.md`); no path is generated or binary. Every committed Q31 slice is measurable.
+
+| Slice | Commit | Added | Removed | Authored changed lines | Paths | Reviewer lineage |
+|---|---|---|---|---|---|---|
+| S1 | `7ca7867` | 52 | 30 | 82 | 5 | `review-1e04c6684b855cc7` |
+| S2 | `850fda4` | 33 | 309 | 342 | 5 | `review-7e15094e542e762d` (S2/S2b) |
+| S2b | `e0d3508` | 27 | 8 | 35 | 4 | `review-7e15094e542e762d` (S2/S2b) |
+| S3 | `83384c1` | 71 | 366 | 437 | 5 | `review-7637fbc42f4c0740` |
+| S4 | `ab54059` | 241 | 26 | 267 | 5 | `review-7fdd837765748b75` (S4/S4b) |
+| S4b | `0944830` | 14 | 0 | 14 | 3 | `review-7fdd837765748b75` (S4/S4b) |
+| S5a | `4550b7a` | 1294 | 2 | 1296 | 7 | `review-1633e87da601f9dd` |
+| S5a | `b0c7e93` | 103 | 6 | 109 | 5 | `review-1633e87da601f9dd` |
+| S5a | `805612b` | 28 | 8 | 36 | 6 | `review-1633e87da601f9dd` |
+| S5a (vendored) | `f571937` | 186 | 0 | 186 | 2 | `review-1633e87da601f9dd` |
+| S5a (vendored) | `2075809` | 202 | 0 | 202 | 1 | `review-1633e87da601f9dd` |
+| S5b | `df2e443` | 117 | 88 | 205 | 6 | `review-8b540c67721bcaa1` |
+| S5b | `444244b` | 86 | 6 | 92 | 4 | `review-8b540c67721bcaa1` |
+
+Changed-path lists per slice (the `git show --numstat` path column):
+
+- **S1 `7ca7867`:** `ROUTER-LOG.md`, `global-config/opencode.json`,
+  `global-config/plugins/workflow-health-check.ts`, `odd/tasks/q31-agent-allocation.md`,
+  `verify-workflow.sh`.
+- **S2 `850fda4`:** `ROUTER-LOG.md`, `global-config/opencode.json`,
+  `global-config/plugins/workflow-health-check.ts`, `odd/tasks/q31-agent-allocation.md`,
+  `verify-workflow.sh`.
+- **S2b `e0d3508`:** `ROUTER-LOG.md`, `global-config/plugins/workflow-health-check.ts`,
+  `odd/tasks/q31-agent-allocation.md`, `verify-workflow.sh`.
+- **S3 `83384c1`:** `ROUTER-LOG.md`, `global-config/opencode.json`,
+  `global-config/plugins/workflow-health-check.ts`, `odd/tasks/q31-agent-allocation.md`,
+  `verify-workflow.sh`.
+- **S4 `ab54059`:** `ROUTER-LOG.md`, `global-config/opencode.json`,
+  `global-config/plugins/workflow-health-check.ts`, `odd/tasks/q31-agent-allocation.md`,
+  `verify-workflow.sh`.
+- **S4b `0944830`:** `ROUTER-LOG.md`, `global-config/opencode.json`,
+  `odd/tasks/q31-agent-allocation.md`.
+- **S5a `4550b7a`:** `ROUTER-LOG.md`, `global-config/prompts/gentle-orchestrator/base.md`,
+  `global-config/prompts/gentle-orchestrator/normative-ledger.md`,
+  `global-config/prompts/gentle-orchestrator/overlay.md`,
+  `odd/tasks/q31-agent-allocation.md`, `scripts/assemble-orchestrator-prompt.py`,
+  `tests/test_orchestrator_prompt_source.py`.
+- **S5a `b0c7e93`:** `ROUTER-LOG.md`,
+  `global-config/prompts/gentle-orchestrator/normative-ledger.md`,
+  `odd/tasks/q31-agent-allocation.md`, `scripts/assemble-orchestrator-prompt.py`,
+  `tests/test_orchestrator_prompt_source.py`.
+- **S5a `805612b`:** `ROUTER-LOG.md`,
+  `{scripts => global-config/prompts/gentle-orchestrator}/assemble-orchestrator-prompt.py`,
+  `global-config/prompts/gentle-orchestrator/normative-ledger.md`,
+  `global-config/prompts/gentle-orchestrator/overlay.md`,
+  `odd/tasks/q31-agent-allocation.md`, `tests/test_orchestrator_prompt_source.py`.
+- **S5a `f571937`:** `ROUTER-LOG.md`,
+  `global-config/prompts/gentle-orchestrator/upstream/orchestrator.template.md`.
+- **S5a `2075809`:** `global-config/prompts/gentle-orchestrator/upstream/odd-orchestrator-sections.md`.
+- **S5b `df2e443`:** `ROUTER-LOG.md`, `global-config/opencode.json`,
+  `global-config/plugins/workflow-health-check.ts`, `global-config/tui.json`,
+  `odd/tasks/q31-agent-allocation.md`, `verify-workflow.sh`.
+- **S5b `444244b`:** `ROUTER-LOG.md`, `global-config/plugins/workflow-health-check.ts`,
+  `odd/tasks/q31-agent-allocation.md`, `verify-workflow.sh`.
+
+No slice's receipt was unmeasurable (`git show --numstat` returned data for every commit). No path
+in any commit is generated or binary.
 
 ## Acceptance criteria
 
@@ -552,15 +626,17 @@ Run each check for every slice:
 - **Trigger:** substantial change spanning `global-config/opencode.json` and its paired
   `verify-workflow.sh` edits.
 - **Actual dispatches:** the tracker-creation writer for the preparation task; 2026-10-10 S1
-  implementation dispatched to the `odd-apply` sandbox worker (sandbox result exported; not
-  committed or applied). 2026-10-10 S2 implementation dispatched to the `odd-apply` sandbox
-  worker (sandbox result exported; not committed or applied). 2026-10-10 S3 implementation
-  dispatched to the `odd-apply` sandbox worker (sandbox result exported; not committed or
-  applied). 2026-10-10 S4 implementation dispatched to the `odd-apply` sandbox worker (sandbox
-  result exported; not committed or applied). 2026-10-11 S5a and its advisory-correction and
-  relocation follow-ups were dispatched to the `odd-apply` sandbox worker and committed; 2026-10-11
-  S5b cut-over was dispatched to the `odd-apply` sandbox worker (sandbox result exported; not
-  committed or applied).
+  implementation dispatched to the `odd-apply` sandbox worker (committed `7ca7867`; reviewed
+  `review-1e04c6684b855cc7`). 2026-10-10 S2 implementation dispatched to the `odd-apply` sandbox
+  worker (committed `850fda4`; reviewed with S2b `e0d3508` under `review-7e15094e542e762d`).
+  2026-10-10 S3 implementation dispatched to the `odd-apply` sandbox worker (committed `83384c1`;
+  reviewed `review-7637fbc42f4c0740`). 2026-10-10 S4 implementation dispatched to the `odd-apply`
+  sandbox worker (committed `ab54059`; S4b committed `0944830`; reviewed under
+  `review-7fdd837765748b75`). 2026-10-11 S5a and its advisory-correction and
+  relocation follow-ups were dispatched to the `odd-apply` sandbox worker and committed
+  (`4550b7a`, `b0c7e93`, `805612b`; reviewed `review-1633e87da601f9dd`); 2026-10-11
+  S5b cut-over was dispatched to the `odd-apply` sandbox worker (committed `df2e443` + `444244b`;
+  reviewed `review-8b540c67721bcaa1`).
 
 ## S5 — revised plan (2026-10-10, after design + integration + two external advisories)
 
@@ -650,13 +726,28 @@ authorized list. Keep `global-config/opencode.json`, `global-config/tui.json`, `
 
 ## Next step
 
-S1's, S2/S2b's, S3's, S4/S4b's, S5a's, and S5b's committed candidates passed native review and were
-acknowledged. Q31 is complete at source level. Do not apply these records to the host as part of
-this update. Deployment (the verifier mirror and the OpenCode restart) remains the owner's pending
-action and is NOT done; the residual SDD surface is owned by **Q30** (`AGENTS.md` block +
-`workflow-sdd-secure` skill), **Q33** (routing guard), and **Q65** (`pm-sdd` retirement).
+Q31 is closed at **source** level: every slice is committed and its candidate passed native review
+and was acknowledged — S1 `7ca7867` (`review-1e04c6684b855cc7`), S2 `850fda4` + S2b `e0d3508`
+(`review-7e15094e542e762d`), S3 `83384c1` (`review-7637fbc42f4c0740`), S4 `ab54059` + S4b `0944830`
+(`review-7fdd837765748b75`), S5a `4550b7a`/`b0c7e93`/`805612b` + vendored `f571937`/`2075809`
+(`review-1633e87da601f9dd`), and S5b `df2e443` + `444244b` (`review-8b540c67721bcaa1`). The
+"not committed or applied" statements in the S1–S4 and S5 Tasks entries, and in the Route section,
+were stale and are corrected above.
 
-### Deploy checklist (owner)
+The deploy checklist is superseded by the executed runbook `docs/upgrades/gentle-ai-v4.md`
+(executed 2026-10-13). Owner-side work remains and is tracked in the queue: `docs/TODO.md` still
+lists Q31 as IN PROGRESS for deploy, and the residual SDD surface this tracker attributes is owned
+by **Q30** (`AGENTS.md` block + `workflow-sdd-secure` skill), **Q33** (routing guard) and **Q65**
+(`pm-sdd` retirement) — all three DONE-AT-SOURCE at the queue level with their own owner deploy
+follow-ups; Q66 (the S5a assembler follow-ups) is also DONE-AT-SOURCE.
+
+### Deploy checklist (owner) — SUPERSEDED by the executed runbook
+
+> **Superseded.** The owner executed the v4 upgrade runbook `docs/upgrades/gentle-ai-v4.md` on
+> 2026-10-13 (gentle-ai 3.7.0 → 4.1.1, Steps 1–12; recorded in `odd/tasks/q34-upgrade-runbook.md`
+> and `docs/TODO.md` Q34). That runbook — not this ad-hoc list — is the authority for the verifier
+> mirror, the config check and the restarts. The list below is retained only as the pre-upgrade
+> record.
 
 After the S5b candidate (with these corrections) is committed and reviewed:
 
@@ -664,9 +755,12 @@ After the S5b candidate (with these corrections) is committed and reviewed:
   `global-config/`).
 - Confirm both `global-config/opencode.json` and `global-config/tui.json` parse as valid JSON
   (`python3 -m json.tool`).
-- Confirm the live `~/.config/opencode/opencode.json` orchestrator prompt is 52,540 bytes and
-  carries the ODD description (`Gentle AI ODD Orchestrator - coordinates sub-agents, never does
-  work inline`).
+- Confirm the live `~/.config/opencode/opencode.json` orchestrator prompt matches the current
+  assembler output: **52,333 bytes**, sha256
+  `c90727b3fc99ed1de2ff073685b435d58e6379668d92b3cad6644ea125d7b360` (measured 2026-10-14 by
+  running `python3 global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py`;
+  the earlier 52,540-byte / `b740f571…` value was the pre-Q66 render) and carries the ODD
+  description (`Gentle AI ODD Orchestrator - coordinates sub-agents, never does work inline`).
 - Confirm the live `~/.config/opencode/tui.json` lists 7 plugins (no `opencode-sdd-engram-manage`).
 - Confirm the health-check plugin loads and pins the new verifier digest.
 - Restart `secure-opencode.service` and `ai-proxy.service`.

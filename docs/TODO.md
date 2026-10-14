@@ -623,7 +623,7 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   tools, so a PM can start a review it cannot complete without relay lanes. Options:
   (a) the PM keeps `host_review_start` and another actor drives the lens; or
   (b) review start also leaves the PM session. Do not resolve this in Q58.
-- **Open external/upstream item — review relay deadline:** two review lenses expired with `reviewer_relay_deadline_expired: review relay deadline of 600000 ms expired` despite taking 16–19 minutes. The deadline is `RELAY_DEADLINE_MS = 600_000` at `~/.config/opencode/plugins/lib/reviewer-relay-core.ts:112`, overridable through `config.deadlineMs` at `:778` and `:1294`. That file is not tracked here (this repository tracks only `global-config/plugins/lib/routing-guard-helpers.ts`), and nothing in this repository sets the deadline. The fix belongs to the external plugin owner, not local Q58 work; details are in `odd/tasks/pm-layer.md`.
+- **Open external/upstream item — review relay deadline:** two review lenses expired with `reviewer_relay_deadline_expired: review relay deadline of 600000 ms expired` despite taking 16–19 minutes. The deadline is `RELAY_DEADLINE_MS = 600_000` at `~/.config/opencode/plugins/lib/reviewer-relay-core.ts:112`, overridable through `config.deadlineMs` at `:778` and `:1294`. That file is not tracked here (this repository tracks only `global-config/plugins/lib/routing-guard-helpers.ts`), and nothing in this repository sets the deadline. The fix belongs to the external plugin owner, not local Q58 work; details are in `odd/tasks/pm-layer.md`. New data point (2026-10-14): a resilience review lens needed 26m18s against the 600000 ms deadline; the owner permanently increased the relay timeout, and because that file is not tracked here the fix lives with the external plugin owner.
 
 ### Q59. PM layer: verifier
 - **Status:** PLANNED.
@@ -891,7 +891,7 @@ Release facts that drive the group:
   - Confirm `astra-sol-upgrade.ts` still resolves its agent names after Q31.
 
 ### Q34. Upgrade procedure (runbook)
-- **Status:** DONE-AT-SOURCE (T0–T1 committed — `odd/tasks/q34-upgrade-runbook.md`; commit `3789cc1` authored `docs/upgrades/gentle-ai-v4.md`, 257 lines). The runbook has never been executed; its first execution is its validation.
+- **Status:** DONE-AT-SOURCE (T0–T1 committed — `odd/tasks/q34-upgrade-runbook.md`; commit `3789cc1` authored `docs/upgrades/gentle-ai-v4.md`, 257 lines). The runbook WAS executed on 2026-10-13 (gentle-ai 3.7.0 → 4.1.1, Steps 1–12), recorded in the Q34 tracker's execution record.
 - **Prerequisites:** Q29-Q33 on one gated branch.
 - **Source:** v4.0.0 release notes; Q24 (sync overwrites the live config).
 - **Deliverable:** [`docs/upgrades/gentle-ai-v4.md`](upgrades/gentle-ai-v4.md) is the sole
@@ -1170,6 +1170,28 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   add-after-remove), `R4-ATTRPARSE-001`, `R4-EXITCODE-001` (environment failures exit 1 vs the
   documented exit 2), `R4-MARKER-COUPLING-001` (WARNING — the delegation-progress comment pair is
   split across a guarded and an unguarded base section).
+
+### Q67. Retired SDD command detector
+- **Status:** DONE-AT-SOURCE (T0–T1 committed and reviewed — `odd/tasks/q67-retired-sdd-command-check.md`; T1 commit `365b718`; native review `review-01bc0dd6dde6aeeb`; `VERIFY_SCRIPT_SHA256` re-pinned `d89dc81a`; deployment pending the owner).
+- **Prerequisites:** none.
+- **Source:** post-v4-upgrade incident 2026-10-13: `sdd-code.md` survived the v4 sync in the
+  deployed `~/.config/opencode/commands/` and stayed live; tracker
+  `odd/tasks/q67-retired-sdd-command-check.md`.
+- **Description:** add a detect-only `RETIRED_SDD_COMMAND_PRESENT` check to `verify-workflow.sh`
+  (a `COMMANDS_DIR`/`WORKFLOW_VERIFY_COMMANDS_DIR` seam, an explicit denylist, and a committed
+  `tests/test_retired_commands.py` with four fixtures), re-pinning `VERIFY_SCRIPT_SHA256` LAST.
+  Full scope, constraints and acceptance criteria are in the tracker.
+
+### Q68. Sandbox lifecycle ordering in the worker prompts
+- **Status:** PLANNED (source not yet written).
+- **Prerequisites:** none.
+- **Source:** observed incident 2026-10-14 in this repo: a worker called `sandbox_apply` before
+  `sandbox_finish`, which reverted the worker to a fresh baseline and discarded all edits; tracker
+  `odd/tasks/q68-sandbox-lifecycle-prompts.md`.
+- **Description:** make the sandbox lifecycle order (`sandbox_finish` before `sandbox_apply`)
+  explicit in the three worker agent prompts (`general`, `gentle-ai-worker`, `odd-apply`) in
+  `global-config/opencode.json`, with a committed test and a non-vacuous positive control.
+  Tracker: `odd/tasks/q68-sandbox-lifecycle-prompts.md`.
 
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
