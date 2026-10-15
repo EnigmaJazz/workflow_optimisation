@@ -1211,6 +1211,18 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   target, inline the intended prompt, or remove the include) is undecided and needs
   investigation.
 
+### Q71. PM-handoff prompt gaps (orchestrator brief schema + PM complete-memory read)
+- **Status:** PLANNED (source not yet written).
+- **Prerequisites:** none. Part of the Q56 pilot prerequisites.
+- **Source:** observed live `pm-odd` smoke tests 2026-10-15 (an incomplete `pm-unit-brief/v1`
+  rejected with `BRIEF_SCHEMA_INCOMPLETE`; a mirror-readback claim rejected with
+  `MIRROR_COMPLETE_READBACK_UNAVAILABLE`); tracker `odd/tasks/q71-pm-handoff-prompts.md`.
+- **Description:** teach the orchestrator prompt the `pm-unit-brief/v1` required-field list (via
+  `overlay.md`, assembled into `global-config/opencode.json:590`) and teach BOTH PM prompts
+  (`pm-odd` `:1921`, `pm-systematic` `:2041`) the `ctx_memory` `action: "get"` complete-read
+  mechanism, with a committed per-agent test and non-vacuous positive controls. Tracker:
+  `odd/tasks/q71-pm-handoff-prompts.md`.
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).
