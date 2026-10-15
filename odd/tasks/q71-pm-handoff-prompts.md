@@ -4,7 +4,7 @@
 **Task ID:** q71-pm-handoff-prompts (stable)
 **Class:** global-tooling-change
 **Route:** `workflow-odd-secure` (delegated)
-**Unit status:** T0 IN PROGRESS (tracker + advice created; T1 pending).
+**Unit status:** T1 IMPLEMENTED at source (T0 complete; sandbox result awaiting PM apply + commit; native review and metadata record pending).
 **Model:** cloud `opencode-go/deepseek-v4.1-flash`
 
 ## Objective
@@ -106,7 +106,7 @@ assembled orchestrator prompt at `:590` and the two PM prompts at `:1921`/`:2041
 
 ## Tasks
 
-- [ ] T1 — add the brief pointer + required-field list to overlay.md; regenerate the assembled prompt
+- [x] T1 — add the brief pointer + required-field list to overlay.md; regenerate the assembled prompt
   into opencode.json:590; update CURRENT_PROMPT_SHA256 and normative-ledger.md; add the ctx_memory
   action:get complete-read instruction to BOTH PM prompts (:1921, :2041); add
   tests/test_pm_layer_prompts.py with per-agent assertions and positive controls including a
@@ -126,6 +126,7 @@ generated. **Forecast total ≈ 320**, under the about-400 accumulated threshold
 
 - 2026-10-15: T0 — tracker, advice record and queue entry created; delivery strategy selected at
   creation. No source edit yet. Route: delegated.
+- 2026-10-15: T1 — (1) `overlay.md`: added `#### PM unit brief (pm-unit-brief/v1)` inside the existing `user:secure-odd-protocol` add block (no new block id, no `supersedes` sha needed, markers balanced, `REQUIRED_IDS` unchanged) naming `pm-unit-brief/v1`, `docs/specs/pm-handoff.md` and the required fields (`unit_id`, `task_id`, `tracker_path`, `task_class`, `route`, `initial_plan`, `last_reviewed_boundary`, `feature_branch`, `rdd_mode`/`rdd_mode_source`, `constraints`). (2) `global-config/opencode.json`: regenerated embedded orchestrator prompt — sha256 `0a1ad0373471cd039eee585461a0f2fccba7ea3722294d68c3ad5b36c2b6cebe`, 52996 bytes / 408 lines (+663 bytes / +4 lines vs `c90727b3…` / 52333 / 404); both PM prompts now teach the `ctx_memory` `action: "get"` complete read (pm-odd 1817→2106 chars; pm-systematic 1831→2120 chars; both under the ~6000 cap). (3) `tests/test_orchestrator_prompt_source.py`: `CURRENT_PROMPT_SHA256` �� `0a1ad037…`. (4) `normative-ledger.md`: sha citation + header line count (`403`→`407`); per-row L-numbers left untouched because they index the pre-rebuild ~540-line prompt lineage and are unaffected by this edit. (5) `tests/test_pm_layer_prompts.py` (new): per-agent embedded-JSON assertions plus four `PositiveControl` cases including cross-agent contamination. Three-way match: assembler sha == `CURRENT_PROMPT_SHA256` == embedded prompt sha. Checks: `json.load` rc 0; per-agent probe `gentle-orchestrator=[True,True]`, `pm-odd=True`, `pm-systematic=True`; `tests.test_pm_layer_prompts` 7/7 OK; `tests.test_orchestrator_prompt_source` 22/22 OK; `discover -s tests` 139 OK; routing-guard 96 pass / 0 fail (fake HOME injected via python `env`, because the literal `HOME=<tmp>` form is rejected by the sandbox argv guard); `VERIFY_SCRIPT_SHA256` NOT re-pinned (the verifier asserts neither `pm-handoff` nor `pm-unit-brief`); verifier not run. INFERRED, not repo-testable: that an orchestrator CAN now build a valid `pm-unit-brief/v1` and that a PM CAN complete the mirror readback; the falsifier for each is a live `pm-odd` dispatch.
 
 ## Route / trigger evidence
 
@@ -136,4 +137,4 @@ generated. **Forecast total ≈ 320**, under the about-400 accumulated threshold
 
 ## Next step
 
-T1 implementation, then native review (assess the tier), then the metadata record.
+T1 applied and committed by the PM, then native review (assess the tier), then the metadata record.
