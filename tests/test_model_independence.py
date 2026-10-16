@@ -19,9 +19,14 @@ def model_family(value):
         normalized = f"{provider}/{model}" if isinstance(provider, str) and isinstance(model, str) else None
     else:
         normalized = None
-    model = "/".join(normalized.split("/")[1:]).lower() if normalized else None
-    if not model:
+    normalized = normalized.lower() if normalized else None
+    if not normalized:
         return None
+    # Owner-confirmed Kinver mapping; use provider identity, not a generic
+    # model-name marker that could misclassify unrelated models.
+    if normalized.startswith("kinver/"):
+        return "qwen"
+    model = "/".join(normalized.split("/")[1:])
     if re.search(r"(^|/)gpt-[0-9]", model):
         return "gpt"
     for marker, family in (
@@ -113,13 +118,17 @@ class ModelIndependence(unittest.TestCase):
 
 
 class PositiveControl(unittest.TestCase):
+    def test_owner_confirmed_kinver_provider_maps_to_qwen(self):
+        self.assertEqual(model_family("kinver/professional"), "qwen")
+        self.assertIsNone(model_family("unknown-provider/unrecognized-model"))
+
     def test_same_family_pairing_fails_independence_assertion(self):
         with self.assertRaises(AssertionError):
             assert_independent(self, "opencode-go/deepseek-v4.1-flash", "other/deepseek-v5")
 
     def test_unrecognized_writer_family_fails_independence_assertion(self):
         with self.assertRaisesRegex(AssertionError, "independence is not proven"):
-            assert_independent(self, "kinver/professional", "opencode-go/deepseek-v4.1-flash")
+            assert_independent(self, "unknown-provider/unrecognized-model", "opencode-go/deepseek-v4.1-flash")
 
 
 if __name__ == "__main__":

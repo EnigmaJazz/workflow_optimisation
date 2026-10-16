@@ -1911,8 +1911,12 @@ function normalizeModel(value) {
 // Provider aliases do not establish review independence: OpenAI and Go Luna
 // are the same family, as are direct and Go DeepSeek Flash.
 function modelFamily(value) {
-  const model=normalizeModel(value)?.split("/").slice(1).join("/").toLowerCase()
-  if (!model) return undefined
+  const normalized=normalizeModel(value)?.toLowerCase()
+  if (!normalized) return undefined
+  // Owner-confirmed Kinver model-family mapping; provider identity avoids
+  // misclassifying unrelated models that happen to use a generic model name.
+  if (normalized.startsWith("kinver/")) return "qwen"
+  const model=normalized.split("/").slice(1).join("/")
   if (/(^|\/)gpt-[0-9]/.test(model)) return "gpt"
   if (model.includes("deepseek")) return "deepseek"
   if (model.includes("glm-")) return "glm"
