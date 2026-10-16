@@ -68,6 +68,8 @@ const after = (tool: string, sid: string, args: Record<string, unknown>, output:
 const dispatch = (sid: string, subagent: string) =>
   before("task", sid, { subagent_type: subagent, description: "do work", prompt: "do work" })
 const message = (sid: string, agent: string) => hooks["chat.message"]({ sessionID: sid, agent })
+const sessionCreated = (child: string, parent: string) =>
+  hooks.event({ event: { type: "session.created", properties: { info: { id: child, parentID: parent } } } })
 
 // Positive control for absence assertions: proves this test's guard output really lands under the
 // per-test state root, so "no warning" / "no marker" cannot pass vacuously.
@@ -165,6 +167,7 @@ describe("7. exported stage table", () => {
     expect(recognizedHooks).toEqual([
       "chat.message",
       "command.execute.before",
+      "event",
       "tool.execute.after",
       "tool.execute.before",
     ])
@@ -371,6 +374,90 @@ describe("1b. orchestrator writer dispatch warning", () => {
     await dispatch(sid, "systematic-implementer")
     expect(logCount("orchestrator dispatched writing specialist")).toBe(0)
     await probe()
+  })
+})
+
+// Q72 tiny-fix: a scoped ONE-SHOT permit gated only on an explicit `tiny_fix` task flag.
+// Every case seeds BOTH the agent binding (message) AND a valid route key; without them the
+// stage gates never fire and the "no warning" assertions would pass vacuously.
+describe("1d. tiny-fix one-shot permit", () => {
+  const tinyDispatch = (sid: string, subagent: string) =>
+    before("task", sid, { subagent_type: subagent, description: "tiny", prompt: "tiny", tiny_fix: true })
+
+  test("exempts a writer dispatch from every stage gate", async () => {
+    const sid = "ses_tiny_exempt"
+    await message(sid, "gentle-orchestrator")
+    seedKey(sid, ODD)
+
+    await expect(tinyDispatch(sid, "gentle-ai-worker")).resolves.toBeUndefined()
+
+    expect(logCount("orchestrator dispatched writing specialist gentle-ai-worker")).toBe(0)
+    expect(logCount("dispatched before tracker")).toBe(0)
+    expect(logCount("dispatched before advice record")).toBe(0)
+    expect(logCount("tiny-fix permit consumed")).toBe(1)
+  })
+
+  test("the same dispatch WITHOUT the flag still warns (paired positive control)", async () => {
+    const sid = "ses_tiny_control"
+    await message(sid, "gentle-orchestrator")
+    seedKey(sid, ODD)
+
+    await expect(dispatch(sid, "gentle-ai-worker")).resolves.toBeUndefined()
+
+    expect(logCount("orchestrator dispatched writing specialist gentle-ai-worker")).toBe(1)
+    expect(logCount(`${ODD} specialist gentle-ai-worker dispatched before tracker`)).toBe(1)
+    expect(logCount("tiny-fix permit consumed")).toBe(0)
+    await probe()
+  })
+
+  test("a permit for one child session does not exempt a different session", async () => {
+    const sid = "ses_tiny_scope"
+    await message(sid, "gentle-orchestrator")
+    seedKey(sid, ODD)
+    await tinyDispatch(sid, "gentle-ai-worker")
+    await sessionCreated("ses_tiny_scope_child", sid)
+    seedKey("ses_tiny_scope_child", ODD)
+    await before("sandbox_write", "ses_tiny_scope_child", { path: "src/a.ts", content: "x" })
+    expect(logCount("bootstrap: write to src/a.ts")).toBe(0)
+
+    seedKey("ses_tiny_scope_other", ODD)
+    await before("sandbox_write", "ses_tiny_scope_other", { path: "src/b.ts", content: "x" })
+    expect(logCount("bootstrap: write to src/b.ts")).toBe(1)
+  })
+
+  test("a flag for a non-writer target exempts nothing", async () => {
+    const sid = "ses_tiny_nonwriter"
+    await message(sid, "gentle-orchestrator")
+    seedKey(sid, ODD)
+
+    await tinyDispatch(sid, "gentle-ai-verify")
+    expect(logCount("tiny-fix permit consumed")).toBe(0)
+
+    await sessionCreated("ses_tiny_nonwriter_child", sid)
+    seedKey("ses_tiny_nonwriter_child", ODD)
+    await before("sandbox_write", "ses_tiny_nonwriter_child", { path: "src/nw.ts", content: "x" })
+    expect(logCount("bootstrap: write to src/nw.ts")).toBe(1)
+
+    // No standing session exemption: a later writer dispatch without the flag still warns.
+    await dispatch(sid, "gentle-ai-worker")
+    expect(logCount("orchestrator dispatched writing specialist gentle-ai-worker")).toBe(1)
+  })
+
+  test("a tiny-fix child's own sandbox_write is exempt from the bootstrap gate", async () => {
+    const sid = "ses_tiny_child"
+    await message(sid, "gentle-orchestrator")
+    seedKey(sid, ODD)
+    await tinyDispatch(sid, "gentle-ai-worker")
+    await sessionCreated("ses_tiny_child_ok", sid)
+    seedKey("ses_tiny_child_ok", ODD)
+
+    await before("sandbox_write", "ses_tiny_child_ok", { path: "src/x.ts", content: "x" })
+    expect(logCount("bootstrap: write to src/x.ts")).toBe(0)
+
+    // Positive control for this absence: a session with no permit still warns.
+    seedKey("ses_tiny_child_control", ODD)
+    await before("sandbox_write", "ses_tiny_child_control", { path: "src/y.ts", content: "y" })
+    expect(logCount("bootstrap: write to src/y.ts")).toBe(1)
   })
 })
 
@@ -964,6 +1051,13 @@ describe("9. PM adapter map own-property lookup", () => {
     expect(pmRequiredRouteSkill("pm-odd")).toBe("workflow-odd-secure")
     expect(pmRequiredRouteSkill("pm-systematic")).toBe("workflow-systematic")
     expect(pmRequiredRouteSkill("pm-sdd")).toBeNull()
+  })
+
+  test("an Astra PM alias binds to its base PM adapter skill", () => {
+    expect(pmRequiredRouteSkill("pm-odd-astra")).toBe("workflow-odd-secure")
+    expect(pmRequiredRouteSkill("pm-systematic-astra")).toBe("workflow-systematic")
+    expect(pmRequiredRouteSkill("pm-sdd-astra")).toBeNull()
+    expect(pmRequiredRouteSkill("pm-odd-astra-extra")).toBeNull()
   })
 
   test("constructor is not a PM identity", () => {
