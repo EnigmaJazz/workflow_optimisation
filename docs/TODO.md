@@ -1223,6 +1223,19 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   mechanism, with a committed per-agent test and non-vacuous positive controls. Tracker:
   `odd/tasks/q71-pm-handoff-prompts.md`.
 
+### Q72. Tiny-fix route (direct delegation, no PM, no tracker)
+- **Status:** PLANNED.
+- **Prerequisites:** none. Part of the PM-layer completion work on `chore/pm-layer-completion`.
+- **Source:** gentle-ai v4.2.0 INLINE boundary (PR #5530 / issue #5529) cannot map onto a read-only
+  orchestrator; tracker `odd/tasks/q72-tiny-fix-route.md`.
+- **Description:** add a tiny-fix route for genuinely tiny work (a few lines or a config value) as a
+  direct delegation with no PM, no ODD tracker, no advice record and no review slices, available to
+  the orchestrator and both PMs. T1 gives the routing guard a tiny-fix exemption (with a paired
+  non-vacuous test), adds `gentle-ai-worker` and `gentle-ai-verify` to both PM task allowlists, edits
+  the `WORKFLOW.md` `Tiny fix` row and its escalation-only backstop, aligns the three route skills,
+  adds the tiny-fix option to both PM prompts, and adds `tests/test_pm_task_allowlists.py`. Tracker:
+  `odd/tasks/q72-tiny-fix-route.md`.
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).
