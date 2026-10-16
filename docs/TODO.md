@@ -1253,6 +1253,19 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   rows and a committed `tests/test_review_cadence.py` with a planted-wrong-prose positive control.
   Full scope, constraints and acceptance criteria are in the tracker.
 
+### Q74. Tiny-fix writer model independence
+- **Status:** PLANNED.
+- **Prerequisites:** none. Part of the PM-layer completion work on `chore/pm-layer-completion`.
+- **Source:** owner decision 2026-10-15 narrows writer-model independence to the tiny-fix route, where
+  the orchestrator directly dispatches the writer; tracker `odd/tasks/q74-writer-model-independence.md`.
+- **Description:** re-point the tiny-fix writer from `gentle-ai-worker` (DeepSeek) to `general`
+  (`openai/gpt-6-luna`) across every route surface; add and pin the orchestrator↔tiny-fix-writer
+  independence clause; add `tests/test_model_independence.py` with a same-family positive control.
+  PM-dispatched writer work is already independent because PMs run `openai/gpt-6.1-sol` and dispatch
+  `odd-apply` (DeepSeek), so do not re-point those models. Record PM↔`gentle-ai-verify` Sol sharing
+  and Astra-alias collapse as waivers. Full scope, constraints and acceptance criteria are in the
+  tracker.
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).
