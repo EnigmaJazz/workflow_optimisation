@@ -4499,6 +4499,7 @@ ANCHOR_TOKENS=(
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~400 authored changed lines and 100 KiB"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~200 KiB serialized per-runtime review-input budget"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`review-size-exception\`"
+  "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~Close the open medium-risk slice before the next high-risk commit."
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~Do not leave the evidence update uncommitted"
   "workflow.project-registration~$WORKFLOW~WORKFLOW.md~host_register_project"
   "workflow.project-registration~$WORKFLOW~WORKFLOW.md~Fish shell"
@@ -4541,6 +4542,7 @@ ANCHOR_TOKENS=(
   "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~route/trigger evidence"
   "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~ODD_TASKS key=odd/{project}/{feature-name}/tasks"
   "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~400 authored changed lines and 100 KiB"
+  "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~Close the pending medium-risk slice before the next high-risk commit."
   "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~200 KiB serialized per-runtime review-input budget"
   "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~--base-ref <last reviewed boundary> --committed-only --json"
   "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~candidate.consumed"
@@ -4568,6 +4570,7 @@ ANCHOR_TOKENS=(
   "workflow.session-decisions.shell~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Fish shell"
   "workflow.session-decisions.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Forward the provider-issued task line verbatim"
   "workflow.session-decisions.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~never grant review lanes to implementation workers or isolated reviewers"
+  "workflow.session-decisions.reviewability-budget~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Close the accumulated medium-risk slice before the next high-risk commit."
   # global-config/skills/workflow-route/SKILL.md
   "workflow.route-skill.route-statement~$ROUTER_SKILLS_SOURCE/workflow-route/SKILL.md~global-config/skills/workflow-route/SKILL.md~basis: WORKFLOW.md"
   # global-config/AGENTS.md — checked against the reviewed SOURCE, never the deployed copy
