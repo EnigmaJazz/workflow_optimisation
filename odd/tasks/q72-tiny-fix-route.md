@@ -117,3 +117,28 @@ T1: `global-config/plugins/systematic-routing-guard.ts`, `global-config/plugins/
 ## Next step
 
 T1 revised scope (see the owner-decisions subsection), then native review, then the metadata record. The `-astra` normalization and the live-mirror allowlist assertion may be split into a follow-up if T1 exceeds the review budget.
+
+## T1a design (revised 2026-10-15, post-advisory)
+
+Two pre-code advisories returned SIX BLOCKERs against the first T1a sketch. The permit design was changed as follows.
+
+### Blockers found
+- B1: a skill-minted key PERSISTS and leaks — keys live through the 3-hop inheritance chain and refresh on any activity, so a consumed permit can silently re-activate for later substantial work.
+- B2: stage markers are copied child-to-parent with no expiry or scope, so a tiny-fix marker would silently exempt later work in the parent or sibling sessions.
+- B3: the orchestrator warning reads getWorkflowKeyStatus, which WALKS ANCESTORS — an inherited permit could satisfy it. The exemption must read only the current task args.
+- B4: a PM dispatch DOES trip the stage-gate loop (systematic-routing-guard.ts:982-1010); the first sketch only covered the orchestrator warning and the bootstrap warning.
+- B5: the child worker's own sandbox_write cannot inherit a permit — `.parent` and `inherited.key` are written only AFTER the task returns (systematic-routing-guard.ts:1045-1090).
+- B6: pmRequiredRouteSkill needs the -astra strip, and astra-sol-upgrade.ts must be checked for hard-coded agent names.
+
+### Locked design
+1. The permit is an EXPLICIT `tiny_fix` flag in the task args — NOT a minted key. No persisted state, nothing to leak, no ancestor walk.
+2. It short-circuits EVERY stage gate for that dispatch: orchestrator-writer, ODD bootstrap, advice stage, tracker/plan stage.
+3. Child writes are covered by an IN-MEMORY permit map keyed by child session id — not by file inheritance.
+4. No artifact-* or skill-* marker is minted, so nothing the existing stage loops can match.
+5. Astra: option alpha — assert the three source-canonical keys, plus a SEPARATE live-mirror check, because gentle-ai-verify-astra is a runtime alias, not a source key.
+6. The escalation tripwire moves INTO CODE: the worker computes the threshold and denylist itself and returns ESCALATE rather than installing. Prose cannot enforce it, and host_sandbox_result_install is only ask-gated for PMs.
+7. The verifier-side allowlist assertion is DEFERRED: it needs a re-pin, and the verifier reads the recovered config, so it would not close the live-drift gap.
+8. Tests: four guard cases (exemption; paired positive control; not-global; not-over-broad), a SEPARATE bootstrap-suppression case, PositiveControl x3 for the allowlist test, and a recorded baseline pass count.
+
+### Advisor uncertainties (recorded, not resolved)
+The exact signal form; whether the advice-stage gate is lifted; and that neither advisor ran any code.
