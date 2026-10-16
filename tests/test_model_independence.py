@@ -59,6 +59,10 @@ def assert_independent(test_case, writer_model, coordinator_model):
     test_case.assertNotEqual(writer_family, coordinator_family)
 
 
+def assert_task_target_allowed(test_case, targets, target):
+    test_case.assertEqual(targets.get(target), "allow")
+
+
 def configured_writers(config):
     helpers = HELPERS_PATH.read_text(encoding="utf-8")
     match = re.search(r"const ODD_SPECIALIST_WRITERS: readonly string\[\] = \[\.\.\.SPECIALIST_WRITERS,\s*([^\]]+)\]", helpers)
@@ -87,7 +91,8 @@ class ModelIndependence(unittest.TestCase):
 
     def test_orchestrator_tiny_fix_task_target_is_general(self):
         targets = self.agents["gentle-orchestrator"]["permission"]["task"]
-        self.assertEqual(targets.get("general"), "allow")
+        assert_task_target_allowed(self, targets, "general")
+        assert_task_target_allowed(self, targets, "gentle-ai-worker-local")
         self.assertNotIn("gentle-ai-worker", targets)
 
     def test_pm_dispatched_writer_is_independent_from_pm(self):
@@ -118,6 +123,12 @@ class ModelIndependence(unittest.TestCase):
 
 
 class PositiveControl(unittest.TestCase):
+    def test_removed_local_writer_permission_fails_allowlist_assertion(self):
+        targets = {"general": "allow", "gentle-ai-worker-local": "allow"}
+        targets.pop("gentle-ai-worker-local")
+        with self.assertRaises(AssertionError):
+            assert_task_target_allowed(self, targets, "gentle-ai-worker-local")
+
     def test_owner_confirmed_kinver_provider_maps_to_qwen(self):
         self.assertEqual(model_family("kinver/professional"), "qwen")
         self.assertIsNone(model_family("unknown-provider/unrecognized-model"))
