@@ -4534,6 +4534,7 @@ ANCHOR_TOKENS=(
   "workflow.review-relay~$WORKFLOW~WORKFLOW.md~provider-issued task line verbatim"
   "workflow.execution-skills~$WORKFLOW~WORKFLOW.md~Systematic v3.18.4+"
   "workflow.execution-skills~$WORKFLOW~WORKFLOW.md~workflow-guard result is authoritative"
+  "workflow.execution-boundary~$WORKFLOW~WORKFLOW.md~The orchestrator must not dispatch a writer that shares its own model family."
   "workflow.astra-escalation~$WORKFLOW~WORKFLOW.md~astra-sol-upgrade.ts"
   "workflow.astra-escalation~$WORKFLOW~WORKFLOW.md~selection never edits global config or requires an OpenCode restart"
   # global-config/skills/workflow-odd-secure/references/odd-and-review.md
@@ -4541,6 +4542,7 @@ ANCHOR_TOKENS=(
   "workflow.odd-and-review.odd-delegation~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~more than about 5 sequential lookups"
   "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~route/trigger evidence"
   "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~ODD_TASKS key=odd/{project}/{feature-name}/tasks"
+  "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~The orchestrator must not dispatch a writer that shares its own model family."
   "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~400 authored changed lines and 100 KiB"
   "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~Close the pending medium-risk slice before the next high-risk commit."
   "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~200 KiB serialized per-runtime review-input budget"

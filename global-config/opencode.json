@@ -479,7 +479,6 @@
           "review-validator": "deny",
           "gentle-ai-explore": "allow",
           "gentle-ai-verify": "allow",
-          "gentle-ai-worker": "allow",
           "gentle-ai-worker-local": "allow",
           "adversarial-document-reviewer": "allow",
           "adversarial-reviewer": "allow",

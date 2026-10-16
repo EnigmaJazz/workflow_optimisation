@@ -144,6 +144,7 @@ The `gentle-orchestrator` is a strictly read-only technical lead.
 - Named Systematic/frontend/review specialists take precedence over generic `explore`/`general`.
 - When no named specialist owns the work, use `explore` as the read-only researcher fallback and `general` as the sandbox worker fallback.
 - Keep primary code review independent of the writer's model family: the DeepSeek `gentle-orchestrator` reviews ordinary `general` (GPT-6 Luna) work, and `gentle-ai-verify` (GPT-6 Sol) reviews `gentle-ai-worker` (DeepSeek) work. Provider changes within one family do not count as independence. If a live fallback makes the writer and reviewer share a family, dispatch an authorized independent review specialist before accepting the review; preserve the native review lifecycle rules.
+- The orchestrator must not dispatch a writer that shares its own model family. For normal work this is moot because a PM dispatches the writer: a Sol PM with a DeepSeek `odd-apply` writer is already independent. The tiny-fix route is the exception because the orchestrator dispatches directly, so its writer must be a non-DeepSeek family; it uses `general` (GPT-6 Luna).
 
 <!-- workflow:anchor workflow.execution-boundary:end -->
 <!-- workflow:anchor workflow.context-backend:begin -->

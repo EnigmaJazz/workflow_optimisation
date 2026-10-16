@@ -4,7 +4,7 @@
 **Task ID:** q74-writer-model-independence
 **Class:** global-tooling-change
 **Route:** `workflow-odd-secure` (delegated)
-**Unit status:** T0 IN PROGRESS (tracker + advice; T1 pending).
+**Unit status:** T1 implementation complete; native review and metadata record pending.
 **Model:** cloud `opencode-go/deepseek-v4.1-flash`
 
 ## Objective
@@ -17,7 +17,7 @@ OBSERVED: `gentle-orchestrator` (`global-config/opencode.json:463`), `odd-apply`
 
 ## Owner decision (2026-10-15) — this NARROWS the fix
 
-The intention is that ALL writers apart from tiny fixes are dispatched by a PM, not the orchestrator. So the orchestrator↔writer pairing is MOOT for normal work: a PM runs `openai/gpt-6.1-sol` and dispatches `odd-apply` (DeepSeek) — already independent. The ONLY broken pairing is the TINY-FIX route, where the orchestrator itself dispatches the writer. Therefore only the tiny-fix writer must be a non-DeepSeek family. The tiny-fix route currently names `gentle-ai-worker` (DeepSeek) — WRONG — and must name `general` (`openai/gpt-6-luna`).
+The intention is that ALL writers apart from tiny fixes are dispatched by a PM, not the orchestrator. So the orchestrator↔writer pairing is MOOT for normal work: a PM runs `openai/gpt-6.1-sol` and dispatches `odd-apply` (DeepSeek) — already independent. The ONLY broken pairing is the TINY-FIX route, where the orchestrator itself dispatches the writer. Therefore only the tiny-fix writer must be a non-DeepSeek family. The tiny-fix route uses `general` (`openai/gpt-6-luna`); its direct `gentle-ai-worker` task permission has been removed. Keep `gentle-ai-worker` unchanged for non-tiny-fix purposes.
 
 ## Scope
 
@@ -67,7 +67,11 @@ T1: `global-config/plugins/systematic-routing-guard.ts`, `global-config/plugins/
 
 ## Progress
 
-- 2026-10-16: T0 — tracker, advice record and queue entry created; the owner decision narrowing the fix is recorded. No source edit yet. Route: delegated.
+- 2026-10-16: T0 — tracker, advice record and queue entry created; the owner decision narrowing the fix is recorded. Route: delegated.
+- 2026-10-16: T1 implementation — found and changed the orchestrator task allowlist in `global-config/opencode.json`: removed direct `gentle-ai-worker` permission; retained the already-allowed `general`. The Q72 tiny-fix permit in `systematic-routing-guard.ts` is target-agnostic (it arms only for an explicit `tiny_fix` writer dispatch), and `ODD_SPECIALIST_WRITERS` in `routing-guard-helpers.ts` is a writer-eligibility inventory, not the tiny-fix route selector; both remain unchanged. The `pm-odd` task allowlist still dispatches `odd-apply` on the normal PM path. The Q72 T1a design describes the scoped permit but does not select a writer. The historical Q72 advice record still says “Tiny-fix route via `gentle-ai-worker`”; it is outside this T1's authorized edit paths and was not changed. Q74's owner-decision text now records `general` as the route target. Other generic `gentle-ai-worker` references remain for non-tiny-fix purposes.
+- T1 contract — added and pinned the orchestrator/writer independence clause in `WORKFLOW.md` and `odd-and-review.md`. `odd-apply` was not added to the family-pair list: its configured route assigns no verifier, so pairing it there would assert a false verifier relationship. The repo tests previously checked config validity but did not read agent `model` fields; this is the first model-field test.
+- T1 limits and waivers — runtime model resolution/fallback behavior is NOT verified by this repository test. Recorded waivers: PM↔`gentle-ai-verify` Sol-family sharing; Astra alias collapsing into the OpenAI family; and the verifier's unenforced primary-orchestrator runtime-model probe claim. The PM-dispatched path remains independent in configured models (`pm-odd` Sol → `odd-apply` DeepSeek).
+- T1 checks — new model test: 5/5; review-cadence: 2/2; anchor manifest: 7/7; Python discovery: 152/152; routing-guard Bun suite: 102/102; `bash -n verify-workflow.sh`: exit 0. Same-family tiny-fix and PM pairings, stale orchestrator worker permission, omitted writer inventory, and disabled independence assertion were each temporarily planted; the corresponding test failed as expected and passed after restoration. SHA-256 and configured pin both read `53132bc1694c96d58f4e665d83522478c910a9f531ea16b98ea5f4ee9cfe43e0`; the full verifier run is not environment-valid because its hard-coded `/home/james/...` paths do not exist in the sandbox.
 
 ## Route / trigger evidence
 
