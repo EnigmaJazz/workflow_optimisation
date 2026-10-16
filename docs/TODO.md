@@ -1266,6 +1266,13 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   and Astra-alias collapse as waivers. Full scope, constraints and acceptance criteria are in the
   tracker.
 
+### Q75. Tiny-fix permit race: bind the permit to the intended child
+- **Status:** PLANNED (T0 tracker + advice + queue entry created; T1 pending). Tracker:
+  `odd/tasks/q75-tiny-fix-permit-race.md`.
+- **Prerequisites:** none. Part of the PM-layer completion work on `chore/pm-layer-completion`.
+- **Source:** Q72 T1a review finding `R3-tiny-fix-permit-race`: the first `session.created` from a parent consumes its pending tiny-fix permit using only `parentID`; two independent pre-code advisors graded this a BLOCKER. See `odd/advice/q75-tiny-fix-permit-race.md`.
+- **Description:** bind the one-shot permit to the intended writer using a parent-keyed candidate set plus an observed child-agent match; normalize `-local` and `-astra` writer variants; cover non-writer-first sibling races and the PM-dispatched path. Resolve whether child `chat.message` events arrive with the agent, or fail closed. Preserve one-shot, TTL, own-session-only behavior and all five existing `1d` cases. Correct or cover Q72's erroneous claim that an Astra permit case exists at `tests/routing-guard/routing-guard.test.ts:1056-1061` (that range is the PM adapter alias test).
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).
