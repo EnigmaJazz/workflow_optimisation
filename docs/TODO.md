@@ -1236,6 +1236,23 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   adds the tiny-fix option to both PM prompts, and adds `tests/test_pm_task_allowlists.py`. Tracker:
   `odd/tasks/q72-tiny-fix-route.md`.
 
+### Q73. Native-review slice cadence
+- **Status:** PLANNED (T0 tracker + advice + queue entry created; T1 pending). Tracker:
+  `odd/tasks/q73-review-slice-cadence.md`.
+- **Prerequisites:** none. Part of the PM-layer completion work on `chore/pm-layer-completion`.
+- **Source:** observed 2026-10-16 in this repo: medium-risk commits assess `under_budget` with
+  `review_due: false`, so the slice accumulates; a later high-risk commit makes the accumulation due
+  and `review start` refuses it with `lens_context_budget_exceeded` (`mutation_outcome: not_started`).
+  Tracker: `odd/tasks/q73-review-slice-cadence.md`.
+- **Description:** add a review-cadence rule (NOT a routing rule) to `WORKFLOW.md`,
+  `global-config/skills/workflow-odd-secure/references/odd-and-review.md` and
+  `global-config/skills/workflow-route/references/session-decisions.md`: close the accumulated
+  medium-risk slice BEFORE a high-risk commit lands, using `--base-ref <last reviewed boundary>`
+  scoped to the accumulated slice; forbid `baseRef=<previous commit>`; reject the upstream inline
+  path because the read-only orchestrator has no write capability. Pin the rule with `ANCHOR_TOKENS`
+  rows and a committed `tests/test_review_cadence.py` with a planted-wrong-prose positive control.
+  Full scope, constraints and acceptance criteria are in the tracker.
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).
