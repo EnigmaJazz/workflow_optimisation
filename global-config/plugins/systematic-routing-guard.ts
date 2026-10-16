@@ -810,6 +810,35 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
   const warnedConsole = new Set<string>()
   const reportedKeyStatuses = new Set<string>()
 
+  // Q72 tiny-fix: a scoped ONE-SHOT permit gated ONLY on an explicit `tiny_fix` task flag --
+  // never an agent-name bypass and never a persisted key/marker. The dispatch is exempt for its
+  // own stage gates, and once the host creates its child session the child's own writes are
+  // exempt too. Nothing is written to the routing-key directory, so no state can leak into a
+  // later substantial dispatch; the exemption reads only the current task args (no ancestor walk).
+  const tinyFixPendingParents = new Map<string, number>()
+  const tinyFixChildPermits = new Map<string, number>()
+  const TINY_FIX_PERMIT_TTL_MS = 30 * 60 * 1000
+
+  const tinyFixPermitsSession = (sessionID: string): boolean => {
+    const expiry = tinyFixChildPermits.get(sessionID)
+    if (expiry === undefined) return false
+    if (expiry <= Date.now()) {
+      tinyFixChildPermits.delete(sessionID)
+      return false
+    }
+    return true
+  }
+
+  const registerTinyFixChild = (childSessionID: string, parentSessionID: string): void => {
+    const expiry = tinyFixPendingParents.get(parentSessionID)
+    if (expiry === undefined) return
+    // One-shot: consume the pending parent so a second child of the same dispatch is not exempt.
+    tinyFixPendingParents.delete(parentSessionID)
+    if (expiry <= Date.now()) return
+    tinyFixChildPermits.set(childSessionID, Date.now() + TINY_FIX_PERMIT_TTL_MS)
+    void logObservedLine(`[systematic-routing-guard] tiny-fix permit extended to child session ${childSessionID} (parent: ${parentSessionID})`)
+  }
+
   const warn = async (tool: string, sessionID: string, failure: string): Promise<void> => {
     const warningKey = `${sessionID}\u0000${tool}\u0000${failure}`
     const toConsole = !warnedConsole.has(warningKey)
@@ -818,6 +847,27 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
   }
 
   return {
+    /**
+     * Q72 tiny-fix: the child session id is only known once the host creates it, so learn it
+     * (with its parent) from the session-creation event and extend the parent's pending permit
+     * to that child. This in-memory map replaces the `.parent`/`inherited.key` files, which the
+     * task-result hook writes only AFTER the child has already run its own tool calls.
+     */
+    event: async ({ event }) => {
+      if (event.type === "session.created") {
+        const info = (event as { properties?: { info?: { id?: unknown; parentID?: unknown } } }).properties?.info
+        if (typeof info?.id === "string" && typeof info.parentID === "string") {
+          registerTinyFixChild(info.id, info.parentID)
+        }
+      } else if (event.type === "session.deleted") {
+        const info = (event as { properties?: { info?: { id?: unknown } } }).properties?.info
+        if (typeof info?.id === "string") {
+          tinyFixChildPermits.delete(info.id)
+          tinyFixPendingParents.delete(info.id)
+        }
+      }
+    },
+
     /**
      * A new user message starts a new routing turn. State is kept per session,
      * so subagent sessions cannot clear or contaminate their parent's state.
@@ -915,7 +965,8 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
         }
 
         // The guard is project-blind: in a multi-project session, a marker cannot satisfy a stage for the other project. A true fix needs a verified session-project source.
-        if (FILE_MUTATING_TOOLS.has(input.tool) && paths && paths.length > 0) {
+        // A tiny-fix child session is exempt from the bootstrap stage gate for its own writes.
+        if (FILE_MUTATING_TOOLS.has(input.tool) && paths && paths.length > 0 && !tinyFixPermitsSession(input.sessionID)) {
           for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
             if (routeSkill !== "workflow-odd-secure") continue
             if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
@@ -935,6 +986,11 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       }
 
       if (input.tool !== "task" || !args) return
+
+      // Q72 tiny-fix: an explicit, guard-only flag. It is read here and stripped so the host
+      // task schema never sees an unsupported arg, mirroring the defensive `model` strip below.
+      const tinyFix = args.tiny_fix === true
+      if ("tiny_fix" in args) delete args.tiny_fix
 
       // OpenCode's current task schema has no `model` argument. Preserve the
       // historical defensive normalization so a stale Systematic/Gentle prompt
@@ -965,7 +1021,19 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       }
 
       const dispatchedType = typeof args.subagent_type === "string" ? args.subagent_type : null
-      if (mode !== "off" && dispatchedType && !isCoordinator(dispatchedType) && !isReadOnlySpecialist(dispatchedType)) {
+      const isWriterDispatch =
+        typeof dispatchedType === "string" &&
+        !isCoordinator(dispatchedType) &&
+        !isReadOnlySpecialist(dispatchedType)
+
+      // Q72 tiny-fix: arm a one-shot permit for a WRITER dispatch and skip every stage gate for
+      // it. A flag on a non-writer target arms nothing, so it cannot exempt any later writer.
+      if (isWriterDispatch && tinyFix) {
+        tinyFixPendingParents.set(input.sessionID, Date.now() + TINY_FIX_PERMIT_TTL_MS)
+        await logObservedLine(`[systematic-routing-guard] tiny-fix permit consumed (session: ${input.sessionID}, target: ${dispatchedType})`)
+      }
+
+      if (mode !== "off" && isWriterDispatch && !tinyFix) {
         try {
           const boundAgent = await readLatestMessageAgent(input.sessionID)
           if (
