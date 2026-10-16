@@ -654,3 +654,4 @@ if __name__ == "__main__":
     except RuntimeError as exc:
         print(f"error: {exc}", file=sys.stderr)
         raise SystemExit(2)
+# q72 tiny-fix route live-test probe (2026-10-16)
