@@ -143,3 +143,24 @@ Two pre-code advisories returned SIX BLOCKERs against the first T1a sketch. The 
 
 ### Advisor uncertainties (recorded, not resolved)
 The exact signal form; whether the advice-stage gate is lifted; and that neither advisor ran any code.
+
+## T1b scope (revised 2026-10-15, post-advisory)
+
+Two pre-code advisories returned 4 BLOCKERs and several warnings. Revised scope:
+
+### Deferred (with reason)
+- `forbiddenPromptFragments` v4.2.0 entries: DEFERRED. `base.md` is still pinned to gentle-ai v4.0.0 (`tests/test_orchestrator_prompt_source.py:28`, `normative-ledger.md:6`), so the v4.2.0 inline strings are NOT in the source and the fragments would be dead code. Revisit when the v4.2.0 re-render lands. Do NOT invent the literals.
+
+### Added (closing gaps the advisories found)
+- PM allowlist assertions IN `verify-workflow.sh` (the unit edits that file anyway): assert the four keys on both PMs against the RECOVERED live config. This closes the live-mirror drift gap that `tests/test_pm_task_allowlists.py` cannot (it reads only the source copy).
+- `tests/test_pm_layer_prompts.py`: add per-PM needles for the tiny-fix option text, with a PositiveControl. Currently unpinned.
+- Tripwire constants + a test: the thresholds (>20 authored lines, >2 files, any add/delete, denylisted paths) must exist as code constants and be asserted. Currently the "hard tripwire" is prose only.
+- New overlay block, if introduced: add its id to `REQUIRED_IDS` and its heading to `SIGNATURES` in `tests/test_orchestrator_prompt_source.py`, or it can be silently removed.
+- Anchor tokens for the new `Tiny fix` row wording and for each edited route skill.
+- Checks must include `bash verify-workflow.sh` AND `bash -n verify-workflow.sh`: the verifier is the ONLY check that closes embedded-prompt-vs-assembled-bytes; the python suite never compares the embedded bytes.
+
+### Corrected
+- `WORKFLOW.md` must NOT repeat the tripwire numbers: stating a line count as a boundary would contradict `WORKFLOW.md:125`/`:128` ("changed-line count never selects a route"). State the boundary as ESCALATION-ONLY and reference the worker constants plus the pinning test as the source of truth.
+- The host-only traces (permit-consumption log, ROUTER-LOG row, over-threshold scan, PM `## Log` entry) must be annotated as HOST-ONLY in the Checks list; they are not mechanically testable from this repo.
+- The `-astra` normalization is DONE in T1a (`routing-guard-helpers.ts:41-49`), so it is not T1b scope; the T1 task line is stale.
+- The 6th routing-guard case (Astra alias) WAS added in T1a at `tests/routing-guard/routing-guard.test.ts:1056-1061`; the advisor could not see it because it read only to line 500. No gap.
