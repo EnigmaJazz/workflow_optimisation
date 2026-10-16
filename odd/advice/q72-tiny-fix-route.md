@@ -75,3 +75,89 @@ Pre-code advice (testing lens); load-bearing points only:
 - **Recommended verification set.** Repo-testable: the guard tests, `tests/test_pm_task_allowlists.py`,
   the JSON parse. INFERRED: the tiny-dispatch-no-warning behaviour and the escalation boundary. The
   owner's host run: the verifier mirror + an OpenCode restart to load the changed prompts/guard.
+
+## External advisory (interim lane — owner-relayed, 2026-10-15)
+
+`selection.rule`: **interim external lane, owner-relayed by copy-paste** — NOT the automated
+`pair-default` external lane, which is PLANNED and inactive (`WORKFLOW.md:484-495`; the automated lane
+`Q06` is BLOCKED on external prerequisites). Two **independent hosts** — **Claude Code** and
+**Antigravity** — each received the same self-contained, read-only prompt, and their responses were
+returned verbatim.
+
+### Findings
+
+**BLOCKERS (both hosts independently).**
+
+- **F1 (Claude) / F02 (Antigravity).** A blanket exemption keyed on `gentle-ai-worker` or on
+  "tracker-less" would silence the orchestrator-must-use-a-PM warning for substantial work.
+  `gentle-ai-worker` is already an allowed ODD writer (`routing-guard-helpers.ts:18-19`) AND the
+  default implementation writer (`prompts/gentle-orchestrator/overlay.md:45`). "Tracker-less" is not a
+  signal: stage markers are copied child→parent after every task (`systematic-routing-guard.ts:1058-1073`)
+  with no expiry or feature scope, and keys stay alive on any activity (`:416-437`). Antigravity adds it
+  would disable three gates at once (`:968-980`, `:989-993`, `:998-1002`).
+- **F3 (Claude) / F06 (Antigravity).** The premise "native review is the independence layer" is FALSE
+  for typical tiny commits: `review_due` is true only for high risk, so a few-line commit returns
+  `passive` or `under_budget` with zero 4R lenses, while `gentle-orchestrator` and `gentle-ai-worker`
+  both run `opencode-go/deepseek-v4.1-flash` (`opencode.json:366,463`). `WORKFLOW.md:144` requires
+  `gentle-ai-verify` (GPT-6 Sol) for `gentle-ai-worker` output.
+- **F03 (Antigravity).** The unit's stated motivation is adapting gentle-ai v4.2.0's inline-first
+  wording, but the scope omitted `global-config/prompts/gentle-orchestrator/overlay.md` (which
+  supersedes `### Delegation Rules` and `#### 1. Inline Direct` by exact base sha and never names the
+  Tiny fix route), the regenerated `opencode.json:590` prompt, and `verify-workflow.sh:2974-2983`
+  `forbiddenPromptFragments` (which blocks only the v4.0.0 inline strings, not v4.2.0's).
+
+**WARNINGS.**
+
+- **F2 (Claude) / F01, F04 (Antigravity).** The PM half of the exemption needs no code (a PM dispatch
+  never trips `:968`), BUT the child worker's own `sandbox_write` still trips the ODD bootstrap warning
+  (`:918-934`) because `.parent`/`inherited.key` are written only after the task completes
+  (`:1045-1090`). And a guard test passes VACUOUSLY unless it seeds both
+  `message(sid, "gentle-orchestrator")` and a valid route key (`seedKey`), since without them the
+  warnings never fire (`:971`, `:973`, `:983`).
+- **F5 (Claude) / F08 (Antigravity).** Silent drift: removing tracker, advice record and mirror leaves
+  nothing to catch substantial work done as "tiny". Required traces: the permit-consumption log line, a
+  `ROUTER-LOG.md` row per tiny fix, a scan flagging over-threshold `tiny` commits, and a tracker
+  `## Log` entry for PM tiny fixes. Add a pre-install diff gate: inspect `host_sandbox_result` before
+  `host_sandbox_result_install`; if the real diff breaches the tripwire, re-route to ODD/Systematic.
+- **F6 (Claude) / F10 (Antigravity).** The boundary needs a hard ONE-WAY tripwire that never selects:
+  >20 authored changed lines, >2 touched files, a new/deleted file, or any edit to `verify-workflow.sh`,
+  `global-config/opencode.json`, `global-config/systematic.jsonc`, `global-config/plugins/**`,
+  permissions/auth/crypto, or public API contracts ⇒ escalate. Checked BEFORE `sandbox_apply` (the
+  worker has one lifecycle). Pin the number in a test so it cannot rot.
+- **F7 (Claude) / F07 (Antigravity).** PM tiny fixes conflict with the PM-handoff spec:
+  `docs/specs/pm-handoff.md:7` limits a PM to `constraints.allowed paths`, and `:103` requires every
+  commit in `candidate_commits` with its own receipt. A mid-unit tiny fix must stay inside the allowed
+  paths and be recorded in the tracker/return envelope, sharing the unit's commit and review-boundary
+  lineage.
+- **F8 (Claude) / F11 (Antigravity).** `tests/test_pm_task_allowlists.py` would check only the SOURCE
+  copy; the live config drifts (a sync has reset live `permission.task` before).
+  `verify-workflow.sh:2843-2950` asserts PM invariants but not these keys.
+- **F10 (Claude) / F09 (Antigravity).** `gentle-ai-worker-local` and `gentle-ai-verify-astra` were
+  omitted; `pm-odd-astra`/`pm-systematic-astra` are not recognized by `pmRequiredRouteSkill`
+  (`routing-guard-helpers.ts:27-35`) because it does not strip the `-astra` suffix, unlike
+  `canonicalSpecialistType` (`systematic-routing-guard.ts:46-54`).
+- **F05 (Antigravity).** `gentle-ai-verify` is model-independent of the DeepSeek writer, but shares
+  `openai/gpt-6.1-sol` with BOTH PMs — so a PM judging its own framing is not independent.
+- **F12 (Claude).** The read-only orchestrator cannot write `ROUTER-LOG.md`, so a standalone tiny fix
+  needs the row inside the single worker's brief or captured in the commit trailer.
+
+**SUGGESTIONS.**
+
+- **F9 (Claude).** The upstream "direct inline" table already sits at `base.md:99-103`, and
+  `overlay.md:55` overrides it only in general terms; v4.2.0's "about 100 changed lines" text will
+  arrive on the next sync. Add one overlay sentence mapping upstream's direct-inline case to the
+  Tiny-fix route via `gentle-ai-worker`, anchored on a stable marker, with the escalation threshold
+  well below 100.
+- **F4 (Claude).** PMs should limit `gentle-ai-verify` to tiny fixes and carry the `:144` fallback
+  rule, since PMs don't read `WORKFLOW.md:144` directly.
+- **F13 (Claude).** Normalize `-astra` in `pmRequiredRouteSkill`, or exclude `pm-*` in
+  `astra-sol-upgrade.ts`.
+
+### Evidence limits
+
+- Neither host ran the guard against live sessions.
+- Neither host invoked `opencode`/`gentle-ai` CLI probes (read-only constraint).
+- The child→parent marker copy depends on the task output carrying `id="ses_..."` (`systematic-routing-guard.ts:1048`).
+- `global-config/prompts/gentle-orchestrator/base.md:3` is still pinned to gentle-ai 4.0.0
+  (`sha256:03206f6b...`), so the v4.2.0 wording was taken from the owner's prompt and
+  `odd/tasks/q72-tiny-fix-route.md:9-10`, not from a v4.2.0 binary.

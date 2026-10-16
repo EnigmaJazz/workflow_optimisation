@@ -26,6 +26,12 @@ gentle-ai v4.2.0 introduced an INLINE boundary (~100 authored lines stay inline,
 
 T1: (a) a tiny-fix exemption/stage in the routing guard so a tracker-less tiny dispatch does not warn, with a paired non-vacuous test; (b) add BOTH `gentle-ai-worker` AND `gentle-ai-verify` to both PM task allowlists; (c) edit the `Tiny fix` row in `WORKFLOW.md:116` to name the route, the boundary, and that no tracker/advice/slices are created; (d) an escalation backstop; (e) align `workflow-route/SKILL.md`, `workflow-odd-secure` and `workflow-systematic/SKILL.md:10`; (f) add the tiny-fix option to both PM prompts; (g) a committed `tests/test_pm_task_allowlists.py`.
 
+Added by the 2026-10-15 external advice (three omitted surfaces):
+
+- (h) edit `global-config/prompts/gentle-orchestrator/overlay.md` to map upstream's direct-inline case to the Tiny-fix route via `gentle-ai-worker`, anchored on a stable marker;
+- (i) regenerate the assembled prompt into `global-config/opencode.json:590` (with `CURRENT_PROMPT_SHA256` and the `normative-ledger.md` pin updated in the same change);
+- (j) update `verify-workflow.sh`'s `forbiddenPromptFragments` (`:2974-2983`) to also block the v4.2.0 inline strings, OR add a Python prompt test asserting them if the verifier edit is deferred to a follow-up unit (a verifier edit additionally requires `VERIFY_SCRIPT_SHA256` re-pinned last).
+
 ### Out of scope
 
 - the v4.2.0 400-line slice alignment (unit B);
@@ -38,7 +44,16 @@ T1: (a) a tiny-fix exemption/stage in the routing guard so a tracker-less tiny d
 - The tiny-fix writer is **`gentle-ai-worker`** (a named specialist; `general` is the guard-blocked generic fallback and is NOT used).
 - **`gentle-ai-verify` is ALSO added** to both PM allowlists, so a PM can still obtain a model-independent verification when it wants one; it is optional rather than excluded.
 - The guard gets an **exemption** (not "accept the warning").
-- Verification for tiny = **structural readback + the native RDD checkpoint**; the native review (different models) is the independence layer.
+- Verification for tiny = **structural readback + the native RDD checkpoint**; the native review (different models) is the independence layer. **SUPERSEDED 2026-10-15 — the external advice disproved this premise; see the post-external-advice decisions below.**
+
+## Owner decisions (2026-10-15, post-external-advice)
+
+External advisory (interim lane, two independent hosts) corrected the unit's scope and settled four points:
+
+- **(a) The guard change is a SCOPED ONE-SHOT PERMIT gated on an explicit tiny-fix signal — never an agent-name bypass.** A blanket exemption keyed on `gentle-ai-worker` or on "tracker-less" would disable the writer-bypass and stage gates for substantial work (F1/F02); the permit is consumed once and scoped to the tiny unit.
+- **(b) Tiny fix is PASSIVE-ONLY.** A medium/high-risk assessment or RDD-off **automatically ESCALATES out of Tiny fix** (F3/F06). `review_due` is true only for high risk, so passive/`under_budget` tiny commits get zero 4R lenses and the writer (`opencode-go/deepseek-v4.1-flash`) is not model-independent of the orchestrator. This supersedes the "native review is the independence layer" premise, which the external advice disproved.
+- **(c) The writer is `gentle-ai-worker`** (and `gentle-ai-worker-local` when the local tier is selected).
+- **(d) PM allows gain `gentle-ai-worker`, `gentle-ai-worker-local`, `gentle-ai-verify`, `gentle-ai-verify-astra`.**
 
 ## Constraints
 
@@ -48,6 +63,7 @@ T1: (a) a tiny-fix exemption/stage in the routing guard so a tracker-less tiny d
 - `VERIFY_SCRIPT_SHA256` re-pin is required ONLY if `verify-workflow.sh` itself is edited (it must be re-pinned LAST in that same commit); the guard is a plugin, not the verifier.
 - The PM prompts are inline JSON strings and must be edited byte-preservingly (valid JSON, keep `\n` escapes and 2-space indent) and stay under the ~6,000-char cap (`docs/specs/pm-handoff.md:11`; currently ~2,106 and ~2,120).
 - Branch `chore/pm-layer-completion`; never commit; never switch branches.
+- **Hard ONE-WAY tripwire (an escalation boundary, never a selector).** Escalate out of Tiny fix when the authored diff is >20 changed lines, touches >2 files, adds or deletes a file, or edits a denylisted path (`verify-workflow.sh`, `global-config/opencode.json`, `global-config/systematic.jsonc`, `global-config/plugins/**`, permissions/auth/crypto, or public API contracts). Checked BEFORE `sandbox_apply` because the worker has one lifecycle; one-way only so `WORKFLOW.md:125`/`:128` stay true; the threshold is pinned in a test so it cannot rot.
 
 ## Acceptance criteria
 
@@ -57,7 +73,8 @@ T1: (a) a tiny-fix exemption/stage in the routing guard so a tracker-less tiny d
 - the backstop is escalation-only wording and does not contradict `:125`/`:128`;
 - a committed test proves the allowlist membership non-vacuously;
 - no existing check is weakened;
-- the routing-guard and python suites stay green.
+- the routing-guard and python suites stay green;
+- **required traces:** the permit-consumption log line; a `ROUTER-LOG.md` row per tiny fix (written inside the worker's brief, since the read-only orchestrator cannot); a scan flagging over-threshold `tiny` commits; and a tracker `## Log` entry for PM tiny fixes.
 
 ## Authorized scope
 
@@ -75,7 +92,7 @@ T1: `global-config/plugins/systematic-routing-guard.ts`, `global-config/plugins/
 
 ## Tasks
 
-- [ ] T1 — add the tiny-fix guard exemption + paired test; add gentle-ai-worker and gentle-ai-verify to both PM task allowlists; edit the WORKFLOW.md Tiny fix row and its escalation backstop; align the three route skills; add the tiny-fix option to both PM prompts; add tests/test_pm_task_allowlists.py with a positive control.
+- [ ] T1 — the scoped one-shot tiny-fix permit in the guard (gated on an explicit tiny-fix signal, never an agent name) + its non-vacuous seeded test (seed both `message(sid, "gentle-orchestrator")` and a valid route key); the PM allows (`gentle-ai-worker`, `gentle-ai-worker-local`, `gentle-ai-verify`, `gentle-ai-verify-astra` for both PMs); `overlay.md` (direct-inline → Tiny-fix mapping) + the regenerated `opencode.json:590` prompt + `forbiddenPromptFragments`; the pre-install one-way tripwire (`host_sandbox_result` inspected before `host_sandbox_result_install`) + its pinning test; the required traces (permit-consumption log line, `ROUTER-LOG.md` row, over-threshold scan, PM `## Log` entry); `tests/test_pm_task_allowlists.py` with a mutation positive control (and a live-mirror assertion); the `-astra` normalization in `pmRequiredRouteSkill`; and the record.
 
 ## Delivery strategy
 
@@ -88,6 +105,7 @@ T1: `global-config/plugins/systematic-routing-guard.ts`, `global-config/plugins/
 ## Progress
 
 - 2026-10-16: T0 — tracker, advice record and queue entry created; delivery strategy selected at creation. No source edit yet. Route: delegated.
+- 2026-10-15: External advisory (interim lane, two hosts) recorded; two BLOCKERs found (a blanket exemption would disable the writer-bypass and stage gates; the native-review independence premise is false for passive/under_budget tiny commits) plus a scope omission (overlay.md, the regenerated prompt, forbiddenPromptFragments). Owner decided: scoped one-shot permit; Tiny fix is PASSIVE-ONLY with automatic escalation. T1 scope revised accordingly; not yet dispatched.
 
 ## Route / trigger evidence
 
@@ -98,4 +116,4 @@ T1: `global-config/plugins/systematic-routing-guard.ts`, `global-config/plugins/
 
 ## Next step
 
-T1 implementation, then native review (assess the tier), then the metadata record. Units B, C and D follow.
+T1 revised scope (see the owner-decisions subsection), then native review, then the metadata record. The `-astra` normalization and the live-mirror allowlist assertion may be split into a follow-up if T1 exceeds the review budget.
