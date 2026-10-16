@@ -410,19 +410,50 @@ describe("1d. tiny-fix one-shot permit", () => {
     await probe()
   })
 
-  test("a permit for one child session does not exempt a different session", async () => {
+  test("only the candidate matching the expected writer receives the permit", async () => {
     const sid = "ses_tiny_scope"
+    const stealer = "ses_tiny_scope_stealer"
+    const writer = "ses_tiny_scope_writer"
     await message(sid, "gentle-orchestrator")
     seedKey(sid, ODD)
-    await tinyDispatch(sid, "gentle-ai-worker")
-    await sessionCreated("ses_tiny_scope_child", sid)
-    seedKey("ses_tiny_scope_child", ODD)
-    await before("sandbox_write", "ses_tiny_scope_child", { path: "src/a.ts", content: "x" })
-    expect(logCount("bootstrap: write to src/a.ts")).toBe(0)
+    await tinyDispatch(sid, "gentle-ai-worker-local")
+
+    await sessionCreated(stealer, sid)
+    await message(stealer, "general")
+    seedKey(stealer, ODD)
+    await before("sandbox_write", stealer, { path: "src/stealer.ts", content: "x" })
+    expect(logCount("bootstrap: write to src/stealer.ts")).toBe(1)
+
+    await sessionCreated(writer, sid)
+    await message(writer, "gentle-ai-worker")
+    seedKey(writer, ODD)
+    await before("sandbox_write", writer, { path: "src/writer.ts", content: "x" })
+    expect(logCount("bootstrap: write to src/writer.ts")).toBe(0)
+    expect(logCount("tiny-fix permit consumed")).toBe(1)
+    expect(logCount(`tiny-fix permit extended to child session ${writer}`)).toBe(1)
 
     seedKey("ses_tiny_scope_other", ODD)
-    await before("sandbox_write", "ses_tiny_scope_other", { path: "src/b.ts", content: "x" })
-    expect(logCount("bootstrap: write to src/b.ts")).toBe(1)
+    await before("sandbox_write", "ses_tiny_scope_other", { path: "src/unpermitted.ts", content: "x" })
+    expect(logCount("bootstrap: write to src/unpermitted.ts")).toBe(1)
+  })
+
+  test("the executable-file tripwire flags script paths and shebang content", async () => {
+    const sid = "ses_tiny_executable_parent"
+    const child = "ses_tiny_executable_child"
+    await message(sid, "pm-odd")
+    seedKey(sid, ODD)
+    await tinyDispatch(sid, "gentle-ai-worker-astra")
+    await sessionCreated(child, sid)
+    await message(child, "gentle-ai-worker")
+    seedKey(child, ODD)
+
+    await before("sandbox_write", child, { path: "scripts/run.py", content: "print('ok')" })
+    expect(logCount("tiny-fix executable-file tripwire")).toBe(1)
+    await before("sandbox_write", child, { path: "docs/script.txt", content: "#!/usr/bin/env python3\nprint('ok')" })
+    expect(logCount("tiny-fix executable-file tripwire")).toBe(2)
+
+    await before("sandbox_write", child, { path: "docs/plain.md", content: "ordinary passive text" })
+    expect(logCount("tiny-fix executable-file tripwire")).toBe(2)
   })
 
   test("a flag for a non-writer target exempts nothing", async () => {
@@ -449,10 +480,11 @@ describe("1d. tiny-fix one-shot permit", () => {
     seedKey(sid, ODD)
     await tinyDispatch(sid, "gentle-ai-worker")
     await sessionCreated("ses_tiny_child_ok", sid)
+    await message("ses_tiny_child_ok", "gentle-ai-worker")
     seedKey("ses_tiny_child_ok", ODD)
 
-    await before("sandbox_write", "ses_tiny_child_ok", { path: "src/x.ts", content: "x" })
-    expect(logCount("bootstrap: write to src/x.ts")).toBe(0)
+    await before("sandbox_write", "ses_tiny_child_ok", { path: "src/x.md", content: "x" })
+    expect(logCount("bootstrap: write to src/x.md")).toBe(0)
 
     // Positive control for this absence: a session with no permit still warns.
     seedKey("ses_tiny_child_control", ODD)

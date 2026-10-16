@@ -4576,6 +4576,8 @@ ANCHOR_TOKENS=(
   "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~Forward the provider-issued task line verbatim"
   "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~two transports cannot own one Task"
   "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~Never grant review lanes to implementation workers or isolated reviewers"
+  "workflow.route-decision~$WORKFLOW~WORKFLOW.md~executable-file class: a script/executable extension or content opening with a shebang"
+  "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~executable-file class: a script/executable extension or content opening with a shebang"
   # global-config/skills/workflow-route/references/session-decisions.md
   "workflow.session-decisions.astra~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Use Astra upgrade (Recommended)"
   "workflow.session-decisions.astra~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Astra is never an implementation agent"

@@ -82,7 +82,7 @@ The four readiness boundaries are observable: (1) explicit change intent before 
 <!-- workflow:anchor workflow.route-decision:begin -->
 ## Route decision checkpoint
 
-The orchestrator reads this current file through an authorized read-only tool before selecting a route. Before any specialist dispatch it reports `ROUTE: <class> | intent: <read-only/authorized change> | route: <skill/phase> | specialist: <name> | basis: WORKFLOW.md`. Read-only work names `route: read-only` and starts no writer. On continuation, re-read if this file changed, scope changed, or the previous route is unclear. If the file is unavailable, report unverified routing and stop workflow-dependent mutation; read-only findings may proceed with that limitation. For an applicable Systematic route, load the live skill, dispatch its named specialist, and compare actual Task results with the announced route before completion. The route statement alone is not execution evidence. Tiny fixes, docs, global tooling, and frontend tasks follow their corresponding exceptions below; do not add Systematic phases that the selected class does not require.
+The orchestrator reads this current file through an authorized read-only tool before selecting a route. Before any specialist dispatch it reports `ROUTE: <class> | intent: <read-only/authorized change> | route: <skill/phase> | specialist: <name> | basis: WORKFLOW.md`. Read-only work names `route: read-only` and starts no writer. On continuation, re-read if this file changed, scope changed, or the previous route is unclear. If the file is unavailable, report unverified routing and stop workflow-dependent mutation; read-only findings may proceed with that limitation. For an applicable Systematic route, load the live skill, dispatch its named specialist, and compare actual Task results with the announced route before completion. The route statement alone is not execution evidence. Tiny fixes, docs, global tooling, and frontend tasks follow their corresponding exceptions below; do not add Systematic phases that the selected class does not require. Tiny fix is passive-only: before applying its candidate, medium/high risk or the one-way tripwire automatically escalates out, never selects a route; the tripwire includes the executable-file class: a script/executable extension or content opening with a shebang.
 
 <!-- workflow:anchor workflow.route-decision:end -->
 <!-- workflow:anchor workflow.work-unit-review:begin -->
@@ -121,6 +121,12 @@ For upstream source evidence in **public GitHub repositories**, the read-only `g
 | **Bug investigation** | Bug/failing behavior with authorized fix | reproduce/root cause → test-first `ce:work` → `ce:review` → native review |
 | **Documentation** | Docs/guides/onboarding | Matching docs skill → delegated writer when mutation requested → proportional structural/human review |
 | **Global tooling change** | Config/plugins/skills deployed outside repo | Delegate in-repo source change → native review on source when enabled → verifier-owned exact mirror |
+
+### Tiny-fix passive boundary
+
+Tiny fix is passive-only. Before applying its candidate, automatically escalate out of Tiny fix when risk is medium/high or the one-way tripwire fires; this is escalation-only and never selects a route. The tripwire fires for more than 20 authored changed lines, more than 2 touched files, an added or deleted file, or an edit to a denylisted path, including the executable-file class: a script/executable extension or content opening with a shebang.
+
+The routing guard emits a warning when a matched tiny-fix child writes an executable-file class path or shebang content. The guard is warning-only and cannot evaluate the final diff's line/file thresholds or native risk result, nor prevent `sandbox_apply`; pre-apply candidate assessment remains the enforcement boundary.
 
 ## Classification and Route Selection Rules
 

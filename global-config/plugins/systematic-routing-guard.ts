@@ -820,14 +820,33 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
 
   // Q72 tiny-fix: a scoped ONE-SHOT permit gated ONLY on an explicit `tiny_fix` task flag --
   // never an agent-name bypass and never a persisted key/marker. The dispatch is exempt for its
-  // own stage gates, and once the host creates its child session the child's own writes are
-  // exempt too. Nothing is written to the routing-key directory, so no state can leak into a
-  // later substantial dispatch; the exemption reads only the current task args (no ancestor walk).
-  const tinyFixPendingParents = new Map<string, number>()
+  // own stage gates; a child is exempt only after its observed message agent matches the writer
+  // captured at dispatch. Nothing is written to the routing-key directory, so no state can leak
+  // into a later dispatch; the exemption reads only the child's own session ID (no ancestor walk).
+  const tinyFixPendingParents = new Map<string, { expectedAgent: string; expiry: number }>()
+  const tinyFixCandidates = new Map<string, { parentSessionID: string; expiry: number }>()
   const tinyFixChildPermits = new Map<string, number>()
   const childSessions = new Set<string>()
   const observeAgentHooks = process.env.SYSTEMATIC_ROUTING_GUARD_OBSERVE_AGENT_HOOKS === "1"
   const TINY_FIX_PERMIT_TTL_MS = 30 * 60 * 1000
+
+  const normalizeTinyFixWriter = (agent: string): string => agent.toLowerCase().replace(/-(?:local|astra)$/, "")
+  const sweepTinyFixState = (): void => {
+    const now = Date.now()
+    for (const [parent, permit] of tinyFixPendingParents) if (permit.expiry <= now) tinyFixPendingParents.delete(parent)
+    for (const [child, candidate] of tinyFixCandidates) if (candidate.expiry <= now) tinyFixCandidates.delete(child)
+    for (const [child, expiry] of tinyFixChildPermits) if (expiry <= now) tinyFixChildPermits.delete(child)
+  }
+
+  const hasExecutableFileTripwire = (paths: string[], args: Record<string, unknown> | undefined): boolean => {
+    const scriptExtension = /\.(?:sh|bash|zsh|fish|py|pl|rb|js|mjs|cjs|ts|tsx|jsx|ps1|bat|cmd|exe|com|bin|jar|wasm)$/i
+    if (paths.some((path) => scriptExtension.test(path))) return true
+    if (!args) return false
+    const content = [args.content, args.newString, args.patch]
+      .filter((value): value is string => typeof value === "string")
+      .join("\\n")
+    return /(?:^|\n)(?:\+)?#!\s*\//.test(content)
+  }
 
   const tinyFixPermitsSession = (sessionID: string): boolean => {
     const expiry = tinyFixChildPermits.get(sessionID)
@@ -840,13 +859,30 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
   }
 
   const registerTinyFixChild = (childSessionID: string, parentSessionID: string): void => {
-    const expiry = tinyFixPendingParents.get(parentSessionID)
-    if (expiry === undefined) return
-    // One-shot: consume the pending parent so a second child of the same dispatch is not exempt.
-    tinyFixPendingParents.delete(parentSessionID)
-    if (expiry <= Date.now()) return
+    sweepTinyFixState()
+    const permit = tinyFixPendingParents.get(parentSessionID)
+    if (!permit || permit.expiry <= Date.now()) return
+    tinyFixCandidates.set(childSessionID, { parentSessionID, expiry: permit.expiry })
+  }
+
+  const matchTinyFixCandidate = (childSessionID: string, observedAgent: unknown): void => {
+    sweepTinyFixState()
+    const candidate = tinyFixCandidates.get(childSessionID)
+    if (!candidate) return
+    const permit = tinyFixPendingParents.get(candidate.parentSessionID)
+    if (!permit || permit.expiry <= Date.now()) {
+      tinyFixCandidates.delete(childSessionID)
+      return
+    }
+    if (typeof observedAgent !== "string" || normalizeTinyFixWriter(observedAgent) !== normalizeTinyFixWriter(permit.expectedAgent)) {
+      tinyFixCandidates.delete(childSessionID)
+      return
+    }
+    // Consume synchronously before any await: only one matching child can win.
+    tinyFixPendingParents.delete(candidate.parentSessionID)
+    tinyFixCandidates.delete(childSessionID)
     tinyFixChildPermits.set(childSessionID, Date.now() + TINY_FIX_PERMIT_TTL_MS)
-    void logObservedLine(`[systematic-routing-guard] tiny-fix permit extended to child session ${childSessionID} (parent: ${parentSessionID})`)
+    void logObservedLine(`[systematic-routing-guard] tiny-fix permit extended to child session ${childSessionID} (parent: ${candidate.parentSessionID})`)
   }
 
   const warn = async (tool: string, sessionID: string, failure: string): Promise<void> => {
@@ -858,10 +894,9 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
 
   return {
     /**
-     * Q72 tiny-fix: the child session id is only known once the host creates it, so learn it
-     * (with its parent) from the session-creation event and extend the parent's pending permit
-     * to that child. This in-memory map replaces the `.parent`/`inherited.key` files, which the
-     * task-result hook writes only AFTER the child has already run its own tool calls.
+     * Q75 tiny-fix: session creation adds a parent-linked candidate but does not grant a permit.
+     * The candidate is granted only after chat.message reports the expected writer agent. This
+     * in-memory map is needed before child writes because the task-result hook runs too late.
      */
     event: async ({ event }) => {
       if (event.type === "session.created") {
@@ -879,6 +914,10 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
         if (typeof info?.id === "string") {
           tinyFixChildPermits.delete(info.id)
           tinyFixPendingParents.delete(info.id)
+          tinyFixCandidates.delete(info.id)
+          for (const [child, candidate] of tinyFixCandidates) {
+            if (candidate.parentSessionID === info.id) tinyFixCandidates.delete(child)
+          }
           childSessions.delete(info.id)
         }
       }
@@ -900,7 +939,8 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       activeBySession.delete(input.sessionID)
       lastKeyRefreshBySession.delete(input.sessionID)
       // The guard observes the message agent here; it is the latest observed value, not an
-      // authenticated session identity.
+      // authenticated session identity. A matching candidate consumes the tiny-fix permit.
+      matchTinyFixCandidate(input.sessionID, input.agent)
       await boxed(persistLatestMessageAgent(input.sessionID, input.agent))
     },
 
@@ -990,6 +1030,9 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
 
         // The guard is project-blind: in a multi-project session, a marker cannot satisfy a stage for the other project. A true fix needs a verified session-project source.
         // A tiny-fix child session is exempt from the bootstrap stage gate for its own writes.
+        if (FILE_MUTATING_TOOLS.has(input.tool) && paths && paths.length > 0 && tinyFixPermitsSession(input.sessionID) && hasExecutableFileTripwire(paths, args)) {
+          await warn(input.tool, input.sessionID, `tiny-fix executable-file tripwire: ${paths.join(", ")} must escalate before apply`)
+        }
         if (FILE_MUTATING_TOOLS.has(input.tool) && paths && paths.length > 0 && !tinyFixPermitsSession(input.sessionID)) {
           for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
             if (routeSkill !== "workflow-odd-secure") continue
@@ -1053,7 +1096,9 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       // Q72 tiny-fix: arm a one-shot permit for a WRITER dispatch and skip every stage gate for
       // it. A flag on a non-writer target arms nothing, so it cannot exempt any later writer.
       if (isWriterDispatch && tinyFix) {
-        tinyFixPendingParents.set(input.sessionID, Date.now() + TINY_FIX_PERMIT_TTL_MS)
+        if (dispatchedType) {
+          tinyFixPendingParents.set(input.sessionID, { expectedAgent: dispatchedType, expiry: Date.now() + TINY_FIX_PERMIT_TTL_MS })
+        }
         await logObservedLine(`[systematic-routing-guard] tiny-fix permit consumed (session: ${input.sessionID}, target: ${dispatchedType})`)
       }
 

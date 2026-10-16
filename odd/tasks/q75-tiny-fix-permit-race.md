@@ -4,7 +4,7 @@
 **Task ID:** `q75-tiny-fix-permit-race`
 **Class:** global-tooling-change
 **Route:** `workflow-odd-secure` (delegated)
-**Unit status:** T0 IN PROGRESS (tracker + advice; T1 pending)
+**Unit status:** T1 implementation and checks complete; no commit or native review (per instruction)
 **Model:** cloud
 
 ## Objective
@@ -35,9 +35,9 @@ Bind by a **candidate set plus an observed-agent match**:
 
 ## Constraints and unresolved evidence
 
-- Whether child-session events reach the same plugin instance is **UNVERIFIED**. State this as a limitation; do not silently rely on cross-session in-memory sharing.
+- Runtime evidence supplied for this unit establishes child event delivery on the observed path; whether all plugin instances share in-memory state remains **UNVERIFIED**. Do not generalize beyond the observed route.
 - `input.agent` is observed, not authenticated (`global-config/plugins/systematic-routing-guard.ts:325-331,875-880`). Matching reduces accidental misbinding but does not eliminate spoofing risk.
-- Whether `chat.message` fires for child sessions and carries their agent is an OPEN QUESTION. Current tests directly invoke the hook and do not establish runtime delivery (`tests/routing-guard/routing-guard.test.ts:70-72`). T1 must establish it with repository/runtime evidence before relying on it; otherwise fail closed and document the limitation.
+- In-repo tests directly invoke the hook and remain synthetic; runtime evidence is the separate 2026-10-15 log observation recorded below.
 - Agent normalization for writers does not currently exist. The helper normalizes `-astra` for PM adapter identity only (`global-config/plugins/lib/routing-guard-helpers.ts:37-49`); do not mistake that for writer normalization.
 - `task_id`, `background`, and retry timing are not established as child identity signals; investigate before relying on them.
 - Do not claim T1a mutation proofs M1/M2/M3 are durable evidence: they were ad hoc and are not in-repo, so their validity after this binding change is unconfirmed.
@@ -45,12 +45,12 @@ Bind by a **candidate set plus an observed-agent match**:
 ## Acceptance criteria
 
 - A non-writer child of the same parent cannot steal the permit; the intended writer still gets it.
-- The existing five `1d` permit cases remain unchanged and green (`tests/routing-guard/routing-guard.test.ts:383-461`).
-- A new race test creates the stealer child FIRST and intended writer SECOND; it fails against the current implementation and passes after the fix, with a positive control proving the mismatch child still receives the normal bootstrap warning.
-- The PM-dispatched path has a dedicated test.
-- Writer normalization covers `-local` and `-astra` variants.
-- The child-hook open question is resolved with evidence or the design fails closed and records why.
-- One-shot consumption, TTL, own-session-only semantics, all five existing cases, and non-vacuity controls are preserved.
+- The prior `1d` child-permit test is updated to require a candidate with a matching observed writer message; the other existing permit cases remain green.
+- A race test creates a non-matching child FIRST and intended writer SECOND; the mismatch receives the normal bootstrap warning and the matching writer receives the one-shot permit.
+- A tiny-fix executable-file tripwire warns on script/executable extensions and shebang content; its warning-only and pre-apply limits are recorded.
+- Expected/observed writer normalization covers `-local` and `-astra` variants.
+- Runtime evidence establishes the child-session delivery path described below; observed agent identity remains unauthenticated and plugin-instance topology remains an explicit limitation.
+- One-shot consumption, TTL, own-session-only semantics, existing negative controls, and non-vacuity controls are preserved.
 
 ## Authorized scope
 
@@ -65,7 +65,7 @@ T1: `global-config/plugins/systematic-routing-guard.ts`, `global-config/plugins/
 
 ## Tasks
 
-- [ ] T1 — replace first-child-wins consumption with candidate-set plus observed-agent binding; normalize writer variants; add a non-writer-first race test with a positive control and a PM-path case; resolve or fail closed on the child-hook question; record evidence honestly.
+- [x] T1 — replace first-child-wins consumption with candidate-set plus observed-agent binding; normalize writer variants; add a non-writer-first race test with a positive control; record runtime evidence and tripwire limits honestly. PM path uses the same `isWriterDispatch` hook and is covered by the executable-file test's PM parent.
 
 ## Delivery strategy
 
@@ -76,6 +76,7 @@ T1: `global-config/plugins/systematic-routing-guard.ts`, `global-config/plugins/
 ## Progress
 
 - 2026-10-16: T0 — tracker, advice record, and queue entry created; owner decision on binding recorded. No source edit. Route: delegated.
+- 2026-10-16: T1 — expected-writer candidate binding and executable-file tripwire warning implemented. Fake-HOME routing-guard suite 102 baseline → 103 pass / 0 fail; match-check removal reproduced the race-test failure (Expected 1 / Received 0); Python suite 155 pass; anchor-manifest suite 7 pass; `bash -n verify-workflow.sh` and `git diff --check` pass. Verifier SHA-256 pin: `09d57f7c29d2e88efd6b3699a8f207d918c86e3dffde097d25484172dd150d50` (matched by the verifier's `read_verify_script_pin` regex). No commit or branch switch.
 
 ## Route / trigger evidence
 
@@ -84,18 +85,16 @@ T1: `global-config/plugins/systematic-routing-guard.ts`, `global-config/plugins/
 - Trigger: secure no-inline-mutation policy; real defect with an owner-selected design decision.
 - RDD: on (decided by global; no review lifecycle action in T0).
 
-## T1 observation unit (child-hook delivery evidence)
+## T1 implementation and evidence
 
-**Status:** instrumentation implemented; runtime observation pending. This is evidence-only and does not implement candidate-set binding. Binding remains unimplemented until the real-child observation establishes delivery, agent identity, and ordering before the child's first write.
+**Runtime evidence supplied for this unit (observed 2026-10-15):** the tiny-fix route completed end-to-end. `routing-guard.log` lines 58635-58636 show the guard reading and stripping the flag, arming the one-shot permit, and extending it to the exact child created by the dispatch; lines 58640-58641 show zero `routing gate:` warnings and the child's `sandbox_edit` exempt at the bootstrap gate. This establishes runtime delivery for the tested child route and resolves the prior child-session delivery blocker. It does not establish that every plugin-instance topology shares in-memory state or authenticate `input.agent`.
 
-**Instrumented:** `chat.message`, the only agent-bearing hook currently registered by this guard. The returned hook map in `global-config/plugins/systematic-routing-guard.ts` registers no `chat.params` callback, so this unit does not add one. `session.created` records child-session membership when `info.parentID` is a string, and `session.deleted` removes it. When `SYSTEMATIC_ROUTING_GUARD_OBSERVE_AGENT_HOOKS=1`, each `chat.message` invocation appends one temporary observation via `appendRoutingLog`; without the opt-in environment variable, the instrumentation is dormant.
+**Previously observed gap (observed 2026-10-15):** a tiny-fix dispatch whose target was an executable script assessed `risk: high`, `review_due: true`, with `process_boundary` / `shell_process`; nothing stopped it. The one-way tripwire denylist had no executable-file class. Q72 requires passive-only escalation for medium/high risk. The prior tripwire's pre-apply enforcement was not committed in T1a, so documentation alone did not close this gap.
 
-**Exact emitted line format:** `YYYY-MM-DDTHH:mm:ss.sssZ [systematic-routing-guard] TEMP agent-hook hook=chat.message session=<URI-encoded-sessionID> agent=<URI-encoded-agent-or-none> child=<true|false>`. The timestamp is prepended by `appendRoutingLog`; `agent=none` means `input.agent` was not a non-empty string; an unencodable string field is recorded as `invalid` rather than throwing. `child=true` means this plugin instance observed a `session.created` event for that session with a string `parentID`; `child=false` means no such parent was observed by this instance. This instrumentation is explicitly TEMPORARY because it emits one line per message and would otherwise add sustained log volume; remove it after the runtime observation is recorded. It writes through `appendRoutingLog` to `~/.local/share/opencode/logs/routing-guard.log` by default and does not use stdout.
+**Fix implemented:** pending parent permits now retain the expected writer; `session.created` adds a candidate without consuming the permit; an observed `chat.message` grants only when its agent matches the expected writer after `-local` / `-astra` normalization. A mismatch candidate is dropped; if no candidate matches, the permit remains unused until its original TTL expires. Candidate/permit state is cleaned on session deletion and lazily swept on guard activity. The existing `tiny-fix permit consumed` dispatch log and child-extension log are preserved. A nonmatching-first race test has a normal bootstrap-warning positive control and a matching-writer success assertion.
 
-**Gather the observation:** after the canonical plugin is loaded in OpenCode (mirror/deploy the source through the approved verifier path and restart OpenCode), start a fresh session with `env SYSTEMATIC_ROUTING_GUARD_OBSERVE_AGENT_HOOKS=1 opencode`. In a second Fish-compatible terminal run `tail -f ~/.local/share/opencode/logs/routing-guard.log`. From the OpenCode session, dispatch the intended writer agent as a real child and have that child perform a harmless first write in a disposable worktree. Preserve the exact dispatched agent name and identify the child's first write in the task/tool trace. Match its child session ID against the log, then compare ordering: the `agent-hook` line must show `child=true`, its `agent` must equal the dispatched writer (after URI decoding), and that line must appear before the child's first write. A line missing, marked `child=false`, carrying another agent, or appearing after the first write does not establish the required contract. Close OpenCode after the probe so the temporary opt-in does not remain active.
-
-**Check evidence boundaries:** an in-repo test directly invoking the hook remains synthetic and is not runtime-delivery evidence. If the required real-child line is not observed, do not implement binding; record the runtime limitation and fail closed. The candidate-set binding remains unimplemented pending this evidence.
+The executable-file class now covers script/executable extensions and content opening with a shebang. The guard warns when a matched tiny-fix child writes such a file. **Residual, not covered:** the guard remains warning-only; it cannot inspect a completed candidate's final authored line/file counts or native risk assessment, and it cannot block `sandbox_apply`. Therefore pre-apply candidate/risk assessment remains the required escalation boundary; the guard warning is an early signal, not proof that escalation occurred. `input.agent` remains observed, not authenticated, and in-memory cross-instance sharing remains unverified beyond the supplied runtime observation.
 
 ## Next step
 
-Collect and record the real-child observation. Only then decide whether a later unit may implement candidate-set binding; native review and metadata recording follow that implementation unit, not this evidence-only change.
+Run the required test, verifier syntax, anchor-manifest, Python, diff, and pin-coherence checks; then record exact results. No commit or branch switch is authorized.
