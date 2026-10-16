@@ -4,7 +4,7 @@
 **Task ID:** q73-review-slice-cadence (stable)
 **Class:** global-tooling-change
 **Route:** `workflow-odd-secure` (delegated)
-**Unit status:** T0 IN PROGRESS (tracker + advice; T1 pending).
+**Unit status:** T1 implementation in progress (verification pending; no commit).
 **Model:** cloud `opencode-go/deepseek-v4.1-flash`
 
 ## Objective
@@ -91,7 +91,16 @@ Plus this tracker, the advice record, `ROUTER-LOG.md`.
 ## Progress
 
 - 2026-10-16: T0 — tracker, advice record and queue entry created; delivery strategy selected at
-  creation. No source edit yet. Route: delegated.
+  creation. Route: delegated.
+- 2026-10-16: T1 — added the cadence rule to all three prose anchors, added token rows and a
+  structural test with a planted-wrong-prose positive control, and recorded the route log row.
+  Limits: the test is structural only and cannot prove the orchestrator acts; the native START
+  ceiling is provider-owned; no outcome-record schema exists. Checks: `bash -n` passed; focused
+  cadence tests 2/2; anchor manifest 7/7; Python discovery 147/147; routing-guard 102/102 using
+  `env HOME=/tmp/q73-review-cadence-fake-home` (argv-safe fake-HOME equivalent). The verifier
+  printed the matching script digest through `read_verify_script_pin`, but its full run is
+  environment-blocked by the sandbox's `/work` root differing from its hard-coded `/home/james`
+  project path and missing host config/dependencies. Pin updated after the script edits.
 
 ## Route / trigger evidence
 
