@@ -84,6 +84,18 @@ T1: `global-config/plugins/systematic-routing-guard.ts`, `global-config/plugins/
 - Trigger: secure no-inline-mutation policy; real defect with an owner-selected design decision.
 - RDD: on (decided by global; no review lifecycle action in T0).
 
+## T1 observation unit (child-hook delivery evidence)
+
+**Status:** instrumentation implemented; runtime observation pending. This is evidence-only and does not implement candidate-set binding. Binding remains unimplemented until the real-child observation establishes delivery, agent identity, and ordering before the child's first write.
+
+**Instrumented:** `chat.message`, the only agent-bearing hook currently registered by this guard. The returned hook map in `global-config/plugins/systematic-routing-guard.ts` registers no `chat.params` callback, so this unit does not add one. `session.created` records child-session membership when `info.parentID` is a string, and `session.deleted` removes it. When `SYSTEMATIC_ROUTING_GUARD_OBSERVE_AGENT_HOOKS=1`, each `chat.message` invocation appends one temporary observation via `appendRoutingLog`; without the opt-in environment variable, the instrumentation is dormant.
+
+**Exact emitted line format:** `YYYY-MM-DDTHH:mm:ss.sssZ [systematic-routing-guard] TEMP agent-hook hook=chat.message session=<URI-encoded-sessionID> agent=<URI-encoded-agent-or-none> child=<true|false>`. The timestamp is prepended by `appendRoutingLog`; `agent=none` means `input.agent` was not a non-empty string; an unencodable string field is recorded as `invalid` rather than throwing. `child=true` means this plugin instance observed a `session.created` event for that session with a string `parentID`; `child=false` means no such parent was observed by this instance. This instrumentation is explicitly TEMPORARY because it emits one line per message and would otherwise add sustained log volume; remove it after the runtime observation is recorded. It writes through `appendRoutingLog` to `~/.local/share/opencode/logs/routing-guard.log` by default and does not use stdout.
+
+**Gather the observation:** after the canonical plugin is loaded in OpenCode (mirror/deploy the source through the approved verifier path and restart OpenCode), start a fresh session with `env SYSTEMATIC_ROUTING_GUARD_OBSERVE_AGENT_HOOKS=1 opencode`. In a second Fish-compatible terminal run `tail -f ~/.local/share/opencode/logs/routing-guard.log`. From the OpenCode session, dispatch the intended writer agent as a real child and have that child perform a harmless first write in a disposable worktree. Preserve the exact dispatched agent name and identify the child's first write in the task/tool trace. Match its child session ID against the log, then compare ordering: the `agent-hook` line must show `child=true`, its `agent` must equal the dispatched writer (after URI decoding), and that line must appear before the child's first write. A line missing, marked `child=false`, carrying another agent, or appearing after the first write does not establish the required contract. Close OpenCode after the probe so the temporary opt-in does not remain active.
+
+**Check evidence boundaries:** an in-repo test directly invoking the hook remains synthetic and is not runtime-delivery evidence. If the required real-child line is not observed, do not implement binding; record the runtime limitation and fail closed. The candidate-set binding remains unimplemented pending this evidence.
+
 ## Next step
 
-T1 implementation, then native review, then the metadata record.
+Collect and record the real-child observation. Only then decide whether a later unit may implement candidate-set binding; native review and metadata recording follow that implementation unit, not this evidence-only change.

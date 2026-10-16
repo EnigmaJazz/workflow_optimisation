@@ -259,6 +259,14 @@ async function appendRoutingLog(line: string): Promise<void> {
   }
 }
 
+function encodeObservationField(value: string): string {
+  try {
+    return encodeURIComponent(value)
+  } catch {
+    return "invalid"
+  }
+}
+
 async function logObservedLine(line: string): Promise<void> {
   try {
     console.warn(line)
@@ -817,6 +825,8 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
   // later substantial dispatch; the exemption reads only the current task args (no ancestor walk).
   const tinyFixPendingParents = new Map<string, number>()
   const tinyFixChildPermits = new Map<string, number>()
+  const childSessions = new Set<string>()
+  const observeAgentHooks = process.env.SYSTEMATIC_ROUTING_GUARD_OBSERVE_AGENT_HOOKS === "1"
   const TINY_FIX_PERMIT_TTL_MS = 30 * 60 * 1000
 
   const tinyFixPermitsSession = (sessionID: string): boolean => {
@@ -856,14 +866,20 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
     event: async ({ event }) => {
       if (event.type === "session.created") {
         const info = (event as { properties?: { info?: { id?: unknown; parentID?: unknown } } }).properties?.info
-        if (typeof info?.id === "string" && typeof info.parentID === "string") {
-          registerTinyFixChild(info.id, info.parentID)
+        if (typeof info?.id === "string") {
+          if (typeof info.parentID === "string") {
+            childSessions.add(info.id)
+            registerTinyFixChild(info.id, info.parentID)
+          } else {
+            childSessions.delete(info.id)
+          }
         }
       } else if (event.type === "session.deleted") {
         const info = (event as { properties?: { info?: { id?: unknown } } }).properties?.info
         if (typeof info?.id === "string") {
           tinyFixChildPermits.delete(info.id)
           tinyFixPendingParents.delete(info.id)
+          childSessions.delete(info.id)
         }
       }
     },
@@ -873,6 +889,14 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
      * so subagent sessions cannot clear or contaminate their parent's state.
      */
     "chat.message": async (input) => {
+      if (observeAgentHooks) {
+        const observedAgent = typeof input.agent === "string" && input.agent.length > 0
+          ? encodeObservationField(input.agent)
+          : "none"
+        await appendRoutingLog(
+          `[systematic-routing-guard] TEMP agent-hook hook=chat.message session=${encodeObservationField(input.sessionID)} agent=${observedAgent} child=${childSessions.has(input.sessionID)}`,
+        )
+      }
       activeBySession.delete(input.sessionID)
       lastKeyRefreshBySession.delete(input.sessionID)
       // The guard observes the message agent here; it is the latest observed value, not an
