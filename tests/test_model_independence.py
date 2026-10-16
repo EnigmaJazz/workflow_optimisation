@@ -43,8 +43,14 @@ def model_family(value):
 def assert_independent(test_case, writer_model, coordinator_model):
     writer_family = model_family(writer_model)
     coordinator_family = model_family(coordinator_model)
-    test_case.assertIsNotNone(writer_family)
-    test_case.assertIsNotNone(coordinator_family)
+    test_case.assertIsNotNone(
+        writer_family,
+        f"Unrecognized writer model family; independence is not proven: {writer_model!r}",
+    )
+    test_case.assertIsNotNone(
+        coordinator_family,
+        f"Unrecognized coordinator model family; independence is not proven: {coordinator_model!r}",
+    )
     test_case.assertNotEqual(writer_family, coordinator_family)
 
 
@@ -65,12 +71,14 @@ class ModelIndependence(unittest.TestCase):
         cls.config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
         cls.agents = cls.config["agent"]
 
-    def test_tiny_fix_writer_is_independent_from_orchestrator(self):
-        assert_independent(
-            self,
-            self.agents["general"]["model"],
-            self.agents["gentle-orchestrator"]["model"],
-        )
+    def test_tiny_fix_writers_are_independent_from_orchestrator(self):
+        for writer in ("general", "gentle-ai-worker-local"):
+            with self.subTest(writer=writer):
+                assert_independent(
+                    self,
+                    self.agents[writer]["model"],
+                    self.agents["gentle-orchestrator"]["model"],
+                )
 
     def test_orchestrator_tiny_fix_task_target_is_general(self):
         targets = self.agents["gentle-orchestrator"]["permission"]["task"]
@@ -108,6 +116,10 @@ class PositiveControl(unittest.TestCase):
     def test_same_family_pairing_fails_independence_assertion(self):
         with self.assertRaises(AssertionError):
             assert_independent(self, "opencode-go/deepseek-v4.1-flash", "other/deepseek-v5")
+
+    def test_unrecognized_writer_family_fails_independence_assertion(self):
+        with self.assertRaisesRegex(AssertionError, "independence is not proven"):
+            assert_independent(self, "kinver/professional", "opencode-go/deepseek-v4.1-flash")
 
 
 if __name__ == "__main__":
