@@ -61,8 +61,9 @@ T1: `global-config/opencode.json`, `verify-workflow.sh`, `global-config/plugins/
 - `python3 -m unittest discover -s tests`: 199 tests; 189 passed, 10 errored because sandbox execution of `node` is denied; 0 assertion failures after the pin update.
 - `env HOME=/tmp/q78-meta-home bun test tests/routing-guard`: 103 passed, 0 failed.
 - Pin regex test `tests.test_orchestrator_prompt_source.OrchestratorPromptSourceTests.test_verifier_script_pin_matches_its_own_regex`: passed; both literals were `e962494eb4e4f597da163fdf26c9bf36a8debe43a311be16d235c56d23d26bf4`.
-- Extracted assertion fixture execution was not completed: Node is unavailable (spawn denied), and the sandbox command interface rejected the inline Bun fixture harness. Thus the present/removed/false fixture outcomes remain unverified here; this is not a claim that the fixture suite passed.
-- Full verifier/deploy and any Node-dependent check remain the owner's deploy step.
+- Extracted execution proof: all three positive controls now pass with the quoted expected substrings and fail when each expected substring is reverted to its bare form. The real-config path confirms global default `deny`, orchestrator permission `allow`, and inclusion of `host_review_materialize` in `gatedHostMutations`.
+- Root cause: `show(value)` returns `JSON.stringify(value)`, so string permissions appear quoted in diagnostics. The three comparisons expected bare `allow`/`ask`, unlike the per-agent controls which interpolate names directly. Updated only those expected substrings; `show()` remains unchanged because quoted values are correct in operator-facing failures.
+- Extracted proof used a temporary `.atl/` Bun harness (removed/ignored), since `node` remains unavailable. The full verifier/deploy remains the owner's step.
 
 ## Delivery strategy
 

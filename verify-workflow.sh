@@ -2755,7 +2755,7 @@ function hostReviewMaterializeGlobalDefaultFailures(value) {
 }
 for (const failure of hostReviewMaterializeGlobalDefaultFailures(gp.host_review_materialize)) fail(failure)
 const hostReviewGlobalDefaultProbe=hostReviewMaterializeGlobalDefaultFailures("allow")
-if (!hostReviewGlobalDefaultProbe.includes("HOST_REVIEW_MATERIALIZE_GLOBAL_DEFAULT_NOT_DENY: allow")) fail("HOST_REVIEW_MATERIALIZE_GLOBAL_DEFAULT_POSITIVE_CONTROL_FAILED")
+if (!hostReviewGlobalDefaultProbe.includes('HOST_REVIEW_MATERIALIZE_GLOBAL_DEFAULT_NOT_DENY: "allow"')) fail("HOST_REVIEW_MATERIALIZE_GLOBAL_DEFAULT_POSITIVE_CONTROL_FAILED")
 else console.log("   ok: host_review_materialize global-default positive control detected allow")
 function hostReviewMaterializeExceptionFailures(gated,agent) {
   const failures=[]
@@ -2763,10 +2763,10 @@ function hostReviewMaterializeExceptionFailures(gated,agent) {
   return failures
 }
 const hostReviewExceptionOmitted=hostReviewMaterializeExceptionFailures(gatedHostMutations.filter((name)=>name!=="host_review_materialize"),{permission:{host_review_materialize:"allow"}})
-if (!hostReviewExceptionOmitted.includes("ORCHESTRATOR_HOST_REVIEW_MATERIALIZE_EXCEPTION_NOT_ALLOW: allow")) fail("HOST_REVIEW_MATERIALIZE_EXCEPTION_OMITTED_POSITIVE_CONTROL_FAILED")
+if (!hostReviewExceptionOmitted.includes('ORCHESTRATOR_HOST_REVIEW_MATERIALIZE_EXCEPTION_NOT_ALLOW: "allow"')) fail("HOST_REVIEW_MATERIALIZE_EXCEPTION_OMITTED_POSITIVE_CONTROL_FAILED")
 else console.log("   ok: host_review_materialize exception positive control detected omitted allow-list membership")
 const hostReviewExceptionWrong=hostReviewMaterializeExceptionFailures(gatedHostMutations,{permission:{host_review_materialize:"ask"}})
-if (!hostReviewExceptionWrong.includes("ORCHESTRATOR_HOST_REVIEW_MATERIALIZE_EXCEPTION_NOT_ALLOW: ask")) fail("HOST_REVIEW_MATERIALIZE_EXCEPTION_VALUE_POSITIVE_CONTROL_FAILED")
+if (!hostReviewExceptionWrong.includes('ORCHESTRATOR_HOST_REVIEW_MATERIALIZE_EXCEPTION_NOT_ALLOW: "ask"')) fail("HOST_REVIEW_MATERIALIZE_EXCEPTION_VALUE_POSITIVE_CONTROL_FAILED")
 else console.log("   ok: host_review_materialize exception positive control detected ask instead of allow")
 for (const [name,agent] of Object.entries(deployedAgents)) {
   if (["gentle-orchestrator","pm-odd","pm-systematic"].includes(name)) continue
