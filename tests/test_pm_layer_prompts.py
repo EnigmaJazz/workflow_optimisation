@@ -36,7 +36,16 @@ AGENT_NAMES = ("pm-odd", "pm-systematic")
 ORCHESTRATOR_NEEDLES = ("pm-unit-brief/v1", "docs/specs/pm-handoff.md")
 
 # Stable part of the committed-tracker hash comparison both PM prompts must teach.
-PM_COMPLETE_READ_NEEDLE = "compare it with the brief's `tracker_sha256`"
+PM_COMPLETE_READ_NEEDLE = "compare the tracker at unit start with the brief's `tracker_sha256`"
+PM_PLANNING_SKIP_NEEDLE = "hash fields are explicit `none` and comparison is skipped"
+PM_REHASH_NEEDLE = "recompute and report the final hash"
+PM_FIX_FORWARD_NEEDLE = "fix-forward/re-hash instruction"
+PM_OLD_BLOCKING_WORDING = "if the file or supplied hash is absent, the supplied hash is empty"
+
+
+def assert_no_old_planning_blocking_wording(prompt):
+    if PM_OLD_BLOCKING_WORDING in prompt:
+        raise AssertionError("planning creation must skip the dispatch-time hash comparison")
 
 
 def load_config(path=CONFIG_PATH):
@@ -69,8 +78,10 @@ def missing_prompt_needles(data, agents=AGENT_NAMES):
         prompt = prompt_of(data, name)
         if prompt is None:
             missing.append((name, PM_COMPLETE_READ_NEEDLE, "agent key absent or prompt not a string"))
-        elif PM_COMPLETE_READ_NEEDLE not in prompt:
-            missing.append((name, PM_COMPLETE_READ_NEEDLE, "prompt does not contain the needle"))
+        else:
+            for needle in (PM_COMPLETE_READ_NEEDLE, PM_PLANNING_SKIP_NEEDLE, PM_REHASH_NEEDLE, PM_FIX_FORWARD_NEEDLE):
+                if needle not in prompt:
+                    missing.append((name, needle, "prompt does not contain the needle"))
     return missing
 
 
@@ -118,6 +129,11 @@ class RealConfig(unittest.TestCase):
                 )
 
 
+    def test_pm_prompts_do_not_block_planning_creation_for_missing_hashes(self):
+        for name in AGENT_NAMES:
+            with self.subTest(agent=name):
+                assert_no_old_planning_blocking_wording(prompt_of(self.data, name))
+
     def test_pm_prompts_remain_under_character_cap(self):
         for name in AGENT_NAMES:
             with self.subTest(agent=name):
@@ -133,7 +149,7 @@ class PositiveControl(unittest.TestCase):
     @staticmethod
     def _synthetic():
         orchestrator = "orchestrator preamble " + " ".join(ORCHESTRATOR_NEEDLES)
-        pm = "pm preamble " + PM_COMPLETE_READ_NEEDLE
+        pm = "pm preamble " + " ".join((PM_COMPLETE_READ_NEEDLE, PM_PLANNING_SKIP_NEEDLE, PM_REHASH_NEEDLE, PM_FIX_FORWARD_NEEDLE))
         return {
             "agent": {
                 ORCHESTRATOR: {"prompt": orchestrator},
@@ -142,13 +158,20 @@ class PositiveControl(unittest.TestCase):
             }
         }
 
+    def test_old_planning_blocking_wording_fails_negative_assertion(self):
+        with self.assertRaisesRegex(AssertionError, "planning creation must skip"):
+            assert_no_old_planning_blocking_wording(
+                "Return BLOCKED " + PM_OLD_BLOCKING_WORDING
+            )
+
     def test_removed_hash_comparison_needle_is_reported(self):
         data = self._synthetic()
         self.assertEqual(missing_prompt_needles(data), [])
         data["agent"]["pm-odd"]["prompt"] = "no mechanism here"
         missing = missing_prompt_needles(data)
-        self.assertEqual([(agent, reason) for agent, _, reason in missing],
-                         [("pm-odd", "prompt does not contain the needle")])
+        self.assertEqual([(agent, needle, reason) for agent, needle, reason in missing],
+                         [("pm-odd", needle, "prompt does not contain the needle")
+                          for needle in (PM_COMPLETE_READ_NEEDLE, PM_PLANNING_SKIP_NEEDLE, PM_REHASH_NEEDLE, PM_FIX_FORWARD_NEEDLE)])
 
     def test_absent_agent_key_is_reported(self):
         data = self._synthetic()
@@ -174,8 +197,8 @@ class PositiveControl(unittest.TestCase):
             PM_COMPLETE_READ_NEEDLE + " " + " ".join(ORCHESTRATOR_NEEDLES)
         )
         missing = missing_prompt_needles(data)
-        self.assertEqual(len(missing), len(ORCHESTRATOR_NEEDLES))
-        self.assertEqual({agent for agent, _, _ in missing}, {ORCHESTRATOR})
+        self.assertEqual(len(missing), len(ORCHESTRATOR_NEEDLES) + 3)
+        self.assertEqual({agent for agent, _, _ in missing}, {ORCHESTRATOR, "pm-odd"})
 
 
 if __name__ == "__main__":

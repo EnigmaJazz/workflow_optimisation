@@ -15,6 +15,8 @@ One row per routed task. Append after every task — including probes (flagged `
 | 2026-08-10 | Probe: count_words bug | bug | none | RDD receipt | true | probes/bug/ | Reproduce → root cause → test-first RED/GREEN |
 | 2026-08-10 | Probe: repo README | documentation | none | zero-lens structural readback | true | probes/documentation/ | Docs-only change: low risk, no lenses, no consent |
 | 2026-08-10 | Probe: stats module | substantial | none | RDD receipt | true | probes/substantial/ | SDD propose/spec/design/tasks → apply → gate; AE4 skill paths injected into apply prompt |
+| 2026-10-17 | Q77 R4-001: correct PM unit-start tracker hash gate | global tooling change | none | targeted spec/prompt tests pass; full suites pending | false | odd/tasks/q77-pm-mirror-readback.md; docs/specs/pm-handoff.md | Compare dispatch snapshot only; planning creation skips with explicit `none`; post-unit rehash reported with fix-forward, never terminal-blocked. No commit. |
+| 2026-10-17 | Q77 R4-001 follow-up: remove planning-blocking contradiction from both PM prompts | global tooling change | none | targeted suites, JSON, shell syntax, and routing-guard pass; full Python suite has 10 sandbox `node` permission errors | false | odd/tasks/q77-pm-mirror-readback.md; global-config/opencode.json; tests/test_pm_layer_prompts.py | Prompt-source test proves assembled/embedded/test-constant match at c0dd55e85f912807391df4aeb386628a289af1cde86b966d29927cf02b327ee0; ledger contains same digest. No commit and no branch switch. |
 
 
 ## Usage Notes
