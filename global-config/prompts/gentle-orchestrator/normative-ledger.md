@@ -2,7 +2,7 @@
 
 Scope: every sentence in the CURRENT prompt (`global-config/opencode.json` →
 `agent["gentle-orchestrator"].prompt`, sha256
-`c0dd55e85f912807391df4aeb386628a289af1cde86b966d29927cf02b327ee0`, 414 lines)
+`7ac00866aef67b734224843453f66681fdd979cde98b4f4f053ab19f5bedc995`, 414 lines)
 containing MUST, NEVER, ALWAYS (case-insensitive, word boundary) or "hard rule".
 70 candidate sentences: **44 kept, 1 split, 10 superseded-by-base, 15
 removed-by-design; zero unclassified.**
@@ -79,7 +79,7 @@ wiring are produced by `global-config/prompts/gentle-orchestrator/assemble-orche
 | 56 | L494 | "You MUST follow strict-tdd.md." | removed-by-design | removed: SDD apply/verify launch instruction retired (Q31); generic TDD forwarding retained in overlay:user:secure-odd-protocol |
 | 57 | L503 | "The writer must update/merge the existing Magic Context record, preserving all prior completed tasks and evidence; never create a second active apply-progress record." | removed-by-design | removed: SDD apply-progress continuity retired (Q31) |
 | 58 | L515 | "Read-only requests end after findings; never create a tracker or delegate a writer." | kept | overlay:user:secure-odd-protocol |
-| 59 | L517 | "Update and read back both after each completed task or accepted scope change; never mark a task complete without observed checks." | kept | overlay:user:secure-odd-protocol |
+| 59 | L517 | "Update the repository tracker after each completed task or accepted scope change; never mark a task complete without observed checks." | kept | overlay:user:secure-odd-protocol |
 | 60 | L519 | "The orchestrator remains read-only for project files and execution: it delegates the track/write/check actions, never creates the tracker with native host tools." | kept | overlay:user:read-only-boundary |
 | 61 | L519 | "Systematic ce:review stays advisory when selected, and its helper pipeline must run in an authorized sandbox worker." | kept | overlay:user:review-boundary |
 | 62 | L521 | "Never substitute the orchestrator for an implementation worker or for independent reviewer personas." | kept | overlay:user:always-delegate |

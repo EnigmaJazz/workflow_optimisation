@@ -27,7 +27,7 @@ SECTIONS = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstrea
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
 CONFIG = ROOT / "global-config" / "opencode.json"
 
-CURRENT_PROMPT_SHA256 = "c0dd55e85f912807391df4aeb386628a289af1cde86b966d29927cf02b327ee0"
+CURRENT_PROMPT_SHA256 = "7ac00866aef67b734224843453f66681fdd979cde98b4f4f053ab19f5bedc995"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
