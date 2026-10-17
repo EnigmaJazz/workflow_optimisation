@@ -43,7 +43,7 @@ The PM's RUNTIME behaviour is NOT repo-testable; the falsifier is a live `pm-odd
 
 ## Tasks
 
-- [ ] T1 — add the hash field(s) to the brief field list; reword the readback clause at :28/:117 to the compare-supplied-hash obligation with its BLOCKED outcomes; record the comparison in the result envelope; keep the metadata worker's write ownership; add tests/test_pm_handoff_spec.py asserting the schema with a positive control.
+- [x] T1 — add the hash field(s) to the brief field list; reword the readback clause at :28/:117 to the compare-supplied-hash obligation with its BLOCKED outcomes; record the comparison in the result envelope; keep the metadata worker's write ownership; add tests/test_pm_handoff_spec.py asserting the schema with a positive control.
 
 ## Delivery strategy
 
@@ -51,7 +51,8 @@ The PM's RUNTIME behaviour is NOT repo-testable; the falsifier is a live `pm-odd
 
 ## Progress
 
-- 2026-10-17: T0 — tracker, advice record and queue entry created. No source edit yet. Route: delegated.
+- 2026-10-17: T0 — tracker, advice record and queue entry created. Route: delegated.
+- 2026-10-17: T1 — updated `docs/specs/pm-handoff.md` with orchestrator-supplied `tracker_sha256`/`mirror_sha256`, PM-computed committed-tracker SHA-256 comparison and named BLOCKED outcomes, comparison evidence in the result envelope, and preserved metadata-worker mirror-write ownership. Added `tests/test_pm_handoff_spec.py`; targeted suite: 5 passed. Positive control mutates away `mirror_sha256` and confirms the schema assertion raises `AssertionError`. Full suite: 192 tests, 182 passed, 10 errors because sandbox execution denied `node` in pre-existing `test_gemini_advisor_route.py` subprocess checks. PM runtime behavior remains NOT repo-testable; falsifier is a live `pm-odd` dispatch whose result envelope records the hash comparison — HOST-ONLY.
 
 ## Route / trigger evidence
 
@@ -59,4 +60,4 @@ Route: delegated. Specialist: `general` (non-DeepSeek; the orchestrator is DeepS
 
 ## Next step
 
-T1 (the spec change), then U2 (the prompts + regeneration), then a live smoke test.
+U2 (the prompts + regeneration), then a live smoke test.

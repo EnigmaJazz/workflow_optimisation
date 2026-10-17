@@ -4,7 +4,7 @@
 
 ## Brief-in fields
 
-Every PM Task brief is exactly one work unit, never a whole feature. It carries the schema tag `pm-unit-brief/v1`, `unit_id`, `task_id` (stable tracker task identifier), `tracker_path` (repository-relative; absent only for planning that creates the tracker), `task_class`, selected `route`, the orchestrator's `initial_plan` (scope, approach, acceptance criteria, non-goals, resolved decisions), `last_reviewed_boundary` (exact commit/revision or explicit `none`), `feature_branch` (the exact branch the unit must be on, or explicit `none` only for planning that creates the tracker), `rdd_mode` (`enabled | disabled`) and `rdd_mode_source` (`default | global | clone-local`), and `constraints` (TDD mode/source/runner, allowed paths, review/delivery policy, required evidence). The PM verifies these inputs against `WORKFLOW.md`; brief schema mismatches are invalid and stop dispatch before any writer.
+Every PM Task brief is exactly one work unit, never a whole feature. It carries the schema tag `pm-unit-brief/v1`, `unit_id`, `task_id` (stable tracker task identifier), `tracker_path` (repository-relative; absent only for planning that creates the tracker), `tracker_sha256` (SHA-256 of the canonical tracker file), `mirror_sha256` (SHA-256 of the complete Magic Context mirror body), `task_class`, selected `route`, the orchestrator's `initial_plan` (scope, approach, acceptance criteria, non-goals, resolved decisions), `last_reviewed_boundary` (exact commit/revision or explicit `none`), `feature_branch` (the exact branch the unit must be on, or explicit `none` only for planning that creates the tracker), `rdd_mode` (`enabled | disabled`) and `rdd_mode_source` (`default | global | clone-local`), and `constraints` (TDD mode/source/runner, allowed paths, review/delivery policy, required evidence). The ORCHESTRATOR supplies both hashes: it has `ctx_memory` and can read the mirror body; the PM does not receive `ctx_memory` and must not be given or asked to fetch that body. The PM verifies these inputs against `WORKFLOW.md`; brief schema mismatches are invalid and stop dispatch before any writer.
 
 ## PM prompt boundary
 
@@ -25,7 +25,7 @@ After route agreement, follow that route skill's current requirements in order:
 7. native review only when the selected non-SDD route and user-owned RDD state require it; it remains separately driven and is never run by the PM; then
 8. tracker, `docs/TODO.md`, and `docs/PLAN.md` updates as applicable.
 
-When any required artifact or check is unavailable, the PM returns `BLOCKED` with the named reason rather than proceeding on judgement: an absent or unrecoverable tracker file or Magic Context mirror, naming which artifact is unavailable (a divergent mirror included); an unverifiable `last_reviewed_boundary`, naming the value and the resolution failure (an explicit `none` is a valid value and is not an error); and an outstanding prerequisite check that cannot be run or whose result is unknown, naming the check (an unrun check is never treated as passed).
+Before `DONE`, the PM reads the COMMITTED TRACKER FILE itself and computes its SHA-256, then compares that value with the orchestrator-supplied `tracker_sha256`. The PM does not fetch or read back the Magic Context body. The PM returns `BLOCKED` with a named reason if the committed tracker file or supplied `tracker_sha256` is absent, if the supplied hash is empty, or if the computed file hash and supplied `tracker_sha256` mismatch; it never treats a missing or invalid value as agreement. The orchestrator supplies both `tracker_sha256` and `mirror_sha256`, and the recorded comparison is the PM's independent file-hash comparison against `tracker_sha256`. An unverifiable `last_reviewed_boundary` also returns `BLOCKED`, naming the value and resolution failure (an explicit `none` is valid); an outstanding prerequisite check that cannot be run or whose result is unknown returns `BLOCKED`, naming the check (an unrun check is never treated as passed).
 
 When a writer's result needs refinement, install the result first, then dispatch a fresh writer to refine the installed base; never reconstruct the changes from the original base. Repeat as needed. Sandbox workers are single-lifecycle and terminal after apply, so every iteration uses a fresh worker regardless. Installing each iteration makes progress durable immediately, which matters because worker sessions routinely stall or are cancelled. Only the reviewed result is committed; intermediate installed states are not committed. The host tree therefore carries uncommitted intermediate states: maintain tree hygiene and deliberately reconcile the intended feature branch before continuing.
 
@@ -95,7 +95,16 @@ Return one JSON object conforming to `pm-unit-result/v1`. The brief version is c
   "continuation": null,
   "readback": {
     "tracker_reference": "path/revision and observed readback result",
-    "magic_context_reference": "exact ODD_TASKS key/item and complete-body readback result"
+    "magic_context_reference": "orchestrator-supplied mirror reference; PM does not read the body",
+    "tracker_mirror_hash_comparison": {
+      "method": "PM computes SHA-256 over the committed tracker file and compares it with supplied tracker_sha256",
+      "outcome": "match | BLOCKED: tracker/hash absent, supplied hash empty, or hash mismatch (named reason)",
+      "hashes": {
+        "computed_tracker_sha256": "PM-computed value",
+        "supplied_tracker_sha256": "brief value",
+        "supplied_mirror_sha256": "brief value"
+      }
+    }
   }
 }
 ```
@@ -114,4 +123,4 @@ The implementation sandbox worker is single-lifecycle and cannot re-enter after 
 
 A metadata-worker failure after successful implementation leaves the unit `BLOCKED`, with the implementation commit retained in candidate evidence, `metadata_work_unit.status` set to `failed`, the concrete failure recorded, and `metadata` as the pending step. The PM must not return `DONE`.
 
-A PM returns `DONE` only after observing committed implementation and metadata work-unit state, reading back the final committed tracker and its complete Magic Context mirror, and verifying agreement. When the route's RDD state requires assessment, the post-commit assessment for every applicable candidate commit must have been executed and its terminal outcome recorded; committing and mirroring without completing that assessment cannot satisfy `DONE`. Writer completion, a passing test, or a PM report is not closure. The orchestrator independently reads tracker and Git state and compares them with the envelope before the next unit; a report is a claim, not proof. The planning unit commits its plan/tracker artifacts and records the durable tracker reference before `DONE`.
+A PM returns `DONE` only after observing committed implementation and metadata work-unit state, reading the final committed tracker file itself, computing its SHA-256, and observing a match against the supplied `tracker_sha256`. The PM does not read the Magic Context mirror body; the hash comparison method, outcome, and computed/supplied hashes are recorded in the result envelope. An absent tracker or supplied hash, an empty supplied hash, or a mismatch returns `BLOCKED` with the specific reason. When the route's RDD state requires assessment, the post-commit assessment for every applicable candidate commit must have been executed and its terminal outcome recorded; committing and mirroring without completing that assessment cannot satisfy `DONE`. Writer completion, a passing test, or a PM report is not closure. The orchestrator independently reads tracker and Git state and compares them with the envelope before the next unit; a report is a claim, not proof. The planning unit commits its plan/tracker artifacts and records the durable tracker reference before `DONE`.
