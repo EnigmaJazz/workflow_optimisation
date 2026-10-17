@@ -57,7 +57,7 @@ Planned implementation scope: the files and surfaces listed in units A/B/C, incl
 
 ## Tasks
 
-- [ ] **A — Ownership decision and spec:** record the explicit Q77 ownership retraction in `CLAIM-RETRACTIONS.md`; designate the deterministic host tool as mirror write+verify owner; update `pm-handoff.md:123`; decide and document the `metadata_work_unit` envelope field consequence; update `tests/test_pm_handoff_spec.py:60-63` with a positive control.
+- [x] **A — Ownership decision and spec:** record the explicit Q77 ownership retraction in `CLAIM-RETRACTIONS.md`; designate the deterministic host tool as mirror write+verify owner; update `pm-handoff.md:123`; decide and document the `metadata_work_unit` envelope field consequence; update `tests/test_pm_handoff_spec.py:60-63` with a positive control.
 - [ ] **B — Surfaces and atomic regeneration:** correct the overlay and its `## Key Learnings` chain (`:155,156,164,189`), `WORKFLOW.md:75,91`, and `odd-and-review.md:20`; complete and verify all 7 prompt-regeneration steps as one atomic unit.
 - [ ] **C — Derived guards:** add `ctx_note` to `FORBIDDEN_RESIDUE` at `tests/test_orchestrator_prompt_source.py:62`; add the F13 verifier check for embedded prompt/assembler equality; fix `systematic.jsonc` and verifier `systematicMemoryPolicy`; resolve the F12 `explore` grant.
 
@@ -68,6 +68,7 @@ Planned implementation scope: the files and surfaces listed in units A/B/C, incl
 ## Progress
 
 - 2026-10-18: T0 — created tracker, pre-code advice record, and Q79 queue entry. Owner decision recorded: deterministic host tool owns mirror write+verify. Magic Context subagent memory tools are unavailable by design; no mirror write/readback was performed as part of this authorized three-path creation. No implementation changes, commit, or branch switch.
+- 2026-10-18: Unit A — explicitly retracted Q77's metadata-worker mirror-write decision; clarified that the metadata worker updates/commits repository files only and that `metadata_work_unit` covers those repository-file updates/commit; assigned Magic Context write+verify to the deterministic host tool invoked by the orchestrator; strengthened the ownership assertion and its positive control. Focused handoff-spec suite passed 8/8. Full Python suite ran 200 tests: 190 passed and 10 errored because the sandbox denies execution of `node`; errors are in `test_gemini_advisor_route` subprocess probes. Temporarily restoring Q77's old metadata-worker mirror wording made the new ownership assertion fail as expected. Honest limit: the deterministic host tool has not landed, so mirror write and verification remain unimplemented and were not performed; no Magic Context mirror/readback was possible from this subagent. No commit or branch switch.
 
 ## Route / trigger evidence
 

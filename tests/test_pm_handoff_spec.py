@@ -49,6 +49,7 @@ class PMHandoffSpecTest(unittest.TestCase):
     def test_post_unit_rehash_is_reported_not_blocked(self):
         closure = self.spec.split("## Closure and metadata work unit", 1)[1]
         self.assertIn("recomputes and reports", closure.lower())
+        self.assertIn("The PM does not read the Magic Context mirror body", closure)
         self.assertIn("fix-forward", closure.lower())
         self.assertNotIn("complete Magic Context mirror readback", closure)
 
@@ -57,10 +58,32 @@ class PMHandoffSpecTest(unittest.TestCase):
         for term in ("method", "outcome", "tracker_sha256", "mirror_sha256", "computed"):
             self.assertIn(term, envelope)
 
-    def test_metadata_worker_keeps_mirror_write_ownership(self):
-        closure = self.spec.split("## Closure and metadata work unit", 1)[1]
-        self.assertIn("metadata worker mirrors the complete canonical tracker body", closure)
-        self.assertIn("reads back both stores", closure)
+    def assert_metadata_ownership_contract(self, spec):
+        closure = spec.split("## Closure and metadata work unit", 1)[1]
+        self.assertIn("metadata worker updates and commits the repository files only", closure.lower())
+        self.assertIn("deterministic host tool", closure.lower())
+        self.assertIn("owns the Magic Context mirror write and verification", closure)
+        self.assertIn("invoked by the orchestrator", closure)
+        self.assertNotIn("metadata worker mirrors the complete canonical tracker body", closure)
+        self.assertNotIn("reads back both stores", closure)
+        self.assertNotIn("complete Magic Context mirror readback", closure)
+        self.assertIn("PM still never reads or touches the mirror body", closure)
+        self.assertIn(
+            "`metadata_work_unit` covers only the metadata worker's repository-file updates and commit",
+            spec,
+        )
+
+    def test_deterministic_host_tool_owns_mirror_write_and_verification(self):
+        self.assert_metadata_ownership_contract(self.spec)
+
+    def test_ownership_positive_control_rejects_old_metadata_worker_duty(self):
+        mutated = self.spec.replace(
+            "metadata worker updates and commits the repository files only",
+            "metadata worker mirrors the complete canonical tracker body",
+            1,
+        )
+        with self.assertRaises(AssertionError):
+            self.assert_metadata_ownership_contract(mutated)
 
     def test_positive_control_detects_removed_required_brief_field(self):
         mutated = self.spec.replace("`mirror_sha256`", "`mirror_digest`", 1)
