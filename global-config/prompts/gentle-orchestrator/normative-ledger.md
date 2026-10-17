@@ -2,9 +2,9 @@
 
 Scope: every sentence in the CURRENT prompt (`global-config/opencode.json` →
 `agent["gentle-orchestrator"].prompt`, sha256
-`8b19b9d02a14c004007b87fa5c343ad9ff7d70a12309c9f753775f5734a1ca4e`, 409 lines)
+`c0dd55e85f912807391df4aeb386628a289af1cde86b966d29927cf02b327ee0`, 414 lines)
 containing MUST, NEVER, ALWAYS (case-insensitive, word boundary) or "hard rule".
-69 candidate sentences: **43 kept, 1 split, 10 superseded-by-base, 15
+70 candidate sentences: **44 kept, 1 split, 10 superseded-by-base, 15
 removed-by-design; zero unclassified.**
 
 Classification meanings:
@@ -90,6 +90,7 @@ wiring are produced by `global-config/prompts/gentle-orchestrator/assemble-orche
 | 67 | L534 | "Never grant relay lanes to implementation workers or isolated reviewers." | kept | overlay:user:review-boundary |
 | 68 | L534 | "Never use fallback session replay for either set because replay bypasses Task prompt injection." | kept | overlay:user:review-boundary |
 | 69 | L540 | "Always launch the three baseline reviewers (correctness, testing, project standards) and any candidate-specific reviewers selected by screening in the same independent wave." | kept | overlay:user:review-boundary |
+| 70 | L75 | "Before dispatching a unit to a project-manager, the ORCHESTRATOR MUST read its tracker mirror and supply both hashes in the PM brief." | kept | overlay:user:secure-odd-protocol |
 
 ## Structural coupling note
 

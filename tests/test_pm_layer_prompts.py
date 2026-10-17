@@ -6,7 +6,7 @@ EMBEDDED prompt strings:
 - the ``gentle-orchestrator`` prompt names the ``pm-unit-brief/v1`` brief schema
   and its authoritative contract file ``docs/specs/pm-handoff.md``;
 - each live project-manager prompt (``pm-odd``, ``pm-systematic``) teaches the
-  complete Magic Context read mechanism (``ctx_memory`` with ``action: "get"``).
+  committed-tracker hash comparison against the orchestrator-supplied value.
 
 Every needle is asserted against ONE agent's own prompt, never against a joined
 string, so a needle present in a different agent's prompt cannot satisfy the
@@ -35,13 +35,8 @@ AGENT_NAMES = ("pm-odd", "pm-systematic")
 # file, so an orchestrator can build a valid pm-unit-brief/v1 handoff.
 ORCHESTRATOR_NEEDLES = ("pm-unit-brief/v1", "docs/specs/pm-handoff.md")
 
-# Stable part of the complete-read mechanism both PM prompts must teach; an
-# editor must not weaken this by editing the test. The extracted prompt string
-# carries real double quotes around get.
-PM_COMPLETE_READ_NEEDLE = (
-    'complete canonical tracker body is retrieved with `ctx_memory` '
-    'using `action: "get"`'
-)
+# Stable part of the committed-tracker hash comparison both PM prompts must teach.
+PM_COMPLETE_READ_NEEDLE = "compare it with the brief's `tracker_sha256`"
 
 
 def load_config(path=CONFIG_PATH):
@@ -111,7 +106,7 @@ class RealConfig(unittest.TestCase):
                     f"{ORCHESTRATOR} prompt is missing {needle!r}",
                 )
 
-    def test_each_pm_prompt_teaches_complete_read(self):
+    def test_each_pm_prompt_teaches_committed_tracker_hash_comparison(self):
         for name in AGENT_NAMES:
             with self.subTest(agent=name):
                 prompt = prompt_of(self.data, name)
@@ -119,8 +114,17 @@ class RealConfig(unittest.TestCase):
                 self.assertIn(
                     PM_COMPLETE_READ_NEEDLE,
                     prompt,
-                    f"agent {name!r} prompt must teach the ctx_memory action:get complete read",
+                    f"agent {name!r} prompt must teach the committed-tracker hash comparison",
                 )
+
+
+    def test_pm_prompts_remain_under_character_cap(self):
+        for name in AGENT_NAMES:
+            with self.subTest(agent=name):
+                prompt = prompt_of(self.data, name)
+                self.assertIsInstance(prompt, str, f"agent {name!r} prompt must be a string")
+                self.assertLess(len(prompt), 6000, f"agent {name!r} prompt exceeds the 6,000-character cap")
+                print(f"{name} prompt characters: {len(prompt)}")
 
 
 class PositiveControl(unittest.TestCase):
@@ -138,7 +142,7 @@ class PositiveControl(unittest.TestCase):
             }
         }
 
-    def test_removed_needle_is_reported(self):
+    def test_removed_hash_comparison_needle_is_reported(self):
         data = self._synthetic()
         self.assertEqual(missing_prompt_needles(data), [])
         data["agent"]["pm-odd"]["prompt"] = "no mechanism here"

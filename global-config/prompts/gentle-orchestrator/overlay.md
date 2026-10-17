@@ -117,6 +117,10 @@ The four readiness boundaries are observable: (1) explicit change intent before 
 #### PM unit brief (pm-unit-brief/v1)
 
 When a unit is delegated to a project-manager (`pm-odd` or `pm-systematic`), the Task brief conforms to `pm-unit-brief/v1` as defined in `docs/specs/pm-handoff.md` and carries: `unit_id`; `task_id` (stable tracker task identifier); `tracker_path`; `task_class`; the selected `route`; `initial_plan` (scope, approach, acceptance criteria, non-goals, resolved decisions); `last_reviewed_boundary` (exact revision or explicit `none`); `feature_branch`; `rdd_mode` with `rdd_mode_source`; and `constraints`. The contract file is authoritative for the schema and the result envelope; this prompt does not restate its procedure.
+
+<!-- workflow:anchor workflow.pm-brief-readback:begin -->
+Before dispatching a unit to a project-manager, the ORCHESTRATOR MUST read its tracker mirror with `ctx_memory` (`action: "get"`), compute `tracker_sha256` over the committed tracker file and `mirror_sha256` over the complete mirror body, and include both hashes in the PM brief.
+<!-- workflow:anchor workflow.pm-brief-readback:end -->
 <!-- SECURE:END id=user:secure-odd-protocol -->
 
 <!-- SECURE:BEGIN id=user:secure-odd-protocol-inline kind=replace supersedes=#### 1. Inline Direct sha256=2c2b6f361a2561d06c8642239b4fc461a69e70a8f4ff9c3f1f37cbe66aa75752 -->

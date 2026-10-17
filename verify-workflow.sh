@@ -4562,6 +4562,7 @@ ANCHOR_MANIFEST=(
   "workflow.tiny-fix-odd-route~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/SKILL.md~workflow-odd-secure tiny-fix route~Tiny-fix route:"
   "workflow.tiny-fix-systematic-route~$ROUTER_SKILLS_SOURCE/workflow-systematic/SKILL.md~workflow-systematic tiny-fix route~Tiny-fix route:"
   "workflow.tiny-fix-overlay~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~orchestrator inline boundary~Upstream's “small tasks stay inline” wording is NOT adopted"
+  "workflow.pm-brief-readback~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~PM brief tracker/mirror hashes~tracker_sha256"
 )
 ANCHOR_FAIL_BEFORE=${#FAIL_MESSAGES[@]}
 for anchor_row in "${ANCHOR_MANIFEST[@]}"; do
@@ -4588,6 +4589,8 @@ ANCHOR_TOKENS=(
   "workflow.tiny-fix-systematic-route~$ROUTER_SKILLS_SOURCE/workflow-systematic/SKILL.md~workflow-systematic tiny-fix route~openai/gpt-6-luna"
   "workflow.tiny-fix-overlay~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~orchestrator inline boundary~Upstream's “small tasks stay inline” wording is NOT adopted"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`authored_changed_lines\`"
+  "workflow.pm-brief-readback~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~PM brief tracker hash field~tracker_sha256"
+  "workflow.pm-brief-readback~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~PM brief mirror hash field~mirror_sha256"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`authored_patch_bytes\`"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`generated_or_binary_paths\`"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~400 authored changed lines and 100 KiB"

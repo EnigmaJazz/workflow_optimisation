@@ -8,6 +8,7 @@ residue check is proven non-vacuous by a planted positive control.
 """
 
 import hashlib
+import json
 import re
 import subprocess
 import sys
@@ -24,8 +25,9 @@ LEDGER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "normative
 TEMPLATE = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstream" / "orchestrator.template.md"
 SECTIONS = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstream" / "odd-orchestrator-sections.md"
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
+CONFIG = ROOT / "global-config" / "opencode.json"
 
-CURRENT_PROMPT_SHA256 = "8b19b9d02a14c004007b87fa5c343ad9ff7d70a12309c9f753775f5734a1ca4e"
+CURRENT_PROMPT_SHA256 = "c0dd55e85f912807391df4aeb386628a289af1cde86b966d29927cf02b327ee0"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
@@ -619,6 +621,43 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
         self.assertIn("{file:", result.stdout)
         self.assertIn("cannot replace this assembler", result.stdout)
         self.assertIn("UNVERIFIED", result.stdout)
+
+    def test_embedded_prompt_matches_assembler_and_sha_constant(self):
+        assembled = run_assembler()
+        self.assertEqual(assembled.returncode, 0, assembled.stderr)
+        config = json.loads(CONFIG.read_text(encoding="utf-8"))
+        embedded = config["agent"]["gentle-orchestrator"]["prompt"]
+        digest = hashlib.sha256(assembled.stdout.encode("utf-8")).hexdigest()
+        self.assertEqual(embedded, assembled.stdout, "embedded orchestrator prompt must equal assembler output")
+        self.assertEqual(digest, CURRENT_PROMPT_SHA256, "test constant must match assembled prompt sha256")
+        with tempfile.TemporaryDirectory() as tmp:
+            assembled_path = Path(tmp) / "gentle-orchestrator-prompt.md"
+            assembled_path.write_bytes(assembled.stdout.encode("utf-8"))
+            payload = assembled_path.read_bytes()
+        lines = payload.decode("utf-8").splitlines()
+        instruction_line = next(i for i, line in enumerate(lines, 1) if "Before dispatching a unit to a project-manager" in line)
+        baseline = subprocess.run(
+            ["git", "show", "HEAD:global-config/opencode.json"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        baseline_prompt = json.loads(baseline.stdout)["agent"]["gentle-orchestrator"]["prompt"]
+        baseline_payload = baseline_prompt.encode("utf-8")
+        print("assembled prompt: sha256=%s bytes=%d lines=%d instruction_line=%d; generated delta bytes=%+d lines=%+d" % (digest, len(payload), payload.count(bytes([10])), instruction_line, len(payload) - len(baseline_payload), payload.count(bytes([10])) - baseline_payload.count(bytes([10]))))
+
+    def test_verifier_script_pin_matches_its_own_regex(self):
+        verifier = ROOT / "verify-workflow.sh"
+        plugin = ROOT / "global-config" / "plugins" / "workflow-health-check.ts"
+        verifier_text = verifier.read_text(encoding="utf-8")
+        function = verifier_text.split("read_verify_script_pin() {", 1)[1].split("\n}", 1)[0]
+        regex_literal = re.search(r"r'''(.*?)'''", function, re.DOTALL)
+        self.assertIsNotNone(regex_literal, "read_verify_script_pin regex literal must be present")
+        match = re.search(regex_literal.group(1), plugin.read_text(encoding="utf-8"), flags=re.MULTILINE)
+        self.assertIsNotNone(match, "workflow-health-check.ts must contain a pin matching the verifier regex")
+        script_sha = hashlib.sha256(verifier.read_bytes()).hexdigest()
+        self.assertEqual(match.group(2).lower(), script_sha)
+        print(f"verifier pin={match.group(2).lower()} actual={script_sha}")
 
     def test_normative_ledger_rows_are_classified(self):
         text = LEDGER.read_text(encoding="utf-8")
