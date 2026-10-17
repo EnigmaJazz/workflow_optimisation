@@ -829,6 +829,35 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
   const childSessions = new Set<string>()
   const observeAgentHooks = process.env.SYSTEMATIC_ROUTING_GUARD_OBSERVE_AGENT_HOOKS === "1"
   const TINY_FIX_PERMIT_TTL_MS = 30 * 60 * 1000
+  /*
+<!-- workflow:anchor workflow.tiny-fix-tripwire:begin -->
+Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_FIX_MAX_TOUCHED_FILES, and the path-class denylist.
+<!-- workflow:anchor workflow.tiny-fix-tripwire:end -->
+*/
+  const TINY_FIX_MAX_AUTHORED_CHANGED_LINES = 20
+  const TINY_FIX_MAX_TOUCHED_FILES = 2
+  const TINY_FIX_DENYLIST_PATH_PATTERNS: readonly string[] = [
+    "verify-workflow.sh",
+    "global-config/opencode.json",
+    "global-config/systematic.jsonc",
+    "global-config/plugins/**",
+    "**/permissions/**",
+    "**/auth/**",
+    "**/crypto/**",
+    "**/public-api/**",
+  ]
+  const tinyFixEscalationRequired = (candidate: {
+    authoredChangedLines: number
+    touchedPaths: string[]
+    addedOrDeleted: boolean
+  }): boolean =>
+    candidate.authoredChangedLines > TINY_FIX_MAX_AUTHORED_CHANGED_LINES ||
+    candidate.touchedPaths.length > TINY_FIX_MAX_TOUCHED_FILES ||
+    candidate.addedOrDeleted ||
+    candidate.touchedPaths.some((path) => TINY_FIX_DENYLIST_PATH_PATTERNS.some((pattern) =>
+      pattern.startsWith("**/") ? path.includes(pattern.endsWith("/**") ? pattern.slice(3, -3) : pattern.slice(3)) :
+        pattern.endsWith("/**") ? path.startsWith(pattern.slice(0, -2)) : path === pattern,
+    ))
 
   const normalizeTinyFixWriter = (agent: string): string => agent.toLowerCase().replace(/-(?:local|astra)$/, "")
   const sweepTinyFixState = (): void => {

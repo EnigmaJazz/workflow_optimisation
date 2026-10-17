@@ -2854,6 +2854,12 @@ else {
   const pmTask=cfgPerm(deployedAgents["pm-odd"],"task")
   const orchestratorTask=cfgPerm(deployedAgents["gentle-orchestrator"],"task")
   if (pmTask?.["odd-apply"]!=="allow") fail(`ODD_APPLY_NOT_ALLOWED_TO_PM: pm-odd.odd-apply=${show(pmTask?.["odd-apply"])}`)
+  for (const pm of ["pm-odd","pm-systematic"]) {
+    const task=cfgPerm(deployedAgents[pm],"task")
+    for (const key of ["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra"]) {
+      if (task?.[key]!=="allow") fail(`TINY_FIX_AGENT_NOT_ALLOWED_TO_PM: ${pm}.${key}=${show(task?.[key])}`)
+    }
+  }
   if (orchestratorTask?.["odd-apply"]==="allow") fail("ODD_APPLY_ALLOWED_TO_ORCHESTRATOR")
 }
 
@@ -4551,6 +4557,11 @@ ANCHOR_MANIFEST=(
   "workflow.specialists.routing-precedence~$ROUTER_SKILLS_SOURCE/workflow-systematic/references/specialists.md~global-config/skills/workflow-systematic/references/specialists.md~systematic-implementer"
   "workflow.specialists.sandbox-mutation~$ROUTER_SKILLS_SOURCE/workflow-systematic/references/specialists.md~global-config/skills/workflow-systematic/references/specialists.md~sandbox_apply_patch"
   "workflow.agents.secure-router~$AGENTS_SOURCE~global-config/AGENTS.md~skill({name:\"workflow-route\"})"
+  "workflow.tiny-fix~$WORKFLOW~WORKFLOW.md~workflow.tiny-fix"
+  "workflow.tiny-fix-tripwire~$ROUTING_GUARD_SOURCE~systematic-routing-guard.ts~workflow.tiny-fix-tripwire"
+  "workflow.tiny-fix-odd-route~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/SKILL.md~workflow-odd-secure tiny-fix route~workflow.tiny-fix-odd-route"
+  "workflow.tiny-fix-systematic-route~$ROUTER_SKILLS_SOURCE/workflow-systematic/SKILL.md~workflow-systematic tiny-fix route~workflow.tiny-fix-systematic-route"
+  "workflow.tiny-fix-overlay~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~orchestrator inline boundary~Upstream's “small tasks stay inline” wording is NOT adopted"
 )
 ANCHOR_FAIL_BEFORE=${#FAIL_MESSAGES[@]}
 for anchor_row in "${ANCHOR_MANIFEST[@]}"; do
@@ -4569,6 +4580,13 @@ fi
 # mixed literal-checking scheme remains. See the classification rule above.
 ANCHOR_TOKENS=(
   # WORKFLOW.md
+  "workflow.tiny-fix~$WORKFLOW~WORKFLOW.md~Tiny fix selects one delegated \`general\` writer (\`openai/gpt-6-luna\`) without a tracker, advice record, or mirror."
+  "workflow.tiny-fix~$WORKFLOW~WORKFLOW.md~The tripwire is ESCALATION-ONLY"
+  "workflow.tiny-fix-tripwire~$ROUTING_GUARD_SOURCE~systematic-routing-guard.ts~TINY_FIX_MAX_AUTHORED_CHANGED_LINES"
+  "workflow.route-skill.route-statement~$ROUTER_SKILLS_SOURCE/workflow-route/SKILL.md~workflow-route tiny-fix route~Tiny-fix route:"
+  "workflow.tiny-fix-odd-route~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/SKILL.md~workflow-odd-secure tiny-fix route~openai/gpt-6-luna"
+  "workflow.tiny-fix-systematic-route~$ROUTER_SKILLS_SOURCE/workflow-systematic/SKILL.md~workflow-systematic tiny-fix route~openai/gpt-6-luna"
+  "workflow.tiny-fix-overlay~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~orchestrator inline boundary~Upstream's “small tasks stay inline” wording is NOT adopted"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`authored_changed_lines\`"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`authored_patch_bytes\`"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`generated_or_binary_paths\`"

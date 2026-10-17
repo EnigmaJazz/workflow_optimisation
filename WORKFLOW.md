@@ -82,7 +82,7 @@ The four readiness boundaries are observable: (1) explicit change intent before 
 <!-- workflow:anchor workflow.route-decision:begin -->
 ## Route decision checkpoint
 
-The orchestrator reads this current file through an authorized read-only tool before selecting a route. Before any specialist dispatch it reports `ROUTE: <class> | intent: <read-only/authorized change> | route: <skill/phase> | specialist: <name> | basis: WORKFLOW.md`. Read-only work names `route: read-only` and starts no writer. On continuation, re-read if this file changed, scope changed, or the previous route is unclear. If the file is unavailable, report unverified routing and stop workflow-dependent mutation; read-only findings may proceed with that limitation. For an applicable Systematic route, load the live skill, dispatch its named specialist, and compare actual Task results with the announced route before completion. The route statement alone is not execution evidence. Tiny fixes, docs, global tooling, and frontend tasks follow their corresponding exceptions below; do not add Systematic phases that the selected class does not require. Tiny fix is passive-only: before applying its candidate, medium/high risk or the one-way tripwire automatically escalates out, never selects a route; the tripwire includes the executable-file class: a script/executable extension or content opening with a shebang.
+The orchestrator reads this current file through an authorized read-only tool before selecting a route. Before any specialist dispatch it reports `ROUTE: <class> | intent: <read-only/authorized change> | route: <skill/phase> | specialist: <name> | basis: WORKFLOW.md`. Read-only work names `route: read-only` and starts no writer. On continuation, re-read if this file changed, scope changed, or the previous route is unclear. If the file is unavailable, report unverified routing and stop workflow-dependent mutation; read-only findings may proceed with that limitation. For an applicable Systematic route, load the live skill, dispatch its named specialist, and compare actual Task results with the announced route before completion. The route statement alone is not execution evidence. Tiny fixes, docs, global tooling, and frontend tasks follow their corresponding exceptions below; do not add Systematic phases that the selected class does not require. Tiny fix is passive-only: before applying its candidate, any medium/high assessment or firing of the one-way tripwire automatically escalates out; the tripwire is escalation-only, never selects a route, and its named constants in `global-config/plugins/systematic-routing-guard.ts` are authoritative.
 
 <!-- workflow:anchor workflow.route-decision:end -->
 <!-- workflow:anchor workflow.work-unit-review:begin -->
@@ -115,18 +115,20 @@ For upstream source evidence in **public GitHub repositories**, the read-only `g
 
 | Class | Signal | Route after explicit change intent |
 |---|---|---|
-| **Tiny fix** | Mechanical, understood, no unresolved design | One delegated sandbox writer → structural readback → native RDD review checkpoint when enabled → ordinary repository delivery policy |
+| **Tiny fix** | Genuinely tiny/trivial, mechanical and understood; clearly bounded few-line change with no contract/security effect | `workflow-route` → one delegated `general` writer (`openai/gpt-6-luna`) → structural readback; no tracker, advice record, or mirror. Passive-only: any medium/high risk assessment automatically escalates out. Escalation-only tripwire may disqualify but never select this route; code constants in `global-config/plugins/systematic-routing-guard.ts` are its source of truth. Required traces: permit-consumption log; a `ROUTER-LOG.md` row carrying commit and changed lines; for a PM tiny fix, a tracker `## Log` entry. |
 | **Small feature** | Clear behavior; bounded design | `ce:plan` → `ce:work` delegated execution → `ce:review` advisory → native RDD review checkpoint when enabled |
 | **Substantial feature** | Material product/design ambiguity | `ce:brainstorm` → `ce:plan` → pre-code advice → delegated `ce:work` → post-code advisory (only when `ce:review` is not run) → `ce:review` → native review when due → `ce:compound` |
 | **Bug investigation** | Bug/failing behavior with authorized fix | reproduce/root cause → test-first `ce:work` → `ce:review` → native review |
 | **Documentation** | Docs/guides/onboarding | Matching docs skill → delegated writer when mutation requested → proportional structural/human review |
 | **Global tooling change** | Config/plugins/skills deployed outside repo | Delegate in-repo source change → native review on source when enabled → verifier-owned exact mirror |
 
+<!-- workflow:anchor workflow.tiny-fix:begin -->
 ### Tiny-fix passive boundary
 
-Tiny fix is passive-only. Before applying its candidate, automatically escalate out of Tiny fix when risk is medium/high or the one-way tripwire fires; this is escalation-only and never selects a route. The tripwire fires for more than 20 authored changed lines, more than 2 touched files, an added or deleted file, or an edit to a denylisted path, including the executable-file class: a script/executable extension or content opening with a shebang.
+Tiny fix selects one delegated `general` writer (`openai/gpt-6-luna`) without a tracker, advice record, or mirror. It is passive-only. Before applying its candidate, automatically escalate out when risk is medium/high or the one-way tripwire fires. The tripwire is ESCALATION-ONLY: decision content selects the route; exceeding its boundary can only disqualify Tiny fix. Its named constants in `global-config/plugins/systematic-routing-guard.ts` are the source of truth, not this prose. A changed-line count never selects a route.
 
-The routing guard emits a warning when a matched tiny-fix child writes an executable-file class path or shebang content. The guard is warning-only and cannot evaluate the final diff's line/file thresholds or native risk result, nor prevent `sandbox_apply`; pre-apply candidate assessment remains the enforcement boundary.
+The one-shot permit is scoped to the explicitly marked dispatch; its permit-consumption log is a required trace. The final candidate's line/file thresholds and risk result require pre-apply assessment; the guard does not observe the final diff or prevent `sandbox_apply`.
+<!-- workflow:anchor workflow.tiny-fix:end -->
 
 ## Classification and Route Selection Rules
 

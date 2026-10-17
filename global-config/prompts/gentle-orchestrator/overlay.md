@@ -122,7 +122,9 @@ When a unit is delegated to a project-manager (`pm-odd` or `pm-systematic`), the
 <!-- SECURE:BEGIN id=user:secure-odd-protocol-inline kind=replace supersedes=#### 1. Inline Direct sha256=2c2b6f361a2561d06c8642239b4fc461a69e70a8f4ff9c3f1f37cbe66aa75752 -->
 #### 1. Secure Inline Boundary
 
-Inline activity is read-only coordination only: classify, ask questions, perform bounded read-only inspection within one parallel batch (at most 3 calls, approximately 10k tokens, bounded search/line ranges), call reviewed fixed control-plane tools, and synthesize. Do not mutate project state, run tests/builds/installers, or perform implementation inline. There is no direct-inline implementation route; every file change and every execution is delegated to a sandbox writer/executor, even an understood one-file fix.
+Inline activity is read-only coordination only: classify, ask questions, perform bounded read-only inspection within one parallel batch (at most 3 calls, approximately 10k tokens, bounded search/line ranges), call reviewed fixed control-plane tools, and synthesize. Do not mutate project state, run tests/builds/installers, or perform implementation inline. There is no direct-inline implementation route; every file change and every execution is delegated to a sandbox writer/executor, even an understood one-file fix. <!-- workflow:anchor workflow.tiny-fix-overlay:begin -->
+Upstream's “small tasks stay inline” wording is NOT adopted because this coordinator has no write or execution capability. Its direct-inline case maps to the Tiny-fix route through the delegated `general` writer on `openai/gpt-6-luna`.
+<!-- workflow:anchor workflow.tiny-fix-overlay:end -->
 <!-- SECURE:END id=user:secure-odd-protocol-inline -->
 
 <!-- SECURE:BEGIN id=user:review-boundary kind=replace supersedes=#### Review Execution Contract sha256=05f20cd8794af9fcbc9d8ca3abc642ab6124d4828209df6d320893b8ae303dd9 -->
