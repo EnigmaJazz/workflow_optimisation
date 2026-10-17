@@ -45,6 +45,7 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   than describe all three removal checks as outstanding or passed. See Q54, Q56 and Q58 below.
   Then Q57-Q60 and Q61. Q62 (retired-model list and seat-assignment reconciliation) is independently
   planned.
+- **Advisor capacity (owner, 2026-10-17; independent of the phases):** Q76.
 
 Every source change needs the deploy step: verifier mirror, then restart. Q27 waits on an owner
 decision.
@@ -1272,6 +1273,25 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
 - **Prerequisites:** none. Part of the PM-layer completion work on `chore/pm-layer-completion`.
 - **Source:** Q72 T1a review finding `R3-tiny-fix-permit-race`: the first `session.created` from a parent consumes its pending tiny-fix permit using only `parentID`; two independent pre-code advisors graded this a BLOCKER. See `odd/advice/q75-tiny-fix-permit-race.md`.
 - **Description:** bind the one-shot permit to the intended writer using a parent-keyed candidate set plus an observed child-agent match; normalize `-local` and `-astra` writer variants; cover non-writer-first sibling races and the PM-dispatched path. Resolve whether child `chat.message` events arrive with the agent, or fail closed. Preserve one-shot, TTL, own-session-only behavior and all five existing `1d` cases. Correct or cover Q72's erroneous claim that an Astra permit case exists at `tests/routing-guard/routing-guard.test.ts:1056-1061` (that range is the PM adapter alias test).
+
+### Q76. Gemini API advisor route (Antigravity substitute) and the Antigravity Argon/Flash split
+- **Status:** IMPLEMENTED on `feat/gemini-api-advisor-route` (Claude Code, at the owner's request,
+  2026-10-17). Tracker: `odd/tasks/q76-gemini-api-advisor-route.md`. Pending items:
+  - pre-code advice from the `advisor-*` lanes (owner dispatch from the OpenCode TUI);
+  - native review of the T1 commit on the `asi-review-*` lanes (`review assess`: high, review due);
+  - verifier mirror and restart.
+- **Prerequisites:** none. Stacked on `chore/pm-layer-completion` for Q72's allowlist test and the
+  advisor `noFallbackAgents` entries.
+- **Source:** owner request, 2026-10-17. Google API credits are a pool separate from the
+  Antigravity subscription, and Argon is now on that subscription too.
+- **Description:**
+  - In-OpenCode `advisor-gemini-pre`/`-post` (Argon, delegate-only) and `advisor-gemini-evidence`
+    (Flash, sandbox-only) supply Antigravity's half of the pair under the `gemini-api-substitute`
+    rule (`WORKFLOW.md`).
+  - The verifier checks this with `geminiAdvisorRouteFailures`; `tests/test_gemini_advisor_route.py`
+    runs that check against fixtures.
+  - Antigravity gets `argon_advisor` and `evidence_collector` custom agents through the
+    `changesets/q76-antigravity-agents` change set. See `docs/gemini-api-route.md`.
 
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).

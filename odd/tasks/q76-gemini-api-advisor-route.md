@@ -37,9 +37,9 @@
 
 | ID | Specs | Route | Status | Evidence |
 |---|---|---|---|---|
-| T1 | S2 S4 S5 S7 | inline | pending | — |
-| T2 | S1 S3 | inline | pending | — |
-| T3 | S6 | inline | pending | — |
+| T1 | S2 S4 S5 S7 | inline | done | `bdeaf1f`; RED 14/14 failing, then GREEN 14/14; full suite 169/169; guard 103/103; review assess **high**, review due, pending on `asi-review-*` |
+| T2 | S1 S3 | inline | done | `WORKFLOW.md` rule `gemini-api-substitute`, advisor table, `docs/gemini-api-route.md`, TODO Q76, router row (commit in this unit) |
+| T3 | S6 | inline | done (one item UNVERIFIED) | change set applied; live `agy` run delegated with `Model: flash`; which model served the gatherer is not recorded anywhere |
 
 - **T1:** the agents in `global-config/opencode.json`, the fallback policy, the verifier check plus
   digest re-pin, and `tests/test_gemini_advisor_route.py`.
@@ -64,3 +64,25 @@
   only be dispatched from the OpenCode TUI, which Claude Code cannot reach. The plan was reviewed
   interactively with the owner instead. Advice is recorded as **pending owner dispatch**; it is not
   claimed as done.
+- **L4 T1 evidence (2026-10-17):**
+  - Both JSON sources round-trip byte-identically through `json.dumps(indent=2, ensure_ascii=False)`,
+    so the edit was a load/edit/dump. The diff contains only the added members.
+  - The verifier requires every active provider to be a start provider with an emergency rule
+    (`FALLBACK_ACTIVE_PROVIDER_NOT_STARTER`, `FALLBACK_ACTIVE_PROVIDER_NO_EMERGENCY_RULE`). So
+    `google` was added with the rule openrouter `~google/gemini-flash-latest`, then openai
+    `gpt-6-luna`. That rule never applies to the three agents: `noFallbackAgents` gives them no
+    chain (plugin `CLAUDE.md`, `startCycle`).
+  - Five task maps would otherwise reach the gatherer and now deny it explicitly:
+    `gentle-orchestrator` and `frontend-dev-premium` (`*: ask`), and `frontend-apply`,
+    `frontend-apply-local`, `frontend-dev` (no `*`).
+  - **Advisory (pre-existing, not changed):** `jd-fix-agent` and `vision` expose the task tool with
+    no target map, so they could dispatch any subagent, the existing advisors included.
+- **L5 T3 evidence (2026-10-17):**
+  - Agent frontmatter `model` accepts only `flash`, `pro` and `inherit`. A full slug drops the agent
+    silently; bisected with `agy plugin validate` (agents 0 vs 1).
+  - `agy agents` lists main agents only, and `--agent <unknown>` names the available ones.
+  - `invoke_subagent` `Model: inherit` overrode `model: flash`: the first live run resolved only
+    `gemini-4-argon-medium`. The prompt now requires `Model: flash`, and the second run sent it.
+  - The main agent is still offered the full default toolset. Tool narrowing for Argon is
+    therefore prompt-enforced: both runs made exactly one call, `invoke_subagent`.
+  - The change set was reverted and re-applied cleanly twice (4 ops each way).

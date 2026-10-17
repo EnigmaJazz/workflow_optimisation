@@ -490,6 +490,16 @@ The orchestrator routes and aggregates advisor findings mechanically. Because it
 | `advisor-security-post` | `opencode-go/qwen3.7-plus` |
 | `advisor-maintainability-post` | `opencode-go/deepseek-v4-flash` (`medium`) |
 
+**Gemini API advisors (external-lane substitute only)**
+
+| Agent | Model | Role |
+|---|---|---|
+| `advisor-gemini-pre` | `google/gemini-4-argon` | pre-code advice |
+| `advisor-gemini-post` | `google/gemini-4-argon` | post-code advisory review |
+| `advisor-gemini-evidence` | `google/gemini-3.8-flash` | evidence gathering only; never advises |
+
+These run on paid Google API credits, a pool separate from the Antigravity subscription. They are never part of the interim lane's smallest-sufficient-set selection; they serve only the `gemini-api-substitute` rule below. The Argon advisors have no file, search or shell tools: they answer from the brief and may delegate at most two bounded gathering requests to `advisor-gemini-evidence`, which keeps the shared sandbox-only advisor surface (it can run tests but never reach the host) and returns facts with `path:line` evidence. Only the orchestrator and the PMs dispatch the advisors; only the advisors dispatch the gatherer. None of the three falls back to another model. The verifier asserts this shape (`geminiAdvisorRouteFailures`), and the credential setup is in `docs/gemini-api-route.md`.
+
 ### External lane (PLANNED — activated by B3)
 
 Not in force until the external lane is installed and its permissions are granted (`docs/TODO.md` Q06). Once active, every non-trivial change also gets **both** external advisors (Claude Code and Antigravity) as one independent group. This is the initial state (owner decision, 2026-10-01: current usage fits the subscription allowances). The orchestrator records the rule that applied as `selection.rule`.
@@ -498,6 +508,7 @@ Not in force until the external lane is installed and its permissions are grante
 |---|---|---|
 | `pair-default` | every non-trivial pre-code advice request (initial state) | a group of both hosts, independent first pass |
 | `post-code-pair` | every non-trivial unit's post-code advisory review, before its work-unit commit and before `ce:review` (where owed) and the native review | a group of both hosts, independent first pass |
+| `gemini-api-substitute` | the owner declares the Antigravity allowance exhausted for the session | `advisor-gemini-pre` / `advisor-gemini-post` supply Antigravity's half of `pair-default` / `post-code-pair`; Claude Code stays the other half |
 | `user-override` | the user overrides when opening the session, with a reason | recorded by the broker, never chosen by the orchestrator |
 | `default-rotate` | RESERVED, not in force: the first tightening step if usage outgrows the allowances | `rotate` (alternates hosts per project) |
 
@@ -506,6 +517,7 @@ The former `consequential-pair` rule is subsumed by `pair-default`. The external
 - **No external review lenses.** Native gentle-ai review always uses the in-OpenCode `asi-review-*` relay lanes (`### 4R review lane routing (mandatory)`). Do not start a review with `externalLenses: true`.
 - **Post-code advisory review (owner, sequencing updated 2026-10-09).** Before a non-trivial unit's work-unit commit, the PM arranges the required independent post-code advice against the final implementation candidate (rule `post-code-pair` where the external lane is active). The advisory review must be independent of the author, and its findings must be resolved or recorded before the commit, so the committed version is already advisor-reviewed. This happens BEFORE the mandatory reviews: `ce:review` where the route owes it, then the native gentle-ai review. The external review is advisory evidence only: it never approves, never stands in for `ce:review` or the native review, and never feeds gentle-ai as a lens result. Native review remains separately driven and is not run by the PM.
 - **Subscription rule.** External sessions are opened and prompted only by the user. No queue watcher, script or OpenCode agent launches or prompts them.
+- **Gemini API substitute (owner, 2026-10-17).** Under `gemini-api-substitute` the Gemini half of the pair runs in-runtime, so the subscription rule does not apply to it: the orchestrator or PM dispatches `advisor-gemini-pre` or `advisor-gemini-post` with the same frozen brief the external host would get. It replaces Antigravity and never runs in addition to it, because it is paid per token. The rule applies to the current copy-and-paste practice as well as to the future B3 lane. First-pass independence holds as for the pair: neither Gemini agent ever receives Claude Code's answer. Record `selection.rule: gemini-api-substitute`.
 - **Throughput.** Every non-trivial unit then waits for the user to open sessions twice per host: pre-code advice and post-code advisory review, four in all. That is intentional while testing. The first tightening step, if usage approaches the allowances, is `default-rotate`.
 
 ### Advice record and route stage
