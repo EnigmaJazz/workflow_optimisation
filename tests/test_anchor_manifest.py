@@ -70,10 +70,28 @@ def duplicate_manifest_ids(body):
     return sorted({i for i in ids if ids.count(i) > 1})
 
 
+def validate_manifest_keystones(body):
+    """Reject a manifest row whose keystone repeats its own anchor id."""
+    errors = []
+    for index, row in rows(body):
+        fields = row.split(SEP)
+        if len(fields) < 4:
+            continue
+        anchor_id, keystone = fields[0], SEP.join(fields[3:])
+        if anchor_id == keystone:
+            errors.append(f"row {index}: keystone repeats anchor id {anchor_id!r}")
+    return errors
+
+
 class RealTables(unittest.TestCase):
     def setUp(self):
         self.assertTrue(SCRIPT.is_file(), f"{SCRIPT} missing")
         self.text = SCRIPT.read_text(encoding="utf-8")
+
+    def test_manifest_keystones_are_not_self_referential(self):
+        body = table_body(self.text, "ANCHOR_MANIFEST")
+        self.assertIsNotNone(body, "ANCHOR_MANIFEST table not found")
+        self.assertEqual(validate_manifest_keystones(body), [])
 
     def test_manifest_rows_have_non_empty_fields(self):
         body = table_body(self.text, "ANCHOR_MANIFEST")
@@ -94,6 +112,57 @@ class RealTables(unittest.TestCase):
     def test_every_manifest_anchor_is_unique(self):
         body = table_body(self.text, "ANCHOR_MANIFEST")
         self.assertEqual(duplicate_manifest_ids(body), [], "duplicate anchor id in ANCHOR_MANIFEST")
+
+    def test_extracted_verifier_loops_pass_against_real_files(self):
+        import subprocess
+
+        def extract_function(name):
+            start = self.text.index(f"{name}() {{")
+            end = self.text.index("\n}\n", start) + 2
+            return self.text[start:end]
+
+        manifest = table_body(self.text, "ANCHOR_MANIFEST")
+        token_table = table_body(self.text, "ANCHOR_TOKENS")
+        self.assertIsNotNone(manifest, "ANCHOR_MANIFEST table not found")
+        self.assertIsNotNone(token_table, "ANCHOR_TOKENS table not found")
+        root = str(REPO)
+        script = f'''set -u
+WORKSPACE="{root}"
+WORKFLOW="$WORKSPACE/WORKFLOW.md"
+ROUTING_GUARD_SOURCE="$WORKSPACE/global-config/plugins/systematic-routing-guard.ts"
+ROUTER_SKILLS_SOURCE="$WORKSPACE/global-config/skills"
+AGENTS_SOURCE="$WORKSPACE/global-config/AGENTS.md"
+FAIL_MESSAGES=()
+ANCHOR_FILES=("$WORKFLOW" "$ROUTING_GUARD_SOURCE" "$ROUTER_SKILLS_SOURCE/workflow-odd-secure/SKILL.md" "$ROUTER_SKILLS_SOURCE/workflow-systematic/SKILL.md" "$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md" "$AGENTS_SOURCE")
+fail() {{ FAIL_MESSAGES+=("$1"); printf 'FAIL %s\\n' "$1"; }}
+{extract_function("anchor_block_body")}
+{extract_function("anchor_has")}
+{extract_function("anchor_check_row")}
+ANCHOR_MANIFEST=(
+{manifest}
+)
+for anchor_row in "${{ANCHOR_MANIFEST[@]}}"; do
+  IFS='~' read -r anchor_id anchor_file anchor_label anchor_key <<< "$anchor_row"
+  before=${{#FAIL_MESSAGES[@]}}
+  anchor_check_row "$anchor_id" "$anchor_file" "$anchor_label" "$anchor_key"
+  if [ "${{#FAIL_MESSAGES[@]}}" -eq "$before" ]; then printf 'PASS %s\\n' "$anchor_id"; fi
+done
+printf 'ANCHOR_LOOP_RESULT rows=%s failures=%s\\n' "${{#ANCHOR_MANIFEST[@]}}" "${{#FAIL_MESSAGES[@]}}"
+ANCHOR_TOKENS=(
+{token_table}
+)
+for token_row in "${{ANCHOR_TOKENS[@]}}"; do
+  IFS='~' read -r token_anchor token_file token_label token_literal <<< "$token_row"
+  if anchor_has "$token_file" "$token_anchor" "$token_literal"; then :; else fail "ANCHOR_TOKEN_MISSING: $token_anchor $token_file $token_literal"; fi
+done
+printf 'TOKEN_LOOP_RESULT rows=%s failures=%s\\n' "${{#ANCHOR_TOKENS[@]}}" "${{#FAIL_MESSAGES[@]}}"
+[ "${{#FAIL_MESSAGES[@]}}" -eq 0 ]'''
+        result = subprocess.run(["bash", "-c", script], cwd=REPO, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        print(result.stdout, end="")
+        self.assertIn(f"ANCHOR_LOOP_RESULT rows={len(rows(manifest))} failures=0", result.stdout)
+        self.assertIn(f"TOKEN_LOOP_RESULT rows={len(rows(token_table))} failures=0", result.stdout)
+        self.assertEqual(result.stdout.count("PASS "), len(rows(manifest)), result.stdout)
 
 
 class PositiveControl(unittest.TestCase):
@@ -121,6 +190,12 @@ class PositiveControl(unittest.TestCase):
     def test_duplicate_manifest_id_is_detected(self):
         body = '"a.anchor~$FILE~FILE~one"\n"a.anchor~$FILE~FILE~two"\n'
         self.assertEqual(duplicate_manifest_ids(body), ["a.anchor"])
+
+    def test_self_referential_keystone_is_rejected(self):
+        manifest = '"workflow.tiny-fix~$FILE~WORKFLOW.md~workflow.tiny-fix"\n'
+        errors = validate_manifest_keystones(manifest)
+        self.assertTrue(errors, "a self-referential manifest keystone must be rejected")
+        self.assertIn("keystone repeats anchor id", errors[0])
 
 
 if __name__ == "__main__":

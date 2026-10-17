@@ -4557,10 +4557,10 @@ ANCHOR_MANIFEST=(
   "workflow.specialists.routing-precedence~$ROUTER_SKILLS_SOURCE/workflow-systematic/references/specialists.md~global-config/skills/workflow-systematic/references/specialists.md~systematic-implementer"
   "workflow.specialists.sandbox-mutation~$ROUTER_SKILLS_SOURCE/workflow-systematic/references/specialists.md~global-config/skills/workflow-systematic/references/specialists.md~sandbox_apply_patch"
   "workflow.agents.secure-router~$AGENTS_SOURCE~global-config/AGENTS.md~skill({name:\"workflow-route\"})"
-  "workflow.tiny-fix~$WORKFLOW~WORKFLOW.md~workflow.tiny-fix"
-  "workflow.tiny-fix-tripwire~$ROUTING_GUARD_SOURCE~systematic-routing-guard.ts~workflow.tiny-fix-tripwire"
-  "workflow.tiny-fix-odd-route~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/SKILL.md~workflow-odd-secure tiny-fix route~workflow.tiny-fix-odd-route"
-  "workflow.tiny-fix-systematic-route~$ROUTER_SKILLS_SOURCE/workflow-systematic/SKILL.md~workflow-systematic tiny-fix route~workflow.tiny-fix-systematic-route"
+  "workflow.tiny-fix~$WORKFLOW~WORKFLOW.md~Tiny fix selects one delegated"
+  "workflow.tiny-fix-tripwire~$ROUTING_GUARD_SOURCE~systematic-routing-guard.ts~TINY_FIX_MAX_AUTHORED_CHANGED_LINES"
+  "workflow.tiny-fix-odd-route~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/SKILL.md~workflow-odd-secure tiny-fix route~Tiny-fix route:"
+  "workflow.tiny-fix-systematic-route~$ROUTER_SKILLS_SOURCE/workflow-systematic/SKILL.md~workflow-systematic tiny-fix route~Tiny-fix route:"
   "workflow.tiny-fix-overlay~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~orchestrator inline boundary~Upstream's “small tasks stay inline” wording is NOT adopted"
 )
 ANCHOR_FAIL_BEFORE=${#FAIL_MESSAGES[@]}
@@ -4666,7 +4666,6 @@ ANCHOR_TOKENS=(
   "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~Forward the provider-issued task line verbatim"
   "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~two transports cannot own one Task"
   "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~Never grant review lanes to implementation workers or isolated reviewers"
-  "workflow.route-decision~$WORKFLOW~WORKFLOW.md~executable-file class: a script/executable extension or content opening with a shebang"
   "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~executable-file class: a script/executable extension or content opening with a shebang"
   # global-config/skills/workflow-route/references/session-decisions.md
   "workflow.session-decisions.astra~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Use Astra upgrade (Recommended)"
