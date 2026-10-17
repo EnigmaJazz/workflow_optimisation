@@ -1311,6 +1311,12 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
 - **Source:** owner decision 2026-10-17; pre-code advice in `odd/advice/q78-host-review-materialize.md`.
 - **Description:** grant explicit `allow` under `permission` to `gentle-orchestrator`, `pm-odd`, and `pm-systematic`, with a global `deny` default; add the PM `tools` map entries where applicable; enforce the exception, exact per-agent grants, positive controls, and negative agent sweep in `verify-workflow.sh`; re-pin `VERIFY_SCRIPT_SHA256` last. This is the advisory `ce:review` helper path, not native `asi-review-*`. Full scope, constraints and checks: `odd/tasks/q78-host-review-materialize.md`.
 
+### Q79. Deterministic mirror-write ownership
+- **Status:** PLANNED.
+- **Prerequisites:** none. Part of the PM-layer completion work on `chore/q72-t1b-tiny-fix-contract`.
+- **Source:** owner decision 2026-10-18: a DETERMINISTIC host tool owns tracker-mirror write and verify; explicitly retract Q77's metadata-worker ownership decision. Magic Context 0.46 removed `ctx_memory` from subagents by design.
+- **Description:** correct the contradictory `pm-handoff.md` ownership contract and `metadata_work_unit` envelope semantics; update the orchestrator overlay and its `## Key Learnings` chain, `WORKFLOW.md`, and `odd-and-review.md`; complete the seven-step prompt regeneration atomically; add the `ctx_note` residue guard, F13 embedded-prompt/assembler verifier check, correct `systematicMemoryPolicy`, and resolve the `explore` grant. If the deterministic host tool has not landed, record that mirror write is not performed rather than implying a successful write/readback. Explicitly retract Q77 in `CLAIM-RETRACTIONS.md`. Full scope and checks: `odd/tasks/q79-mirror-write-ownership.md`; pre-code advice: `odd/advice/q79-mirror-write-ownership.md`.
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).
