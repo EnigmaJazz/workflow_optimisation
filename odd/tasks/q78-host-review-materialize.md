@@ -43,7 +43,16 @@ T1: `global-config/opencode.json`, `verify-workflow.sh`, `global-config/plugins/
 
 ## Tasks
 
-- [ ] T1 — add the explicit allow to gentle-orchestrator, pm-odd and pm-systematic (and the tools-block entry where the agent enumerates host_review_* tools); add the global deny default; add the verifier's allow-exception membership, the three per-agent assertions and the negative sweep, each with a positive control; re-pin LAST.
+- [x] T1 — add explicit `allow` permissions to gentle-orchestrator, pm-odd and pm-systematic; add PM tool exposure entries and global `deny`; add verifier exception, explicit-own-key assertions, negative sweep and positive controls; document the temporary `general` writer deviation/revert trigger; add the anchor token; re-pin last after verifier edits. The orchestrator tools map needed no entry: it has no explicit host-review tool allow/deny list and relies on implicit custom-tool exposure, while PM tools maps explicitly enumerate host_review_* and now include the entry.
+
+## T1 Record (2026-10-17)
+
+- `global-config/opencode.json`: added global `host_review_materialize: deny`; explicit `allow` under the three named agents; added `true` to both PM tool maps only (orchestrator tools map remains implicit).
+- `verify-workflow.sh`: added gated mutation registration and orchestrator allow exception; explicit own-property/exact-value assertions for each grant, per-agent omitted-key and wrong-value controls, global default assertion, and an extra-agent negative sweep with a synthetic fourth-agent control.
+- `global-config/skills/workflow-odd-secure/SKILL.md`: recorded the temporary `general` (`openai/gpt-6-luna`) writer deviation for direct orchestrator dispatch, PM-layer `odd-apply` behavior, and Q56 PM-layer pilot revert trigger; added the owning-file anchor token row.
+- `global-config/plugins/workflow-health-check.ts`: re-pinned `VERIFY_SCRIPT_SHA256` last among verifier/source edits.
+- Cross-repo precondition: broker-side registration is being built in `agent-sandbox-integration`; it is unverified here and the permission is inert until that registration is installed.
+- Verification: JSON parse passed; `bash -n` passed; anchor-manifest suite 10/10 passed (39 structural rows, 99 token rows); routing-guard suite 103/103 passed; full Python suite ran 199 tests, with 189 passing and 10 errors because `node` execution is denied in the sandbox. The pin regex test passed and matched both literals. The extracted JavaScript permission-fixture block could not be executed because the required `node` runtime is denied; its source controls are present but fixture sweep execution remains unverified. The full verifier is an owner deploy step (host paths and `node` are unavailable in this sandbox).
 
 ## Delivery strategy
 

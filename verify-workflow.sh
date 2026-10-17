@@ -2714,7 +2714,7 @@ for (const t of ["sandbox_apply","sandbox_apply_patch","sandbox_copy_in","sandbo
 
 
 const registeredHostReads=["host_review_assess","host_review_mode_status","host_review_status","host_review_lens_context","host_sandbox_result"]
-const gatedHostMutations=["host_git_commit","host_git_push","host_gh_issue_create","host_plan_append","host_register_project","host_review_start","host_review_capture_result","host_review_capture_unachievable","host_review_acknowledge_approved","host_review_capture_correction_plan","host_review_capture_refuter","host_review_capture_validation","host_review_validate","host_review_recover","host_sandbox_result_install","host_git_clear_commit_intent"]
+const gatedHostMutations=["host_git_commit","host_git_push","host_gh_issue_create","host_plan_append","host_register_project","host_review_start","host_review_materialize","host_review_capture_result","host_review_capture_unachievable","host_review_acknowledge_approved","host_review_capture_correction_plan","host_review_capture_refuter","host_review_capture_validation","host_review_validate","host_review_recover","host_sandbox_result_install","host_git_clear_commit_intent"]
 const retiredHostOperations=["host_sdd_verify_validate","host_sdd_attempt_status","host_sdd_attempt_acquire","host_sdd_attempt_begin","host_sdd_attempt_rescope","host_sdd_attempt_finish","host_sdd_attempt_reset","host_sdd_attempt_settle","host_sdd_attempt_grant","host_sdd_archive_compose","host_sdd_status","host_sdd_continue","host_sdd_task_result"]
 for (const name of registeredHostReads) if (gp[name]!=="allow") fail(`HOST_READ_PERMISSION_MISMATCH: ${name}`)
 for (const name of [...gatedHostMutations,...retiredHostOperations]) if (gp[name]!=="deny") fail(`HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY: ${name}`)
@@ -2722,6 +2722,46 @@ for (const name of ["host_system","host_service_status","host_service_logs","hos
 
 function cfgTool(agent,t) { return agent?.tools && typeof agent.tools==="object" ? agent.tools[t] : undefined }
 function cfgPerm(agent,t) { return agent?.permission && typeof agent.permission==="object" ? agent.permission[t] : undefined }
+function hostReviewMaterializeFailures(name,agent) {
+  const failures=[]
+  if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_materialize") || agent.permission.host_review_materialize!=="allow") failures.push(`HOST_REVIEW_MATERIALIZE_NOT_ALLOW: ${name}`)
+  return failures
+}
+for (const name of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
+  const agent=deployedAgents[name]
+  if (!agent) { fail(`HOST_REVIEW_MATERIALIZE_AGENT_MISSING: ${name}`); continue }
+  for (const failure of hostReviewMaterializeFailures(name,agent)) fail(failure)
+  const omitted=hostReviewMaterializeFailures(`${name}-omitted`,{permission:{}})
+  if (!omitted.includes(`HOST_REVIEW_MATERIALIZE_NOT_ALLOW: ${name}-omitted`)) fail(`HOST_REVIEW_MATERIALIZE_OMITTED_POSITIVE_CONTROL_FAILED: ${name}`)
+  const mismatched=hostReviewMaterializeFailures(`${name}-mismatched`,{permission:{host_review_materialize:"ask"}})
+  if (!mismatched.includes(`HOST_REVIEW_MATERIALIZE_NOT_ALLOW: ${name}-mismatched`)) fail(`HOST_REVIEW_MATERIALIZE_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
+}
+function hostReviewMaterializeGlobalDefaultFailures(value) {
+  return value==="deny" ? [] : [`HOST_REVIEW_MATERIALIZE_GLOBAL_DEFAULT_NOT_DENY: ${show(value)}`]
+}
+for (const failure of hostReviewMaterializeGlobalDefaultFailures(gp.host_review_materialize)) fail(failure)
+const hostReviewGlobalDefaultProbe=hostReviewMaterializeGlobalDefaultFailures("allow")
+if (!hostReviewGlobalDefaultProbe.includes("HOST_REVIEW_MATERIALIZE_GLOBAL_DEFAULT_NOT_DENY: allow")) fail("HOST_REVIEW_MATERIALIZE_GLOBAL_DEFAULT_POSITIVE_CONTROL_FAILED")
+else console.log("   ok: host_review_materialize global-default positive control detected allow")
+function hostReviewMaterializeExceptionFailures(gated,agent) {
+  const failures=[]
+  if (!gated.includes("host_review_materialize") || cfgPerm(agent,"host_review_materialize")!=="allow") failures.push(`ORCHESTRATOR_HOST_REVIEW_MATERIALIZE_EXCEPTION_NOT_ALLOW: ${show(cfgPerm(agent,"host_review_materialize"))}`)
+  return failures
+}
+const hostReviewExceptionOmitted=hostReviewMaterializeExceptionFailures(gatedHostMutations.filter((name)=>name!=="host_review_materialize"),{permission:{host_review_materialize:"allow"}})
+if (!hostReviewExceptionOmitted.includes("ORCHESTRATOR_HOST_REVIEW_MATERIALIZE_EXCEPTION_NOT_ALLOW: allow")) fail("HOST_REVIEW_MATERIALIZE_EXCEPTION_OMITTED_POSITIVE_CONTROL_FAILED")
+else console.log("   ok: host_review_materialize exception positive control detected omitted allow-list membership")
+const hostReviewExceptionWrong=hostReviewMaterializeExceptionFailures(gatedHostMutations,{permission:{host_review_materialize:"ask"}})
+if (!hostReviewExceptionWrong.includes("ORCHESTRATOR_HOST_REVIEW_MATERIALIZE_EXCEPTION_NOT_ALLOW: ask")) fail("HOST_REVIEW_MATERIALIZE_EXCEPTION_VALUE_POSITIVE_CONTROL_FAILED")
+else console.log("   ok: host_review_materialize exception positive control detected ask instead of allow")
+for (const [name,agent] of Object.entries(deployedAgents)) {
+  if (["gentle-orchestrator","pm-odd","pm-systematic"].includes(name)) continue
+  if (cfgPerm(agent,"host_review_materialize")==="allow") fail(`HOST_REVIEW_MATERIALIZE_GRANTED_OUTSIDE_ALLOWLIST: ${name}`)
+}
+const hostReviewSweepProbe={"synthetic-fourth-agent":{permission:{host_review_materialize:"allow"}}}
+const hostReviewSweepProbeFailures=Object.entries(hostReviewSweepProbe).filter(([,agent])=>cfgPerm(agent,"host_review_materialize")==="allow").map(([name])=>`HOST_REVIEW_MATERIALIZE_GRANTED_OUTSIDE_ALLOWLIST: ${name}`)
+if (!hostReviewSweepProbeFailures.includes("HOST_REVIEW_MATERIALIZE_GRANTED_OUTSIDE_ALLOWLIST: synthetic-fourth-agent")) fail("HOST_REVIEW_MATERIALIZE_SWEEP_POSITIVE_CONTROL_FAILED")
+else console.log("   ok: host_review_materialize negative-sweep positive control detected synthetic-fourth-agent")
 function reviewAgentLockdownFailures(name,agent) {
   const failures=[]
   if (!agent?.tools || typeof agent.tools!=="object" || Array.isArray(agent.tools)) {
@@ -2999,8 +3039,9 @@ else {
   if (!configuredOrchestratorVariant) fail(`ORCHESTRATOR_VARIANT_NOT_EXPLICIT: ${show(orch.variant)}`)
   if (cfgPerm(orch,"edit")!=="deny" || cfgPerm(orch,"write")!=="deny") fail("ORCHESTRATOR_HOST_WRITE_NOT_DENIED")
   if (cfgPerm(orch,"bash")!=="deny") fail("ORCHESTRATOR_HOST_BASH_NOT_DENIED")
-  for (const name of gatedHostMutations) if (name!=="host_review_start" && cfgPerm(orch,name)!=="ask") fail(`ORCHESTRATOR_HOST_TOOL_NOT_ASK: ${name}`)
+  for (const name of gatedHostMutations) if (name!=="host_review_start" && name!=="host_review_materialize" && cfgPerm(orch,name)!=="ask") fail(`ORCHESTRATOR_HOST_TOOL_NOT_ASK: ${name}`)
   if (cfgPerm(orch,"host_review_start")!=="allow") fail(`ORCHESTRATOR_HOST_REVIEW_START_NOT_ALLOW: ${show(cfgPerm(orch,"host_review_start"))}`)
+  for (const failure of hostReviewMaterializeExceptionFailures(gatedHostMutations,orch)) fail(failure)
   for (const name of retiredHostOperations) if (cfgPerm(orch,name)!=="deny") fail(`ORCHESTRATOR_RETIRED_HOST_TOOL_EXPOSED: ${name}`)
   if (cfgPerm(orch,"host_register_project")!=="ask") fail(`ORCHESTRATOR_HOST_REGISTER_PROJECT_NOT_ASK: ${show(cfgPerm(orch,"host_register_project"))}`)
   if (cfgTool(orch,"bash")===true || cfgTool(orch,"edit")===true || cfgTool(orch,"write")===true) fail("ORCHESTRATOR_LEGACY_HOST_TOOL_EXPOSED")
@@ -4632,6 +4673,7 @@ ANCHOR_TOKENS=(
   "workflow.execution-skills~$WORKFLOW~WORKFLOW.md~Systematic v3.18.4+"
   "workflow.execution-skills~$WORKFLOW~WORKFLOW.md~workflow-guard result is authoritative"
   "workflow.execution-boundary~$WORKFLOW~WORKFLOW.md~The orchestrator must not dispatch a writer that shares its own model family."
+  "workflow.tiny-fix-odd-route~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/SKILL.md~workflow-odd-secure tiny-fix route~Temporary writer deviation (owner decision, 2026-10-17)"
   "workflow.execution-boundary~$WORKFLOW~WORKFLOW.md~CLOUD or LOCAL tier"
   "workflow.execution-boundary~$WORKFLOW~WORKFLOW.md~provided its model family differs from the orchestrator's"
   "workflow.execution-boundary~$WORKFLOW~WORKFLOW.md~An unrecognized model family is NOT proven independent"
