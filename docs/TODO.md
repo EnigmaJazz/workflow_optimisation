@@ -1299,6 +1299,12 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   - Antigravity gets `argon_advisor` and `evidence_collector` custom agents through the
     `changesets/q76-antigravity-agents` change set. See `docs/gemini-api-route.md`.
 
+### Q77. PM mirror readback under Magic Context 0.46
+- **Status:** PLANNED.
+- **Prerequisites:** none. Part of the PM-layer completion work on `chore/pm-layer-completion`.
+- **Source:** owner-confirmed Magic Context 0.46 subagent tool surface and two live `pm-odd` BLOCKED results (2026-10-17); tracker `odd/tasks/q77-pm-mirror-readback.md`.
+- **Description:** make `docs/specs/pm-handoff.md`'s mandatory tracker/mirror readback achievable without registering `ctx_memory` for subagents (removed by design). U1 adds `tracker_sha256` and `mirror_sha256` to the brief, has the PM hash the committed tracker file independently and compare it with the supplied tracker hash, specifies BLOCKED outcomes, records the comparison/method in the result envelope, preserves metadata-worker mirror-write ownership, and adds a schema test. U2 updates the orchestrator overlay, both PM prompts and regeneration chain. The live runtime falsifier is HOST-ONLY. Full scope and acceptance criteria: `odd/tasks/q77-pm-mirror-readback.md`.
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).
