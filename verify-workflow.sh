@@ -377,6 +377,7 @@ required_agents = {
     "advisor-testing-pre", "advisor-maintainability-pre",
     "advisor-design-post", "advisor-security-post", "advisor-integration-post",
     "advisor-testing-post", "advisor-maintainability-post",
+    "advisor-gemini-pre", "advisor-gemini-post", "advisor-gemini-evidence",
 }
 
 # These package identities are intentionally version-managed by the reviewed
@@ -2856,6 +2857,70 @@ else {
   if (orchestratorTask?.["odd-apply"]==="allow") fail("ODD_APPLY_ALLOWED_TO_ORCHESTRATOR")
 }
 
+// gemini-advisor-route:begin
+// Q76: the Argon advisors may only delegate to the Flash evidence gatherer, which keeps the
+// shared sandbox-only advisor surface. Only the orchestrator and the PMs dispatch the advisors;
+// no other agent may reach the gatherer. None of the three may fall back to another model.
+// Self-contained so tests/test_gemini_advisor_route.py can execute it against fixtures.
+function geminiAdvisorRouteFailures(agents,fallback) {
+  const out=[]
+  const advisors=["advisor-gemini-pre","advisor-gemini-post"]
+  const evidence="advisor-gemini-evidence"
+  const grants=new Set(["allow","ask"])
+  const hostRoutes=["edit","write","bash","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]
+  const asMap=(value)=>value && typeof value==="object" && !Array.isArray(value) ? value : {}
+  const sameMap=(value,expected)=>{
+    const actual=asMap(value)
+    return Object.keys(actual).length===Object.keys(expected).length && Object.entries(expected).every(([k,v])=>actual[k]===v)
+  }
+  for (const name of advisors) {
+    const a=agents?.[name]
+    if (!a || typeof a!=="object") { out.push(`GEMINI_ADVISOR_MISSING: ${name}`); continue }
+    if (a.model!=="google/gemini-4-argon") out.push(`GEMINI_ADVISOR_MODEL_MISMATCH: ${name}=${JSON.stringify(a.model)}`)
+    const tools=asMap(a.tools), perms=asMap(a.permission)
+    if (tools["*"]!==false || tools.task!==true) out.push(`GEMINI_ADVISOR_TOOL_SURFACE_MISMATCH: ${name}`)
+    for (const [t,v] of Object.entries(tools)) if (v===true && t!=="task") out.push(`GEMINI_ADVISOR_TOOL_EXPOSED: ${name}.${t}`)
+    for (const [t,v] of Object.entries(perms)) if (t!=="task" && grants.has(v)) out.push(`GEMINI_ADVISOR_TOOL_EXPOSED: ${name}.${t}`)
+    if (!sameMap(perms.task,{"*":"deny",[evidence]:"allow"})) out.push(`GEMINI_ADVISOR_TASK_SCOPE_MISMATCH: ${name}=${JSON.stringify(perms.task)}`)
+    if (perms.ctx_memory!=="deny") out.push(`GEMINI_ADVISOR_MEMORY_EXPOSED: ${name}`)
+  }
+  const gatherer=agents?.[evidence]
+  if (!gatherer || typeof gatherer!=="object") out.push(`GEMINI_EVIDENCE_MISSING: ${evidence}`)
+  else {
+    if (gatherer.model!=="google/gemini-3.8-flash") out.push(`GEMINI_EVIDENCE_MODEL_MISMATCH: ${evidence}=${JSON.stringify(gatherer.model)}`)
+    const tools=asMap(gatherer.tools), perms=asMap(gatherer.permission)
+    for (const t of hostRoutes) if (tools[t]===true || perms[t]!=="deny") out.push(`GEMINI_EVIDENCE_HOST_ROUTE_EXPOSED: ${evidence}.${t}`)
+    if (tools.task!==false || !sameMap(perms.task,{"*":"deny"})) out.push(`GEMINI_EVIDENCE_TASK_NOT_DENIED: ${evidence}`)
+    if (perms.ctx_memory!=="deny") out.push(`GEMINI_EVIDENCE_MEMORY_EXPOSED: ${evidence}`)
+  }
+  for (const dispatcher of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
+    const task=asMap(asMap(agents?.[dispatcher]?.permission).task)
+    for (const name of advisors) if (task[name]!=="allow") out.push(`GEMINI_ADVISOR_NOT_DISPATCHABLE: ${dispatcher}.${name}`)
+  }
+  for (const [name,a] of Object.entries(asMap(agents))) {
+    if (advisors.includes(name)) continue
+    const task=a?.permission?.task
+    if (!task || typeof task!=="object" || Array.isArray(task)) continue
+    const effective=Object.prototype.hasOwnProperty.call(task,evidence) ? task[evidence] : task["*"]
+    if (effective!=="deny") out.push(`GEMINI_EVIDENCE_DISPATCHABLE: ${name}=${JSON.stringify(effective)}`)
+  }
+  const noFallback=Array.isArray(fallback?.noFallbackAgents) ? fallback.noFallbackAgents : []
+  for (const name of [...advisors,evidence]) if (!noFallback.includes(name)) out.push(`GEMINI_ADVISOR_FALLBACK_ALLOWED: ${name}`)
+  return out
+}
+// gemini-advisor-route:end
+{
+  let geminiFallback
+  try { geminiFallback=parseJsonc(fallbackPolicySourcePath) } catch { geminiFallback=undefined }
+  for (const failure of geminiAdvisorRouteFailures(deployedAgents,geminiFallback)) fail(failure)
+  const controlFailures=geminiAdvisorRouteFailures({},{})
+  if (!controlFailures.includes("GEMINI_ADVISOR_MISSING: advisor-gemini-pre") || !controlFailures.includes("GEMINI_EVIDENCE_MISSING: advisor-gemini-evidence")) {
+    fail(`GEMINI_ADVISOR_ROUTE_POSITIVE_CONTROL_FAILED: ${JSON.stringify(controlFailures)}`)
+  } else {
+    console.log("   ok: Gemini advisor route shape, dispatch scope and no-fallback policy")
+  }
+}
+
 const ordinaryMemoryAgents=new Set([
   "explore","frontend-apply","frontend-apply-local","frontend-dev","frontend-dev-premium","general",
   "gentle-ai-explore","gentle-ai-verify","gentle-ai-worker","gentle-ai-worker-local",
@@ -2869,6 +2934,7 @@ const isolatedMemoryAgents=new Set([
   "advisor-security-pre","advisor-maintainability-pre",
   "advisor-design-post","advisor-integration-post","advisor-testing-post",
   "advisor-security-post","advisor-maintainability-post",
+  "advisor-gemini-pre","advisor-gemini-post","advisor-gemini-evidence",
   "asi-review-risk","asi-review-resilience","asi-review-readability",
   "asi-review-reliability","asi-review-refuter","asi-review-validator",
 ])

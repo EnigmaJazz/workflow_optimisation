@@ -3,7 +3,8 @@
   "startProviders": [
     "openai",
     "opencode-go",
-    "kinver"
+    "kinver",
+    "google"
   ],
   "agentFallbackModels": {
     "frontend-apply": [
@@ -736,6 +737,27 @@
           "vision"
         ]
       }
+    ],
+    "google": [
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
     ]
   },
   "fallbackModel": [
@@ -852,7 +874,10 @@
     "advisor-security-post",
     "advisor-integration-post",
     "advisor-testing-post",
-    "advisor-maintainability-post"
+    "advisor-maintainability-post",
+    "advisor-gemini-pre",
+    "advisor-gemini-post",
+    "advisor-gemini-evidence"
   ],
   "logging": true
 }

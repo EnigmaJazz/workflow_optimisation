@@ -60,7 +60,8 @@
       "model": "opencode-go/deepseek-v4.1-flash",
       "permission": {
         "task": {
-          "vision": "allow"
+          "vision": "allow",
+          "advisor-gemini-evidence": "deny"
         },
         "edit": "deny",
         "write": "deny",
@@ -112,7 +113,8 @@
       "model": "kinver/professional",
       "permission": {
         "task": {
-          "vision": "allow"
+          "vision": "allow",
+          "advisor-gemini-evidence": "deny"
         },
         "edit": "deny",
         "write": "deny",
@@ -166,7 +168,8 @@
         "task": {
           "frontend-apply": "allow",
           "frontend-apply-local": "allow",
-          "vision": "allow"
+          "vision": "allow",
+          "advisor-gemini-evidence": "deny"
         },
         "edit": "deny",
         "write": "deny",
@@ -535,7 +538,10 @@
           "advisor-security-post": "allow",
           "advisor-maintainability-post": "allow",
           "pm-odd": "allow",
-          "pm-systematic": "allow"
+          "pm-systematic": "allow",
+          "advisor-gemini-pre": "allow",
+          "advisor-gemini-post": "allow",
+          "advisor-gemini-evidence": "deny"
         },
         "edit": "deny",
         "write": "deny",
@@ -1121,7 +1127,8 @@
           "*": "ask",
           "frontend-apply": "allow",
           "frontend-apply-local": "allow",
-          "vision": "allow"
+          "vision": "allow",
+          "advisor-gemini-evidence": "deny"
         },
         "edit": "deny",
         "write": "deny",
@@ -1911,6 +1918,143 @@
       },
       "variant": "medium"
     },
+    "advisor-gemini-pre": {
+      "description": "First-pass advisor on Gemini 4 Argon (API credits), Antigravity substitute — pre-code",
+      "hidden": true,
+      "mode": "subagent",
+      "tools": {
+        "*": false,
+        "bash": false,
+        "edit": false,
+        "read": false,
+        "write": false,
+        "grep": false,
+        "task": true
+      },
+      "model": "google/gemini-4-argon",
+      "permission": {
+        "edit": "deny",
+        "write": "deny",
+        "bash": "deny",
+        "read": "deny",
+        "grep": "deny",
+        "webfetch": "deny",
+        "ctx_memory": "deny",
+        "sandbox_bash": "deny",
+        "sandbox_edit": "deny",
+        "sandbox_write": "deny",
+        "sandbox_apply_patch": "deny",
+        "sandbox_apply": "deny",
+        "sandbox_copy_in": "deny",
+        "sandbox_copy_out": "deny",
+        "sandbox_discard": "deny",
+        "sandbox_finish": "deny",
+        "sandbox_read": "deny",
+        "sandbox_list": "deny",
+        "sandbox_grep": "deny",
+        "sandbox_diff": "deny",
+        "task": {
+          "*": "deny",
+          "advisor-gemini-evidence": "allow"
+        }
+      },
+      "prompt": "You are the Gemini first-pass advisor. You stand in for the external Antigravity advisor when the owner has declared its allowance exhausted (WORKFLOW.md external lane, rule `gemini-api-substitute`). You run on paid API credits, so answer from the supplied brief, which carries the plan, the relevant code and the constraints. You have no file, search or shell tools. When a specific fact you need is missing from the brief, delegate one bounded gathering request to `advisor-gemini-evidence`: state the exact question, the paths or symbols to inspect and any test command to run. Make at most 2 such requests per advice request, and never pass it another advisor's answer. Treat its report as evidence to weigh, never as conclusions. Answer exactly: \"What is wrong or missing in this approach, what should change before implementation, and what evidence supports that?\" Label every claim observed/inferred/assumed with file and line evidence, and say which facts came from the gatherer. Never claim an unperformed check. Advice is evidence, never approval. Be concise and bound your findings.\n\nScope: generalist (design, integration, testing, security and maintainability) as one independent first pass."
+    },
+    "advisor-gemini-post": {
+      "description": "First-pass advisor on Gemini 4 Argon (API credits), Antigravity substitute — post-code",
+      "hidden": true,
+      "mode": "subagent",
+      "tools": {
+        "*": false,
+        "bash": false,
+        "edit": false,
+        "read": false,
+        "write": false,
+        "grep": false,
+        "task": true
+      },
+      "model": "google/gemini-4-argon",
+      "permission": {
+        "edit": "deny",
+        "write": "deny",
+        "bash": "deny",
+        "read": "deny",
+        "grep": "deny",
+        "webfetch": "deny",
+        "ctx_memory": "deny",
+        "sandbox_bash": "deny",
+        "sandbox_edit": "deny",
+        "sandbox_write": "deny",
+        "sandbox_apply_patch": "deny",
+        "sandbox_apply": "deny",
+        "sandbox_copy_in": "deny",
+        "sandbox_copy_out": "deny",
+        "sandbox_discard": "deny",
+        "sandbox_finish": "deny",
+        "sandbox_read": "deny",
+        "sandbox_list": "deny",
+        "sandbox_grep": "deny",
+        "sandbox_diff": "deny",
+        "task": {
+          "*": "deny",
+          "advisor-gemini-evidence": "allow"
+        }
+      },
+      "prompt": "You are the Gemini first-pass advisor. You stand in for the external Antigravity advisor when the owner has declared its allowance exhausted (WORKFLOW.md external lane, rule `gemini-api-substitute`). You run on paid API credits, so answer from the supplied brief, which carries the plan, the relevant code and the constraints. You have no file, search or shell tools. When a specific fact you need is missing from the brief, delegate one bounded gathering request to `advisor-gemini-evidence`: state the exact question, the paths or symbols to inspect and any test command to run. Make at most 2 such requests per advice request, and never pass it another advisor's answer. Treat its report as evidence to weigh, never as conclusions. This is the post-code advisory review of the committed candidate named in the brief. Answer exactly: \"What is wrong or missing in this approach, what should change before implementation, and what evidence supports that?\" about that candidate. Label every claim observed/inferred/assumed with file and line evidence, and say which facts came from the gatherer. Never claim an unperformed check. Advice is evidence, never approval. Be concise and bound your findings.\n\nScope: generalist (design, integration, testing, security and maintainability) as one independent first pass."
+    },
+    "advisor-gemini-evidence": {
+      "description": "Evidence gatherer on Gemini 3.8 Flash for the Gemini advisors — facts only, never advice",
+      "hidden": true,
+      "mode": "subagent",
+      "tools": {
+        "bash": false,
+        "codegraph_codegraph_explore": true,
+        "edit": false,
+        "read": true,
+        "task": false,
+        "write": false,
+        "grep": false,
+        "sandbox_bash": true,
+        "sandbox_edit": true,
+        "sandbox_write": true,
+        "sandbox_apply_patch": true,
+        "sandbox_apply": false,
+        "sandbox_copy_in": false,
+        "sandbox_copy_out": false,
+        "sandbox_discard": false,
+        "sandbox_finish": false,
+        "sandbox_read": true,
+        "sandbox_list": true,
+        "sandbox_grep": true,
+        "sandbox_diff": true
+      },
+      "model": "google/gemini-3.8-flash",
+      "permission": {
+        "edit": "deny",
+        "write": "deny",
+        "bash": "deny",
+        "read": "allow",
+        "grep": "deny",
+        "ctx_memory": "deny",
+        "sandbox_bash": "allow",
+        "sandbox_edit": "allow",
+        "sandbox_write": "allow",
+        "sandbox_apply_patch": "allow",
+        "sandbox_apply": "deny",
+        "sandbox_copy_in": "deny",
+        "sandbox_copy_out": "deny",
+        "sandbox_discard": "deny",
+        "sandbox_finish": "deny",
+        "sandbox_read": "allow",
+        "sandbox_list": "allow",
+        "sandbox_grep": "allow",
+        "sandbox_diff": "allow",
+        "task": {
+          "*": "deny"
+        }
+      },
+      "prompt": "You are the evidence gatherer for the Gemini advisors. Answer only the gathering questions you are sent, with facts, never advice or recommendations: `path:line` evidence with short excerpts, and for every command you run, the exact command and its observed output. You have an isolated, workspace-local sandbox for inspection and running tests, but cannot export, apply, or commit results to the host or delegate. Never claim an unperformed check. Keep the whole report under about 2,000 tokens; say what you could not establish instead of guessing.\n\n<!-- user:subagent-search-contract -->\n## Repository search and external-context contract\n\nFor repository inspection, choose by query type: `aft_outline`/`aft_zoom` for known-file or symbol navigation; `codegraph_codegraph_explore` for indexed relationships and impact; `ast_grep_search` for structural patterns; and `sandbox_grep` only as the bounded exact-literal, configuration, or prose fallback. Native built-in `grep` is unavailable to subagents. Never use shell search as a bypass. If required evidence is outside the registered project, stop dependent work and return exactly `EXTERNAL_CONTEXT_REQUIRED` followed by `Purpose`, `Expected location`, and `Required evidence`; do not search the host or request broader filesystem access.\n<!-- /user:subagent-search-contract -->"
+    },
     "pm-odd": {
       "description": "One-work-unit pm-odd route coordinator",
       "hidden": true,
@@ -2008,7 +2152,9 @@
           "gentle-ai-worker-local": "allow",
           "gentle-ai-verify": "allow",
           "gentle-ai-verify-astra": "allow",
-          "odd-apply": "allow"
+          "odd-apply": "allow",
+          "advisor-gemini-pre": "allow",
+          "advisor-gemini-post": "allow"
         },
         "skill": "allow",
         "systematic_skill": "allow",
@@ -2141,7 +2287,9 @@
           "project-standards-reviewer": "allow",
           "repo-research-analyst": "allow",
           "systematic-implementer": "allow",
-          "testing-reviewer": "allow"
+          "testing-reviewer": "allow",
+          "advisor-gemini-pre": "allow",
+          "advisor-gemini-post": "allow"
         },
         "skill": "allow",
         "systematic_skill": "allow",
