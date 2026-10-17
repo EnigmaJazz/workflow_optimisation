@@ -2901,6 +2901,12 @@ function geminiAdvisorRouteFailures(agents,fallback) {
     if (advisors.includes(name)) continue
     const task=a?.permission?.task
     if (!task || typeof task!=="object" || Array.isArray(task)) continue
+    if (!["gentle-orchestrator","pm-odd","pm-systematic"].includes(name)) {
+      for (const advisor of advisors) {
+        const effectiveAdvisor=Object.prototype.hasOwnProperty.call(task,advisor) ? task[advisor] : task["*"]
+        if (effectiveAdvisor==="allow") out.push(`GEMINI_ADVISOR_DISPATCHABLE: ${name}.${advisor}='allow'`)
+      }
+    }
     const effective=Object.prototype.hasOwnProperty.call(task,evidence) ? task[evidence] : task["*"]
     if (effective!=="deny") out.push(`GEMINI_EVIDENCE_DISPATCHABLE: ${name}=${JSON.stringify(effective)}`)
   }

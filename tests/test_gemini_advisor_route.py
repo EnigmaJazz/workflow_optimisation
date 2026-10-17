@@ -134,6 +134,11 @@ def dispatch_violations(data):
         task = _perms(agent).get("task")
         if not isinstance(task, dict):
             continue
+        if name not in DISPATCHERS:
+            for advisor in ADVISORS:
+                effective_advisor = task[advisor] if advisor in task else task.get("*")
+                if effective_advisor == "allow":
+                    out.append((name, f"may dispatch {advisor} ({effective_advisor!r})"))
         effective = task[EVIDENCE] if EVIDENCE in task else task.get("*")
         if effective != "deny":
             out.append((name, f"may dispatch {EVIDENCE} ({effective!r})"))
@@ -272,6 +277,30 @@ class PositiveControl(unittest.TestCase):
         self.assertIn(("pm-systematic", "cannot dispatch advisor-gemini-pre"), dispatch_violations(data))
         self.assertIn(
             "GEMINI_ADVISOR_NOT_DISPATCHABLE: pm-systematic.advisor-gemini-pre",
+            run_verifier_block(data["agent"], fallback),
+        )
+
+    def test_non_dispatcher_granting_an_advisor_fails(self):
+        data, fallback = self.mutated()
+        data["agent"]["odd-apply"]["permission"]["task"]["advisor-gemini-pre"] = "allow"
+        self.assertIn(
+            ("odd-apply", "may dispatch advisor-gemini-pre ('allow')"),
+            dispatch_violations(data),
+        )
+        self.assertIn(
+            "GEMINI_ADVISOR_DISPATCHABLE: odd-apply.advisor-gemini-pre='allow'",
+            run_verifier_block(data["agent"], fallback),
+        )
+
+    def test_non_dispatcher_wildcard_granting_advisors_fails(self):
+        data, fallback = self.mutated()
+        data["agent"]["odd-apply"]["permission"]["task"]["*"] = "allow"
+        self.assertIn(
+            ("odd-apply", "may dispatch advisor-gemini-pre ('allow')"),
+            dispatch_violations(data),
+        )
+        self.assertIn(
+            "GEMINI_ADVISOR_DISPATCHABLE: odd-apply.advisor-gemini-pre='allow'",
             run_verifier_block(data["agent"], fallback),
         )
 
