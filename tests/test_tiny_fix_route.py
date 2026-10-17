@@ -7,9 +7,9 @@ pre-apply assessment boundary.
 """
 
 import ast
-import fnmatch
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -21,6 +21,38 @@ GUARD = ROOT / "global-config" / "plugins" / "systematic-routing-guard.ts"
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
 CONFIG = ROOT / "global-config" / "opencode.json"
 PROMPT_TEST = ROOT / "tests" / "test_orchestrator_prompt_source.py"
+
+
+def extract_escalation_predicate(source=None):
+    source = source if source is not None else GUARD.read_text(encoding="utf-8")
+    start = source.find("const TINY_FIX_MAX_AUTHORED_CHANGED_LINES =")
+    end = source.find("const normalizeTinyFixWriter", start)
+    if start < 0 or end < 0:
+        raise AssertionError("tiny-fix escalation constants or predicate are missing")
+    return source[start:end]
+
+
+def run_escalation_predicate(candidates, source=None):
+    """Execute the extracted shipped TypeScript constants and predicate with Bun."""
+    predicate = extract_escalation_predicate(source)
+    program = (
+        predicate
+        + "\nconst candidates = JSON.parse(process.env.TINY_FIX_CANDIDATES!)"
+        + "\nprocess.stdout.write(JSON.stringify(candidates.map(tinyFixEscalationRequired)))\n"
+    )
+    env = dict(os.environ)
+    env["TINY_FIX_CANDIDATES"] = json.dumps(candidates)
+    proc = subprocess.run(
+        ["bun", "-e", program], capture_output=True, text=True, env=env, check=False
+    )
+    if proc.returncode != 0:
+        raise AssertionError(f"extracted tiny-fix predicate failed to run with Bun: {proc.stderr}")
+    return json.loads(proc.stdout)
+
+
+def assert_escalation_results(actual, expected):
+    if actual != expected:
+        raise AssertionError(f"escalation results {actual!r} != expected {expected!r}")
 
 
 def read_tripwire_constants():
@@ -37,16 +69,6 @@ def read_tripwire_constants():
     return source, int(lines_match.group(1)), int(files_match.group(1)), ast.literal_eval(denylist_match.group(1))
 
 
-def escalation_required(changed_lines, touched_paths, added_or_deleted=False):
-    _, max_lines, max_files, patterns = read_tripwire_constants()
-    denied = any(
-        fnmatch.fnmatchcase(path, pattern)
-        for path in touched_paths
-        for pattern in patterns
-    )
-    return changed_lines > max_lines or len(touched_paths) > max_files or added_or_deleted or denied
-
-
 class TinyFixTripwireContract(unittest.TestCase):
     def test_named_constants_and_predicate_are_present(self):
         source, max_lines, max_files, patterns = read_tripwire_constants()
@@ -59,7 +81,6 @@ class TinyFixTripwireContract(unittest.TestCase):
         self.assertIn("candidate.addedOrDeleted", source)
 
     def test_denylist_covers_protected_paths_and_permissions_surface(self):
-        _, _, _, patterns = read_tripwire_constants()
         for path in (
             "verify-workflow.sh",
             "global-config/opencode.json",
@@ -68,7 +89,14 @@ class TinyFixTripwireContract(unittest.TestCase):
             "global-config/permissions/roles.json",
         ):
             with self.subTest(path=path):
-                self.assertTrue(any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns), path)
+                self.assertEqual(
+                    run_escalation_predicate([{
+                        "authoredChangedLines": 1,
+                        "touchedPaths": [path],
+                        "addedOrDeleted": False,
+                    }]),
+                    [True],
+                )
 
     def test_prompt_assembler_test_constant_and_embedded_prompt_match(self):
         assembled = subprocess.run([sys.executable, str(ASSEMBLER)], check=True, capture_output=True).stdout
@@ -91,10 +119,49 @@ class TinyFixTripwireContract(unittest.TestCase):
                 self.assertLess(len(prompt), 6000)
 
 
+class RealEscalationPredicate(unittest.TestCase):
+    def test_over_threshold_change_escalates(self):
+        self.assertEqual(run_escalation_predicate([{
+            "authoredChangedLines": 21,
+            "touchedPaths": ["src/fix.ts"],
+            "addedOrDeleted": False,
+        }]), [True])
+
+    def test_over_file_cap_escalates(self):
+        self.assertEqual(run_escalation_predicate([{
+            "authoredChangedLines": 1,
+            "touchedPaths": ["a.ts", "b.ts", "c.ts"],
+            "addedOrDeleted": False,
+        }]), [True])
+
+    def test_denylisted_path_escalates(self):
+        self.assertEqual(run_escalation_predicate([{
+            "authoredChangedLines": 1,
+            "touchedPaths": ["global-config/opencode.json"],
+            "addedOrDeleted": False,
+        }]), [True])
+
+    def test_benign_tiny_change_does_not_escalate(self):
+        self.assertEqual(run_escalation_predicate([{
+            "authoredChangedLines": 1,
+            "touchedPaths": ["src/fix.ts"],
+            "addedOrDeleted": False,
+        }]), [False])
+
+
 class PositiveControl(unittest.TestCase):
-    def test_over_threshold_and_denylisted_changes_fail_the_escalation_predicate(self):
-        self.assertTrue(escalation_required(21, ["src/fix.ts"]))
-        self.assertTrue(escalation_required(1, ["global-config/opencode.json"]))
+    def test_perturbed_real_predicate_trips_the_result_assertion(self):
+        source = GUARD.read_text(encoding="utf-8")
+        original = "candidate.authoredChangedLines > TINY_FIX_MAX_AUTHORED_CHANGED_LINES"
+        self.assertIn(original, source)
+        perturbed = source.replace(original, "false", 1)
+        actual = run_escalation_predicate([{
+            "authoredChangedLines": 21,
+            "touchedPaths": ["src/fix.ts"],
+            "addedOrDeleted": False,
+        }], source=perturbed)
+        with self.assertRaisesRegex(AssertionError, "escalation results"):
+            assert_escalation_results(actual, [True])
 
 
 if __name__ == "__main__":
