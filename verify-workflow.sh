@@ -2736,6 +2736,20 @@ for (const name of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
   const mismatched=hostReviewMaterializeFailures(`${name}-mismatched`,{permission:{host_review_materialize:"ask"}})
   if (!mismatched.includes(`HOST_REVIEW_MATERIALIZE_NOT_ALLOW: ${name}-mismatched`)) fail(`HOST_REVIEW_MATERIALIZE_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
 }
+function hostReviewMaterializeToolFailures(name,agent) {
+  const failures=[]
+  if (!agent?.tools || typeof agent.tools!=="object" || Array.isArray(agent.tools) || !Object.prototype.hasOwnProperty.call(agent.tools,"host_review_materialize") || agent.tools.host_review_materialize!==true) failures.push(`HOST_REVIEW_MATERIALIZE_TOOL_NOT_ENABLED: ${name}`)
+  return failures
+}
+for (const name of ["pm-odd","pm-systematic"]) {
+  const agent=deployedAgents[name]
+  if (!agent) { fail(`HOST_REVIEW_MATERIALIZE_AGENT_MISSING: ${name}`); continue }
+  for (const failure of hostReviewMaterializeToolFailures(name,agent)) fail(failure)
+  const omitted=hostReviewMaterializeToolFailures(`${name}-omitted`,{tools:{}})
+  if (!omitted.includes(`HOST_REVIEW_MATERIALIZE_TOOL_NOT_ENABLED: ${name}-omitted`)) fail(`HOST_REVIEW_MATERIALIZE_TOOL_OMITTED_POSITIVE_CONTROL_FAILED: ${name}`)
+  const disabled=hostReviewMaterializeToolFailures(`${name}-disabled`,{tools:{host_review_materialize:false}})
+  if (!disabled.includes(`HOST_REVIEW_MATERIALIZE_TOOL_NOT_ENABLED: ${name}-disabled`)) fail(`HOST_REVIEW_MATERIALIZE_TOOL_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
+}
 function hostReviewMaterializeGlobalDefaultFailures(value) {
   return value==="deny" ? [] : [`HOST_REVIEW_MATERIALIZE_GLOBAL_DEFAULT_NOT_DENY: ${show(value)}`]
 }
