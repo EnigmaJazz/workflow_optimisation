@@ -1305,6 +1305,12 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
 - **Source:** owner-confirmed Magic Context 0.46 subagent tool surface and two live `pm-odd` BLOCKED results (2026-10-17); tracker `odd/tasks/q77-pm-mirror-readback.md`.
 - **Description:** make `docs/specs/pm-handoff.md`'s mandatory tracker/mirror readback achievable without registering `ctx_memory` for subagents (removed by design). U1 adds `tracker_sha256` and `mirror_sha256` to the brief, has the PM hash the committed tracker file independently and compare it with the supplied tracker hash, specifies BLOCKED outcomes, records the comparison/method in the result envelope, preserves metadata-worker mirror-write ownership, and adds a schema test. U2 updates the orchestrator overlay, both PM prompts and regeneration chain. The live runtime falsifier is HOST-ONLY. Full scope and acceptance criteria: `odd/tasks/q77-pm-mirror-readback.md`.
 
+### Q78. host_review_materialize permission for the ce:review pipeline
+- **Status:** PLANNED (T0 tracker + advice + queue entry created; T1 pending).
+- **Prerequisites:** broker-side `host_review_materialize` registration and the `ce:review` helper unit in `agent-sandbox-integration`; until installed, the permission is inert.
+- **Source:** owner decision 2026-10-17; pre-code advice in `odd/advice/q78-host-review-materialize.md`.
+- **Description:** grant explicit `allow` under `permission` to `gentle-orchestrator`, `pm-odd`, and `pm-systematic`, with a global `deny` default; add the PM `tools` map entries where applicable; enforce the exception, exact per-agent grants, positive controls, and negative agent sweep in `verify-workflow.sh`; re-pin `VERIFY_SCRIPT_SHA256` last. This is the advisory `ce:review` helper path, not native `asi-review-*`. Full scope, constraints and checks: `odd/tasks/q78-host-review-materialize.md`.
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).
