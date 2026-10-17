@@ -41,8 +41,8 @@ Added by the 2026-10-15 external advice (three omitted surfaces):
 
 ## Owner decisions (2026-10-15, do not re-litigate)
 
-- The tiny-fix writer is **`gentle-ai-worker`** (a named specialist; `general` is the guard-blocked generic fallback and is NOT used).
-- **`gentle-ai-verify` is ALSO added** to both PM allowlists, so a PM can still obtain a model-independent verification when it wants one; it is optional rather than excluded.
+- **SUPERSEDED by Q74 (owner decision, 2026-10-17):** the tiny-fix writer is `general` (`openai/gpt-6-luna`), not `gentle-ai-worker`. The writer must be from a different model family than the DeepSeek orchestrator; the earlier DeepSeek writer choice violated that independence requirement. Q74 records the decision and rationale.
+- `gentle-ai-verify` is ALSO added to both PM allowlists, so a PM can still obtain a model-independent verification when it wants one; it is optional rather than excluded.
 - The guard gets an **exemption** (not "accept the warning").
 - Verification for tiny = **structural readback + the native RDD checkpoint**; the native review (different models) is the independence layer. **SUPERSEDED 2026-10-15 — the external advice disproved this premise; see the post-external-advice decisions below.**
 
@@ -51,9 +51,9 @@ Added by the 2026-10-15 external advice (three omitted surfaces):
 External advisory (interim lane, two independent hosts) corrected the unit's scope and settled four points:
 
 - **(a) The guard change is a SCOPED ONE-SHOT PERMIT gated on an explicit tiny-fix signal — never an agent-name bypass.** A blanket exemption keyed on `gentle-ai-worker` or on "tracker-less" would disable the writer-bypass and stage gates for substantial work (F1/F02); the permit is consumed once and scoped to the tiny unit.
-- **(b) Tiny fix is PASSIVE-ONLY.** A medium/high-risk assessment or RDD-off **automatically ESCALATES out of Tiny fix** (F3/F06). `review_due` is true only for high risk, so passive/`under_budget` tiny commits get zero 4R lenses and the writer (`opencode-go/deepseek-v4.1-flash`) is not model-independent of the orchestrator. This supersedes the "native review is the independence layer" premise, which the external advice disproved.
-- **(c) The writer is `gentle-ai-worker`** (and `gentle-ai-worker-local` when the local tier is selected).
-- **(d) PM allows gain `gentle-ai-worker`, `gentle-ai-worker-local`, `gentle-ai-verify`, `gentle-ai-verify-astra`.**
+- **(b) Tiny fix is PASSIVE-ONLY.** A medium/high-risk assessment or RDD-off **automatically ESCALATES out of Tiny fix** (F3/F06). `review_due` is true only for high risk, so passive/`under_budget` tiny commits get zero 4R lenses; native review is not the independence layer.
+- **(c) SUPERSEDED by Q74 (owner decision, 2026-10-17):** the writer is `general` (`openai/gpt-6-luna`), not `gentle-ai-worker` or its local tier. This non-DeepSeek writer is required for model-family independence from the DeepSeek orchestrator.
+- **(d) PM allows gain `general`, `gentle-ai-worker`, `gentle-ai-worker-local`, `gentle-ai-verify`, `gentle-ai-verify-astra`.**
 
 ## Constraints
 
@@ -68,7 +68,7 @@ External advisory (interim lane, two independent hosts) corrected the unit's sco
 ## Acceptance criteria
 
 - a tracker-less tiny dispatch does not warn;
-- both PMs can reach `gentle-ai-worker` and `gentle-ai-verify`;
+- both PMs can reach the Q74-selected tiny-fix writer `general`, plus `gentle-ai-verify`;
 - the `Tiny fix` row names the route, boundary and no-artifact rule;
 - the backstop is escalation-only wording and does not contradict `:125`/`:128`;
 - a committed test proves the allowlist membership non-vacuously;

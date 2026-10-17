@@ -2856,7 +2856,7 @@ else {
   if (pmTask?.["odd-apply"]!=="allow") fail(`ODD_APPLY_NOT_ALLOWED_TO_PM: pm-odd.odd-apply=${show(pmTask?.["odd-apply"])}`)
   for (const pm of ["pm-odd","pm-systematic"]) {
     const task=cfgPerm(deployedAgents[pm],"task")
-    for (const key of ["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra"]) {
+    for (const key of ["general","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra"]) {
       if (task?.[key]!=="allow") fail(`TINY_FIX_AGENT_NOT_ALLOWED_TO_PM: ${pm}.${key}=${show(task?.[key])}`)
     }
   }

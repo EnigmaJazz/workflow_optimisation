@@ -1,9 +1,8 @@
 """Durable checks for the PM task allowlists (Q72 T1).
 
 Parses the tracked ``global-config/opencode.json`` and asserts that BOTH live project-manager
-lanes (``pm-odd``, ``pm-systematic``) can reach the tiny-fix writer (``gentle-ai-worker`` and its
-local tier) and the independent verifier (``gentle-ai-verify`` and its runtime Astra alias) by
-listing each key with value ``"allow"`` inside the PM's ``permission.task`` map.
+lanes (``pm-odd``, ``pm-systematic``) can reach the tiny-fix writer named in their prompts and the
+independent verifier (``gentle-ai-verify`` and its runtime Astra alias) via ``permission.task``.
 
 The PositiveControl class proves the validator can fail: a removed key, a downgraded value, an
 absent ``permission.task`` block, and an absent PM agent key are each reported rather than
@@ -13,6 +12,7 @@ Run: python3 -m unittest tests/test_pm_task_allowlists.py -v
 """
 
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -25,6 +25,7 @@ PM_NAMES = ("pm-odd", "pm-systematic")
 # Tiny-fix reachability: the named writer (both tiers) and the independent verifier (plus the
 # runtime Astra alias that astra-sol-upgrade.ts creates). Owner decisions, 2026-10-15.
 TASK_ALLOW_KEYS = (
+    "general",
     "gentle-ai-worker",
     "gentle-ai-worker-local",
     "gentle-ai-verify",
@@ -69,6 +70,26 @@ def missing_task_allows(data, pms=PM_NAMES, keys=TASK_ALLOW_KEYS):
     return missing
 
 
+def prompt_writer_allowlist_gaps(data, pms=PM_NAMES):
+    """Return (pm, writer) when a PM prompt's named tiny-fix writer is not allowed."""
+    gaps = []
+    agents = data.get("agent", {})
+    for pm in pms:
+        agent = agents.get(pm)
+        if not isinstance(agent, dict):
+            continue
+        prompt = agent.get("prompt", "")
+        match = re.search(r"Tiny-fix option:.*?dispatch `([^`]+)`", prompt, re.DOTALL)
+        if not match:
+            gaps.append((pm, "<writer not found in prompt>"))
+            continue
+        writer = match.group(1)
+        task = agent.get("permission", {}).get("task", {})
+        if not isinstance(task, dict) or task.get(writer) != ALLOW:
+            gaps.append((pm, writer))
+    return gaps
+
+
 def probe(path=CONFIG_PATH):
     """Presence probe: one boolean per (pm, key), True when the key maps to allow."""
     data = load_config(path)
@@ -92,6 +113,10 @@ class RealConfig(unittest.TestCase):
         missing = missing_task_allows(self.data)
         self.assertEqual(missing, [], f"PM task allowlist gaps: {missing}")
 
+    def test_prompt_named_writer_is_in_each_pm_allowlist(self):
+        gaps = prompt_writer_allowlist_gaps(self.data)
+        self.assertEqual(gaps, [], f"PM prompt/allowlist writer gaps: {gaps}")
+
 
 class PositiveControl(unittest.TestCase):
     """Prove the validator can fail; without this a green run proves nothing."""
@@ -112,6 +137,12 @@ class PositiveControl(unittest.TestCase):
         missing = missing_task_allows(data)
         self.assertEqual([(pm, key) for pm, key, _ in missing], [("pm-odd", "gentle-ai-worker")])
         self.assertIn("absent", missing[0][2])
+
+    def test_prompt_writer_removed_from_allowlist_is_reported(self):
+        data = load_config()
+        self.assertEqual(prompt_writer_allowlist_gaps(data), [])
+        del data["agent"]["pm-odd"]["permission"]["task"]["general"]
+        self.assertEqual(prompt_writer_allowlist_gaps(data), [("pm-odd", "general")])
 
     def test_downgraded_value_is_reported(self):
         data = self._synthetic()
