@@ -92,3 +92,13 @@
   - Owner chose "OpenCode lanes": no START was run from Claude Code.
   - Native review runs on the `asi-review-*` lanes, one work-unit commit at a time, starting with
     `bdeaf1f` (assess: high, review due).
+- **L7 Fallback exact-policy follow-up (2026-10-17):**
+  - The deployed verifier separately requires `fallbackModels` to contain an exact key for every
+    active primary (`verify-workflow.sh:2652-2658`), in addition to the active-provider emergency
+    rule. `noFallbackAgents` prevents runtime fallback for these agents but does not exempt their
+    models from this static active-primary policy check.
+  - Added exact policies for `google/gemini-3.8-flash` and `google/gemini-4-argon` matching the
+    existing Google emergency chain (OpenRouter Gemini Flash, then OpenAI Luna). The provider-level
+    rule remains intact. JSON parsing and the targeted exact-key/nonempty-target predicate passed;
+    the Gemini route suite had 8 passes and 10 errors because `node` is denied in this sandbox.
+    The routing-guard suite passed 103/103; the deployed verifier remains pending here.

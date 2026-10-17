@@ -162,6 +162,12 @@ def fallback_violations(fallback):
     return out
 
 
+def active_exact_policy_violations(fallback):
+    """Mirror the verifier's exact-key requirement for these active models."""
+    exact = fallback.get("fallbackModels", {})
+    return [model for model in (FLASH, ARGON) if model not in exact]
+
+
 def extract_block(text):
     """Return the verifier's marked geminiAdvisorRouteFailures block, or None."""
     start = text.find(BLOCK_BEGIN)
@@ -207,6 +213,9 @@ class RealConfig(unittest.TestCase):
 
     def test_fallback_policy(self):
         self.assertEqual(fallback_violations(self.fallback), [])
+
+    def test_active_gemini_models_have_exact_fallback_policies(self):
+        self.assertEqual(active_exact_policy_violations(self.fallback), [])
 
     def test_models_are_gemini_family(self):
         for name in (*ADVISORS, EVIDENCE):
@@ -312,6 +321,12 @@ class PositiveControl(unittest.TestCase):
             f"GEMINI_ADVISOR_FALLBACK_ALLOWED: {EVIDENCE}",
             run_verifier_block(data["agent"], fallback),
         )
+
+    def test_missing_active_gemini_exact_policy_fails(self):
+        _, fallback = self.mutated()
+        fallback.setdefault("fallbackModels", {})[FLASH] = []
+        fallback["fallbackModels"].pop(FLASH)
+        self.assertEqual(active_exact_policy_violations(fallback), [FLASH])
 
     def test_google_only_emergency_rule_fails(self):
         _, fallback = self.mutated()

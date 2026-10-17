@@ -650,6 +650,48 @@
           "vision"
         ]
       }
+    ],
+    "google/gemini-3.8-flash": [
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "google/gemini-4-argon": [
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openai",
+        "modelID": "gpt-6-luna",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
     ]
   },
   "providerFallbacks": {
