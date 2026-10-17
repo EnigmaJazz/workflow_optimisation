@@ -1,0 +1,33 @@
+{
+  "schema": "workflow-changeset/v1",
+  "id": "q76-antigravity-agents",
+  "description": "Q76: Antigravity Argon advisor that delegates evidence gathering to a Gemini 3.8 Flash subagent, and the argon-subagent API skill moved to an explicit 'use Argon API' trigger.",
+  "ops": [
+    {
+      "op": "file_create",
+      "file": "~/.gemini/config/agents/evidence_collector/agent.md",
+      "content_file": "evidence_collector.agent.md"
+    },
+    {
+      "op": "file_create",
+      "file": "~/.gemini/config/agents/argon_advisor/agent.md",
+      "content_file": "argon_advisor.agent.md"
+    },
+    {
+      "op": "block_replace",
+      "file": "~/.gemini/antigravity/skills/argon-subagent/SKILL.md",
+      "begin": "name: argon-subagent",
+      "end": "# Argon Subagent (`gemini-4-argon`) Execution Guidelines",
+      "expect_before": "description: Delegates hard reasoning, complex architectural refactoring, and deep debugging tasks to gemini-4-argon via API using developer credits. Trigger ONLY when user explicitly includes phrases like \"use Argon\", \"ask Argon\", or \"run Argon\". Execute with `/usr/bin/python3 ~/.gemini/config/skills/argon-subagent/scripts/call_argon.py` (or direct script execution). Never invoke automatically.\n---\n\n",
+      "value": "description: Delegates hard reasoning, complex architectural refactoring, and deep debugging tasks to gemini-4-argon via API using developer credits. Trigger ONLY when user explicitly includes the phrase \"use Argon API\", \"ask Argon API\", or \"run Argon API\". Argon is also available on the Antigravity subscription: for advice, use the `argon_advisor` agent instead, which costs no developer credits. Execute with `/usr/bin/python3 ~/.gemini/config/skills/argon-subagent/scripts/call_argon.py` (or direct script execution). Never invoke automatically.\n---\n\n"
+    },
+    {
+      "op": "block_replace",
+      "file": "~/.gemini/antigravity/skills/argon-subagent/SKILL.md",
+      "begin": "## 1. Strict Invocation Rules",
+      "end": "## 2. Environment & Execution Binary",
+      "expect_before": "- **Explicit Trigger Only:** Never invoke this skill automatically. Only run when the user explicitly requests Argon (\"use Argon\", \"ask Argon\", \"run Argon\").\n- **Single Execution:** Do NOT run unattended execution loops or retry loops that burn developer credits. Run **once** per explicit user request.\n\n",
+      "value": "- **Explicit Trigger Only:** Never invoke this skill automatically. Only run when the user explicitly requests the API route (\"use Argon API\", \"ask Argon API\", \"run Argon API\"). A plain \"use Argon\" means the subscription `argon_advisor` agent, not this skill.\n- **Single Execution:** Do NOT run unattended execution loops or retry loops that burn developer credits. Run **once** per explicit user request.\n\n"
+    }
+  ]
+}
