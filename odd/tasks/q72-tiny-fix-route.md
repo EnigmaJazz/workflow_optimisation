@@ -123,6 +123,14 @@ T1: `global-config/plugins/systematic-routing-guard.ts`, `global-config/plugins/
 
 T1 revised scope (see the owner-decisions subsection), then native review, then the metadata record. The `-astra` normalization and the live-mirror allowlist assertion may be split into a follow-up if T1 exceeds the review budget.
 
+## Native review outcome and adjudication — 2026-10-17
+
+- **Reported lineage outcome:** `review-96fe567778db7a48` (high tier; 190 changed lines; 14 paths) ended **ESCALATED — not approved, not corrected**, with `action: stop`, `cause: unknown_causality`, and finding `R3-03`. This is recorded as escalation, never approval. A bounded exact search of the repository found no local occurrence of this lineage, so the provider outcome is not independently verifiable here by a repository `path:line` reference.
+- **R3-03 (CRITICAL) — REFUTED.** The finding said ANCHOR_MANIFEST rows put a descriptive label where a repository-relative path belongs. The consumer parses each row into `anchor_id`, `anchor_file`, `anchor_label`, and `anchor_key`, then passes `anchor_label` as the label argument (`verify-workflow.sh:4468-4469`, `:4567-4569`). The manifest rows use that field for labels such as `WORKFLOW.md` and `route: delegated` (`verify-workflow.sh:4527-4564`); the manifest format has no path field. The cited consumer and manifest therefore contradict the finding's schema premise.
+- **R3-01 (CRITICAL) — provider-refuter reported REFUTED; disposition remains OPEN here.** The stated refuter proof records that no runtime probe was available. The proof itself is not present at a repository `path:line` location in this workspace, so this record does not claim independent verification or close the finding.
+- **R3-02 (WARNING) — VALID and FIXED** in commit `7c7cf40`. The earlier test duplicated denylist matching with Python `fnmatch`, unlike the plugin predicate; the correction extracts and executes the shipped TypeScript predicate with `bun -e` and tests its outcomes (`odd/tasks/q72-tiny-fix-route.md:113`; test implementation: `tests/test_tiny_fix_route.py`).
+- The two Q72 commits on this branch are `4792ad3` (tiny-fix route contract) and `7c7cf40` (predicate-test correction). The first is confirmed by its commit summary; the second is confirmed by its commit summary and the progress record above.
+
 ## T1a design (revised 2026-10-15, post-advisory)
 
 Two pre-code advisories returned SIX BLOCKERs against the first T1a sketch. The permit design was changed as follows.

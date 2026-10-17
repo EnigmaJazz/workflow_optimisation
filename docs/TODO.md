@@ -564,9 +564,14 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   `odd/tasks/pm-layer.md`.
 
 ### Q55. PM layer: handoff contract, agents and writer
-- **Status:** IN PROGRESS. Implementation landed in commit `8980254`; Q54's check (c) now confirms
-  live `pm-probe` removal (see Q54). Q55's post-code advisory review is DONE; findings and open
-  decisions are recorded in `odd/tasks/pm-layer.md`.
+- **Status:** IN PROGRESS. Implementation landed in commit `8980254`. The contract-completeness and
+  unit-start branch-verification text landed in `docs/specs/pm-handoff.md` in commit `551b7d3`
+  (brief-in `feature_branch` field at `docs/specs/pm-handoff.md:7`; branch criterion/mechanism/PASS/
+  BLOCKED hazards at `:15`, ordered unit-start step at `:19`, and deterministic missing-artifact /
+  boundary / prerequisite BLOCKED procedures at `:28`). Q55's post-code advisory review is DONE;
+  findings and open decisions are recorded in `odd/tasks/pm-layer.md`. This closes the contract-text
+  gap, not the pilot: the later `pm-odd` bootstrap run, independent relay-delivery proof, remaining
+  smoke/deployment steps, and ten-unit pilot remain open under Q56.
 - **Prerequisites:** Q53.
 - **Description:** `docs/specs/pm-handoff.md`; `pm-odd`, `pm-systematic`, `pm-sdd` and
   `odd-apply` in `global-config/opencode.json`; PM prompts within budget; guard data
@@ -606,7 +611,7 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   `global-config/AGENTS.md`; update `WORKFLOW.md`, `workflow-route` and the adapters.
 
 ### Q58. PM layer: guard ordering
-- **Status:** DONE — all slices complete. Slice 1: `7a427d7`; direct-writer-dispatch warning: `d25228b`; advice-before-writer stage: `4b63481`; supporting routing-gate and breadcrumb fixes: `9c215b1`.
+- **Status:** SLICES COMPLETE AND SHIPPED; the `pm-odd` bootstrap run has NOT been executed and its relay-delivery proof is UNVERIFIED. Slice 1: `7a427d7`; direct-writer-dispatch warning: `d25228b`; advice-before-writer stage: `4b63481`; supporting routing-gate and breadcrumb fixes: `9c215b1`. The slice implementation status is not bootstrap or relay-delivery acceptance.
 - **Prerequisites:** Q55 and Q56 pilot evidence/caveats remain recorded above. The Q58 implementation, reviewability, and slice evidence are in `odd/tasks/pm-layer.md`. Q58 feeds Q28 (gating matrix).
 - **Description:** Slice 1 adds a warning-only check that PM coordinators hold their own route's
   adapter key before gated host mutations and any `host_review_*` call; inherited and wrong-route
@@ -617,9 +622,10 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   sufficient: it verifies that the PM loaded its route skill, not that the reviewer differs from
   the author. Require relay-delivery proof from a dispatch outside the coordinating PM session,
   with a genuine provider-issued binding; Q54 showed reachability only, not delivery. The PM itself
-  must not dispatch or prove its own relay delivery. Q58 may be executed through `pm-odd` as Q56's
-  bootstrap unit only (see Q56); its review must be driven independently, not by the implementing
-  `pm-odd` session.
+  must not dispatch or prove its own relay delivery. The required `pm-odd` bootstrap run has not
+  been executed, and the relay-delivery proof remains unverified. Q58 may run through `pm-odd` as
+  Q56's bootstrap unit only (see Q56); its review must be driven independently, not by the
+  implementing `pm-odd` session.
 - **Open question — undecided:** each PM still holds `host_review_start` and review lifecycle
   tools, so a PM can start a review it cannot complete without relay lanes. Options:
   (a) the PM keeps `host_review_start` and another actor drives the lens; or
