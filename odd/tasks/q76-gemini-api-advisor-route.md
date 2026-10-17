@@ -86,3 +86,9 @@
   - The main agent is still offered the full default toolset. Tool narrowing for Argon is
     therefore prompt-enforced: both runs made exactly one call, `invoke_subagent`.
   - The change set was reverted and re-applied cleanly twice (4 ops each way).
+- **L6 Native review (owner, 2026-10-17):**
+  - The Claude Code stop hook offered a START over the whole-branch candidate
+    (`base-ref 62496d51`, 25 commits).
+  - Owner chose "OpenCode lanes": no START was run from Claude Code.
+  - Native review runs on the `asi-review-*` lanes, one work-unit commit at a time, starting with
+    `bdeaf1f` (assess: high, review due).
