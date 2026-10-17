@@ -26,16 +26,31 @@ class PMHandoffSpecTest(unittest.TestCase):
         self.assert_brief_hash_fields(self.spec)
 
     def test_pm_readback_hashes_committed_tracker_and_blocks_bad_values(self):
-        readback = self.spec.split("## PM prompt boundary", 1)[1].split(
-            "## Route validation and ordered execution", 1
+        readback = self.spec.split("## Route validation and ordered execution", 1)[1].split(
+            "## Versioned result envelope", 1
         )[0] + self.spec.split("## Closure and metadata work unit", 1)[1]
         self.assertIn("committed tracker file", readback.lower())
         self.assertIn("sha256", readback.lower())
         self.assertIn("supplied `tracker_sha256`", readback)
+        self.assertIn("at unit start", readback.lower())
+        self.assertIn("planning", readback.lower())
+        self.assertIn("comparison is skipped", readback.lower())
+        self.assertIn("recomputes and reports", readback.lower())
+        self.assertIn("fix-forward", readback.lower())
         self.assertIn("BLOCKED", readback)
-        for outcome in ("absent", "empty", "mismatch"):
+        for outcome in ("stale", "missing"):
             self.assertIn(outcome, readback.lower())
-        self.assertNotIn("complete Magic Context mirror readback", readback)
+
+    def test_planning_unit_without_dispatch_hash_skips_comparison(self):
+        readback = self.spec.split("## Route validation and ordered execution", 1)[1]
+        self.assertIn("explicit `none`", readback)
+        self.assertIn("comparison is skipped", readback.lower())
+
+    def test_post_unit_rehash_is_reported_not_blocked(self):
+        closure = self.spec.split("## Closure and metadata work unit", 1)[1]
+        self.assertIn("recomputes and reports", closure.lower())
+        self.assertIn("fix-forward", closure.lower())
+        self.assertNotIn("complete Magic Context mirror readback", closure)
 
     def test_result_envelope_records_hash_comparison_method_outcome_and_hashes(self):
         envelope = self.spec.split('"readback": {', 1)[1].split("\n  }", 1)[0]
