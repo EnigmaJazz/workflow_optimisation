@@ -59,7 +59,7 @@ SIGNATURES = {
     "user:frontend-lane": "### Frontend / UI Lane and Premium Escalation",
 }
 
-FORBIDDEN_RESIDUE = ("engram", "mem_", "sdd-", "openspec", "/sdd")
+FORBIDDEN_RESIDUE = ("engram", "mem_", "ctx_note", "sdd-", "openspec", "/sdd")
 # Explicit allowlist of (term, allowed line substring, reason); empty by design.
 ALLOWED_RESIDUE = ()
 VALID_CLASSIFICATIONS = ("kept", "moved", "split", "superseded-by-base", "removed-by-design")
@@ -336,7 +336,7 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
 
         self.assertEqual(scan_residue(result.stdout), [], "assembled output must contain no forbidden residue")
 
-        planted = result.stdout + "\nCONTROL: engram mem_ sdd- openspec /sdd\n"
+        planted = result.stdout + "\nCONTROL: engram mem_ ctx_note sdd- openspec /sdd\n"
         planted_terms = {violation[0] for violation in scan_residue(planted)}
         self.assertEqual(
             planted_terms,

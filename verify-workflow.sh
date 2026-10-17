@@ -199,6 +199,39 @@ fail() {
   FAIL=1
 }
 
+check_embedded_orchestrator_prompt() {
+  if ! python3 - "$WORKSPACE" <<'PY'
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+assembler = root / "global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py"
+config_path = root / "global-config/opencode.json"
+result = subprocess.run([sys.executable, str(assembler)], cwd=root, capture_output=True)
+if result.returncode != 0:
+    print("assembler failed: " + result.stderr.decode("utf-8", errors="replace").strip())
+    raise SystemExit(2)
+embedded = json.loads(config_path.read_text(encoding="utf-8"))["agent"]["gentle-orchestrator"]["prompt"]
+assembled = result.stdout.decode("utf-8")
+def matches(prompt):
+    return prompt == assembled
+if matches(embedded + "\nCONTROL: mutated embedded prompt\n"):
+    print("positive control failed to detect a mutated embedded prompt")
+    raise SystemExit(2)
+if not matches(embedded):
+    print("embedded orchestrator prompt differs from assembler output")
+    raise SystemExit(1)
+PY
+  then
+    fail "ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT: embedded prompt does not equal assembler output"
+  else
+    echo "   ok: embedded orchestrator prompt matches assembler output (mutated-prompt positive control detected drift)"
+  fi
+}
+check_embedded_orchestrator_prompt
+
 plugin_check_failure() {
   local failure_policy="$1"
   shift
@@ -1732,8 +1765,8 @@ for (const category of categoriesInBundle) {
 
 const systematicMemoryPolicy = {
   workflow: "allow",
-  research: "allow",
-  design: "allow",
+  research: "deny",
+  design: "deny",
   review: "deny",
   "document-review": "deny",
 }
@@ -2175,8 +2208,8 @@ for (const name of controlNames) {
   }
   const memoryExpected = {
     workflow: true,
-    research: true,
-    design: true,
+    research: false,
+    design: false,
     review: false,
     "document-review": false,
   }[agent.category]

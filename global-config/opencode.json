@@ -48,7 +48,7 @@
         "sandbox_grep": "allow",
         "sandbox_diff": "allow",
         "bash": "deny",
-        "ctx_memory": "allow",
+        "ctx_memory": "deny",
         "grep": "deny",
         "github_ro_*": "allow"
       }

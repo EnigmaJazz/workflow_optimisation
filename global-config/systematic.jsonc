@@ -2,7 +2,7 @@
 // Bundled Systematic agent definitions remain plugin-owned: never duplicate them
 // in opencode.json. Mutation fails closed at category level; exact mutator
 // overlays enable sandbox work. Magic Context durable-memory mutation is allowed
-// for workflow/research/design and denied for review/document-review.
+// only for workflow and denied for research/design/review/document-review.
 // Astra escalation is intentionally not a Systematic profile. A reviewed local
 // OpenCode plugin creates hidden `-astra` aliases from the fully resolved agents
 // whose base model is Sol, preserving live Systematic prompts and permissions.
@@ -50,7 +50,7 @@
         "sandbox_copy_out": "deny",
         "sandbox_discard": "deny",
         "sandbox_finish": "deny",
-        "ctx_memory": "allow"
+        "ctx_memory": "deny"
       }
     },
     "review": {
@@ -112,7 +112,7 @@
         "sandbox_copy_out": "deny",
         "sandbox_discard": "deny",
         "sandbox_finish": "deny",
-        "ctx_memory": "allow"
+        "ctx_memory": "deny"
       }
     }
   },
