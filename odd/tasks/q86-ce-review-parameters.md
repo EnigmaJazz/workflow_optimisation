@@ -80,6 +80,7 @@ Do not redesign the parameters; do not choose mechanisms for the two unresolved 
 ## Progress
 
 - 2026-10-18: T0 — tracker and queue entry created; supplied parameters recorded as authoritative planning input. No implementation or mechanism selection.
+- 2026-10-18: Contract-gap correction — replaced the impossible sandbox-worker execution-location clause in the ODD reference, WORKFLOW.md, and orchestrator prompt with the required contract properties and the two unresolved requirements. The prompt regeneration chain matches at `803f22525a577fbdeeca91febf1fb8666269f50f9fc646644044cbcd83e04104`; focused tests pass, while the full Python suite has 204 passes, 10 errors from sandbox-denied `node`, and 1 skip. The two requirements remain deliberately unresolved; no mechanism selected and no commit made.
 
 ## Route / trigger evidence
 

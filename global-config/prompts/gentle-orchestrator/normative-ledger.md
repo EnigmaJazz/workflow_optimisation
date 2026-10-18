@@ -2,7 +2,7 @@
 
 Scope: every sentence in the CURRENT prompt (`global-config/opencode.json` →
 `agent["gentle-orchestrator"].prompt`, sha256
-`bd6e207964e3738265471c3391a4c97d834c742b76101e1ec57287601772ae1c`, 414 lines)
+`803f22525a577fbdeeca91febf1fb8666269f50f9fc646644044cbcd83e04104`, 414 lines)
 containing MUST, NEVER, ALWAYS (case-insensitive, word boundary) or "hard rule".
 70 candidate sentences: **44 kept, 1 split, 10 superseded-by-base, 15
 removed-by-design; zero unclassified.**
@@ -81,7 +81,7 @@ wiring are produced by `global-config/prompts/gentle-orchestrator/assemble-orche
 | 58 | L515 | "Read-only requests end after findings; never create a tracker or delegate a writer." | kept | overlay:user:secure-odd-protocol |
 | 59 | L517 | "Update the repository tracker after each completed task or accepted scope change; never mark a task complete without observed checks." | kept | overlay:user:secure-odd-protocol |
 | 60 | L519 | "The orchestrator remains read-only for project files and execution: it delegates the track/write/check actions, never creates the tracker with native host tools." | kept | overlay:user:read-only-boundary |
-| 61 | L519 | "Systematic ce:review stays advisory when selected, and its helper pipeline must run in an authorized sandbox worker." | kept | overlay:user:review-boundary |
+| 61 | L519 | "Systematic ce:review remains advisory. Any helper mechanism must satisfy the configured invocation, bounded-input, artifact, authority, and unresolved-requirement contract." | kept | overlay:user:review-boundary |
 | 62 | L521 | "Never substitute the orchestrator for an implementation worker or for independent reviewer personas." | kept | overlay:user:always-delegate |
 | 63 | L527 | "For Magic Context-only mode, derive only from actual retrieved phase artifacts and never claim that native OpenSpec status inspected those records." | removed-by-design | removed: SDD/OpenSpec artifact backend retired (Q31); Magic Context is the only store |
 | 64 | L532 | "A fixed host operation never grants ordinary host Bash, project file editing, or sandbox mutation to the orchestrator." | kept | overlay:user:host-tools-relay |
