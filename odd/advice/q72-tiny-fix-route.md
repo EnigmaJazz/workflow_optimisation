@@ -115,10 +115,14 @@ returned verbatim.
   `message(sid, "gentle-orchestrator")` and a valid route key (`seedKey`), since without them the
   warnings never fire (`:971`, `:973`, `:983`).
 - **F5 (Claude) / F08 (Antigravity).** Silent drift: removing tracker, advice record and mirror leaves
-  nothing to catch substantial work done as "tiny". Required traces: the permit-consumption log line, a
-  `ROUTER-LOG.md` row per tiny fix, a scan flagging over-threshold `tiny` commits, and a tracker
-  `## Log` entry for PM tiny fixes. Add a pre-install diff gate: inspect `host_sandbox_result` before
-  `host_sandbox_result_install`; if the real diff breaches the tripwire, re-route to ODD/Systematic.
+  nothing to catch substantial work done as "tiny". The PM verifies the in-project traces only: a `ROUTER-LOG.md` row per tiny fix carrying commit and
+  changed lines, and, for a mid-unit fix, a tracker `## Log` entry as part of the sanctioned tracker
+  update.
+  The permit-consumption log line is the guard's own diagnostic record, observed by whoever audits
+  the guard log; it is not a PM obligation, and its absence MUST NOT block a unit. A scan flagging
+  over-threshold `tiny` commits remains an audit measure. Add a pre-install diff gate: inspect
+  `host_sandbox_result` before `host_sandbox_result_install`; if the real diff breaches the tripwire,
+  re-route to ODD/Systematic.
 - **F6 (Claude) / F10 (Antigravity).** The boundary needs a hard ONE-WAY tripwire that never selects:
   >20 authored changed lines, >2 touched files, a new/deleted file, or any edit to `verify-workflow.sh`,
   `global-config/opencode.json`, `global-config/systematic.jsonc`, `global-config/plugins/**`,
