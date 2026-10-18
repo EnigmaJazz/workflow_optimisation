@@ -960,9 +960,12 @@ cancel_start = "<!-- gentle-ai:subagent-cancellation -->"
 cancel_end = "<!-- /gentle-ai:subagent-cancellation -->"
 search_start = "<!-- user:grep-tool-enforcement -->"
 search_end = "<!-- /user:grep-tool-enforcement -->"
+sandbox_start = "<!-- gentle-ai:sandbox-tool-contract -->"
+sandbox_end = "<!-- /gentle-ai:sandbox-tool-contract -->"
 canonical_codegraph = canonical_block(codegraph_start, codegraph_end)
 canonical_cancel = canonical_block(cancel_start, cancel_end)
 canonical_search = canonical_block(search_start, search_end)
+canonical_sandbox = canonical_block(sandbox_start, sandbox_end)
 
 if target.is_file():
     try:
@@ -1030,6 +1033,8 @@ try:
             new_text = new_text[:first] + new_text[first + len(cancel_end):]
     new_text = replace_marked(new_text, cancel_start, cancel_end,
                               canonical_cancel, "<!-- user:grep-tool-enforcement -->")
+    new_text = replace_marked(new_text, sandbox_start, sandbox_end,
+                              canonical_sandbox, search_start)
     new_text = replace_marked(new_text, search_start, search_end,
                               canonical_search, "<!-- user:workflow-routing -->")
     # gentle-ai v4 retired the host SDD runtime block. Converge the deployed

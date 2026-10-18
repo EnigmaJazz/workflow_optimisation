@@ -10,6 +10,7 @@ One row per routed task. Append after every task — including probes (flagged `
 
 | Date | Task | Class chosen | Reclassification | Gate outcome | Probe | Evidence reference | Notes |
 |---|---|---|---|---|---|---|---|
+| 2026-10-18 | Q72 T1b: recover sandbox-tool-contract and relocate blocked-apply guidance | global tooling change | none | pending verification | false | verify-workflow.sh; global-config/AGENTS.md; global-config/plugins/workflow-health-check.ts | Deployed AGENTS.md had the marker pair, so recovery replaces it; insertion-before-grep handles missing deployed markers. No commit. |
 | 2026-08-10 | Probe: greeting wording | tiny fix | none | structural readback receipt | true | probes/tiny-fix/ | One-file mechanical edit; medium-tier consolidated review (1 lens) since executable code |
 | 2026-08-10 | Probe: shout formatter | small feature | none | RDD receipt | true | probes/small-feature/ | Multi-file clear behavior; medium-tier, 1 lens |
 | 2026-08-10 | Probe: count_words bug | bug | none | RDD receipt | true | probes/bug/ | Reproduce → root cause → test-first RED/GREEN |
