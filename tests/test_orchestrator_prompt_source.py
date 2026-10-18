@@ -27,7 +27,7 @@ SECTIONS = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstrea
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
 CONFIG = ROOT / "global-config" / "opencode.json"
 
-CURRENT_PROMPT_SHA256 = "e51b3285759e494d54f737015c461ab3a4225f5bcdc84679f63ab5fa656424ce"
+CURRENT_PROMPT_SHA256 = "74838e16cf689f8c3f862dc56d3d9dc22f925dab8b8dcabc4d849bf96a2dd2ac"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
@@ -646,12 +646,26 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
         baseline_payload = baseline_prompt.encode("utf-8")
         print("assembled prompt: sha256=%s bytes=%d lines=%d instruction_line=%d; generated delta bytes=%+d lines=%+d" % (digest, len(payload), payload.count(bytes([10])), instruction_line, len(payload) - len(baseline_payload), payload.count(bytes([10])) - baseline_payload.count(bytes([10]))))
 
+    def test_pm_brief_uses_readable_anchor_without_claiming_committed_tracker_contents(self):
+        assembled = run_assembler()
+        self.assertEqual(assembled.returncode, 0, assembled.stderr)
+        for needle in (
+            "exact line count",
+            "exact last-line text",
+            "feature-branch `HEAD` commit SHA",
+            "does not establish that the tracker contents are committed",
+        ):
+            self.assertIn(needle, assembled.stdout)
+        self.assertNotIn("The ORCHESTRATOR includes `tracker_sha256`", assembled.stdout)
+        self.assertIn("Hash-based `tracker_sha256` and `mirror_sha256` duties are SUSPENDED", assembled.stdout)
+
     def test_pm_brief_does_not_block_on_unimplemented_mirror_tool(self):
         assembled = run_assembler()
         self.assertEqual(assembled.returncode, 0, assembled.stderr)
         self.assertIn("mirror readback is SUSPENDED", assembled.stdout)
         self.assertIn("a missing mirror is NOT a blocker", assembled.stdout)
-        self.assertIn("`mirror_sha256` is optional and must be absent", assembled.stdout)
+        self.assertIn("Hash-based `tracker_sha256` and `mirror_sha256` duties are SUSPENDED", assembled.stdout)
+        self.assertIn("do not require or supply those values until that tool lands", assembled.stdout)
 
     def test_embedded_prompt_verifier_has_real_bidirectional_equality_control(self):
         verifier = (ROOT / "verify-workflow.sh").read_text(encoding="utf-8")

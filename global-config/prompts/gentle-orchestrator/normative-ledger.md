@@ -2,7 +2,7 @@
 
 Scope: every sentence in the CURRENT prompt (`global-config/opencode.json` →
 `agent["gentle-orchestrator"].prompt`, sha256
-`e51b3285759e494d54f737015c461ab3a4225f5bcdc84679f63ab5fa656424ce`, 414 lines)
+`74838e16cf689f8c3f862dc56d3d9dc22f925dab8b8dcabc4d849bf96a2dd2ac`, 414 lines)
 containing MUST, NEVER, ALWAYS (case-insensitive, word boundary) or "hard rule".
 70 candidate sentences: **44 kept, 1 split, 10 superseded-by-base, 15
 removed-by-design; zero unclassified.**
@@ -90,7 +90,7 @@ wiring are produced by `global-config/prompts/gentle-orchestrator/assemble-orche
 | 67 | L534 | "Never grant relay lanes to implementation workers or isolated reviewers." | kept | overlay:user:review-boundary |
 | 68 | L534 | "Never use fallback session replay for either set because replay bypasses Task prompt injection." | kept | overlay:user:review-boundary |
 | 69 | L540 | "Always launch the three baseline reviewers (correctness, testing, project standards) and any candidate-specific reviewers selected by screening in the same independent wave." | kept | overlay:user:review-boundary |
-| 70 | L75 | "Until the deterministic host tool lands, mirror readback is suspended and not a blocker; `mirror_sha256` is optional/absent unless verified." | kept | overlay:user:secure-odd-protocol |
+| 70 | L75 | "Until the deterministic host tool lands, mirror readback and tracker/mirror hash duties are suspended; the PM anchor uses only readable line count, last-line text, and feature-branch HEAD SHA, without claiming committed tracker-content equality." | kept | overlay:user:secure-odd-protocol + docs/specs/pm-handoff.md |
 
 ## Structural coupling note
 

@@ -6,7 +6,7 @@ EMBEDDED prompt strings:
 - the ``gentle-orchestrator`` prompt names the ``pm-unit-brief/v1`` brief schema
   and its authoritative contract file ``docs/specs/pm-handoff.md``;
 - each live project-manager prompt (``pm-odd``, ``pm-systematic``) teaches the
-  committed-tracker hash comparison against the orchestrator-supplied value.
+  read-based line-count/last-line/branch-HEAD anchor and its working-tree limit.
 
 Every needle is asserted against ONE agent's own prompt, never against a joined
 string, so a needle present in a different agent's prompt cannot satisfy the
@@ -35,17 +35,21 @@ AGENT_NAMES = ("pm-odd", "pm-systematic")
 # file, so an orchestrator can build a valid pm-unit-brief/v1 handoff.
 ORCHESTRATOR_NEEDLES = ("pm-unit-brief/v1", "docs/specs/pm-handoff.md")
 
-# Stable part of the committed-tracker hash comparison both PM prompts must teach.
-PM_COMPLETE_READ_NEEDLE = "compare the tracker at unit start with the brief's `tracker_sha256`"
-PM_PLANNING_SKIP_NEEDLE = "hash fields are explicit `none` and comparison is skipped"
-PM_REHASH_NEEDLE = "recompute and report the final hash"
-PM_FIX_FORWARD_NEEDLE = "fix-forward/re-hash instruction"
-PM_OLD_BLOCKING_WORDING = "if the file or supplied hash is absent, the supplied hash is empty"
+# The PM must use only observable read output and avoid claiming commit/content equality.
+PM_ANCHOR_NEEDLES = (
+    "line count",
+    "exact last-line text",
+    "feature-branch HEAD commit SHA",
+    "working-tree tracker",
+    "does not establish that the tracker contents are committed",
+)
+PM_PLANNING_SKIP_NEEDLE = "Planning creation skips the anchor comparison"
+PM_OLD_HASH_WORDING = "tracker_sha256"
 
 
 def assert_no_old_planning_blocking_wording(prompt):
-    if PM_OLD_BLOCKING_WORDING in prompt:
-        raise AssertionError("planning creation must skip the dispatch-time hash comparison")
+    if PM_OLD_HASH_WORDING in prompt:
+        raise AssertionError("PM prompt must not require tracker hashes")
 
 
 def load_config(path=CONFIG_PATH):
@@ -77,11 +81,13 @@ def missing_prompt_needles(data, agents=AGENT_NAMES):
     for name in agents:
         prompt = prompt_of(data, name)
         if prompt is None:
-            missing.append((name, PM_COMPLETE_READ_NEEDLE, "agent key absent or prompt not a string"))
+            missing.append((name, PM_ANCHOR_NEEDLES[0], "agent key absent or prompt not a string"))
         else:
-            for needle in (PM_COMPLETE_READ_NEEDLE, PM_PLANNING_SKIP_NEEDLE, PM_REHASH_NEEDLE, PM_FIX_FORWARD_NEEDLE):
+            for needle in (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE):
                 if needle not in prompt:
                     missing.append((name, needle, "prompt does not contain the needle"))
+            if PM_OLD_HASH_WORDING in prompt:
+                missing.append((name, PM_OLD_HASH_WORDING, "prompt still requires tracker hash"))
     return missing
 
 
@@ -94,7 +100,7 @@ def probe(path=CONFIG_PATH):
         results.append((ORCHESTRATOR, needle, needle in orchestrator_prompt))
     for name in AGENT_NAMES:
         prompt = prompt_of(data, name) or ""
-        results.append((name, PM_COMPLETE_READ_NEEDLE, PM_COMPLETE_READ_NEEDLE in prompt))
+        results.extend((name, needle, needle in prompt) for needle in PM_ANCHOR_NEEDLES)
     return results
 
 
@@ -117,16 +123,14 @@ class RealConfig(unittest.TestCase):
                     f"{ORCHESTRATOR} prompt is missing {needle!r}",
                 )
 
-    def test_each_pm_prompt_teaches_committed_tracker_hash_comparison(self):
+    def test_each_pm_prompt_teaches_readable_anchor_and_working_tree_limit(self):
         for name in AGENT_NAMES:
             with self.subTest(agent=name):
                 prompt = prompt_of(self.data, name)
                 self.assertIsInstance(prompt, str, f"agent {name!r} prompt must be a string")
-                self.assertIn(
-                    PM_COMPLETE_READ_NEEDLE,
-                    prompt,
-                    f"agent {name!r} prompt must teach the committed-tracker hash comparison",
-                )
+                for needle in (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE):
+                    self.assertIn(needle, prompt, f"agent {name!r} prompt is missing {needle!r}")
+                self.assertNotIn(PM_OLD_HASH_WORDING, prompt)
 
 
     def test_pm_prompts_do_not_block_planning_creation_for_missing_hashes(self):
@@ -149,7 +153,7 @@ class PositiveControl(unittest.TestCase):
     @staticmethod
     def _synthetic():
         orchestrator = "orchestrator preamble " + " ".join(ORCHESTRATOR_NEEDLES)
-        pm = "pm preamble " + " ".join((PM_COMPLETE_READ_NEEDLE, PM_PLANNING_SKIP_NEEDLE, PM_REHASH_NEEDLE, PM_FIX_FORWARD_NEEDLE))
+        pm = "pm preamble " + " ".join((*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE))
         return {
             "agent": {
                 ORCHESTRATOR: {"prompt": orchestrator},
@@ -159,19 +163,19 @@ class PositiveControl(unittest.TestCase):
         }
 
     def test_old_planning_blocking_wording_fails_negative_assertion(self):
-        with self.assertRaisesRegex(AssertionError, "planning creation must skip"):
-            assert_no_old_planning_blocking_wording(
-                "Return BLOCKED " + PM_OLD_BLOCKING_WORDING
-            )
+        with self.assertRaisesRegex(AssertionError, "must not require tracker hashes"):
+            assert_no_old_planning_blocking_wording("tracker_sha256 is required")
 
-    def test_removed_hash_comparison_needle_is_reported(self):
+    def test_removed_anchor_needles_are_reported(self):
         data = self._synthetic()
         self.assertEqual(missing_prompt_needles(data), [])
         data["agent"]["pm-odd"]["prompt"] = "no mechanism here"
         missing = missing_prompt_needles(data)
-        self.assertEqual([(agent, needle, reason) for agent, needle, reason in missing],
-                         [("pm-odd", needle, "prompt does not contain the needle")
-                          for needle in (PM_COMPLETE_READ_NEEDLE, PM_PLANNING_SKIP_NEEDLE, PM_REHASH_NEEDLE, PM_FIX_FORWARD_NEEDLE)])
+        self.assertEqual(
+            [(agent, needle, reason) for agent, needle, reason in missing],
+            [("pm-odd", needle, "prompt does not contain the needle")
+             for needle in (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE)],
+        )
 
     def test_absent_agent_key_is_reported(self):
         data = self._synthetic()
@@ -194,10 +198,10 @@ class PositiveControl(unittest.TestCase):
         data = self._synthetic()
         data["agent"][ORCHESTRATOR]["prompt"] = "orchestrator without the contract tag"
         data["agent"]["pm-odd"]["prompt"] = (
-            PM_COMPLETE_READ_NEEDLE + " " + " ".join(ORCHESTRATOR_NEEDLES)
+            PM_ANCHOR_NEEDLES[0] + " " + " ".join(ORCHESTRATOR_NEEDLES)
         )
         missing = missing_prompt_needles(data)
-        self.assertEqual(len(missing), len(ORCHESTRATOR_NEEDLES) + 3)
+        self.assertEqual(len(missing), len(ORCHESTRATOR_NEEDLES) + len(PM_ANCHOR_NEEDLES))
         self.assertEqual({agent for agent, _, _ in missing}, {ORCHESTRATOR, "pm-odd"})
 
 

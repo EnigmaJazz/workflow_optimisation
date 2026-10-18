@@ -18,13 +18,12 @@ class PMHandoffSpecTest(unittest.TestCase):
 
     def assert_anchor_contract(self, spec):
         brief = spec.split("## PM prompt boundary", 1)[0]
-        self.assertIn("exact byte (or character) count", brief)
+        self.assertIn("exact line count", brief)
         self.assertIn("exact literal text of its last line", brief)
-        self.assertIn("`HEAD` commit SHA", brief)
-        self.assertIn("stale tracker", brief)
-        self.assertIn("truncated tracker", brief)
-        self.assertIn("wrong commit", brief)
-        self.assertIn("whitespace-only", brief)
+        self.assertIn("feature-branch `HEAD` commit SHA", brief)
+        self.assertIn("stale or truncated working-tree tracker", brief)
+        self.assertIn("does not establish that the tracker contents are committed", brief)
+        self.assertIn("does not catch whitespace-only", brief)
         self.assertIn("not a cryptographic witness", brief)
         self.assertIn("SUSPENDED", brief)
         self.assertIn("deterministic host tool lands", brief)
@@ -48,7 +47,7 @@ class PMHandoffSpecTest(unittest.TestCase):
 
     def test_result_envelope_records_anchor_observations_outcome_and_block_reason(self):
         envelope = self.spec.split('"readback": {', 1)[1].split("\n  }", 1)[0]
-        for term in ("anchor_comparison", "byte_or_character_count", "last_line_text", "head_commit_sha", "outcome", "BLOCKED"):
+        for term in ("anchor_comparison", "line_count", "last_line_text", "head_commit_sha", "working-tree", "outcome", "BLOCKED"):
             self.assertIn(term, envelope)
 
     def test_old_hash_obligation_wording_is_gone(self):
@@ -88,7 +87,7 @@ class PMHandoffSpecTest(unittest.TestCase):
 
     def test_anchor_positive_control_rejects_mutated_anchor_definition(self):
         mutated = self.spec.replace(
-            "exact byte (or character) count", "approximate byte (or character) count", 1
+            "exact line count", "approximate line count", 1
         )
         with self.assertRaises(AssertionError):
             self.assert_anchor_contract(mutated)
