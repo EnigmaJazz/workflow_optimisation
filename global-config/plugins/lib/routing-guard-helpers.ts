@@ -18,6 +18,10 @@ export type RouteStage = {
 const SPECIALIST_WRITERS: readonly string[] = ["general", "systematic-implementer", "frontend-dev", "frontend-dev-premium", "frontend-apply", "frontend-apply-local", "jd-fix-agent", "pr-comment-resolver", "bug-reproduction-validator", "design-iterator", "gentle-ai-worker", "gentle-ai-worker-local"]
 const ODD_SPECIALIST_WRITERS: readonly string[] = [...SPECIALIST_WRITERS, "odd-apply"]
 
+/** Only the exact leading description token can signal a tiny-fix Task dispatch. */
+export const hasTinyFixDispatchMarker = (description: unknown): boolean =>
+  typeof description === "string" && /^\[tiny-fix\](?:\s|$)/.test(description)
+
 /** PM coordinators are dispatch routers, never route-stage implementation writers. */
 export const COORDINATOR_PATTERNS: readonly RegExp[] = [/^pm-[a-z0-9-]+$/]
 

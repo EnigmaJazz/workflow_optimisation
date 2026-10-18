@@ -21,7 +21,7 @@ The exploitable window is a tiny-fix dispatch concurrent with another task, a ro
 
 Bind by a **candidate set plus an observed-agent match**:
 
-1. At `task` with `tiny_fix: true`, arm the pending permit with the expected writer agent, already identified as `isWriterDispatch` from `subagent_type` (`global-config/plugins/systematic-routing-guard.ts:990-993,1023-1034`).
+1. At `task`, arm the pending permit only when `description` starts with the exact `[tiny-fix]` token; a plain-text mention does not match. The permit retains the expected writer agent, identified as `isWriterDispatch` from `subagent_type`. This replaces the unsupported `tiny_fix: true` signal because the exposed Task schema has no such argument.
 2. At `session.created`, add the child to a candidate set keyed by parent; do not consume the permit.
 3. When the child emits an agent-bearing `chat.message`, compare its observed agent to the expected writer. On match, consume the parent permit and grant the child permit. On mismatch, remove that candidate.
 4. Clean up candidates on `session.deleted`, TTL expiry, and dispatches that never produce a child.
@@ -75,6 +75,7 @@ T1: `global-config/plugins/systematic-routing-guard.ts`, `global-config/plugins/
 
 ## Progress
 
+- 2026-10-18: Q76 signal correction — the permit trigger now uses exact leading `[tiny-fix]` in Task `description`, which is supported by the actual Task schema. The candidate-set plus observed-agent matching and first matching-child consumption design remains intact. Control coverage confirms plain description prose does not arm the permit.
 - 2026-10-16: T0 — tracker, advice record, and queue entry created; owner decision on binding recorded. No source edit. Route: delegated.
 - 2026-10-16: T1 — expected-writer candidate binding and executable-file tripwire warning implemented. Fake-HOME routing-guard suite 102 baseline → 103 pass / 0 fail; match-check removal reproduced the race-test failure (Expected 1 / Received 0); Python suite 155 pass; anchor-manifest suite 7 pass; `bash -n verify-workflow.sh` and `git diff --check` pass. Verifier SHA-256 pin: `09d57f7c29d2e88efd6b3699a8f207d918c86e3dffde097d25484172dd150d50` (matched by the verifier's `read_verify_script_pin` regex). No commit or branch switch.
 

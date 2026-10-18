@@ -377,12 +377,12 @@ describe("1b. orchestrator writer dispatch warning", () => {
   })
 })
 
-// Q72 tiny-fix: a scoped ONE-SHOT permit gated only on an explicit `tiny_fix` task flag.
+// Q72 tiny-fix: a scoped ONE-SHOT permit gated by the exact [tiny-fix] description token.
 // Every case seeds BOTH the agent binding (message) AND a valid route key; without them the
 // stage gates never fire and the "no warning" assertions would pass vacuously.
 describe("1d. tiny-fix one-shot permit", () => {
   const tinyDispatch = (sid: string, subagent: string) =>
-    before("task", sid, { subagent_type: subagent, description: "tiny", prompt: "tiny", tiny_fix: true })
+    before("task", sid, { subagent_type: subagent, description: "[tiny-fix] tiny", prompt: "tiny" })
 
   test("exempts a writer dispatch from every stage gate", async () => {
     const sid = "ses_tiny_exempt"
@@ -397,15 +397,35 @@ describe("1d. tiny-fix one-shot permit", () => {
     expect(logCount("tiny-fix permit consumed")).toBe(1)
   })
 
-  test("the same dispatch WITHOUT the flag still warns (paired positive control)", async () => {
+  test("description prose without the exact marker does not arm the permit", async () => {
     const sid = "ses_tiny_control"
     await message(sid, "gentle-orchestrator")
     seedKey(sid, ODD)
 
-    await expect(dispatch(sid, "gentle-ai-worker")).resolves.toBeUndefined()
+    await expect(before("task", sid, {
+      subagent_type: "gentle-ai-worker",
+      description: "tiny fix for the routing guard",
+      prompt: "do work",
+    })).resolves.toBeUndefined()
 
     expect(logCount("orchestrator dispatched writing specialist gentle-ai-worker")).toBe(1)
     expect(logCount(`${ODD} specialist gentle-ai-worker dispatched before tracker`)).toBe(1)
+    expect(logCount("tiny-fix permit consumed")).toBe(0)
+    await probe()
+  })
+
+  test("a marker embedded after ordinary prose does not arm the permit", async () => {
+    const sid = "ses_tiny_embedded_marker"
+    await message(sid, "gentle-orchestrator")
+    seedKey(sid, ODD)
+
+    await before("task", sid, {
+      subagent_type: "gentle-ai-worker",
+      description: "please do this [tiny-fix]",
+      prompt: "do work",
+    })
+
+    expect(logCount("orchestrator dispatched writing specialist gentle-ai-worker")).toBe(1)
     expect(logCount("tiny-fix permit consumed")).toBe(0)
     await probe()
   })
@@ -456,7 +476,7 @@ describe("1d. tiny-fix one-shot permit", () => {
     expect(logCount("tiny-fix executable-file tripwire")).toBe(2)
   })
 
-  test("a flag for a non-writer target exempts nothing", async () => {
+  test("a marker for a non-writer target exempts nothing", async () => {
     const sid = "ses_tiny_nonwriter"
     await message(sid, "gentle-orchestrator")
     seedKey(sid, ODD)

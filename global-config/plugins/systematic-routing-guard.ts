@@ -46,6 +46,7 @@ import type { Plugin } from "@opencode-ai/plugin"
 import {
   ROUTE_STAGES,
   READ_ONLY_SPECIALIST_PATTERNS,
+  hasTinyFixDispatchMarker,
   isCoordinator,
   pmRequiredRouteSkill,
   stageMarkerNames,
@@ -818,11 +819,12 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
   const warnedConsole = new Set<string>()
   const reportedKeyStatuses = new Set<string>()
 
-  // Q72 tiny-fix: a scoped ONE-SHOT permit gated ONLY on an explicit `tiny_fix` task flag --
-  // never an agent-name bypass and never a persisted key/marker. The dispatch is exempt for its
-  // own stage gates; a child is exempt only after its observed message agent matches the writer
-  // captured at dispatch. Nothing is written to the routing-key directory, so no state can leak
-  // into a later dispatch; the exemption reads only the child's own session ID (no ancestor walk).
+  // Q72 tiny-fix: a scoped ONE-SHOT permit gated ONLY by the exact leading `[tiny-fix]`
+  // description token -- never an agent-name bypass and never a persisted key/marker. The
+  // dispatch is exempt for its own stage gates; a child is exempt only after its observed message
+  // agent matches the writer captured at dispatch. Nothing is written to the routing-key
+  // directory, so no state can leak into a later dispatch; the exemption reads only the child's
+  // own session ID (no ancestor walk).
   const tinyFixPendingParents = new Map<string, { expectedAgent: string; expiry: number }>()
   const tinyFixCandidates = new Map<string, { parentSessionID: string; expiry: number }>()
   const tinyFixChildPermits = new Map<string, number>()
@@ -1083,10 +1085,9 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
 
       if (input.tool !== "task" || !args) return
 
-      // Q72 tiny-fix: an explicit, guard-only flag. It is read here and stripped so the host
-      // task schema never sees an unsupported arg, mirroring the defensive `model` strip below.
-      const tinyFix = args.tiny_fix === true
-      if ("tiny_fix" in args) delete args.tiny_fix
+      // Q72 tiny-fix: recognize only the exact first description token, a supported Task-schema
+      // field; ordinary descriptions that mention a tiny fix do not arm the permit.
+      const tinyFixSignal = hasTinyFixDispatchMarker(args.description)
 
       // OpenCode's current task schema has no `model` argument. Preserve the
       // historical defensive normalization so a stale Systematic/Gentle prompt
@@ -1121,9 +1122,10 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
         typeof dispatchedType === "string" &&
         !isCoordinator(dispatchedType) &&
         !isReadOnlySpecialist(dispatchedType)
+      const tinyFix = isWriterDispatch && tinyFixSignal
 
-      // Q72 tiny-fix: arm a one-shot permit for a WRITER dispatch and skip every stage gate for
-      // it. A flag on a non-writer target arms nothing, so it cannot exempt any later writer.
+      // Q72 tiny-fix: arm a one-shot permit for the first explicitly marked WRITER dispatch and
+      // skip every stage gate for that dispatch. A marker on a non-writer target arms nothing.
       if (isWriterDispatch && tinyFix) {
         if (dispatchedType) {
           tinyFixPendingParents.set(input.sessionID, { expectedAgent: dispatchedType, expiry: Date.now() + TINY_FIX_PERMIT_TTL_MS })
