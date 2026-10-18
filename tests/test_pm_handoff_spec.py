@@ -121,6 +121,27 @@ class PMHandoffSpecTest(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self.assert_anchor_contract(mutated)
 
+    def test_standalone_tiny_fix_allows_none_tracker_but_requires_branch_sha(self):
+        self.assert_standalone_tiny_fix_anchor_contract(self.spec)
+
+    def assert_standalone_tiny_fix_anchor_contract(self, spec):
+        brief = spec.split("## PM prompt boundary", 1)[0]
+        self.assertIn("standalone tiny fix", brief)
+        self.assertIn("only the tracker-derived line-count and last-line components are `none`", brief)
+        self.assertIn("branch `HEAD` commit SHA remains required in every case", brief)
+        comparison = spec.split("At unit start, the PM reads the tracker path", 1)[1].split(
+            "The PM does not fetch", 1
+        )[0]
+        self.assertIn("tracker comparison is skipped rather than blocked", comparison)
+        self.assertIn("branch `HEAD` SHA remains required and its comparison still runs", comparison)
+
+    def test_standalone_tiny_fix_positive_control_rejects_removed_none_authorization(self):
+        marker = "standalone tiny fix"
+        self.assertIn(marker, self.spec)
+        mutated = self.spec.replace(marker, "unsupported tiny fix")
+        with self.assertRaises(AssertionError):
+            self.assert_standalone_tiny_fix_anchor_contract(mutated)
+
 
 if __name__ == "__main__":
     unittest.main()
