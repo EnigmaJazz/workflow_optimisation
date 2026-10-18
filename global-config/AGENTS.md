@@ -223,6 +223,12 @@ Project commands run through `sandbox_bash`, which is argv-only: no pipes, redir
 
 Read-only agents that have neither `bash` nor `sandbox_bash` must say so and report the limitation rather than probing for an execution path. If a tool you need is absent, report that plainly instead of retrying it.
 
+### Blocked sandbox apply
+
+A sandbox S17 refusal does not cancel the task. The worker MUST complete the edits and call `sandbox_finish`; `sandbox_apply` cannot succeed in this state, so do not retry it or work around the refusal. The orchestrator must land the frozen result with `host_sandbox_result_install`, bound to the exact previewed result commit. Because the broker records no applied result for that session, `host_git_commit` will refuse; the USER commits those exact paths manually.
+
+For an S16 host-divergence refusal, the edits may already be present in the host working tree. Verify with `git status --short` before re-dispatching, and do not retry the apply.
+
 <!-- /user:grep-tool-enforcement -->
 
 <!-- user:workflow-routing -->
