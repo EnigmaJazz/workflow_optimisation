@@ -11,6 +11,7 @@ VERIFIER_PATH = ROOT / "verify-workflow.sh"
 ALLOWED_AGENTS = {"gentle-orchestrator", "pm-odd", "pm-systematic"}
 PIPELINE_RUN = "host_review_pipeline_run"
 PERSIST = "host_review_persist"
+ASSESS = "host_review_assess"
 
 
 def permission_failures(agents):
@@ -21,11 +22,15 @@ def permission_failures(agents):
             failures.append(f"{name}.{PIPELINE_RUN}")
         if permission.get(PERSIST) != "ask":
             failures.append(f"{name}.{PERSIST}")
+        if permission.get(ASSESS) != "allow":
+            failures.append(f"{name}.{ASSESS}")
+        if name in {"pm-odd", "pm-systematic"} and agents[name].get("tools", {}).get(ASSESS) is not True:
+            failures.append(f"{name}.tools.{ASSESS}")
     for name, agent in agents.items():
         if name in ALLOWED_AGENTS:
             continue
         permission = agent.get("permission", {})
-        for tool in (PIPELINE_RUN, PERSIST):
+        for tool in (PIPELINE_RUN, PERSIST, ASSESS):
             if tool in permission:
                 failures.append(f"{name}.{tool}")
     return failures
@@ -41,12 +46,15 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
     def test_three_agents_receive_exact_permissions_and_pm_tool_maps(self):
         self.assertEqual(self.config["permission"][PIPELINE_RUN], "deny")
         self.assertEqual(self.config["permission"][PERSIST], "deny")
+        self.assertEqual(self.config["permission"][ASSESS], "deny")
         for name in ALLOWED_AGENTS:
             self.assertEqual(self.agents[name]["permission"][PIPELINE_RUN], "allow")
             self.assertEqual(self.agents[name]["permission"][PERSIST], "ask")
+            self.assertEqual(self.agents[name]["permission"][ASSESS], "allow")
         for name in {"pm-odd", "pm-systematic"}:
             self.assertIs(self.agents[name]["tools"][PIPELINE_RUN], True)
             self.assertIs(self.agents[name]["tools"][PERSIST], True)
+            self.assertIs(self.agents[name]["tools"][ASSESS], True)
         self.assertEqual(permission_failures(self.agents), [])
 
     def test_missing_pipeline_grant_is_detected(self):
@@ -59,10 +67,18 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
         agents["pm-systematic"]["permission"][PERSIST] = "allow"
         self.assertIn(f"pm-systematic.{PERSIST}", permission_failures(agents))
 
+    def test_missing_assess_grant_is_detected(self):
+        agents = json.loads(json.dumps(self.agents))
+        self.assertEqual(agents["pm-odd"]["permission"][ASSESS], "allow")
+        del agents["pm-odd"]["permission"][ASSESS]
+        self.assertIn(f"pm-odd.{ASSESS}", permission_failures(agents))
+
     def test_grant_to_another_agent_is_detected(self):
         agents = json.loads(json.dumps(self.agents))
         agents["general"]["permission"][PERSIST] = "ask"
+        agents["general"]["permission"][ASSESS] = "allow"
         self.assertIn(f"general.{PERSIST}", permission_failures(agents))
+        self.assertIn(f"general.{ASSESS}", permission_failures(agents))
 
     def test_verifier_gates_both_tools_and_exempts_only_allow_exceptions(self):
         gated = self.verifier.split("const gatedHostMutations=[", 1)[1].split("]", 1)[0]
@@ -73,10 +89,13 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
         self.assertIn(f'name!=="{PIPELINE_RUN}"', self.verifier)
         self.assertIn("hostReviewPipelineRunExceptionFailures", self.verifier)
         self.assertIn("hostReviewPersistFailures", self.verifier)
+        self.assertIn("hostReviewAssessFailures", self.verifier)
+        self.assertIn("HOST_REVIEW_ASSESS_OMITTED_POSITIVE_CONTROL_FAILED", self.verifier)
         self.assertIn("hostReviewNewGrantSweepFailures", self.verifier)
 
     def test_extracted_verifier_functions_pass_and_detect_reverted_controls(self):
         names = (
+            "hostReviewAssessFailures",
             "hostReviewPipelineRunFailures",
             "hostReviewPersistFailures",
             "hostReviewNewGlobalDefaultFailures",
@@ -108,6 +127,7 @@ const cfgPerm=(agent,tool)=>agent?.permission?.[tool];
 const show=(value)=>JSON.stringify(value);
 const assert=(condition,message)=>{{if(!condition)throw new Error(message)}};
 for(const name of {json.dumps(sorted(ALLOWED_AGENTS))}){{
+  assert(hostReviewAssessFailures(name,agents[name]).length===0,`assess grant rejected: ${{name}}`);
   assert(hostReviewPipelineRunFailures(name,agents[name]).length===0,`pipeline grant rejected: ${{name}}`);
   assert(hostReviewPersistFailures(name,agents[name]).length===0,`persist grant rejected: ${{name}}`);
 }}
@@ -116,17 +136,21 @@ assert(hostReviewPipelineRunExceptionFailures(gated,agents["gentle-orchestrator"
 assert(hostReviewNewGrantSweepFailures(agents).length===0,"negative sweep rejected configured agents");
 assert(hostReviewNewGlobalDefaultFailures("host_review_pipeline_run","deny").length===0,"pipeline default rejected");
 assert(hostReviewNewGlobalDefaultFailures("host_review_persist","deny").length===0,"persist default rejected");
+assert(hostReviewNewGlobalDefaultFailures("host_review_assess","deny").length===0,"assess default rejected");
 assert(hostReviewNewGlobalDefaultFailures("host_review_pipeline_run","allow").length===1,"pipeline default control is vacuous");
 assert(hostReviewNewGlobalDefaultFailures("host_review_persist","ask").length===1,"persist default control is vacuous");
+assert(hostReviewNewGlobalDefaultFailures("host_review_assess","allow").length===1,"assess default control is vacuous");
 assert(hostReviewPipelineRunFailures("omitted",{{permission:{{}}}}).length===1,"pipeline omission control is vacuous");
 assert(hostReviewPipelineRunFailures("wrong",{{permission:{{host_review_pipeline_run:"ask"}}}}).length===1,"pipeline value control is vacuous");
+assert(hostReviewAssessFailures("omitted",{{permission:{{}}}}).length===1,"assess omission control is vacuous");
+assert(hostReviewAssessFailures("wrong",{{permission:{{host_review_assess:"ask"}}}}).length===1,"assess value control is vacuous");
 assert(hostReviewPersistFailures("omitted",{{permission:{{}}}}).length===1,"persist omission control is vacuous");
 assert(hostReviewPersistFailures("wrong",{{permission:{{host_review_persist:"allow"}}}}).length===1,"persist value control is vacuous");
-assert(hostReviewNewToolFailures("omitted",{{tools:{{}}}}).length===2,"tool omission control is vacuous");
-for(const tool of ["host_review_pipeline_run","host_review_persist"]) assert(hostReviewNewToolFailures("disabled",{{tools:{{[tool]:false}}}}).some(failure=>failure.endsWith(tool)),`tool value control is vacuous: ${{tool}}`);
+assert(hostReviewNewToolFailures("omitted",{{tools:{{}}}}).length===3,"tool omission control is vacuous");
+for(const tool of ["host_review_assess","host_review_pipeline_run","host_review_persist"]) assert(hostReviewNewToolFailures("disabled",{{tools:{{[tool]:false}}}}).some(failure=>failure.endsWith(tool)),`tool value control is vacuous: ${{tool}}`);
 assert(hostReviewPipelineRunExceptionFailures(gated.filter(name=>name!=="host_review_pipeline_run"),{{permission:{{host_review_pipeline_run:"allow"}}}}).length===1,"exception omission control is vacuous");
 assert(hostReviewPipelineRunExceptionFailures(gated,{{permission:{{host_review_pipeline_run:"ask"}}}}).length===1,"exception value control is vacuous");
-for(const tool of ["host_review_pipeline_run","host_review_persist"]) assert(hostReviewNewGrantSweepFailures({{"synthetic-fourth-agent":{{permission:{{[tool]:"allow"}}}}}}).length===1,`sweep control is vacuous: ${{tool}}`);
+for(const tool of ["host_review_assess","host_review_pipeline_run","host_review_persist"]) assert(hostReviewNewGrantSweepFailures({{"synthetic-fourth-agent":{{permission:{{[tool]:"allow"}}}}}}).length===1,`sweep control is vacuous: ${{tool}}`);
 console.log("extracted verifier assertions and positive controls passed");
 """
         try:
