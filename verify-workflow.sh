@@ -3041,6 +3041,7 @@ const isolatedMemoryAgents=new Set([
 for (const [name,a] of Object.entries(deployedAgents)) {
   let expected
   if (isolatedMemoryAgents.has(name)) expected="deny"
+  else if (name === "explore") expected="deny"
   else if (ordinaryMemoryAgents.has(name)) expected="allow"
   else {
     fail(`MAGIC_CONTEXT_MEMORY_POLICY_UNCLASSIFIED_AGENT: ${name}`)
@@ -3246,7 +3247,7 @@ else {
     "ctx_search",
     "ctx_expand",
     "ctx_memory",
-    "Ordinary working agents may persist durable knowledge",
+    "The subagent returns learnings as text; the orchestrator persists only the evidence-backed durable ones via `ctx_memory`",
     "Isolated evaluation actors (review lanes, refuters, validators, judges) remain memory-write denied",
     "### Secure Project Registration",
     "`host_register_project`",
@@ -3415,9 +3416,10 @@ if (researcherRuntime) {
   for (const t of ["sandbox_bash","sandbox_edit","sandbox_write","sandbox_apply_patch","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]) {
     if (tool(researcherRuntime,t)!==false) fail(`RESEARCHER_RUNTIME_MUTATION_EXPOSED: ${t}`)
   }
-  for (const t of ["aft_inspect","aft_outline","aft_zoom","sandbox_read","sandbox_list","sandbox_grep","sandbox_diff","ctx_search","ctx_expand","ctx_memory"]) {
+  for (const t of ["aft_inspect","aft_outline","aft_zoom","sandbox_read","sandbox_list","sandbox_grep","sandbox_diff","ctx_search","ctx_expand"]) {
     if (tool(researcherRuntime,t)!==true) fail(`RESEARCHER_READ_OR_MEMORY_TOOL_MISSING: ${t}`)
   }
+  if (tool(researcherRuntime,"ctx_memory")!==false) fail("RESEARCHER_MEMORY_TOOL_EXPOSED: ctx_memory")
   const hostRegisterResearchPermission=permissionActionForWildcard(researcherRuntime,"host_register_project")
   if (hostRegisterResearchPermission!=="deny") {
     fail(`RESEARCHER_HOST_REGISTER_PROJECT_RUNTIME_NOT_DENY: ${show(hostRegisterResearchPermission)}`)
