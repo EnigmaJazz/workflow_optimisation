@@ -86,3 +86,16 @@ Route: delegated ODD tracker creation. Specialist: sandbox worker fallback. Trig
 ## Next step
 
 Dispatch the authorized implementation work for units A/B/C on the specified host branch; before implementation, resolve the outstanding `metadata_work_unit` envelope consequence and confirm how the deterministic host tool is represented. If the tool has not landed, preserve the explicit known-not-performed state and do not claim mirror write/readback.
+
+## Native review outcome and scope gap
+
+- Native review `review-1eeadae16a12d39c`: **high** risk, 8 files / 94 lines, four lenses; **APPROVED and acknowledged**, `authority: burned`.
+- The full candidate (16 paths / 319 lines) was **REFUSED** with `lens_context_budget_exceeded`. The review covered only the correction. **Q79 units A, B, and C were NOT reviewed**; this is the explicit option-1 trade accepted by the owner and remains a real review gap. Candidate commits: `18d269e` (A), `c2963a1` (B), `1de04c0` (C), `f452663` (verifier expectation fix), and `ac9f14b` (correction, reviewed).
+- Four advisory findings:
+  - `R4-resilience-02` — **SUGGESTION, deterministic** (`verify-workflow.sh`, new equality control): the control is tautological. `matches(prompt)` is defined as `prompt == assembled`, so `matches(assembled)` is always true and `ORCHESTRATOR_PROMPT_EQUALITY_CONTROL_FAILED` is unreachable dead code. The inequality control is the only real self-test.
+  - `R4-resilience-01` — **WARNING, inferential** (`verify-workflow.sh`, subprocess output capture): `output=$(python3 ...)` under `set -e` could abort the verifier before distinct diagnostics run, defeating the R4-002 goal. This path is unexercised.
+  - `R3-001` — **SUGGESTION** (`tests/test_orchestrator_prompt_source.py`, verifier-control tests): tests assert the presence of the timeout, mode gate, and labels but never exercise the failure branches.
+  - `R3-002` — **SUGGESTION** (`verify-workflow.sh`, heredoc extraction): extraction is indentation-sensitive.
+- **Cadence failure:** four high-risk commits accumulated before review (A, B, C, and the correction), exactly the condition the Q73 rule is intended to prevent. The full-candidate refusal is the consequence. This was not a completed review of the accumulated work.
+- **Sizing measurement:** 985 lines / 14 paths **PASSED**, while 319 lines / 16 paths was **REFUSED**. Path count is the binding constraint, compounded by per-path size: `verify-workflow.sh` (~5,000 lines) and `global-config/opencode.json` (~2,400 lines) dominate reviewer evidence.
+
