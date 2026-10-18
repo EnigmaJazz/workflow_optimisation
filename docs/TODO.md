@@ -1347,6 +1347,12 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
 - **Source:** `WORKFLOW.md:471,520`; `docs/specs/pm-handoff.md:23`; `global-config/prompts/gentle-orchestrator/overlay.md:199`.
 - **Description:** Reconcile the three normative surfaces: `WORKFLOW.md` and `pm-handoff.md` say post-code advice runs BEFORE the work-unit commit, while the orchestrator overlay says it runs against the COMMITTED implementation snapshot before the native review entry. Record the agreed sequence and keep all three surfaces consistent.
 
+### Q85. ce:review pipeline host permissions
+- **Status:** IN PROGRESS.
+- **Prerequisites:** broker-side registration of `host_review_pipeline_run` and `host_review_persist` must be confirmed before runtime effect is claimed.
+- **Source:** `odd/tasks/q80-review-pipeline-host-permissions.md`.
+- **Description:** Grant `host_review_pipeline_run: allow` and `host_review_persist: ask` to `gentle-orchestrator`, `pm-odd`, and `pm-systematic`; retain global `deny`, verifier enforcement, per-agent controls, PM tool-map coverage, and a negative sweep. No commit or branch switch.
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).

@@ -2764,7 +2764,7 @@ for (const t of ["sandbox_apply","sandbox_apply_patch","sandbox_copy_in","sandbo
 
 
 const registeredHostReads=["host_review_assess","host_review_mode_status","host_review_status","host_review_lens_context","host_sandbox_result"]
-const gatedHostMutations=["host_git_commit","host_git_push","host_gh_issue_create","host_plan_append","host_register_project","host_review_start","host_review_materialize","host_review_capture_result","host_review_capture_unachievable","host_review_acknowledge_approved","host_review_capture_correction_plan","host_review_capture_refuter","host_review_capture_validation","host_review_validate","host_review_recover","host_sandbox_result_install","host_git_clear_commit_intent"]
+const gatedHostMutations=["host_git_commit","host_git_push","host_gh_issue_create","host_plan_append","host_register_project","host_review_start","host_review_materialize","host_review_pipeline_run","host_review_persist","host_review_capture_result","host_review_capture_unachievable","host_review_acknowledge_approved","host_review_capture_correction_plan","host_review_capture_refuter","host_review_capture_validation","host_review_validate","host_review_recover","host_sandbox_result_install","host_git_clear_commit_intent"]
 const retiredHostOperations=["host_sdd_verify_validate","host_sdd_attempt_status","host_sdd_attempt_acquire","host_sdd_attempt_begin","host_sdd_attempt_rescope","host_sdd_attempt_finish","host_sdd_attempt_reset","host_sdd_attempt_settle","host_sdd_attempt_grant","host_sdd_archive_compose","host_sdd_status","host_sdd_continue","host_sdd_task_result"]
 for (const name of registeredHostReads) if (gp[name]!=="allow") fail(`HOST_READ_PERMISSION_MISMATCH: ${name}`)
 for (const name of [...gatedHostMutations,...retiredHostOperations]) if (gp[name]!=="deny") fail(`HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY: ${name}`)
@@ -2785,6 +2785,48 @@ for (const name of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
   if (!omitted.includes(`HOST_REVIEW_MATERIALIZE_NOT_ALLOW: ${name}-omitted`)) fail(`HOST_REVIEW_MATERIALIZE_OMITTED_POSITIVE_CONTROL_FAILED: ${name}`)
   const mismatched=hostReviewMaterializeFailures(`${name}-mismatched`,{permission:{host_review_materialize:"ask"}})
   if (!mismatched.includes(`HOST_REVIEW_MATERIALIZE_NOT_ALLOW: ${name}-mismatched`)) fail(`HOST_REVIEW_MATERIALIZE_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
+}
+function hostReviewPipelineRunFailures(name,agent) {
+  const failures=[]
+  if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_pipeline_run") || agent.permission.host_review_pipeline_run!=="allow") failures.push(`HOST_REVIEW_PIPELINE_RUN_NOT_ALLOW: ${name}`)
+  return failures
+}
+function hostReviewPersistFailures(name,agent) {
+  const failures=[]
+  if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_persist") || agent.permission.host_review_persist!=="ask") failures.push(`HOST_REVIEW_PERSIST_NOT_ASK: ${name}`)
+  return failures
+}
+for (const name of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
+  const agent=deployedAgents[name]
+  if (!agent) { fail(`HOST_REVIEW_AGENT_MISSING: ${name}`); continue }
+  for (const failure of hostReviewPipelineRunFailures(name,agent)) fail(failure)
+  for (const failure of hostReviewPersistFailures(name,agent)) fail(failure)
+  const pipelineOmitted=hostReviewPipelineRunFailures(`${name}-omitted`,{permission:{}})
+  if (!pipelineOmitted.includes(`HOST_REVIEW_PIPELINE_RUN_NOT_ALLOW: ${name}-omitted`)) fail(`HOST_REVIEW_PIPELINE_RUN_OMITTED_POSITIVE_CONTROL_FAILED: ${name}`)
+  const pipelineWrong=hostReviewPipelineRunFailures(`${name}-wrong`,{permission:{host_review_pipeline_run:"ask"}})
+  if (!pipelineWrong.includes(`HOST_REVIEW_PIPELINE_RUN_NOT_ALLOW: ${name}-wrong`)) fail(`HOST_REVIEW_PIPELINE_RUN_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
+  const persistOmitted=hostReviewPersistFailures(`${name}-omitted`,{permission:{}})
+  if (!persistOmitted.includes(`HOST_REVIEW_PERSIST_NOT_ASK: ${name}-omitted`)) fail(`HOST_REVIEW_PERSIST_OMITTED_POSITIVE_CONTROL_FAILED: ${name}`)
+  const persistWrong=hostReviewPersistFailures(`${name}-wrong`,{permission:{host_review_persist:"allow"}})
+  if (!persistWrong.includes(`HOST_REVIEW_PERSIST_NOT_ASK: ${name}-wrong`)) fail(`HOST_REVIEW_PERSIST_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
+}
+function hostReviewNewToolFailures(name,agent) {
+  const failures=[]
+  for (const tool of ["host_review_pipeline_run","host_review_persist"]) {
+    if (!agent?.tools || typeof agent.tools!=="object" || Array.isArray(agent.tools) || !Object.prototype.hasOwnProperty.call(agent.tools,tool) || agent.tools[tool]!==true) failures.push(`HOST_REVIEW_TOOL_NOT_ENABLED: ${name}.${tool}`)
+  }
+  return failures
+}
+for (const name of ["pm-odd","pm-systematic"]) {
+  const agent=deployedAgents[name]
+  if (!agent) { fail(`HOST_REVIEW_AGENT_MISSING: ${name}`); continue }
+  for (const failure of hostReviewNewToolFailures(name,agent)) fail(failure)
+  for (const tool of ["host_review_pipeline_run","host_review_persist"]) {
+    const omitted=hostReviewNewToolFailures(`${name}-omitted`,{tools:{}})
+    if (!omitted.includes(`HOST_REVIEW_TOOL_NOT_ENABLED: ${name}-omitted.${tool}`)) fail(`HOST_REVIEW_TOOL_OMITTED_POSITIVE_CONTROL_FAILED: ${name}.${tool}`)
+    const disabled=hostReviewNewToolFailures(`${name}-disabled`,{tools:{[tool]:false}})
+    if (!disabled.includes(`HOST_REVIEW_TOOL_NOT_ENABLED: ${name}-disabled.${tool}`)) fail(`HOST_REVIEW_TOOL_VALUE_POSITIVE_CONTROL_FAILED: ${name}.${tool}`)
+  }
 }
 function hostReviewMaterializeToolFailures(name,agent) {
   const failures=[]
@@ -2807,6 +2849,23 @@ for (const failure of hostReviewMaterializeGlobalDefaultFailures(gp.host_review_
 const hostReviewGlobalDefaultProbe=hostReviewMaterializeGlobalDefaultFailures("allow")
 if (!hostReviewGlobalDefaultProbe.includes('HOST_REVIEW_MATERIALIZE_GLOBAL_DEFAULT_NOT_DENY: "allow"')) fail("HOST_REVIEW_MATERIALIZE_GLOBAL_DEFAULT_POSITIVE_CONTROL_FAILED")
 else console.log("   ok: host_review_materialize global-default positive control detected allow")
+function hostReviewNewGlobalDefaultFailures(tool,value) {
+  return value==="deny" ? [] : [`HOST_REVIEW_GLOBAL_DEFAULT_NOT_DENY: ${tool}=${show(value)}`]
+}
+for (const tool of ["host_review_pipeline_run","host_review_persist"]) {
+  for (const failure of hostReviewNewGlobalDefaultFailures(tool,gp[tool])) fail(failure)
+  const probe=hostReviewNewGlobalDefaultFailures(tool,"allow")
+  if (!probe.includes(`HOST_REVIEW_GLOBAL_DEFAULT_NOT_DENY: ${tool}="allow"`)) fail(`HOST_REVIEW_GLOBAL_DEFAULT_POSITIVE_CONTROL_FAILED: ${tool}`)
+}
+function hostReviewPipelineRunExceptionFailures(gated,agent) {
+  const failures=[]
+  if (!gated.includes("host_review_pipeline_run") || cfgPerm(agent,"host_review_pipeline_run")!=="allow") failures.push(`ORCHESTRATOR_HOST_REVIEW_PIPELINE_RUN_EXCEPTION_NOT_ALLOW: ${show(cfgPerm(agent,"host_review_pipeline_run"))}`)
+  return failures
+}
+const pipelineExceptionOmitted=hostReviewPipelineRunExceptionFailures(gatedHostMutations.filter((name)=>name!=="host_review_pipeline_run"),{permission:{host_review_pipeline_run:"allow"}})
+if (!pipelineExceptionOmitted.includes('ORCHESTRATOR_HOST_REVIEW_PIPELINE_RUN_EXCEPTION_NOT_ALLOW: "allow"')) fail("HOST_REVIEW_PIPELINE_RUN_EXCEPTION_OMITTED_POSITIVE_CONTROL_FAILED")
+const pipelineExceptionWrong=hostReviewPipelineRunExceptionFailures(gatedHostMutations,{permission:{host_review_pipeline_run:"ask"}})
+if (!pipelineExceptionWrong.includes('ORCHESTRATOR_HOST_REVIEW_PIPELINE_RUN_EXCEPTION_NOT_ALLOW: "ask"')) fail("HOST_REVIEW_PIPELINE_RUN_EXCEPTION_VALUE_POSITIVE_CONTROL_FAILED")
 function hostReviewMaterializeExceptionFailures(gated,agent) {
   const failures=[]
   if (!gated.includes("host_review_materialize") || cfgPerm(agent,"host_review_materialize")!=="allow") failures.push(`ORCHESTRATOR_HOST_REVIEW_MATERIALIZE_EXCEPTION_NOT_ALLOW: ${show(cfgPerm(agent,"host_review_materialize"))}`)
@@ -2826,6 +2885,22 @@ const hostReviewSweepProbe={"synthetic-fourth-agent":{permission:{host_review_ma
 const hostReviewSweepProbeFailures=Object.entries(hostReviewSweepProbe).filter(([,agent])=>cfgPerm(agent,"host_review_materialize")==="allow").map(([name])=>`HOST_REVIEW_MATERIALIZE_GRANTED_OUTSIDE_ALLOWLIST: ${name}`)
 if (!hostReviewSweepProbeFailures.includes("HOST_REVIEW_MATERIALIZE_GRANTED_OUTSIDE_ALLOWLIST: synthetic-fourth-agent")) fail("HOST_REVIEW_MATERIALIZE_SWEEP_POSITIVE_CONTROL_FAILED")
 else console.log("   ok: host_review_materialize negative-sweep positive control detected synthetic-fourth-agent")
+function hostReviewNewGrantSweepFailures(agents) {
+  const allowed=new Set(["gentle-orchestrator","pm-odd","pm-systematic"])
+  const failures=[]
+  for (const [name,agent] of Object.entries(agents??{})) {
+    if (allowed.has(name)) continue
+    for (const tool of ["host_review_pipeline_run","host_review_persist"]) {
+      if (agent?.permission && typeof agent.permission==="object" && Object.prototype.hasOwnProperty.call(agent.permission,tool)) failures.push(`HOST_REVIEW_NEW_GRANT_OUTSIDE_ALLOWLIST: ${name}.${tool}`)
+    }
+  }
+  return failures
+}
+for (const failure of hostReviewNewGrantSweepFailures(deployedAgents)) fail(failure)
+for (const tool of ["host_review_pipeline_run","host_review_persist"]) {
+  const probe=hostReviewNewGrantSweepFailures({"synthetic-fourth-agent":{permission:{[tool]:tool==="host_review_pipeline_run"?"allow":"ask"}}})
+  if (!probe.includes(`HOST_REVIEW_NEW_GRANT_OUTSIDE_ALLOWLIST: synthetic-fourth-agent.${tool}`)) fail(`HOST_REVIEW_NEW_GRANT_SWEEP_POSITIVE_CONTROL_FAILED: ${tool}`)
+}
 function reviewAgentLockdownFailures(name,agent) {
   const failures=[]
   if (!agent?.tools || typeof agent.tools!=="object" || Array.isArray(agent.tools)) {
@@ -3104,9 +3179,10 @@ else {
   if (!configuredOrchestratorVariant) fail(`ORCHESTRATOR_VARIANT_NOT_EXPLICIT: ${show(orch.variant)}`)
   if (cfgPerm(orch,"edit")!=="deny" || cfgPerm(orch,"write")!=="deny") fail("ORCHESTRATOR_HOST_WRITE_NOT_DENIED")
   if (cfgPerm(orch,"bash")!=="deny") fail("ORCHESTRATOR_HOST_BASH_NOT_DENIED")
-  for (const name of gatedHostMutations) if (name!=="host_review_start" && name!=="host_review_materialize" && cfgPerm(orch,name)!=="ask") fail(`ORCHESTRATOR_HOST_TOOL_NOT_ASK: ${name}`)
+  for (const name of gatedHostMutations) if (name!=="host_review_start" && name!=="host_review_materialize" && name!=="host_review_pipeline_run" && cfgPerm(orch,name)!=="ask") fail(`ORCHESTRATOR_HOST_TOOL_NOT_ASK: ${name}`)
   if (cfgPerm(orch,"host_review_start")!=="allow") fail(`ORCHESTRATOR_HOST_REVIEW_START_NOT_ALLOW: ${show(cfgPerm(orch,"host_review_start"))}`)
   for (const failure of hostReviewMaterializeExceptionFailures(gatedHostMutations,orch)) fail(failure)
+  for (const failure of hostReviewPipelineRunExceptionFailures(gatedHostMutations,orch)) fail(failure)
   for (const name of retiredHostOperations) if (cfgPerm(orch,name)!=="deny") fail(`ORCHESTRATOR_RETIRED_HOST_TOOL_EXPOSED: ${name}`)
   if (cfgPerm(orch,"host_register_project")!=="ask") fail(`ORCHESTRATOR_HOST_REGISTER_PROJECT_NOT_ASK: ${show(cfgPerm(orch,"host_register_project"))}`)
   if (cfgTool(orch,"bash")===true || cfgTool(orch,"edit")===true || cfgTool(orch,"write")===true) fail("ORCHESTRATOR_LEGACY_HOST_TOOL_EXPOSED")
