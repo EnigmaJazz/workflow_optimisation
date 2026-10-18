@@ -109,6 +109,48 @@ class RealTables(unittest.TestCase):
         self.assertGreater(len(rows(token_body)), 50, "token table is unexpectedly small")
         self.assertEqual(validate_rows(token_body, manifest_ids), [])
 
+    def test_mirror_sha256_token_is_literal_and_non_vacuous(self):
+        import subprocess
+        import tempfile
+
+        token_body = table_body(self.text, "ANCHOR_TOKENS")
+        self.assertIsNotNone(token_body, "ANCHOR_TOKENS table not found")
+        row = next(
+            line.strip()
+            for line in token_body.splitlines()
+            if "mirror_sha256" in line
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            marker = Path(tmp) / "command-substitution-ran"
+            script = f'''set -eu
+WORKSPACE={str(REPO)!r}
+marker={str(marker)!r}
+mirror_sha256() {{ printf invoked > "$marker"; }}
+ANCHOR_TOKENS=(
+  {row}
+)
+IFS='~' read -r _ _ _ token_literal <<< "${{ANCHOR_TOKENS[0]}}"
+expected='`mirror_sha256` is optional and must be absent'
+[ "$token_literal" = "$expected" ] || {{ printf 'LITERAL_MISMATCH:%s\\n' "$token_literal"; exit 10; }}
+compare_token() {{ printf '%s\\n' "$1" | grep -Fq -- "$token_literal"; }}
+compare_token "$expected" || exit 11
+removed=${{expected//mirror_sha256/}}
+if compare_token "$removed"; then
+  printf 'REMOVAL_NOT_DETECTED\\n'
+  exit 12
+fi
+[ ! -e "$marker" ] || {{ printf 'COMMAND_SUBSTITUTION_OCCURRED\\n'; exit 13; }}
+printf 'LITERAL_PRESERVED; PRESENT=PASS; REMOVED=FAIL; COMMAND_SUBSTITUTION=NONE\\n'
+'''
+            result = subprocess.run(
+                ["bash", "-c", script], cwd=REPO, capture_output=True, text=True
+            )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(
+            "LITERAL_PRESERVED; PRESENT=PASS; REMOVED=FAIL; COMMAND_SUBSTITUTION=NONE",
+            result.stdout,
+        )
+
     def test_every_manifest_anchor_is_unique(self):
         body = table_body(self.text, "ANCHOR_MANIFEST")
         self.assertEqual(duplicate_manifest_ids(body), [], "duplicate anchor id in ANCHOR_MANIFEST")

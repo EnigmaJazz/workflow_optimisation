@@ -4697,7 +4697,7 @@ ANCHOR_TOKENS=(
   "workflow.tiny-fix-overlay~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~orchestrator inline boundary~Upstream's “small tasks stay inline” wording is NOT adopted"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`authored_changed_lines\`"
   "workflow.pm-brief-readback~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~PM brief tracker hash field~tracker_sha256"
-  "workflow.pm-brief-readback~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~PM brief optional mirror hash~`mirror_sha256` is optional and must be absent"
+  "workflow.pm-brief-readback~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~PM brief optional mirror hash~\`mirror_sha256\` is optional and must be absent"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`authored_patch_bytes\`"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`generated_or_binary_paths\`"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~400 authored changed lines and 100 KiB"
