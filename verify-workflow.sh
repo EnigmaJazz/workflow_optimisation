@@ -4764,7 +4764,7 @@ fi
 # mixed literal-checking scheme remains. See the classification rule above.
 ANCHOR_TOKENS=(
   # WORKFLOW.md
-  "workflow.tiny-fix~$WORKFLOW~WORKFLOW.md~Tiny fix selects one delegated \`general\` writer (\`openai/gpt-6-luna\`) without a tracker, advice record, or mirror."
+  "workflow.tiny-fix~$WORKFLOW~WORKFLOW.md~Tiny fix selects one delegated writer per the dispatcher-specific selection in the Task Classes row"
   "workflow.tiny-fix~$WORKFLOW~WORKFLOW.md~The tripwire is ESCALATION-ONLY"
   "workflow.tiny-fix-tripwire~$ROUTING_GUARD_SOURCE~systematic-routing-guard.ts~TINY_FIX_MAX_AUTHORED_CHANGED_LINES"
   "workflow.route-skill.route-statement~$ROUTER_SKILLS_SOURCE/workflow-route/SKILL.md~workflow-route tiny-fix route~Tiny-fix route:"
