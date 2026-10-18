@@ -74,7 +74,7 @@ External advisory (interim lane, two independent hosts) corrected the unit's sco
 - a committed test proves the allowlist membership non-vacuously;
 - no existing check is weakened;
 - the routing-guard and python suites stay green;
-- **required traces:** the permit-consumption log line; a `ROUTER-LOG.md` row per tiny fix (written inside the worker's brief, since the read-only orchestrator cannot); a scan flagging over-threshold `tiny` commits; and a tracker `## Log` entry for PM tiny fixes.
+- **PM-verifiable traces:** a `ROUTER-LOG.md` row per tiny fix (written inside the worker's brief, since the read-only orchestrator cannot), and a tracker `## Log` entry for PM mid-unit tiny fixes. The permit-consumption log line is the guard's own diagnostic record, observed by whoever audits the guard log; it is not a PM obligation, and its absence MUST NOT block a unit. A scan flagging over-threshold `tiny` commits remains a separate host check.
 
 ## Authorized scope
 

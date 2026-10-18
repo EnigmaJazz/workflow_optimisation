@@ -97,7 +97,38 @@ def tiny_fix_writer_contract_gaps(workflow, config):
     return gaps
 
 
+def assert_pm_trace_contract(source):
+    required_phrases = (
+        "verifies the in-project traces",
+        "`ROUTER-LOG.md` row",
+        "tracker `## Log` entry",
+        "guard's own diagnostic record",
+        "not a PM obligation",
+        "absence MUST NOT block a unit",
+    )
+    source = source.casefold()
+    missing = [phrase.casefold() for phrase in required_phrases if phrase.casefold() not in source]
+    if missing:
+        raise AssertionError(f"PM trace contract is missing: {missing}")
+
+
 class TinyFixTripwireContract(unittest.TestCase):
+    def test_pm_trace_obligation_is_limited_to_in_project_evidence(self):
+        sources = (
+            (ROOT / "WORKFLOW.md").read_text(encoding="utf-8"),
+            (ROOT / "global-config" / "skills" / "workflow-odd-secure" / "references" / "odd-and-review.md").read_text(encoding="utf-8"),
+            (ROOT / "global-config" / "skills" / "workflow-route" / "SKILL.md").read_text(encoding="utf-8"),
+        )
+        for source in sources:
+            with self.subTest(source=source[:80]):
+                assert_pm_trace_contract(source)
+
+        source = sources[0]
+        phrase = "absence MUST NOT block a unit"
+        self.assertIn(phrase, source)
+        with self.assertRaisesRegex(AssertionError, "PM trace contract"):
+            assert_pm_trace_contract(source.replace(phrase, "removed diagnostic wording"))
+
     def test_dispatcher_specific_writer_families_and_artifact_paths(self):
         workflow = (ROOT / "WORKFLOW.md").read_text(encoding="utf-8")
         config = json.loads(CONFIG.read_text(encoding="utf-8"))
