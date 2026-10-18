@@ -1317,6 +1317,36 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
 - **Source:** owner decision 2026-10-18: a DETERMINISTIC host tool owns tracker-mirror write and verify; explicitly retract Q77's metadata-worker ownership decision. Magic Context 0.46 removed `ctx_memory` from subagents by design.
 - **Description:** correct the contradictory `pm-handoff.md` ownership contract and `metadata_work_unit` envelope semantics; update the orchestrator overlay and its `## Key Learnings` chain, `WORKFLOW.md`, and `odd-and-review.md`; complete the seven-step prompt regeneration atomically; add the `ctx_note` residue guard, F13 embedded-prompt/assembler verifier check, correct `systematicMemoryPolicy`, and resolve the `explore` grant. If the deterministic host tool has not landed, record that mirror write is not performed rather than implying a successful write/readback. Explicitly retract Q77 in `CLAIM-RETRACTIONS.md`. Full scope and checks: `odd/tasks/q79-mirror-write-ownership.md`; pre-code advice: `odd/advice/q79-mirror-write-ownership.md`.
 
+### Q80. Guard: advisory-strategy unit C
+- **Status:** BLOCKED (resume after PM-layer completion).
+- **Prerequisites:** PM-layer completion (Q56-Q61).
+- **Source:** `odd/tasks/q72-tiny-fix-route.md:38` (currently listed only as out of scope); pre-code advisory findings recorded in the audit that identified this gap.
+- **Description:** GUARD work, to be resumed after the PM layer. Resolve the 12 advisory findings before implementation: (1) `ROUTE_STAGES` has no post-code stage; (2) `ce:review` replacing post-code advisors is not representable; (3) “end of ODD” does not survive the review-cadence slice rule; (4) warning-only enforcement implies a documentation-only obligation; (5) the verifier checks prose presence, not behaviour; (6) the external-lane skip clause cannot be recorded; (7) the on-demand clause has no decision criteria; (8) before-commit conflicts with end-of-ODD sequencing; (9) vacuous-pass traps require positive controls; (10) identify the tests and anchor rows to change; (11) reconcile ownership disagreement among `WORKFLOW.md`, `overlay.md`, and `pm-handoff.md`; (12) distinguish post-code advice from the staged reviewability receipt.
+
+### Q81. Guard: record skipped external-advisor use
+- **Status:** BLOCKED (resume after PM-layer completion; design required).
+- **Prerequisites:** PM-layer completion (Q56-Q61).
+- **Source:** `WORKFLOW.md:507-523,533`; the audit found no skip field in `odd/advice/**`, the brief schema, or the result envelope.
+- **Description:** Design how to record a SKIPPED external-advisor use. `selection.rule` currently names selection rules only, and a missing advice record is a blocked gate, never a silent skip; define and test an explicit skip representation and its required rationale/evidence rather than treating absence as skip.
+
+### Q82. Guard: add ODD post-code and review stages
+- **Status:** BLOCKED (resume after PM-layer completion).
+- **Prerequisites:** PM-layer completion (Q56-Q61); coordinate with Q28.
+- **Source:** `global-config/plugins/lib/routing-guard-helpers.ts:74-110` (`workflow-odd-secure` currently has `advice` and `tracker` stages); `docs/TODO.md` Q28:429-430; `odd/tasks/routing-guard-keys.md:114`.
+- **Description:** Add a post-code stage to ODD `ROUTE_STAGES` and make `ce:review` satisfy an ODD review stage where applicable. Q28 mentions a guard stage but no item owns it, and the `ce:review` half is unrecorded; reconcile this with the current description of ODD review as a CONTINUOUS STATE, not an artifact.
+
+### Q83. Guard: reconcile the three writer lists
+- **Status:** BLOCKED (resume after PM-layer completion).
+- **Prerequisites:** PM-layer completion (Q56-Q61); coordinate with Q28.
+- **Source:** `global-config/plugins/lib/routing-guard-helpers.ts:18-19` (`ODD_SPECIALIST_WRITERS`, 13 writers); `global-config/skills/workflow-odd-secure/SKILL.md:15` (names only `odd-apply`); `docs/specs/routing-guard-q03.md:46` (Q28 assignment by name).
+- **Description:** Enumerate and reconcile the guard's 13 `ODD_SPECIALIST_WRITERS`, the ODD route skill's `odd-apply` writer naming, and `pm-odd`'s task allowlist. Q28 assigned this drift by name, but no item records the three lists or their comparison.
+
+### Q84. Reconcile post-code advice sequencing drift
+- **Status:** BLOCKED (resume after PM-layer completion).
+- **Prerequisites:** PM-layer completion (Q56-Q61).
+- **Source:** `WORKFLOW.md:471,520`; `docs/specs/pm-handoff.md:23`; `global-config/prompts/gentle-orchestrator/overlay.md:199`.
+- **Description:** Reconcile the three normative surfaces: `WORKFLOW.md` and `pm-handoff.md` say post-code advice runs BEFORE the work-unit commit, while the orchestrator overlay says it runs against the COMMITTED implementation snapshot before the native review entry. Record the agreed sequence and keep all three surfaces consistent.
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).

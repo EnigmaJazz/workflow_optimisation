@@ -165,6 +165,10 @@ This session itself skipped `ce:brainstorm`, `ce:plan`, and `ce:review` while su
 
 Three of these are fixed by this change: R2-001 (vacuous pass), R2-002 together with R3-verifier-missing-dep (failure classification), and partially R4-001 (an exported factory is now required but is not invoked, because it needs a host-shaped input). The remaining findings are recorded here as separate later work and are not blockers.
 
+## Pending GUARD work recorded after the PM layer
+
+Five previously unrecorded GUARD work items are now tracked as Q80-Q84 in `docs/TODO.md`. Resume them after PM-layer completion; see the individual queue entries for scope and evidence.
+
 ## Native review review-84383b2e59dc8844 (approved, authority burned)
 
 The review is approved, acknowledged, and closed.
