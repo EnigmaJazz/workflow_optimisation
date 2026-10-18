@@ -7,6 +7,7 @@ const permissionBlock = verifier.slice(verifier.indexOf("const registeredHostRea
 assert.doesNotThrow(() => new Function(permissionBlock), "extracted verifier permission block must parse");
 const functionNames = [
   "hostReviewAssessFailures",
+  "hostReviewDiffReadFailures",
   "hostReviewPipelineRunFailures",
   "hostReviewPersistFailures",
   "hostReviewNewGlobalDefaultFailures",
@@ -40,8 +41,10 @@ const allowedAgents = ["gentle-orchestrator", "pm-odd", "pm-systematic"];
 assert.equal(globalPermissions.host_review_pipeline_run, "deny");
 assert.equal(globalPermissions.host_review_persist, "deny");
 assert.equal(globalPermissions.host_review_assess, "deny");
+assert.equal(globalPermissions.host_review_diff_read, "deny");
 for (const name of allowedAgents) {
   assert.deepEqual(checks.hostReviewAssessFailures(name, agent[name]), []);
+  assert.deepEqual(checks.hostReviewDiffReadFailures(name, agent[name]), []);
   assert.deepEqual(checks.hostReviewPipelineRunFailures(name, agent[name]), []);
   assert.deepEqual(checks.hostReviewPersistFailures(name, agent[name]), []);
 }
@@ -52,29 +55,32 @@ for (const name of ["pm-odd", "pm-systematic"]) {
 assert.deepEqual(checks.hostReviewNewGlobalDefaultFailures("host_review_pipeline_run", globalPermissions.host_review_pipeline_run), []);
 assert.deepEqual(checks.hostReviewNewGlobalDefaultFailures("host_review_persist", globalPermissions.host_review_persist), []);
 assert.deepEqual(checks.hostReviewNewGlobalDefaultFailures("host_review_assess", globalPermissions.host_review_assess), []);
+assert.deepEqual(checks.hostReviewNewGlobalDefaultFailures("host_review_diff_read", globalPermissions.host_review_diff_read), []);
 assert.deepEqual(checks.hostReviewPipelineRunExceptionFailures(gated, agent["gentle-orchestrator"]), []);
 assert.deepEqual(checks.hostReviewNewGrantSweepFailures(agent), []);
 
-for (const tool of ["host_review_assess", "host_review_pipeline_run", "host_review_persist"]) {
+for (const tool of ["host_review_assess", "host_review_diff_read", "host_review_pipeline_run", "host_review_persist"]) {
   assert.equal(globalPermissions[tool], "deny");
   assert.equal(checks.hostReviewNewGlobalDefaultFailures(tool, "allow").length, 1, `${tool} global-default control is vacuous`);
   assert.equal(checks.hostReviewNewGrantSweepFailures({ fourth: { permission: { [tool]: "allow" } } }).length, 1, `${tool} negative-sweep control is vacuous`);
 }
 assert.equal(checks.hostReviewAssessFailures("omitted", { permission: {} }).length, 1, "assess omission control is vacuous");
 assert.equal(checks.hostReviewAssessFailures("wrong", { permission: { host_review_assess: "ask" } }).length, 1, "assess value control is vacuous");
+assert.equal(checks.hostReviewDiffReadFailures("omitted", { permission: {} }).length, 1, "diff-read omission control is vacuous");
+assert.equal(checks.hostReviewDiffReadFailures("wrong", { permission: { host_review_diff_read: "ask" } }).length, 1, "diff-read value control is vacuous");
 assert.equal(checks.hostReviewPipelineRunFailures("omitted", { permission: {} }).length, 1, "pipeline omission control is vacuous");
 assert.equal(checks.hostReviewPipelineRunFailures("wrong", { permission: { host_review_pipeline_run: "ask" } }).length, 1, "pipeline value control is vacuous");
 assert.equal(checks.hostReviewPersistFailures("omitted", { permission: {} }).length, 1, "persist omission control is vacuous");
 assert.equal(checks.hostReviewPersistFailures("wrong", { permission: { host_review_persist: "allow" } }).length, 1, "persist value control is vacuous");
-assert.equal(checks.hostReviewNewToolFailures("omitted", { tools: {} }).length, 3, "tool omission control is vacuous");
-for (const tool of ["host_review_assess", "host_review_pipeline_run", "host_review_persist"]) {
+assert.equal(checks.hostReviewNewToolFailures("omitted", { tools: {} }).length, 4, "tool omission control is vacuous");
+for (const tool of ["host_review_assess", "host_review_diff_read", "host_review_pipeline_run", "host_review_persist"]) {
   assert.ok(checks.hostReviewNewToolFailures("disabled", { tools: { [tool]: false } }).some((failure) => failure.endsWith(tool)), `${tool} tool-value control is vacuous`);
 }
 assert.equal(checks.hostReviewPipelineRunExceptionFailures(gated.filter((name) => name !== "host_review_pipeline_run"), { permission: { host_review_pipeline_run: "allow" } }).length, 1, "exception omission control is vacuous");
 assert.equal(checks.hostReviewPipelineRunExceptionFailures(gated, { permission: { host_review_pipeline_run: "ask" } }).length, 1, "exception value control is vacuous");
 
 for (const name of allowedAgents) {
-  console.log(`${name}: assess=${agent[name].permission.host_review_assess} pipeline_run=${agent[name].permission.host_review_pipeline_run} persist=${agent[name].permission.host_review_persist}`);
+  console.log(`${name}: diff_read=${agent[name].permission.host_review_diff_read} assess=${agent[name].permission.host_review_assess} pipeline_run=${agent[name].permission.host_review_pipeline_run} persist=${agent[name].permission.host_review_persist}`);
 }
-console.log(`sample others default: general assess=${agent.general.permission.host_review_assess ?? globalPermissions.host_review_assess} pipeline_run=${agent.general.permission.host_review_pipeline_run ?? globalPermissions.host_review_pipeline_run} persist=${agent.general.permission.host_review_persist ?? globalPermissions.host_review_persist}`);
+console.log(`sample others default: general diff_read=${agent.general.permission.host_review_diff_read ?? globalPermissions.host_review_diff_read} assess=${agent.general.permission.host_review_assess ?? globalPermissions.host_review_assess} pipeline_run=${agent.general.permission.host_review_pipeline_run ?? globalPermissions.host_review_pipeline_run} persist=${agent.general.permission.host_review_persist ?? globalPermissions.host_review_persist}`);
 console.log("Extracted verifier assertions passed; all new-key positive controls detected their reverted fixtures.");
