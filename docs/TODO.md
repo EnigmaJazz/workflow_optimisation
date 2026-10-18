@@ -1361,6 +1361,16 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   tracker byte/character count, literal last-line text, and feature-branch HEAD SHA. Suspend hash
   duties until the deterministic host tool lands; see `odd/tasks/q85-unit-start-anchor.md`.
 
+### Q86. Record the ce:review contract parameters
+- **Status:** PLANNED.
+- **Prerequisites:** none.
+- **Source:** external agent `agent-sandbox-integration` supplied the contract parameters for the
+  `ce:review` helper; tracker `odd/tasks/q86-ce-review-parameters.md`.
+- **Description:** revise our use of the `ce:review` route against the supplied parameters, resolve
+  the REVIEWER DELIVERY and HELPER SOURCE requirements without assuming mechanisms, and check
+  whether the ASTRA caller aliases inherit or need explicit grants. This entry records the plan
+  input only; it does not redesign or implement the parameters.
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).
