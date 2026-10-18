@@ -2764,7 +2764,7 @@ for (const t of ["sandbox_apply","sandbox_apply_patch","sandbox_copy_in","sandbo
 
 
 const registeredHostReads=["host_review_mode_status","host_review_status","host_review_lens_context","host_sandbox_result"]
-const gatedHostMutations=["host_git_commit","host_git_push","host_gh_issue_create","host_plan_append","host_register_project","host_review_start","host_review_materialize","host_review_pipeline_run","host_review_persist","host_review_capture_result","host_review_capture_unachievable","host_review_acknowledge_approved","host_review_capture_correction_plan","host_review_capture_refuter","host_review_capture_validation","host_review_validate","host_review_recover","host_sandbox_result_install","host_git_clear_commit_intent"]
+const gatedHostMutations=["host_review_diff_read","host_git_commit","host_git_push","host_gh_issue_create","host_plan_append","host_register_project","host_review_start","host_review_materialize","host_review_pipeline_run","host_review_persist","host_review_capture_result","host_review_capture_unachievable","host_review_acknowledge_approved","host_review_capture_correction_plan","host_review_capture_refuter","host_review_capture_validation","host_review_validate","host_review_recover","host_sandbox_result_install","host_git_clear_commit_intent"]
 const retiredHostOperations=["host_sdd_verify_validate","host_sdd_attempt_status","host_sdd_attempt_acquire","host_sdd_attempt_begin","host_sdd_attempt_rescope","host_sdd_attempt_finish","host_sdd_attempt_reset","host_sdd_attempt_settle","host_sdd_attempt_grant","host_sdd_archive_compose","host_sdd_status","host_sdd_continue","host_sdd_task_result"]
 for (const name of registeredHostReads) if (gp[name]!=="allow") fail(`HOST_READ_PERMISSION_MISMATCH: ${name}`)
 for (const name of [...gatedHostMutations,...retiredHostOperations]) if (gp[name]!=="deny") fail(`HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY: ${name}`)
@@ -2777,6 +2777,11 @@ function hostReviewAssessFailures(name,agent) {
   if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_assess") || agent.permission.host_review_assess!=="allow") failures.push(`HOST_REVIEW_ASSESS_NOT_ALLOW: ${name}`)
   return failures
 }
+function hostReviewDiffReadFailures(name,agent) {
+  const failures=[]
+  if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_diff_read") || agent.permission.host_review_diff_read!=="allow") failures.push(`HOST_REVIEW_DIFF_READ_NOT_ALLOW: ${name}`)
+  return failures
+}
 for (const name of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
   const agent=deployedAgents[name]
   if (!agent) { fail(`HOST_REVIEW_AGENT_MISSING: ${name}`); continue }
@@ -2785,6 +2790,15 @@ for (const name of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
   if (!omitted.includes(`HOST_REVIEW_ASSESS_NOT_ALLOW: ${name}-omitted`)) fail(`HOST_REVIEW_ASSESS_OMITTED_POSITIVE_CONTROL_FAILED: ${name}`)
   const mismatched=hostReviewAssessFailures(`${name}-mismatched`,{permission:{host_review_assess:"ask"}})
   if (!mismatched.includes(`HOST_REVIEW_ASSESS_NOT_ALLOW: ${name}-mismatched`)) fail(`HOST_REVIEW_ASSESS_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
+}
+for (const name of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
+  const agent=deployedAgents[name]
+  if (!agent) { fail(`HOST_REVIEW_AGENT_MISSING: ${name}`); continue }
+  for (const failure of hostReviewDiffReadFailures(name,agent)) fail(failure)
+  const omitted=hostReviewDiffReadFailures(`${name}-omitted`,{permission:{}})
+  if (!omitted.includes(`HOST_REVIEW_DIFF_READ_NOT_ALLOW: ${name}-omitted`)) fail(`HOST_REVIEW_DIFF_READ_OMITTED_POSITIVE_CONTROL_FAILED: ${name}`)
+  const mismatched=hostReviewDiffReadFailures(`${name}-mismatched`,{permission:{host_review_diff_read:"ask"}})
+  if (!mismatched.includes(`HOST_REVIEW_DIFF_READ_NOT_ALLOW: ${name}-mismatched`)) fail(`HOST_REVIEW_DIFF_READ_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
 }
 function hostReviewMaterializeFailures(name,agent) {
   const failures=[]
@@ -2826,7 +2840,7 @@ for (const name of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
 }
 function hostReviewNewToolFailures(name,agent) {
   const failures=[]
-  for (const tool of ["host_review_assess","host_review_pipeline_run","host_review_persist"]) {
+  for (const tool of ["host_review_assess","host_review_diff_read","host_review_pipeline_run","host_review_persist"]) {
     if (!agent?.tools || typeof agent.tools!=="object" || Array.isArray(agent.tools) || !Object.prototype.hasOwnProperty.call(agent.tools,tool) || agent.tools[tool]!==true) failures.push(`HOST_REVIEW_TOOL_NOT_ENABLED: ${name}.${tool}`)
   }
   return failures
@@ -2835,7 +2849,7 @@ for (const name of ["pm-odd","pm-systematic"]) {
   const agent=deployedAgents[name]
   if (!agent) { fail(`HOST_REVIEW_AGENT_MISSING: ${name}`); continue }
   for (const failure of hostReviewNewToolFailures(name,agent)) fail(failure)
-  for (const tool of ["host_review_assess","host_review_pipeline_run","host_review_persist"]) {
+  for (const tool of ["host_review_assess","host_review_diff_read","host_review_pipeline_run","host_review_persist"]) {
     const omitted=hostReviewNewToolFailures(`${name}-omitted`,{tools:{}})
     if (!omitted.includes(`HOST_REVIEW_TOOL_NOT_ENABLED: ${name}-omitted.${tool}`)) fail(`HOST_REVIEW_TOOL_OMITTED_POSITIVE_CONTROL_FAILED: ${name}.${tool}`)
     const disabled=hostReviewNewToolFailures(`${name}-disabled`,{tools:{[tool]:false}})
@@ -2866,7 +2880,7 @@ else console.log("   ok: host_review_materialize global-default positive control
 function hostReviewNewGlobalDefaultFailures(tool,value) {
   return value==="deny" ? [] : [`HOST_REVIEW_GLOBAL_DEFAULT_NOT_DENY: ${tool}=${show(value)}`]
 }
-for (const tool of ["host_review_assess","host_review_pipeline_run","host_review_persist"]) {
+for (const tool of ["host_review_assess","host_review_diff_read","host_review_pipeline_run","host_review_persist"]) {
   for (const failure of hostReviewNewGlobalDefaultFailures(tool,gp[tool])) fail(failure)
   const probe=hostReviewNewGlobalDefaultFailures(tool,"allow")
   if (!probe.includes(`HOST_REVIEW_GLOBAL_DEFAULT_NOT_DENY: ${tool}="allow"`)) fail(`HOST_REVIEW_GLOBAL_DEFAULT_POSITIVE_CONTROL_FAILED: ${tool}`)
@@ -2904,7 +2918,7 @@ function hostReviewNewGrantSweepFailures(agents) {
   const failures=[]
   for (const [name,agent] of Object.entries(agents??{})) {
     if (allowed.has(name)) continue
-    for (const tool of ["host_review_assess","host_review_pipeline_run","host_review_persist"]) {
+    for (const tool of ["host_review_assess","host_review_diff_read","host_review_pipeline_run","host_review_persist"]) {
       if (agent?.permission && typeof agent.permission==="object" && Object.prototype.hasOwnProperty.call(agent.permission,tool)) failures.push(`HOST_REVIEW_NEW_GRANT_OUTSIDE_ALLOWLIST: ${name}.${tool}`)
     }
   }
@@ -3193,7 +3207,7 @@ else {
   if (!configuredOrchestratorVariant) fail(`ORCHESTRATOR_VARIANT_NOT_EXPLICIT: ${show(orch.variant)}`)
   if (cfgPerm(orch,"edit")!=="deny" || cfgPerm(orch,"write")!=="deny") fail("ORCHESTRATOR_HOST_WRITE_NOT_DENIED")
   if (cfgPerm(orch,"bash")!=="deny") fail("ORCHESTRATOR_HOST_BASH_NOT_DENIED")
-  for (const name of gatedHostMutations) if (name!=="host_review_start" && name!=="host_review_materialize" && name!=="host_review_pipeline_run" && cfgPerm(orch,name)!=="ask") fail(`ORCHESTRATOR_HOST_TOOL_NOT_ASK: ${name}`)
+  for (const name of gatedHostMutations) if (name!=="host_review_start" && name!=="host_review_materialize" && name!=="host_review_pipeline_run" && name!=="host_review_diff_read" && cfgPerm(orch,name)!=="ask") fail(`ORCHESTRATOR_HOST_TOOL_NOT_ASK: ${name}`)
   if (cfgPerm(orch,"host_review_start")!=="allow") fail(`ORCHESTRATOR_HOST_REVIEW_START_NOT_ALLOW: ${show(cfgPerm(orch,"host_review_start"))}`)
   for (const failure of hostReviewMaterializeExceptionFailures(gatedHostMutations,orch)) fail(failure)
   for (const failure of hostReviewPipelineRunExceptionFailures(gatedHostMutations,orch)) fail(failure)

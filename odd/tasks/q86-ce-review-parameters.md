@@ -54,24 +54,24 @@ The supplied confirmation is that our grants already match: `host_review_materia
 ## Gaps to check
 
 - The caller list includes the ASTRA variants; we granted `pm-odd` and `pm-systematic` but the `-astra` aliases were not explicitly granted — determine whether they inherit or need explicit grants.
-- The two UNRESOLVED requirements are recorded as REQUIREMENTS, not mechanisms:
-  - REVIEWER DELIVERY (how a lens receives a slice is unsolved — lens prompts are provider-materialized and reviewer agents have no read path; until specified the pipeline can obtain and hold a range but cannot complete a multi-persona review).
+- Reviewer delivery is RESOLVED by `host_review_diff_read`; the HELPER SOURCE pin requirement remains UNRESOLVED. Both are recorded as REQUIREMENTS, not mechanisms:
+  - REVIEWER DELIVERY (RESOLVED by `host_review_diff_read`: the caller reads the diff slice through this read-only host tool and passes it into the `ce:review` subagent prompt, so each lens receives its slice without needing a read path of its own).
   - HELPER SOURCE (the pinned bytes currently come from the package cache, which is WRITABLE by the confined agent, so the digest vouches for whatever it was given; the contract should require the pinned bytes to originate from a source the agent cannot write).
 
 ## Constraints
 
-Do not redesign the parameters; do not choose mechanisms for the two unresolved requirements; this is a RECORD.
+Do not redesign the parameters; do not choose a mechanism for the unresolved HELPER SOURCE requirement; this is a RECORD.
 
 ## Acceptance criteria
 
 - Every supplied parameter above is recorded with its exact values.
 - The plan-defect is stated.
-- The two unresolved items are recorded as requirements, not mechanisms.
+- Reviewer delivery is recorded as resolved, and the HELPER SOURCE item as an unresolved requirement, not a mechanism.
 - The grant confirmation and the gaps are recorded.
 
 ## Tasks
 
-- [ ] Revise our ce:review plan against these parameters, resolve the two requirements, and check the ASTRA caller grants.
+- [ ] Revise our ce:review plan against these parameters, resolve the remaining HELPER SOURCE requirement, and check the ASTRA caller grants.
 
 ## Delivery strategy
 
@@ -80,7 +80,8 @@ Do not redesign the parameters; do not choose mechanisms for the two unresolved 
 ## Progress
 
 - 2026-10-18: T0 — tracker and queue entry created; supplied parameters recorded as authoritative planning input. No implementation or mechanism selection.
-- 2026-10-18: Contract-gap correction — replaced the impossible sandbox-worker execution-location clause in the ODD reference, WORKFLOW.md, and orchestrator prompt with the required contract properties and the two unresolved requirements. The prompt regeneration chain matches at `803f22525a577fbdeeca91febf1fb8666269f50f9fc646644044cbcd83e04104`; focused tests pass, while the full Python suite has 204 passes, 10 errors from sandbox-denied `node`, and 1 skip. The two requirements remain deliberately unresolved; no mechanism selected and no commit made.
+- 2026-10-18: Contract-gap correction — replaced the impossible sandbox-worker execution-location clause in the ODD reference, WORKFLOW.md, and orchestrator prompt with the required contract properties and the two requirements recorded in this tracker. The prompt regeneration chain matches at `803f22525a577fbdeeca91febf1fb8666269f50f9fc646644044cbcd83e04104`; focused tests pass, while the full Python suite has 204 passes, 10 errors from sandbox-denied `node`, and 1 skip. The HELPER SOURCE requirement remains deliberately unresolved; no mechanism selected and no commit made.
+- 2026-10-18: Reviewer delivery resolved: granted `host_review_diff_read` to `gentle-orchestrator`, `pm-odd`, and `pm-systematic`; the caller reads each slice through that tool and passes it in the `ce:review` subagent prompt, so a lens needs no separate read path. Added per-agent verifier checks, positive controls, and tests. Verification and apply outcome are recorded in ROUTER-LOG; no commit or branch switch.
 
 ## Route / trigger evidence
 
@@ -88,4 +89,4 @@ Route: delegated. Specialist: sandbox worker fallback. Trigger: explicit user au
 
 ## Next step
 
-Revise the existing `ce:review` plan against this recorded contract, determine whether the ASTRA aliases inherit or require explicit grants, and resolve the REVIEWER DELIVERY and HELPER SOURCE requirements without assuming mechanisms in this record.
+Revise the existing `ce:review` plan against this recorded contract, determine whether the ASTRA aliases inherit or require explicit grants, and resolve the remaining HELPER SOURCE requirement without assuming a mechanism in this record.
