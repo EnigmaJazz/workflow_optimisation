@@ -69,7 +69,50 @@ def read_tripwire_constants():
     return source, int(lines_match.group(1)), int(files_match.group(1)), ast.literal_eval(denylist_match.group(1))
 
 
+def tiny_fix_writer_contract_gaps(workflow, config):
+    """Return route/model-independence gaps for each tiny-fix dispatcher."""
+    agents = config.get("agent", {})
+    dispatchers = (
+        ("orchestrator", "gentle-orchestrator", "general"),
+        ("PM", "pm-odd", "odd-apply"),
+    )
+    gaps = []
+    for dispatcher, agent_name, writer_name in dispatchers:
+        if f"{dispatcher} dispatch" not in workflow or f"`{writer_name}`" not in workflow:
+            gaps.append((dispatcher, "route mapping missing"))
+            continue
+        dispatcher_model = agents.get(agent_name, {}).get("model", "")
+        writer_model = agents.get(writer_name, {}).get("model", "")
+        if not dispatcher_model or not writer_model:
+            gaps.append((dispatcher, "configured model missing"))
+            continue
+        dispatcher_family = dispatcher_model.split("/", 1)[0]
+        writer_family = writer_model.split("/", 1)[0]
+        if dispatcher_family == writer_family:
+            gaps.append((dispatcher, f"same model family: {dispatcher_model}"))
+    if "ROUTER-LOG.md" not in workflow or "authorized paths" not in workflow:
+        gaps.append(("ROUTER-LOG", "writer path requirement missing"))
+    if "tracker `## Log` entry" not in workflow or "part of the sanctioned tracker update" not in workflow:
+        gaps.append(("PM tracker", "sanctioned Log update missing"))
+    return gaps
+
+
 class TinyFixTripwireContract(unittest.TestCase):
+    def test_dispatcher_specific_writer_families_and_artifact_paths(self):
+        workflow = (ROOT / "WORKFLOW.md").read_text(encoding="utf-8")
+        config = json.loads(CONFIG.read_text(encoding="utf-8"))
+        self.assertEqual(tiny_fix_writer_contract_gaps(workflow, config), [])
+
+    def test_pm_same_family_writer_positive_control(self):
+        workflow = (ROOT / "WORKFLOW.md").read_text(encoding="utf-8")
+        config = json.loads(CONFIG.read_text(encoding="utf-8"))
+        config["agent"]["odd-apply"]["model"] = config["agent"]["pm-odd"]["model"]
+        gaps = tiny_fix_writer_contract_gaps(workflow, config)
+        self.assertTrue(
+            any(dispatcher == "PM" and "same model family" in reason for dispatcher, reason in gaps),
+            f"same-family PM writer was not detected: {gaps}",
+        )
+
     def test_named_constants_and_predicate_are_present(self):
         source, max_lines, max_files, patterns = read_tripwire_constants()
         self.assertEqual(max_lines, 20)
