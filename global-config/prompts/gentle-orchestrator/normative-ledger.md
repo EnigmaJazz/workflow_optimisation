@@ -2,7 +2,7 @@
 
 Scope: every sentence in the CURRENT prompt (`global-config/opencode.json` →
 `agent["gentle-orchestrator"].prompt`, sha256
-`74838e16cf689f8c3f862dc56d3d9dc22f925dab8b8dcabc4d849bf96a2dd2ac`, 414 lines)
+`bd6e207964e3738265471c3391a4c97d834c742b76101e1ec57287601772ae1c`, 414 lines)
 containing MUST, NEVER, ALWAYS (case-insensitive, word boundary) or "hard rule".
 70 candidate sentences: **44 kept, 1 split, 10 superseded-by-base, 15
 removed-by-design; zero unclassified.**

@@ -85,6 +85,30 @@ class PMHandoffSpecTest(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self.assert_metadata_ownership_contract(mutated)
 
+    def assert_review_order_contract(self, spec):
+        execution = spec.split("## Route validation and ordered execution", 1)[1].split(
+            "## Versioned result envelope", 1
+        )[0]
+        self.assertIn("post-code advisory review from the PM before the work-unit commit", execution)
+        self.assertIn("all advisory blockers must be resolved before the work-unit commit", execution)
+        commit = execution.index("staged reviewability receipt and authorized PM-owned work-unit commit")
+        self.assertIn("native review risk assessment against the committed candidate", execution)
+        assessment = execution.index("native review risk assessment against the committed candidate")
+        self.assertLess(commit, assessment)
+        self.assertIn("The pre-apply assessment requirement is removed", execution)
+
+    def test_pm_advice_blockers_precede_commit_and_native_assessment_follows_it(self):
+        self.assert_review_order_contract(self.spec)
+
+    def test_review_order_positive_control_rejects_pre_apply_assessment(self):
+        mutated = self.spec.replace(
+            "native review risk assessment against the committed candidate",
+            "native review risk assessment before apply or install",
+            1,
+        )
+        with self.assertRaises(AssertionError):
+            self.assert_review_order_contract(mutated)
+
     def test_anchor_positive_control_rejects_mutated_anchor_definition(self):
         mutated = self.spec.replace(
             "exact line count", "approximate line count", 1
