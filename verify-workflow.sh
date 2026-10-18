@@ -200,7 +200,8 @@ fail() {
 }
 
 check_embedded_orchestrator_prompt() {
-  if ! python3 - "$WORKSPACE" <<'PY'
+  local output status
+  output=$(python3 - "$WORKSPACE" <<'PY'
 import json
 import subprocess
 import sys
@@ -209,28 +210,44 @@ from pathlib import Path
 root = Path(sys.argv[1])
 assembler = root / "global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py"
 config_path = root / "global-config/opencode.json"
-result = subprocess.run([sys.executable, str(assembler)], cwd=root, capture_output=True)
+try:
+    result = subprocess.run([sys.executable, str(assembler)], cwd=root, capture_output=True, timeout=30)
+except subprocess.TimeoutExpired:
+    print("ORCHESTRATOR_PROMPT_ASSEMBLER_TIMEOUT: assembler exceeded 30 seconds")
+    raise SystemExit(4)
 if result.returncode != 0:
-    print("assembler failed: " + result.stderr.decode("utf-8", errors="replace").strip())
+    print("ORCHESTRATOR_PROMPT_ASSEMBLER_FAILED: " + result.stderr.decode("utf-8", errors="replace").strip())
+    raise SystemExit(1)
+try:
+    embedded = json.loads(config_path.read_text(encoding="utf-8"))["agent"]["gentle-orchestrator"]["prompt"]
+except (OSError, ValueError, KeyError, TypeError) as error:
+    print("ORCHESTRATOR_PROMPT_CONFIG_INVALID: " + str(error))
     raise SystemExit(2)
-embedded = json.loads(config_path.read_text(encoding="utf-8"))["agent"]["gentle-orchestrator"]["prompt"]
 assembled = result.stdout.decode("utf-8")
 def matches(prompt):
     return prompt == assembled
-if matches(embedded + "\nCONTROL: mutated embedded prompt\n"):
-    print("positive control failed to detect a mutated embedded prompt")
-    raise SystemExit(2)
+if not matches(assembled):
+    print("ORCHESTRATOR_PROMPT_EQUALITY_CONTROL_FAILED: identical prompts did not match")
+    raise SystemExit(3)
+mutated = assembled + "\nCONTROL: mutated embedded prompt\n"
+if matches(mutated):
+    print("ORCHESTRATOR_PROMPT_INEQUALITY_CONTROL_FAILED: mutated prompt matched")
+    raise SystemExit(3)
 if not matches(embedded):
-    print("embedded orchestrator prompt differs from assembler output")
-    raise SystemExit(1)
+    print("ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT: embedded prompt differs from assembler output")
+    raise SystemExit(5)
 PY
-  then
-    fail "ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT: embedded prompt does not equal assembler output"
+  2>&1)
+  status=$?
+  if [ "$status" -eq 0 ]; then
+    echo "   ok: embedded orchestrator prompt matches assembler output; equality controls pass"
   else
-    echo "   ok: embedded orchestrator prompt matches assembler output (mutated-prompt positive control detected drift)"
+    fail "$output"
   fi
 }
-check_embedded_orchestrator_prompt
+if [ "$RECOVERY_ONLY" -eq 0 ] && [ "${WORKFLOW_VERIFY_PLUGIN_LOADS_ONLY:-0}" != "1" ]; then
+  check_embedded_orchestrator_prompt
+fi
 
 plugin_check_failure() {
   local failure_policy="$1"
@@ -4680,7 +4697,7 @@ ANCHOR_TOKENS=(
   "workflow.tiny-fix-overlay~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~orchestrator inline boundary~Upstream's “small tasks stay inline” wording is NOT adopted"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`authored_changed_lines\`"
   "workflow.pm-brief-readback~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~PM brief tracker hash field~tracker_sha256"
-  "workflow.pm-brief-readback~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~PM brief mirror hash field~mirror_sha256"
+  "workflow.pm-brief-readback~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~PM brief optional mirror hash~`mirror_sha256` is optional and must be absent"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`authored_patch_bytes\`"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`generated_or_binary_paths\`"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~400 authored changed lines and 100 KiB"

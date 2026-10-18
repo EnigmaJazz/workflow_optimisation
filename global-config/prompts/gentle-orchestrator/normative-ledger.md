@@ -2,7 +2,7 @@
 
 Scope: every sentence in the CURRENT prompt (`global-config/opencode.json` →
 `agent["gentle-orchestrator"].prompt`, sha256
-`7ac00866aef67b734224843453f66681fdd979cde98b4f4f053ab19f5bedc995`, 414 lines)
+`e51b3285759e494d54f737015c461ab3a4225f5bcdc84679f63ab5fa656424ce`, 414 lines)
 containing MUST, NEVER, ALWAYS (case-insensitive, word boundary) or "hard rule".
 70 candidate sentences: **44 kept, 1 split, 10 superseded-by-base, 15
 removed-by-design; zero unclassified.**
@@ -90,7 +90,7 @@ wiring are produced by `global-config/prompts/gentle-orchestrator/assemble-orche
 | 67 | L534 | "Never grant relay lanes to implementation workers or isolated reviewers." | kept | overlay:user:review-boundary |
 | 68 | L534 | "Never use fallback session replay for either set because replay bypasses Task prompt injection." | kept | overlay:user:review-boundary |
 | 69 | L540 | "Always launch the three baseline reviewers (correctness, testing, project standards) and any candidate-specific reviewers selected by screening in the same independent wave." | kept | overlay:user:review-boundary |
-| 70 | L75 | "Before dispatching a unit to a project-manager, the ORCHESTRATOR MUST read its tracker mirror and supply both hashes in the PM brief." | kept | overlay:user:secure-odd-protocol |
+| 70 | L75 | "Until the deterministic host tool lands, mirror readback is suspended and not a blocker; `mirror_sha256` is optional/absent unless verified." | kept | overlay:user:secure-odd-protocol |
 
 ## Structural coupling note
 

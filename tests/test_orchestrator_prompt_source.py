@@ -27,7 +27,7 @@ SECTIONS = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstrea
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
 CONFIG = ROOT / "global-config" / "opencode.json"
 
-CURRENT_PROMPT_SHA256 = "7ac00866aef67b734224843453f66681fdd979cde98b4f4f053ab19f5bedc995"
+CURRENT_PROMPT_SHA256 = "e51b3285759e494d54f737015c461ab3a4225f5bcdc84679f63ab5fa656424ce"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
@@ -635,7 +635,7 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
             assembled_path.write_bytes(assembled.stdout.encode("utf-8"))
             payload = assembled_path.read_bytes()
         lines = payload.decode("utf-8").splitlines()
-        instruction_line = next(i for i, line in enumerate(lines, 1) if "Before dispatching a unit to a project-manager" in line)
+        instruction_line = next(i for i, line in enumerate(lines, 1) if "Until the deterministic host tool for tracker-mirror write" in line)
         baseline = subprocess.run(
             ["git", "show", "HEAD:global-config/opencode.json"],
             check=True,
@@ -645,6 +645,34 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
         baseline_prompt = json.loads(baseline.stdout)["agent"]["gentle-orchestrator"]["prompt"]
         baseline_payload = baseline_prompt.encode("utf-8")
         print("assembled prompt: sha256=%s bytes=%d lines=%d instruction_line=%d; generated delta bytes=%+d lines=%+d" % (digest, len(payload), payload.count(bytes([10])), instruction_line, len(payload) - len(baseline_payload), payload.count(bytes([10])) - baseline_payload.count(bytes([10]))))
+
+    def test_pm_brief_does_not_block_on_unimplemented_mirror_tool(self):
+        assembled = run_assembler()
+        self.assertEqual(assembled.returncode, 0, assembled.stderr)
+        self.assertIn("mirror readback is SUSPENDED", assembled.stdout)
+        self.assertIn("a missing mirror is NOT a blocker", assembled.stdout)
+        self.assertIn("`mirror_sha256` is optional and must be absent", assembled.stdout)
+
+    def test_embedded_prompt_verifier_has_real_bidirectional_equality_control(self):
+        verifier = (ROOT / "verify-workflow.sh").read_text(encoding="utf-8")
+        check = verifier.split("check_embedded_orchestrator_prompt() {", 1)[1].split("\n}", 1)[0]
+        self.assertIn("timeout=30", check)
+        self.assertIn("mutated = assembled +", check)
+        self.assertIn("if not matches(assembled):", check)
+        self.assertIn("if not matches(embedded):", check)
+        self.assertIn("ORCHESTRATOR_PROMPT_ASSEMBLER_FAILED", check)
+        self.assertIn("ORCHESTRATOR_PROMPT_CONFIG_INVALID", check)
+        self.assertIn("ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT", check)
+        self.assertIn('if [ "$RECOVERY_ONLY" -eq 0 ] && [ "${WORKFLOW_VERIFY_PLUGIN_LOADS_ONLY:-0}" != "1" ]', verifier)
+        python_block = check.split("<<'PY'\n", 1)[1].split("\nPY\n", 1)[0]
+        result = subprocess.run(
+            [sys.executable, "-c", python_block, str(ROOT)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=40,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_verifier_script_pin_matches_its_own_regex(self):
         verifier = ROOT / "verify-workflow.sh"
