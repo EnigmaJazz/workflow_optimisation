@@ -32,14 +32,25 @@ with the existing Q67 ("Retired SDD command detector") on `feat/gentle-ai-v4`, s
    readability, reliability) plus refuter and validator. Keep judgment-day as an optional skill
    for high-stakes work. The brief assigns no model to native `risk` and `reliability`; see
    "Native review model assignment" below.
-6. **Frontend route independence gap.** With the Kimi worker, post-code Security and
-   Performance default to `kimi-k3` (Moonshot), which breaks rule 2, and the brief lists no
-   alternative. **OWNER DECISION:** pick one, for example `glm-5.3-flash` or Gemini (where the
-   code may be shared).
-7. **Scarce pools are oversubscribed.** `grok-4.7` (~845/month) has 5 roles, and `qwen3.8-max`
-   (~810) has 6. The 20%-per-5-hours rule allows roughly 165 requests per window, and a lens that
-   reads files uses 5-15 requests, not 1-3. Measure from day one (trial metrics) and be ready to
-   move roles onto `glm-5.3-flash`, `qwen3.7-plus` or `minimax-m3`.
+6. **Frontend route independence gap: resolved by the lens table below.** With the Kimi
+   worker, the brief's post-code Security and Performance (`kimi-k3`, Moonshot) broke rule 2. The
+   revised table uses no Moonshot model in any triggered lens.
+7. **OpenCode Go is ONE shared pool, not a per-model allowance (owner correction, 2026-10-19).**
+   The brief's "limits are per model" and design goal 4 ("spread load across per-model pools")
+   are wrong. Every request draws on the same monthly dollar cap, and the 5-hour (20%) and weekly
+   (50%) windows apply to the total. The requests/month figures are therefore relative costs:
+   against `deepseek-v4.1-flash` (1x), `glm-5.3-flash` is ~5x, `qwen3.7-plus` ~8x,
+   `claude-haiku-5-5` ~9x, `minimax-m3` ~11x, `kimi-k2.7-code` ~26x, `deepseek-v4-pro` ~33x,
+   `grok-4.7` ~205x, `qwen3.8-max` ~214x and `kimi-k3` ~353x. Consequences:
+   - Family spread remains a review-quality rule (rules 1-4), never a capacity rule.
+   - **Drop `qwen3.8-max` entirely** (owner decision). It is not configured today.
+   - **`grok-4.7`: refuter only. `kimi-k3`: only on an explicit high-stakes run.** A lens that
+     reads files makes 5-15 requests, not 1-3, so one Grok lens call costs as much as about 1-3k
+     DeepSeek Flash requests.
+   - `minimax-m3.1-flash-free` is the main lever while it is free, because it costs the pool
+     nothing. Prefer it wherever its quality holds.
+   - DeepSeek peak hours (doubled cost) now drain the shared pool.
+   - The Haiku PM's 100K-token limit protects the whole pool, not just a Haiku allowance.
 8. **Policy change to make deliberately:** `PASS` from `host_gate_verdict` turns advice into
    approval, but `WORKFLOW.md` says advice is evidence, never approval. **OWNER DECISION:** rewrite
    that rule for the gated routes, or keep the gate advisory.
@@ -59,14 +70,37 @@ must keep mirroring its `review-*` agent's model and variant; it does today.
 |---|---|---|---|
 | `review-risk` | `qwen3.7-plus` (high) | keep | Independent of all worker families |
 | `review-resilience` | `glm-5.3-flash` (high) | keep | The brief's `qwen3.7-plus` would give Qwen two of the four lenses (rule 3) |
-| `review-readability` | `muse-spark-1.3-contributor` (high) | `minimax-m3.1-flash-free`, fallback `minimax-m3` | Contributor models may train on prompts (privacy); matches the brief |
-| `review-reliability` | `kimi-k2.7-code` | `hy4-preview` | Kimi breaks rule 2 on the frontend route; Tencent is unused elsewhere |
+| `review-readability` | `muse-spark-1.3-contributor` (high) | keep | Owner is not concerned about training use (2026-10-19); keeps Meta in the family mix |
+| `review-reliability` | `kimi-k2.7-code` | `claude-haiku-5-5` (owner decision) | Kimi breaks rule 2 on the frontend route; `hy4-preview` rejected on cost versus unproven quality. Shares cost with the PM, so watch it |
 | `review-refuter` | `grok-4.7` (high) | keep | Reserve the Grok pool for this role and the security lens |
 | `review-validator` | `minimax-m3` | keep | Same family as readability; acceptable, since it validates corrections, not the original change |
-| `jd-judge-a` / `jd-judge-b` | `glm-5.3-flash` / `qwen3.7-plus` (high) | keep, or the brief's `qwen3.8-max` + `grok-4.7` for high-stakes runs only | The scarce pools cannot carry routine judging |
+| `jd-judge-a` / `jd-judge-b` | `glm-5.3-flash` / `qwen3.7-plus` (high) | keep | The brief's `qwen3.8-max` + `grok-4.7` pair costs ~200x per request |
 | `jd-fix-agent` | `gpt-6.1-sol` | `deepseek-v4-pro` | Sol here draws on the Plus subscription (goal 1); DeepSeek is independent of both judges, while GLM would collide with judge A |
 
-**OWNER DECISION:** accept or amend this table. Re-check rules 1-3 against it after any worker
+## Advisor lens assignment (revises the brief's tables)
+
+Default lenses keep the brief's models, except that the brief's `qwen3.8-max` alternative for
+Test strategy becomes `minimax-m3`. Note that Test adequacy (`kimi-k2.7-code`, ~26x) is the
+costliest always-on lens; its alternative `glm-5.3-flash` (~5x) is required on the frontend route
+and is the first cut if cost runs high.
+
+| Triggered lens | Pre | Post |
+|---|---|---|
+| Security | `qwen3.7-plus` | `claude-haiku-5-5` (`grok-4.7` or `kimi-k3` only on an explicit high-stakes run) |
+| Integration / contracts | `qwen3.7-plus` | `glm-5.3-flash` |
+| Architecture fit (pre only) | `minimax-m3` | — |
+| Data & migration | `qwen3.7-plus` | `glm-5.3-flash` |
+| Performance | `minimax-m3` | `glm-5.3-flash` |
+| Concurrency / state | `glm-5.3-flash` | `claude-haiku-5-5` |
+| Resilience / operability | `minimax-m3.1-flash-free` | `qwen3.7-plus` (`hy4-preview` dropped) |
+| Dependencies / config / supply chain | `minimax-m3.1-flash-free` | `qwen3.7-plus` |
+| UX / accessibility | `muse-spark-1.3-contributor` | `minimax-m3.1-flash-free` with screenshots |
+
+Rule 4 holds: no lens uses the same model pre- and post-code. Rule 2 holds on every route: no
+lens is DeepSeek, Moonshot or OpenAI. `qwen3.7-plus` now carries the native risk lens plus
+several advisor lenses. At ~8x it should hold, but it is the model to watch.
+
+**OWNER DECISION:** accept or amend the native and advisor tables. Re-check rules 1-3 against it after any worker
 model change.
 
 ## Gap list for this repo
@@ -112,7 +146,8 @@ the task permissions in `opencode.json`, and the route skills. Change them in on
 ## Trial metrics
 
 Log these from the first run: Sol turns per subproject by route; findings and accepted findings
-per lens; gate outcome counts; how often the Tiny guard refuses; Go pool use per model.
+per lens; gate outcome counts; how often the Tiny guard refuses; shared Go pool dollars per model
+per subproject, and per 5-hour window against the 20% cap.
 
 ## Order
 
