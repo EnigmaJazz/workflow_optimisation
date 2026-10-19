@@ -118,13 +118,18 @@ class TinyFixTripwireContract(unittest.TestCase):
             (ROOT / "WORKFLOW.md").read_text(encoding="utf-8"),
             (ROOT / "global-config" / "skills" / "workflow-odd-secure" / "references" / "odd-and-review.md").read_text(encoding="utf-8"),
             (ROOT / "global-config" / "skills" / "workflow-route" / "SKILL.md").read_text(encoding="utf-8"),
+            (ROOT / "global-config" / "skills" / "workflow-odd-secure" / "SKILL.md").read_text(encoding="utf-8"),
+            (ROOT / "odd" / "advice" / "q72-tiny-fix-route.md").read_text(encoding="utf-8"),
         )
+        phrase = "absence MUST NOT block a unit"
         for source in sources:
             with self.subTest(source=source[:80]):
                 assert_pm_trace_contract(source)
+                self.assertIn(phrase, source)
+                with self.assertRaisesRegex(AssertionError, "PM trace contract"):
+                    assert_pm_trace_contract(source.replace(phrase, "removed diagnostic wording"))
 
         source = sources[0]
-        phrase = "absence MUST NOT block a unit"
         self.assertIn(phrase, source)
         with self.assertRaisesRegex(AssertionError, "PM trace contract"):
             assert_pm_trace_contract(source.replace(phrase, "removed diagnostic wording"))

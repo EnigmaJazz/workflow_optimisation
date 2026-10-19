@@ -5,6 +5,7 @@ dispatch whose result envelope records the anchor comparison.
 """
 
 from pathlib import Path
+import re
 import unittest
 
 
@@ -128,18 +129,45 @@ class PMHandoffSpecTest(unittest.TestCase):
         brief = spec.split("## PM prompt boundary", 1)[0]
         self.assertIn("standalone tiny fix", brief)
         self.assertIn("only the tracker-derived line-count and last-line components are `none`", brief)
-        self.assertIn("branch `HEAD` commit SHA remains required in every case", brief)
+        self.assertIn("branch `HEAD` commit SHA is required for every non-planning unit", brief)
         comparison = spec.split("At unit start, the PM reads the tracker path", 1)[1].split(
             "The PM does not fetch", 1
         )[0]
         self.assertIn("tracker comparison is skipped rather than blocked", comparison)
-        self.assertIn("branch `HEAD` SHA remains required and its comparison still runs", comparison)
+        self.assertIn(
+            "branch `HEAD` commit SHA is required for every non-planning unit and its comparison still runs",
+            comparison,
+        )
+        self.assertIn("including the branch `HEAD` commit SHA, are explicitly `none`", comparison)
+        self.assertIn(
+            "For every non-planning unit, including a standalone tiny fix, a missing or mismatched branch `HEAD` commit SHA blocks the unit",
+            comparison,
+        )
 
-    def test_standalone_tiny_fix_positive_control_rejects_removed_none_authorization(self):
+    def test_standalone_tiny_fix_positive_control_rejects_removed_standalone_authorization(self):
         marker = "standalone tiny fix"
         self.assertIn(marker, self.spec)
         mutated = self.spec.replace(marker, "unsupported tiny fix")
         with self.assertRaises(AssertionError):
+            self.assert_standalone_tiny_fix_anchor_contract(mutated)
+
+    def test_positive_control_detects_removed_nonplanning_branch_sha_authorization(self):
+        marker = (
+            "branch `HEAD` commit SHA is required for every non-planning unit "
+            "and its comparison still runs"
+        )
+        self.assertEqual(self.spec.count(marker), 1)
+        brief = self.spec.split("## PM prompt boundary", 1)[0]
+        self.assertNotIn(marker, brief)
+        self.assertIn(
+            "branch `HEAD` commit SHA is required for every non-planning unit", brief
+        )
+        mutated = self.spec.replace(
+            marker,
+            "branch `HEAD` commit SHA is optional for non-planning units "
+            "and its comparison is skipped",
+        )
+        with self.assertRaisesRegex(AssertionError, re.escape(marker)):
             self.assert_standalone_tiny_fix_anchor_contract(mutated)
 
 
