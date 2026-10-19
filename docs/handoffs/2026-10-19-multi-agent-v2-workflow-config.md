@@ -30,8 +30,8 @@ with the existing Q67 ("Retired SDD command detector") on `feat/gentle-ai-v4`, s
    automatic review. State that plainly, or require one post-code lens on Tiny as well.
 5. **Judgment-day is not a native review lens.** Native review is the 4R set (risk, resilience,
    readability, reliability) plus refuter and validator. Keep judgment-day as an optional skill
-   for high-stakes work. **OWNER DECISION:** the brief assigns no model to native `risk` and
-   `reliability`.
+   for high-stakes work. The brief assigns no model to native `risk` and `reliability`; see
+   "Native review model assignment" below.
 6. **Frontend route independence gap.** With the Kimi worker, post-code Security and
    Performance default to `kimi-k3` (Moonshot), which breaks rule 2, and the brief lists no
    alternative. **OWNER DECISION:** pick one, for example `glm-5.3-flash` or Gemini (where the
@@ -43,6 +43,31 @@ with the existing Q67 ("Retired SDD command detector") on `feat/gentle-ai-v4`, s
 8. **Policy change to make deliberately:** `PASS` from `host_gate_verdict` turns advice into
    approval, but `WORKFLOW.md` says advice is evidence, never approval. **OWNER DECISION:** rewrite
    that rule for the gated routes, or keep the gate advisory.
+
+## Native review model assignment
+
+**Fixed-model constraint.** Each native review agent has one model in `opencode.json`, so the
+brief's rule 5 (switch to a lens's alternative per route) cannot apply to native review without
+rewriting config per route. Each 4R model must therefore be independent of every worker family
+at once: DeepSeek, Moonshot (Kimi, the frontend worker) and OpenAI (Luna on Tiny, Sol). That rules
+out Moonshot and DeepSeek for all native lenses.
+
+Current values are from `global-config/opencode.json` as of 2026-10-19. Each `asi-review-*` relay
+must keep mirroring its `review-*` agent's model and variant; it does today.
+
+| Agent (+ `asi-` relay) | Current | Proposed | Reason |
+|---|---|---|---|
+| `review-risk` | `qwen3.7-plus` (high) | keep | Independent of all worker families |
+| `review-resilience` | `glm-5.3-flash` (high) | keep | The brief's `qwen3.7-plus` would give Qwen two of the four lenses (rule 3) |
+| `review-readability` | `muse-spark-1.3-contributor` (high) | `minimax-m3.1-flash-free`, fallback `minimax-m3` | Contributor models may train on prompts (privacy); matches the brief |
+| `review-reliability` | `kimi-k2.7-code` | `hy4-preview` | Kimi breaks rule 2 on the frontend route; Tencent is unused elsewhere |
+| `review-refuter` | `grok-4.7` (high) | keep | Reserve the Grok pool for this role and the security lens |
+| `review-validator` | `minimax-m3` | keep | Same family as readability; acceptable, since it validates corrections, not the original change |
+| `jd-judge-a` / `jd-judge-b` | `glm-5.3-flash` / `qwen3.7-plus` (high) | keep, or the brief's `qwen3.8-max` + `grok-4.7` for high-stakes runs only | The scarce pools cannot carry routine judging |
+| `jd-fix-agent` | `gpt-6.1-sol` | `deepseek-v4-pro` | Sol here draws on the Plus subscription (goal 1); DeepSeek is independent of both judges, while GLM would collide with judge A |
+
+**OWNER DECISION:** accept or amend this table. Re-check rules 1-3 against it after any worker
+model change.
 
 ## Gap list for this repo
 
