@@ -602,6 +602,7 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   count only after Q58's enforcement is live. Q58's review must be driven independently by the
   orchestrator or another coordinator, not by the implementing `pm-odd` session: the unit that
   establishes review independence must not itself be reviewed without it.
+- **Pilot smoke (2026-10-19):** one standalone tiny-fix unit completed end to end through `pm-odd` and returned `DONE`; implementation `47781da`, metadata `a104abc`; both assessments passive; orchestrator readback matched. This does not start the ten-unit count, which begins only after Q58's enforcement is live.
 
 ### Q57. PM layer: slim the orchestrator
 - **Status:** PLANNED.

@@ -386,3 +386,13 @@ Q55's contract-completeness and unit-start branch-verification text is complete 
 - **Observed test result:** routing-guard tests: 94 passed / 0 failed (previously 80 passed).
 - **Status boundary:** these slices are complete and shipped; the `pm-odd` bootstrap run has NOT been executed, and independent relay-delivery proof remains UNVERIFIED. T6 stays unchecked until those runtime acceptance steps have evidence.
 - **Advice-record convention:** substantial routes owe pre-code advisory review before the first writer dispatch, evidenced by `odd/advice/<change>.md`. A delegated sandbox worker writes the file because the orchestrator and PM agents are read-only and cannot write project files. The guard detects its written path, as it detects tracker and plan writes; the path satisfies the advice stage, while an early writer dispatch warns only and is not blocked. The artifact is advisor-agnostic and remains visible/reviewable when advice comes from a CLI, another runtime, or a human, unlike a `task` dispatch event that proves only that a task call occurred and ceases to be observable for external advisors. The gate proves advice was recorded, not that it was acted on.
+
+### Q56 pilot — first completed pm-odd unit (2026-10-19)
+
+- Observed: `pm-odd` completed one standalone tiny-fix unit end to end and returned `pm-unit-result/v1` status `DONE`.
+- Unit `q78-advice-correction-u1` (task `q78-advice-correction`), standalone tiny fix, branch `chore/q72-t1b-tiny-fix-contract`.
+- Implementation commit `47781da` (append-only correction to `odd/advice/q78-host-review-materialize.md`, 7 authored lines); metadata commit `a104abc` (one `ROUTER-LOG.md` row, 1 authored line). Both commits were made by the PM through `host_git_commit`.
+- Both committed candidates assessed `passive` (`review_due=false`); no native review lifecycle was required.
+- Orchestrator readback matched the envelope: branch HEAD `a104abc`, `ROUTER-LOG.md:258` intact, and both commits confined to the authorized paths.
+- A pre-existing uncommitted delta in `tests/test_tiny_fix_route.py` (mtime `2026-10-18 23:03:03 +0100`, +2 lines) predates the unit, was excluded from both commits, and was left untouched; authorship unresolved, timing resolved.
+- This smoke test does NOT count toward Q56's ten consecutive units. The count starts only after Q58's enforcement is live (T4).
