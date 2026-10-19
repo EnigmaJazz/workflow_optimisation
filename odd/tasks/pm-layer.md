@@ -88,7 +88,13 @@ task, each assessed against the last reviewed boundary.
     `pm-sdd` remains without relay targets because it does not launch native RDD.
 - [ ] T7 (Q59) — Verifier coordinator-set checks must assert the PM identity surface as well as
   prompt budgets, behavioural probes and digest pin; Q54's bound identity is inferred because
-  the broker does not echo identity on permitted calls.
+  the broker does not echo identity on permitted calls. Planning unit `q59-pm-verifier-plan-u1`
+  is READY FOR IMPLEMENTATION HANDOFF; tracker: `odd/tasks/q59-pm-verifier.md`. The independent
+  post-code advice (Task `ses_ea9f1a0ecffe8aPpAJIGyw2L11`, configured
+  `opencode-go/kimi-k2.7-code`) initially returned NOT READY on the tracker ownership, future
+  scope, and receipt blockers; the plan refinement resolved them, and the PM envelope records
+  final confirmation. This planning unit does not count toward the Q56 ten-unit implementation
+  pilot; tasks A–E remain pending.
 - [ ] T8 (Q60) — Model assignment, after the external advice.
 - [ ] T9 (Q61) — Remaining routes; remove the legacy agent; `ce:compound`.
 

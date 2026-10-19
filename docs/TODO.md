@@ -635,12 +635,21 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 - **Open external/upstream item — review relay deadline:** two review lenses expired with `reviewer_relay_deadline_expired: review relay deadline of 600000 ms expired` despite taking 16–19 minutes. The deadline is `RELAY_DEADLINE_MS = 600_000` at `~/.config/opencode/plugins/lib/reviewer-relay-core.ts:112`, overridable through `config.deadlineMs` at `:778` and `:1294`. That file is not tracked here (this repository tracks only `global-config/plugins/lib/routing-guard-helpers.ts`), and nothing in this repository sets the deadline. The fix belongs to the external plugin owner, not local Q58 work; details are in `odd/tasks/pm-layer.md`. New data point (2026-10-14): a resilience review lens needed 26m18s against the 600000 ms deadline; the owner permanently increased the relay timeout, and because that file is not tracked here the fix lives with the external plugin owner.
 
 ### Q59. PM layer: verifier
-- **Status:** PLANNED.
-- **Prerequisites:** Q55; easier after Q26 and Q04.
-- **Description:** replace the 23 single-name `gentle-orchestrator` checks with a coordinator
+- **Status:** READY. Planning unit `q59-pm-verifier-plan-u1` created tracker
+  `odd/tasks/q59-pm-verifier.md` and is READY FOR IMPLEMENTATION HANDOFF; implementation tasks A–E
+  remain PENDING. Post-advice plan validation: Task `ses_ea9f1a0ecffe8aPpAJIGyw2L11`, configured
+  `opencode-go/kimi-k2.7-code`, initially returned NOT READY on tracker-ownership, future-scope,
+  and receipt blockers; the plan refinement resolved them, and the PM envelope records final
+  confirmation. Planning is not a Q56 pilot unit (see the tracker's advice record).
+- **Prerequisites:** Q55; easier after Q26 and Q04. Q26 and Q04 are not hard blockers (owner:
+  Q04 is NOT a blocker); re-verify Q55 handoff acceptance at implementation start rather than
+  inferring it from aggregate status.
+- **Description:** replace the single-name `gentle-orchestrator` checks with a coordinator
   set that also asserts the PM identity surface; permission, depth and family-independence checks;
-  prompt-size budgets; behavioural probes through the orchestrator (Q51); digest re-pin. Q54's
-  identity on a permitted broker call is inferred because the broker echoes no identity.
+  prompt-size budgets; behavioural probes through the orchestrator (Q51); digest re-pin. The
+  historical "23" count is UNVERIFIED and must be replaced by the tracker's line-numbered
+  inventory/classification before any exact count is asserted. Q54's identity on a permitted
+  broker call is inferred because the broker echoes no identity.
 
 ### Q60. PM layer: model assignment
 - **Status:** PLANNED. Waits on the external model-assignment advice.
