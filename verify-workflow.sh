@@ -2938,6 +2938,37 @@ for (const tool of ["host_review_pipeline_run","host_review_persist"]) {
   const probe=hostReviewNewGrantSweepFailures({"synthetic-fourth-agent":{permission:{[tool]:tool==="host_review_pipeline_run"?"allow":"ask"}}})
   if (!probe.includes(`HOST_REVIEW_NEW_GRANT_OUTSIDE_ALLOWLIST: synthetic-fourth-agent.${tool}`)) fail(`HOST_REVIEW_NEW_GRANT_SWEEP_POSITIVE_CONTROL_FAILED: ${tool}`)
 }
+function pmIdentityFailures(agents,handoff) {
+  const failures=[]
+  const routes={"pm-odd":"workflow-odd-secure","pm-systematic":"workflow-systematic"}
+  const needles=["exactly one","Keep one unit per PM session","validate task class and route against the current `WORKFLOW.md`","Stop as `BLOCKED`","resume the same Task `task_id`","A report is a claim, never proof","docs/specs/pm-handoff.md"]
+  // Owner correction 2026-10-19: a PM's mid-unit tiny fix dispatches a named
+  // DeepSeek-family writer and never the orchestrator-only `general` lane.
+  const tinyFixInstruction="Tiny-fix option: mid-unit, for a genuinely tiny fix dispatch `odd-apply` or `gentle-ai-worker` (DeepSeek family), never `general`, and only within the brief's allowed paths."
+  const staleTinyFixInstruction="Tiny-fix option: mid-unit, you may dispatch `general` for a genuinely tiny fix only within the brief's allowed paths."
+  for (const [name,route] of Object.entries(routes)) {
+    const prompt=agents?.[name]?.prompt
+    if (typeof prompt!=="string") { failures.push(`PM_IDENTITY_PROMPT_MISSING: ${name}`); continue }
+    if (!prompt.includes(`Load \`${route}\` FIRST`)) failures.push(`PM_ROUTE_SKILL_NOT_LOADED_FIRST: ${name}`)
+    for (const needle of needles) if (!prompt.includes(needle)) failures.push(`PM_IDENTITY_NEEDLE_MISSING: ${name}: ${needle}`)
+    if (!prompt.includes(tinyFixInstruction)) failures.push(`PM_TINYFIX_WRITER_INSTRUCTION_MISSING: ${name}`)
+    if (prompt.includes(staleTinyFixInstruction)) failures.push(`PM_TINYFIX_STALE_GENERAL_INSTRUCTION: ${name}`)
+  }
+  if (typeof handoff!=="string" || !handoff) failures.push("PM_HANDOFF_CONTRACT_UNREADABLE")
+  else for (const needle of ["pm-unit-brief/v1","pm-unit-result/v1"]) if (!handoff.includes(needle)) failures.push(`PM_HANDOFF_SCHEMA_MISSING: ${needle}`)
+  const orchestratorPrompt=agents?.["gentle-orchestrator"]?.prompt
+  if (typeof orchestratorPrompt!=="string" || !orchestratorPrompt.includes("pm-unit-brief/v1") || !orchestratorPrompt.includes("docs/specs/pm-handoff.md")) failures.push("ORCHESTRATOR_BRIEF_CONTRACT_POINTER_MISSING")
+  return failures
+}
+{
+  let handoffText=""
+  if (!workspaceRootAvailable) fail("PM_HANDOFF_CONTRACT_UNREADABLE: workspace root unavailable")
+  else {
+    try { handoffText=fs.readFileSync(path.join(workspaceRoot,"docs/specs/pm-handoff.md"),"utf8") }
+    catch (error) { fail(`PM_HANDOFF_CONTRACT_UNREADABLE: ${error.message}`) }
+  }
+  for (const failure of pmIdentityFailures(deployedAgents,handoffText)) fail(failure)
+}
 function reviewAgentLockdownFailures(name,agent) {
   const failures=[]
   if (!agent?.tools || typeof agent.tools!=="object" || Array.isArray(agent.tools)) {

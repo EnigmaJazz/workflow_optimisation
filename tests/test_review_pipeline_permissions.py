@@ -10,6 +10,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "global-config/opencode.json"
 VERIFIER_PATH = ROOT / "verify-workflow.sh"
+HANDOFF_PATH = ROOT / "docs/specs/pm-handoff.md"
+PM_TINY_FIX_INSTRUCTION = (
+    "Tiny-fix option: mid-unit, for a genuinely tiny fix dispatch `odd-apply` or "
+    "`gentle-ai-worker` (DeepSeek family), never `general`, and only within the "
+    "brief's allowed paths."
+)
+PM_TINY_FIX_STALE_SENTENCE = (
+    "Tiny-fix option: mid-unit, you may dispatch `general` for a genuinely tiny fix "
+    "only within the brief's allowed paths."
+)
 ALLOWED_AGENTS = {"gentle-orchestrator", "pm-odd", "pm-systematic"}
 PIPELINE_RUN = "host_review_pipeline_run"
 PERSIST = "host_review_persist"
@@ -38,9 +48,96 @@ def extract_declaration(text, name):
 # each mutation ran and was detected. Runtime fixtures are test fixtures, never
 # live-runtime evidence.
 COVERAGE_CONTROLS_TEMPLATE = r"""
-const coverageCounts={5:0};
+const coverageCounts={1:0,2:0,5:0};
 const control=(group,check)=>{check();coverageCounts[group]+=1;};
 const coveragePmAgents=__PM_AGENTS__;
+const handoff=__HANDOFF_TEXT__;
+const identityNeedles=__IDENTITY_NEEDLES__;
+
+// Group 1: PM identity needles, route-first, prompt shape, tiny-fix instructions.
+control(1,()=>{assert(pmIdentityFailures(agents,handoff).length===0,"real PM identity/handoff rejected");});
+for(const pm of coveragePmAgents){
+  for(const needle of identityNeedles){
+    control(1,()=>{
+      const mutated=cloneAgents();
+      assert(mutated[pm].prompt.includes(needle),`needle absent before mutation: ${pm}: ${needle}`);
+      mutated[pm].prompt=mutated[pm].prompt.split(needle).join("");
+      assert(!mutated[pm].prompt.includes(needle),`needle removal ineffective: ${pm}: ${needle}`);
+      const failures=pmIdentityFailures(mutated,handoff);
+      const expected=`PM_IDENTITY_NEEDLE_MISSING: ${pm}: ${needle}`;
+      assert(failures.length===1&&failures[0]===expected,`identity needle control not isolated: ${pm}: ${needle} => ${JSON.stringify(failures)}`);
+    });
+  }
+  const route=pm==="pm-odd"?"workflow-odd-secure":"workflow-systematic";
+  control(1,()=>{
+    const mutated=cloneAgents();
+    const clause=`Load \`${route}\` FIRST`;
+    assert(mutated[pm].prompt.includes(clause),`route-first clause absent: ${pm}`);
+    mutated[pm].prompt=mutated[pm].prompt.split(clause).join("route");
+    const failures=pmIdentityFailures(mutated,handoff);
+    const expected=`PM_ROUTE_SKILL_NOT_LOADED_FIRST: ${pm}`;
+    assert(failures.length===1&&failures[0]===expected,`route-first control not isolated: ${pm} => ${JSON.stringify(failures)}`);
+  });
+  for(const [label,mutate] of [
+    ["missing-agent",(m)=>{delete m[pm]}],
+    ["missing-prompt",(m)=>{delete m[pm].prompt}],
+    ["nonstring-prompt",(m)=>{m[pm].prompt=42}],
+  ]){
+    control(1,()=>{
+      const mutated=cloneAgents();
+      mutate(mutated);
+      const failures=pmIdentityFailures(mutated,handoff);
+      const expected=`PM_IDENTITY_PROMPT_MISSING: ${pm}`;
+      assert(failures.length===1&&failures[0]===expected,`${label} control not isolated: ${pm} => ${JSON.stringify(failures)}`);
+    });
+  }
+  control(1,()=>{
+    const mutated=cloneAgents();
+    assert(mutated[pm].prompt.includes(__PM_TINYFIX__),`tiny-fix instruction absent: ${pm}`);
+    mutated[pm].prompt=mutated[pm].prompt.split(__PM_TINYFIX__).join("Tiny-fix option removed.");
+    const failures=pmIdentityFailures(mutated,handoff);
+    const expected=`PM_TINYFIX_WRITER_INSTRUCTION_MISSING: ${pm}`;
+    assert(failures.length===1&&failures[0]===expected,`tiny-fix writer control not isolated: ${pm} => ${JSON.stringify(failures)}`);
+  });
+  control(1,()=>{
+    const mutated=cloneAgents();
+    assert(mutated[pm].prompt.includes(__PM_TINYFIX__),`tiny-fix instruction absent: ${pm}`);
+    mutated[pm].prompt=mutated[pm].prompt.split(__PM_TINYFIX__).join(__PM_TINYFIX_STALE__);
+    const failures=pmIdentityFailures(mutated,handoff);
+    assert(failures.length===2&&failures.includes(`PM_TINYFIX_WRITER_INSTRUCTION_MISSING: ${pm}`)&&failures.includes(`PM_TINYFIX_STALE_GENERAL_INSTRUCTION: ${pm}`),`stale tiny-fix control not isolated: ${pm} => ${JSON.stringify(failures)}`);
+  });
+}
+console.log(`coverage-group-1-identity: ${coverageCounts[1]} controls passed`);
+
+// Group 2: handoff schemas/unreadable text and the orchestrator contract pointer.
+for(const needle of ["pm-unit-brief/v1","pm-unit-result/v1"]){
+  control(2,()=>{
+    const mutated=handoff.split(needle).join("");
+    const failures=pmIdentityFailures(agents,mutated);
+    const expected=`PM_HANDOFF_SCHEMA_MISSING: ${needle}`;
+    assert(failures.length===1&&failures[0]===expected,`handoff schema control not isolated: ${needle} => ${JSON.stringify(failures)}`);
+  });
+}
+for(const [label,value] of [["empty",""],["nonstring",42]]){
+  control(2,()=>{
+    const failures=pmIdentityFailures(agents,value);
+    assert(failures.length===1&&failures[0]==="PM_HANDOFF_CONTRACT_UNREADABLE",`${label} handoff control not isolated => ${JSON.stringify(failures)}`);
+  });
+}
+for(const [label,mutate] of [
+  ["brief-schema-removed",(m)=>{m["gentle-orchestrator"].prompt=m["gentle-orchestrator"].prompt.split("pm-unit-brief/v1").join("")}],
+  ["docs-pointer-removed",(m)=>{m["gentle-orchestrator"].prompt=m["gentle-orchestrator"].prompt.split("docs/specs/pm-handoff.md").join("")}],
+  ["orchestrator-prompt-missing",(m)=>{delete m["gentle-orchestrator"].prompt}],
+  ["orchestrator-prompt-nonstring",(m)=>{m["gentle-orchestrator"].prompt=42}],
+]){
+  control(2,()=>{
+    const mutated=cloneAgents();
+    mutate(mutated);
+    const failures=pmIdentityFailures(mutated,handoff);
+    assert(failures.length===1&&failures[0]==="ORCHESTRATOR_BRIEF_CONTRACT_POINTER_MISSING",`${label} control not isolated => ${JSON.stringify(failures)}`);
+  });
+}
+console.log(`coverage-group-2-handoff: ${coverageCounts[2]} controls passed`);
 
 // Group 5: the production PM general-dispatch helper for both PMs.
 for(const pm of coveragePmAgents){
@@ -97,6 +194,7 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
         cls.config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
         cls.agents = cls.config["agent"]
         cls.verifier = VERIFIER_PATH.read_text(encoding="utf-8")
+        cls.handoff = HANDOFF_PATH.read_text(encoding="utf-8")
 
     def test_three_agents_receive_exact_permissions_and_pm_tool_maps(self):
         self.assertEqual(self.config["permission"][PIPELINE_RUN], "deny")
@@ -183,6 +281,7 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             "hostReviewPipelineRunExceptionFailures",
             "hostReviewNewGrantSweepFailures",
             "pmGeneralDispatchFailures",
+            "pmIdentityFailures",
         )
         extracted = []
         for name in names:
@@ -208,14 +307,32 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             declarations,
             "coordinator set must derive from the shared pmAgents declaration",
         )
-        coverage_controls = COVERAGE_CONTROLS_TEMPLATE.replace(
-            "__PM_AGENTS__", json.dumps(["pm-odd", "pm-systematic"])
+        identity_needles = json.loads(
+            "[" + self.verifier.split("const needles=[", 1)[1].split("]", 1)[0] + "]"
         )
-        self.assertNotIn("__PM_AGENTS__", coverage_controls)
+        self.assertEqual(len(identity_needles), 7, "unexpected PM identity needle inventory")
+        coverage_controls = (
+            COVERAGE_CONTROLS_TEMPLATE.replace(
+                "__PM_AGENTS__", json.dumps(["pm-odd", "pm-systematic"])
+            )
+            .replace("__HANDOFF_TEXT__", json.dumps(self.handoff))
+            .replace("__IDENTITY_NEEDLES__", json.dumps(identity_needles))
+            .replace("__PM_TINYFIX__", json.dumps(PM_TINY_FIX_INSTRUCTION))
+            .replace("__PM_TINYFIX_STALE__", json.dumps(PM_TINY_FIX_STALE_SENTENCE))
+        )
+        for placeholder in (
+            "__PM_AGENTS__",
+            "__HANDOFF_TEXT__",
+            "__IDENTITY_NEEDLES__",
+            "__PM_TINYFIX__",
+            "__PM_TINYFIX_STALE__",
+        ):
+            self.assertNotIn(placeholder, coverage_controls)
         gated_source = self.verifier.split("const gatedHostMutations=[", 1)[1].split("]", 1)[0]
         gated = re.findall(r'"([^"]+)"', gated_source)
         script = "\n".join(extracted) + "\n" + declarations + "\n" + f"""
 const agents={json.dumps(self.agents)};
+const cloneAgents=()=>JSON.parse(JSON.stringify(agents));
 const gated={json.dumps(gated)};
 const cfgPerm=(agent,tool)=>agent?.permission?.[tool];
 const show=(value)=>JSON.stringify(value);
@@ -272,8 +389,10 @@ console.log("extracted verifier assertions and positive controls passed");
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("extracted verifier assertions and positive controls passed", result.stdout)
         for marker in (
+            "coverage-group-1-identity: 27 controls passed",
+            "coverage-group-2-handoff: 8 controls passed",
             "coverage-group-5-pmgeneral: 10 controls passed",
-            "coverage-total: 10 controls passed",
+            "coverage-total: 45 controls passed",
         ):
             self.assertIn(marker, result.stdout)
 
