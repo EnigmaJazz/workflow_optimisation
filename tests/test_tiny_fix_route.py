@@ -16,6 +16,19 @@ import sys
 import unittest
 from pathlib import Path
 
+try:
+    from test_pm_layer_prompts import (
+        PM_TINY_FIX_INSTRUCTION,
+        PM_TINY_FIX_STALE_SENTENCE,
+        PM_TINY_FIX_WRITERS,
+    )
+except ImportError:  # package-style `python3 -m unittest tests.test_tiny_fix_route`
+    from tests.test_pm_layer_prompts import (
+        PM_TINY_FIX_INSTRUCTION,
+        PM_TINY_FIX_STALE_SENTENCE,
+        PM_TINY_FIX_WRITERS,
+    )
+
 ROOT = Path(__file__).resolve().parent.parent
 GUARD = ROOT / "global-config" / "plugins" / "systematic-routing-guard.ts"
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
@@ -94,6 +107,26 @@ def tiny_fix_writer_contract_gaps(workflow, config):
         gaps.append(("ROUTER-LOG", "writer path requirement missing"))
     if "tracker `## Log` entry" not in workflow or "part of the sanctioned tracker update" not in workflow:
         gaps.append(("PM tracker", "sanctioned Log update missing"))
+    for pm in ("pm-odd", "pm-systematic"):
+        agent = agents.get(pm, {})
+        prompt = agent.get("prompt")
+        task = agent.get("permission", {}).get("task", {})
+        if not isinstance(prompt, str):
+            gaps.append((f"PM {pm}", "prompt missing or not a string"))
+        else:
+            occurrences = prompt.count(PM_TINY_FIX_INSTRUCTION)
+            if occurrences != 1:
+                gaps.append(
+                    (f"PM {pm}", f"named writer instruction occurs {occurrences} times, not once")
+                )
+            if PM_TINY_FIX_STALE_SENTENCE in prompt:
+                gaps.append((f"PM {pm}", "stale general tiny-fix sentence present"))
+        if not isinstance(task, dict) or not any(
+            task.get(writer) == "allow" for writer in PM_TINY_FIX_WRITERS
+        ):
+            gaps.append((f"PM {pm}", "no named tiny-fix writer allowed"))
+        if isinstance(task, dict) and task.get("general") == "allow":
+            gaps.append((f"PM {pm}", "general dispatch is not allowed"))
     return gaps
 
 
@@ -148,6 +181,36 @@ class TinyFixTripwireContract(unittest.TestCase):
             any(dispatcher == "PM" and "same model family" in reason for dispatcher, reason in gaps),
             f"same-family PM writer was not detected: {gaps}",
         )
+
+    def test_pm_general_dispatch_is_rejected_for_each_pm(self):
+        workflow = (ROOT / "WORKFLOW.md").read_text(encoding="utf-8")
+        config = json.loads(CONFIG.read_text(encoding="utf-8"))
+        self.assertEqual(tiny_fix_writer_contract_gaps(workflow, config), [])
+        for pm in ("pm-odd", "pm-systematic"):
+            mutated = json.loads(json.dumps(config))
+            mutated["agent"][pm]["permission"]["task"]["general"] = "allow"
+            with self.subTest(agent=pm):
+                self.assertIn(
+                    (f"PM {pm}", "general dispatch is not allowed"),
+                    tiny_fix_writer_contract_gaps(workflow, mutated),
+                )
+
+    def test_pm_stale_tiny_fix_sentence_is_rejected_for_each_pm(self):
+        workflow = (ROOT / "WORKFLOW.md").read_text(encoding="utf-8")
+        config = json.loads(CONFIG.read_text(encoding="utf-8"))
+        self.assertEqual(tiny_fix_writer_contract_gaps(workflow, config), [])
+        for pm in ("pm-odd", "pm-systematic"):
+            mutated = json.loads(json.dumps(config))
+            mutated["agent"][pm]["prompt"] = mutated["agent"][pm]["prompt"].replace(
+                PM_TINY_FIX_INSTRUCTION, PM_TINY_FIX_STALE_SENTENCE
+            )
+            with self.subTest(agent=pm):
+                gaps = tiny_fix_writer_contract_gaps(workflow, mutated)
+                self.assertIn((f"PM {pm}", "stale general tiny-fix sentence present"), gaps)
+                self.assertIn(
+                    (f"PM {pm}", "named writer instruction occurs 0 times, not once"),
+                    gaps,
+                )
 
     def test_named_constants_and_predicate_are_present(self):
         source, max_lines, max_files, patterns = read_tripwire_constants()

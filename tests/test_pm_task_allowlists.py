@@ -1,18 +1,20 @@
 """Durable checks for the PM task allowlists (Q72 T1).
 
 Parses the tracked ``global-config/opencode.json`` and asserts that BOTH live project-manager
-lanes (``pm-odd``, ``pm-systematic``) can reach the tiny-fix writer named in their prompts and the
-independent verifier (``gentle-ai-verify`` and its runtime Astra alias) via ``permission.task``.
+lanes (``pm-odd``, ``pm-systematic``) can reach their named DeepSeek tiny-fix writers and the
+independent verifier (``gentle-ai-verify`` and its runtime Astra alias) via ``permission.task``,
+while rejecting the orchestrator-only ``general`` lane on every PM. The strict maximum allowlist
+and its mutation controls live in ``tests/test_review_pipeline_permissions.py``; this module keeps
+the config-level required-lane and forbidden-lane checks.
 
-The PositiveControl class proves the validator can fail: a removed key, a downgraded value, an
-absent ``permission.task`` block, and an absent PM agent key are each reported rather than
-silently passing.
+The PositiveControl class proves the config-level validators can fail: a removed key, a downgraded
+value, an absent ``permission.task`` block, an absent PM agent key, and a forbidden ``general``
+grant on either PM are each reported rather than silently passing.
 
 Run: python3 -m unittest tests/test_pm_task_allowlists.py -v
 """
 
 import json
-import re
 import unittest
 from pathlib import Path
 
@@ -22,17 +24,30 @@ CONFIG_PATH = REPO / "global-config" / "opencode.json"
 # The two live project-manager lanes; pm-sdd was retired by Q65 (5aadb9f).
 PM_NAMES = ("pm-odd", "pm-systematic")
 
-# Tiny-fix reachability: the named writer (both tiers) and the independent verifier (plus the
-# runtime Astra alias that astra-sol-upgrade.ts creates). Owner decisions, 2026-10-15.
+# Named tiny-fix writers/verifiers reachable by each PM. `general` is
+# orchestrator-only after the 2026-10-19 owner correction; it must not appear in
+# either PM task map.
 TASK_ALLOW_KEYS = (
-    "general",
     "gentle-ai-worker",
     "gentle-ai-worker-local",
     "gentle-ai-verify",
     "gentle-ai-verify-astra",
 )
 
+PM_REQUIRED_TASK_ALLOW = {
+    "pm-odd": ("odd-apply", *TASK_ALLOW_KEYS),
+    "pm-systematic": TASK_ALLOW_KEYS,
+}
+
+# Strict maximum allowlist and general-reintroduction controls execute against the
+# production verifier predicate in tests/test_review_pipeline_permissions.py; this
+# module keeps the config-level required-lane and absence checks.
+
 ALLOW = "allow"
+
+# The general lane stays orchestrator-only; a PM must not grant it even though
+# the required-lane check above only looks for missing or downgraded keys.
+FORBIDDEN_TASK_ALLOW = ("general",)
 
 
 def load_config(path=CONFIG_PATH):
@@ -41,8 +56,8 @@ def load_config(path=CONFIG_PATH):
         return json.load(handle)
 
 
-def missing_task_allows(data, pms=PM_NAMES, keys=TASK_ALLOW_KEYS):
-    """Return (pm, key, reason) triples for each missing allowlist entry.
+def missing_task_allows(data, pms=PM_NAMES):
+    """Return (pm, key, reason) triples for each missing required allowlist entry.
 
     An absent PM agent key, an absent or non-object ``permission.task`` block, an absent key, and
     a value other than ``"allow"`` are all reported, so the check never silently passes a
@@ -62,7 +77,7 @@ def missing_task_allows(data, pms=PM_NAMES, keys=TASK_ALLOW_KEYS):
         if not isinstance(task, dict):
             missing.append((pm, "*", "permission.task block is absent or not an object"))
             continue
-        for key in keys:
+        for key in PM_REQUIRED_TASK_ALLOW[pm]:
             if key not in task:
                 missing.append((pm, key, "task allowlist key is absent"))
             elif task[key] != ALLOW:
@@ -70,24 +85,22 @@ def missing_task_allows(data, pms=PM_NAMES, keys=TASK_ALLOW_KEYS):
     return missing
 
 
-def prompt_writer_allowlist_gaps(data, pms=PM_NAMES):
-    """Return (pm, writer) when a PM prompt's named tiny-fix writer is not allowed."""
-    gaps = []
-    agents = data.get("agent", {})
+def forbidden_task_allows(data, pms=PM_NAMES):
+    """Return (pm, key, reason) for each forbidden task lane granted to a PM.
+
+    A structurally malformed ``permission.task`` block is already reported by
+    ``missing_task_allows``; this validator adds only the forbidden-lane grant, so
+    the real-config check is executable and not a bare ``assertNotIn`` mirror.
+    """
+    forbidden = []
     for pm in pms:
-        agent = agents.get(pm)
-        if not isinstance(agent, dict):
+        task = data.get("agent", {}).get(pm, {}).get("permission", {}).get("task")
+        if not isinstance(task, dict):
             continue
-        prompt = agent.get("prompt", "")
-        match = re.search(r"Tiny-fix option:.*?dispatch `([^`]+)`", prompt, re.DOTALL)
-        if not match:
-            gaps.append((pm, "<writer not found in prompt>"))
-            continue
-        writer = match.group(1)
-        task = agent.get("permission", {}).get("task", {})
-        if not isinstance(task, dict) or task.get(writer) != ALLOW:
-            gaps.append((pm, writer))
-    return gaps
+        for key in FORBIDDEN_TASK_ALLOW:
+            if task.get(key) == ALLOW:
+                forbidden.append((pm, key, "orchestrator-only task lane must not be allowed"))
+    return forbidden
 
 
 def probe(path=CONFIG_PATH):
@@ -113,9 +126,9 @@ class RealConfig(unittest.TestCase):
         missing = missing_task_allows(self.data)
         self.assertEqual(missing, [], f"PM task allowlist gaps: {missing}")
 
-    def test_prompt_named_writer_is_in_each_pm_allowlist(self):
-        gaps = prompt_writer_allowlist_gaps(self.data)
-        self.assertEqual(gaps, [], f"PM prompt/allowlist writer gaps: {gaps}")
+    def test_pm_task_maps_do_not_grant_general(self):
+        forbidden = forbidden_task_allows(self.data)
+        self.assertEqual(forbidden, [], f"PM forbidden task lanes: {forbidden}")
 
 
 class PositiveControl(unittest.TestCase):
@@ -125,7 +138,11 @@ class PositiveControl(unittest.TestCase):
     def _synthetic():
         return {
             "agent": {
-                pm: {"permission": {"task": {key: ALLOW for key in TASK_ALLOW_KEYS}}}
+                pm: {
+                    "permission": {
+                        "task": {key: ALLOW for key in PM_REQUIRED_TASK_ALLOW[pm]}
+                    }
+                }
                 for pm in PM_NAMES
             }
         }
@@ -137,12 +154,6 @@ class PositiveControl(unittest.TestCase):
         missing = missing_task_allows(data)
         self.assertEqual([(pm, key) for pm, key, _ in missing], [("pm-odd", "gentle-ai-worker")])
         self.assertIn("absent", missing[0][2])
-
-    def test_prompt_writer_removed_from_allowlist_is_reported(self):
-        data = load_config()
-        self.assertEqual(prompt_writer_allowlist_gaps(data), [])
-        del data["agent"]["pm-odd"]["permission"]["task"]["general"]
-        self.assertEqual(prompt_writer_allowlist_gaps(data), [("pm-odd", "general")])
 
     def test_downgraded_value_is_reported(self):
         data = self._synthetic()
@@ -164,6 +175,19 @@ class PositiveControl(unittest.TestCase):
         missing = missing_task_allows(data, pms=("pm-systematic",))
         self.assertEqual([(pm, key) for pm, key, _ in missing], [("pm-systematic", "*")])
         self.assertIn("agent key", missing[0][2])
+
+    def test_general_grant_is_reported_for_both_pms(self):
+        for pm in PM_NAMES:
+            data = self._synthetic()
+            data["agent"][pm]["permission"]["task"]["general"] = ALLOW
+            with self.subTest(agent=pm):
+                self.assertEqual(
+                    forbidden_task_allows(data, pms=(pm,)),
+                    [(pm, "general", "orchestrator-only task lane must not be allowed")],
+                )
+                # Reintroducing `general` must not quietly drop a required
+                # writer/verifier lane from the same PM task map.
+                self.assertEqual(missing_task_allows(data, pms=(pm,)), [])
 
 
 if __name__ == "__main__":
