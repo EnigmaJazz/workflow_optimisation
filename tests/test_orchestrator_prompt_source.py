@@ -688,6 +688,48 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_odd_readonly_probe_requires_route_skill_after_router(self):
+        verifier = (ROOT / "verify-workflow.sh").read_text(encoding="utf-8")
+        block = verifier.split("<<'PY_ODD_READONLY'\n", 1)[1].split("\nPY_ODD_READONLY", 1)[0]
+
+        def run(events):
+            with tempfile.TemporaryDirectory() as tmp:
+                events_path = Path(tmp) / "events.jsonl"
+                root = Path(tmp) / "probe"
+                root.mkdir()
+                events_path.write_text("\n".join(json.dumps(event) for event in events), encoding="utf-8")
+                return subprocess.run(
+                    [sys.executable, "-c", block, str(events_path), str(root)],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                )
+
+        router = {"part": {"tool": "skill", "state": {"input": {"name": "workflow-route"}}}}
+        odd = {"part": {"tool": "skill", "state": {"input": {"name": "workflow-odd-secure"}}}}
+        systematic = {"part": {"tool": "skill", "state": {"input": {"name": "workflow-systematic"}}}}
+        passed = run([router, odd])
+        self.assertEqual(passed.returncode, 0, passed.stdout + passed.stderr)
+        self.assertIn("planning-only request", passed.stdout)
+        # Mutation controls: the same predicate must reject a missing router, a
+        # missing, wrong, or wrong-order route adapter, and an extra unexpected
+        # workflow skill.
+        no_router = run([])
+        self.assertNotEqual(no_router.returncode, 0)
+        self.assertIn("ODD_ROUTER_SKILL_NOT_LOADED", no_router.stdout + no_router.stderr)
+        missing = run([router])
+        self.assertNotEqual(missing.returncode, 0)
+        self.assertIn("ODD_ROUTE_SKILL_NOT_LOADED", missing.stdout + missing.stderr)
+        wrong = run([router, systematic])
+        self.assertNotEqual(wrong.returncode, 0)
+        self.assertIn("ODD_ROUTE_SKILL_NOT_ASSIGNED", wrong.stdout + wrong.stderr)
+        order = run([odd, router])
+        self.assertNotEqual(order.returncode, 0)
+        self.assertIn("ODD_ROUTE_SKILL_ORDER", order.stdout + order.stderr)
+        unexpected = run([router, odd, systematic])
+        self.assertNotEqual(unexpected.returncode, 0)
+        self.assertIn("ODD_ROUTE_SKILL_UNEXPECTED", unexpected.stdout + unexpected.stderr)
+
     def test_verifier_script_pin_matches_its_own_regex(self):
         verifier = ROOT / "verify-workflow.sh"
         plugin = ROOT / "global-config" / "plugins" / "workflow-health-check.ts"

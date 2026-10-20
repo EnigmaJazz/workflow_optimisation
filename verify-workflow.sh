@@ -1985,6 +1985,19 @@ function modelFamily(value) {
   if (model.includes("gemini")) return "gemini"
   return undefined
 }
+function promptBudgetFailures(agents) {
+  const failures=[]
+  for (const [name,agent] of Object.entries(agents??{})) {
+    const prompt=agent?.prompt
+    if (typeof prompt!=="string") continue
+    // The owner's cap is characters, not UTF-16 code units, so astral text is
+    // measured by code point to agree with Python `len(prompt)`.
+    const size=Array.from(prompt).length
+    console.log(`   prompt-size: ${name}=${size}`)
+    if (name.startsWith("pm-") && size>=6000) failures.push(`PM_PROMPT_SIZE_CAP_EXCEEDED: ${name}=${size}`)
+  }
+  return failures
+}
 const debugCache = new Map()
 
 function stripAnsi(text) {
@@ -2392,7 +2405,9 @@ if (genericRuntimeReady && ggaRuntimeReady && !distinct) {
 
 // Compare underlying families, not provider prefixes or exact model IDs.
 // A Go Luna fallback for OpenAI Luna does not create an independent reviewer.
-for (const [writer,reviewer] of [["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"]]) {
+// Q59: the dispatcher-to-writer pairs add the Sol PMs against their DeepSeek
+// writers; the existing orchestrator/general and worker/verifier pairs remain.
+for (const [writer,reviewer] of [["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"],["pm-odd","odd-apply"],["pm-systematic","gentle-ai-worker"]]) {
   for (const [surface,writerModel,reviewerModel] of [
     ["configured",deployedAgents[writer]?.model,deployedAgents[reviewer]?.model],
     ["runtime",readDebug(writer)?.model,readDebug(reviewer)?.model],
@@ -2969,6 +2984,7 @@ function pmIdentityFailures(agents,handoff) {
   }
   for (const failure of pmIdentityFailures(deployedAgents,handoffText)) fail(failure)
   for (const failure of coordinatorTaskGraphFailures(deployedAgents)) fail(failure)
+  for (const failure of promptBudgetFailures(deployedAgents)) fail(failure)
 }
 function coordinatorTaskGraphFailures(agents) {
   const failures=[]
@@ -5524,6 +5540,7 @@ import sys
 events = Path(sys.argv[1])
 root = Path(sys.argv[2])
 loaded_router = False
+skill_calls = []
 for line in events.read_text(encoding="utf-8", errors="replace").splitlines():
     try:
         event = json.loads(line)
@@ -5539,13 +5556,29 @@ for line in events.read_text(encoding="utf-8", errors="replace").splitlines():
     launch = state.get("input") or {}
     if not isinstance(launch, dict):
         launch = {}
-    if tool == "skill" and launch.get("name") == "workflow-route":
-        loaded_router = True
+    if tool == "skill" and isinstance(launch.get("name"), str):
+        skill_calls.append(launch["name"])
+        if launch["name"] == "workflow-route":
+            loaded_router = True
     if tool in {"sandbox_write","sandbox_edit","sandbox_apply_patch","sandbox_bash","sandbox_apply","write","edit","bash","host_plan_append","host_review_start","host_register_project"} or (tool == "task" and launch.get("subagent_type") not in {"explore"}):
         print(f"   !! ODD_READ_ONLY_MUTATION_OR_WRITER: tool={tool} agent={launch.get('subagent_type')}")
         raise SystemExit(1)
 if not loaded_router:
     print("   !! ODD_ROUTER_SKILL_NOT_LOADED: expected native skill(workflow-route) call")
+    raise SystemExit(1)
+route_skills = [name for name in skill_calls if name.startswith("workflow-") and name != "workflow-route"]
+assigned_route = "workflow-odd-secure"
+if not route_skills:
+    print("   !! ODD_ROUTE_SKILL_NOT_LOADED: expected the assigned workflow-odd-secure route adapter after workflow-route")
+    raise SystemExit(1)
+if assigned_route not in route_skills:
+    print(f"   !! ODD_ROUTE_SKILL_NOT_ASSIGNED: expected {assigned_route}, observed {route_skills!r}")
+    raise SystemExit(1)
+if skill_calls.index("workflow-route") > skill_calls.index(assigned_route):
+    print("   !! ODD_ROUTE_SKILL_ORDER: workflow-route must load before the assigned route adapter")
+    raise SystemExit(1)
+if route_skills != [assigned_route]:
+    print(f"   !! ODD_ROUTE_SKILL_UNEXPECTED: expected only {assigned_route}, observed {route_skills!r}")
     raise SystemExit(1)
 if (root / "odd" / "tasks").exists():
     print("   !! ODD_READ_ONLY_TRACKER_CREATED: odd/tasks exists in probe")

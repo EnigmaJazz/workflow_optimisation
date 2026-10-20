@@ -67,18 +67,50 @@ def extract_declaration(text, name):
     return text[start:end]
 
 
+def extract_braced_block(text, start_marker):
+    """Return the brace-balanced block beginning at ``start_marker``."""
+    start = text.index(start_marker)
+    brace = text.index("{", start)
+    depth = 0
+    for index in range(brace, len(text)):
+        if text[index] == "{":
+            depth += 1
+        elif text[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : index + 1]
+    raise AssertionError(f"unterminated verifier block: {start_marker}")
+
+
 # Executed against the extracted production predicate. Every control increments
 # the group counter only after its assertion passes, so the printed marker proves
 # each mutation ran and was detected. Runtime fixtures are test fixtures, never
 # live-runtime evidence.
 COVERAGE_CONTROLS_TEMPLATE = r"""
-const coverageCounts={1:0,2:0,3:0,5:0};
+const coverageCounts={1:0,2:0,3:0,4:0,5:0};
 const control=(group,check)=>{check();coverageCounts[group]+=1;};
 const coveragePmAgents=__PM_AGENTS__;
 const pmRequired=__PM_REQUIRED__;
 const leafAgents=__LEAF_AGENTS__;
 const handoff=__HANDOFF_TEXT__;
 const identityNeedles=__IDENTITY_NEEDLES__;
+const familyPairs=[["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"],["pm-odd","odd-apply"],["pm-systematic","gentle-ai-worker"]];
+const familyModel=(family)=>family==="gpt"?"openai/gpt-6.1-sol":family==="deepseek"?"opencode-go/deepseek-v4.1-flash":"synthetic/no-family";
+const independentRuntime={
+  "general":{model:"openai/gpt-6-luna"},
+  "gentle-orchestrator":{model:"opencode-go/deepseek-v4.1-flash"},
+  "gentle-ai-worker":{model:"opencode-go/deepseek-v4.1-flash"},
+  "gentle-ai-verify":{model:"openai/gpt-6-luna"},
+  "pm-odd":{model:"openai/gpt-6-luna"},
+  "odd-apply":{model:"opencode-go/deepseek-v4.1-flash"},
+  "pm-systematic":{model:"openai/gpt-6-luna"},
+};
+function runPrimaryReviewFamilyLoop(deployedAgents,readDebug){
+  const failures=[];
+  const fail=(message)=>failures.push(message);
+  __FAMILY_LOOP__
+  return failures;
+}
 
 // Group 1: PM identity needles, route-first, prompt shape, tiny-fix instructions.
 control(1,()=>{assert(pmIdentityFailures(agents,handoff).length===0,"real PM identity/handoff rejected");});
@@ -256,6 +288,51 @@ for(const leaf of leafAgents){
 }
 console.log(`coverage-group-3-taskgraph: ${coverageCounts[3]} controls passed`);
 
+// Group 4: execute the production family-rejection loop against configured and
+// runtime fixtures for both new PM pairs, preserving the two existing pairs.
+control(4,()=>{
+  for(const [writer,reviewer] of familyPairs) assert(agents[writer]?.model&&agents[reviewer]?.model,`family pair model missing: ${writer}/${reviewer}`);
+  const failures=runPrimaryReviewFamilyLoop(agents,(name)=>({model:agents[name]?.model}));
+  assert(failures.length===0,`real configured/runtime family pairs rejected: ${JSON.stringify(failures)}`);
+});
+control(4,()=>{
+  const failures=runPrimaryReviewFamilyLoop(agents,(name)=>independentRuntime[name]);
+  assert(failures.length===0,`independent runtime family fixture rejected: ${JSON.stringify(failures)}`);
+});
+for(const [writer,reviewer] of familyPairs.slice(2)){
+  for(const branch of ["configured","runtime"]){
+    for(const side of ["writer","reviewer"]){
+      for(const mutation of ["same","unknown"]){
+        control(4,()=>{
+          const configured=cloneAgents();
+          const runtime={};
+          for(const name of Object.keys(agents)) runtime[name]={model:agents[name].model};
+          const other=side==="writer"?reviewer:writer;
+          const target=side==="writer"?writer:reviewer;
+          const otherFamily=modelFamily(agents[other].model);
+          assert(otherFamily,`family fixture missing for ${other}`);
+          const badModel=mutation==="same"?familyModel(otherFamily):"synthetic/no-family";
+          if(branch==="configured") configured[target].model=badModel;
+          else runtime[target].model=badModel;
+          const failures=runPrimaryReviewFamilyLoop(configured,(name)=>runtime[name]);
+          if(mutation==="same"){
+            const expected=`PRIMARY_REVIEW_SAME_FAMILY: ${branch} ${writer} and ${reviewer} both use ${otherFamily}`;
+            assert(failures.includes(expected),`same-family ${branch}/${side} control missed ${expected}: ${JSON.stringify(failures)}`);
+            assert(failures.filter((failure)=>failure===expected).length===1,`same-family ${branch}/${side} control duplicated: ${JSON.stringify(failures)}`);
+          }else{
+            const writerModel=branch==="configured"?configured[writer].model:runtime[writer].model;
+            const reviewerModel=branch==="configured"?configured[reviewer].model:runtime[reviewer].model;
+            const expected=`PRIMARY_REVIEW_FAMILY_UNKNOWN: ${branch} ${writer}=${show(normalizeModel(writerModel))}, ${reviewer}=${show(normalizeModel(reviewerModel))}`;
+            assert(failures.includes(expected),`unknown-family ${branch}/${side} control missed ${expected}: ${JSON.stringify(failures)}`);
+            assert(failures.filter((failure)=>failure===expected).length===1,`unknown-family ${branch}/${side} control duplicated: ${JSON.stringify(failures)}`);
+          }
+        });
+      }
+    }
+  }
+}
+console.log(`coverage-group-4-family: ${coverageCounts[4]} controls passed`);
+
 // Group 5: the production PM general-dispatch helper for both PMs.
 for(const pm of coveragePmAgents){
   control(5,()=>{
@@ -278,6 +355,20 @@ console.log(`coverage-group-5-pmgeneral: ${coverageCounts[5]} controls passed`);
 
 const coverageTotal=Object.values(coverageCounts).reduce((sum,value)=>sum+value,0);
 console.log(`coverage-total: ${coverageTotal} controls passed`);
+"""
+
+
+PROMPT_BUDGET_CONTROLS = r"""
+assert(promptBudgetFailures(agents).length===0,"real prompt budget rejected");
+const promptOver={"pm-odd":{prompt:"x".repeat(6000)},"gentle-orchestrator":{prompt:"y".repeat(200000)}};
+const promptOverFailures=promptBudgetFailures(promptOver);
+assert(promptOverFailures.length===1 && promptOverFailures[0].includes("pm-odd=6000"),"PM prompt cap control is vacuous");
+assert(promptBudgetFailures({"pm-odd":{prompt:"x".repeat(5999)}}).length===0,"under-cap PM rejected");
+assert(promptBudgetFailures({"gentle-orchestrator":{prompt:"y".repeat(200000)}}).length===0,"orchestrator prompt was capped");
+const astralUnder=promptBudgetFailures({"pm-odd":{prompt:"\u{1F600}".repeat(5999)}});
+assert(astralUnder.length===0,"codepoint under-cap PM rejected by a UTF-16 count");
+const astralOver=promptBudgetFailures({"pm-odd":{prompt:"\u{1F600}".repeat(6000)}});
+assert(astralOver.length===1 && astralOver[0].includes("pm-odd=6000"),"codepoint cap control is vacuous");
 """
 
 
@@ -400,6 +491,9 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             "pmGeneralDispatchFailures",
             "pmIdentityFailures",
             "coordinatorTaskGraphFailures",
+            "normalizeModel",
+            "modelFamily",
+            "promptBudgetFailures",
         )
         extracted = []
         for name in names:
@@ -430,6 +524,30 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             "[" + self.verifier.split("const needles=[", 1)[1].split("]", 1)[0] + "]"
         )
         self.assertEqual(len(identity_needles), 7, "unexpected PM identity needle inventory")
+        family_marker = 'for (const [writer,reviewer] of [["general","gentle-orchestrator"]'
+        family_loop = extract_braced_block(self.verifier, family_marker)
+        for writer, reviewer in (
+            ("general", "gentle-orchestrator"),
+            ("gentle-ai-worker", "gentle-ai-verify"),
+            ("pm-odd", "odd-apply"),
+            ("pm-systematic", "gentle-ai-worker"),
+        ):
+            self.assertEqual(
+                family_loop.count(f'["{writer}","{reviewer}"]'),
+                1,
+                f"family loop must contain exactly one {writer}/{reviewer} pair",
+            )
+        self.assertNotIn(
+            'for (const [writer,reviewer] of [["general","gentle-orchestrator"],'
+            '["gentle-ai-worker","gentle-ai-verify"]])',
+            self.verifier,
+            "legacy two-pair family loop must be replaced",
+        )
+        prompt_sizes = {
+            name: len(agent["prompt"])
+            for name, agent in self.agents.items()
+            if isinstance(agent.get("prompt"), str)
+        }
         coverage_controls = (
             COVERAGE_CONTROLS_TEMPLATE.replace(
                 "__PM_AGENTS__", json.dumps(["pm-odd", "pm-systematic"])
@@ -440,6 +558,7 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             .replace("__IDENTITY_NEEDLES__", json.dumps(identity_needles))
             .replace("__PM_TINYFIX__", json.dumps(PM_TINY_FIX_INSTRUCTION))
             .replace("__PM_TINYFIX_STALE__", json.dumps(PM_TINY_FIX_STALE_SENTENCE))
+            .replace("__FAMILY_LOOP__", family_loop)
         )
         for placeholder in (
             "__PM_AGENTS__",
@@ -449,6 +568,7 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             "__IDENTITY_NEEDLES__",
             "__PM_TINYFIX__",
             "__PM_TINYFIX_STALE__",
+            "__FAMILY_LOOP__",
         ):
             self.assertNotIn(placeholder, coverage_controls)
         gated_source = self.verifier.split("const gatedHostMutations=[", 1)[1].split("]", 1)[0]
@@ -494,7 +614,7 @@ assert(pmGeneralDispatchFailures("pm-odd",agents["pm-odd"].permission.task).leng
 assert(pmGeneralDispatchFailures("pm-systematic",agents["pm-systematic"].permission.task).length===0,"PM general-dispatch control rejected pm-systematic");
 assert(pmGeneralDispatchFailures("pm-odd",{{general:"allow"}}).length===1,"PM general-dispatch allow control is vacuous");
 console.log("extracted verifier assertions and positive controls passed");
-""" + "\n" + coverage_controls
+""" + "\n" + PROMPT_BUDGET_CONTROLS + "\n" + coverage_controls
         try:
             runtime = shutil.which("bun") or "bun"
             with tempfile.TemporaryDirectory() as tmp:
@@ -510,13 +630,17 @@ console.log("extracted verifier assertions and positive controls passed");
         except PermissionError:
             self.skipTest("sandbox policy denies child Bun processes; run the extracted verifier harness directly")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        print(result.stdout)
         self.assertIn("extracted verifier assertions and positive controls passed", result.stdout)
+        for name, size in prompt_sizes.items():
+            self.assertIn(f"prompt-size: {name}={size}", result.stdout)
         for marker in (
             "coverage-group-1-identity: 27 controls passed",
             "coverage-group-2-handoff: 8 controls passed",
             "coverage-group-3-taskgraph: 40 controls passed",
+            "coverage-group-4-family: 18 controls passed",
             "coverage-group-5-pmgeneral: 10 controls passed",
-            "coverage-total: 85 controls passed",
+            "coverage-total: 103 controls passed",
         ):
             self.assertIn(marker, result.stdout)
 
