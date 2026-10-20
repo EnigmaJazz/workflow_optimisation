@@ -25,6 +25,30 @@ PIPELINE_RUN = "host_review_pipeline_run"
 PERSIST = "host_review_persist"
 ASSESS = "host_review_assess"
 DIFF_READ = "host_review_diff_read"
+PM_REQUIRED_DISPATCH = {
+    "pm-odd": [
+        "odd-apply",
+        "gentle-ai-worker",
+        "gentle-ai-worker-local",
+        "gentle-ai-verify",
+        "gentle-ai-verify-astra",
+        "explore",
+    ],
+    "pm-systematic": [
+        "gentle-ai-worker",
+        "gentle-ai-worker-local",
+        "gentle-ai-verify",
+        "gentle-ai-verify-astra",
+        "explore",
+    ],
+}
+LEAF_DISPATCH_AGENTS = [
+    "odd-apply",
+    "gentle-ai-worker",
+    "gentle-ai-worker-local",
+    "gentle-ai-verify",
+    "explore",
+]
 
 
 def hardcoded_coordinator_triple_lines(text):
@@ -48,9 +72,11 @@ def extract_declaration(text, name):
 # each mutation ran and was detected. Runtime fixtures are test fixtures, never
 # live-runtime evidence.
 COVERAGE_CONTROLS_TEMPLATE = r"""
-const coverageCounts={1:0,2:0,5:0};
+const coverageCounts={1:0,2:0,3:0,5:0};
 const control=(group,check)=>{check();coverageCounts[group]+=1;};
 const coveragePmAgents=__PM_AGENTS__;
+const pmRequired=__PM_REQUIRED__;
+const leafAgents=__LEAF_AGENTS__;
 const handoff=__HANDOFF_TEXT__;
 const identityNeedles=__IDENTITY_NEEDLES__;
 
@@ -138,6 +164,97 @@ for(const [label,mutate] of [
   });
 }
 console.log(`coverage-group-2-handoff: ${coverageCounts[2]} controls passed`);
+
+// Group 3: coordinator task graph, every required minimum lane, self/peer/deep
+// dispatch, leaf dispatch, wildcard deny, arbitrary allow/deny and general.
+// The production guard skips only the orchestrator's PM admissions
+// (verify-workflow.sh:3130-3131); orchestrator->orchestrator is still checked.
+control(3,()=>{assert(coordinatorTaskGraphFailures(agents).length===0,`real coordinator task graph rejected: ${JSON.stringify(coordinatorTaskGraphFailures(agents))}`);});
+control(3,()=>{
+  const mutated=cloneAgents();
+  assert(mutated["gentle-orchestrator"].permission.task["gentle-orchestrator"]!=="allow",`orchestrator self grant already allowed before mutation`);
+  mutated["gentle-orchestrator"].permission.task["gentle-orchestrator"]="allow";
+  const failures=coordinatorTaskGraphFailures(mutated);
+  const expected="COORDINATOR_SELF_OR_DEEP_DISPATCH: gentle-orchestrator.gentle-orchestrator";
+  assert(failures.length===1&&failures[0]===expected,`orchestrator self-dispatch control not isolated: ${JSON.stringify(failures)}`);
+});
+for(const [label,task] of [
+  ["absent-map",undefined],
+  ["null-map",null],
+  ["array-map",[]],
+  ["nonobject-string-map","allow"],
+]){
+  control(3,()=>{
+    const mutated=cloneAgents();
+    if(task===undefined) delete mutated["gentle-orchestrator"].permission.task;
+    else mutated["gentle-orchestrator"].permission.task=task;
+    const failures=coordinatorTaskGraphFailures(mutated);
+    const expected="ORCHESTRATOR_TASK_MAP_MISSING";
+    assert(failures.length===1&&failures[0]===expected,`orchestrator ${label} control not isolated: ${JSON.stringify(failures)}`);
+  });
+}
+for(const pm of coveragePmAgents){
+  for(const lane of pmRequired[pm]){
+    control(3,()=>{
+      const mutated=cloneAgents();
+      delete mutated[pm].permission.task[lane];
+      const failures=coordinatorTaskGraphFailures(mutated);
+      const expected=`PM_REQUIRED_DISPATCH_MISSING: ${pm}.${lane}`;
+      assert(failures.length===1&&failures[0]===expected,`required lane control not isolated: ${pm}.${lane} => ${JSON.stringify(failures)}`);
+    });
+  }
+  control(3,()=>{
+    const mutated=cloneAgents();
+    delete mutated["gentle-orchestrator"].permission.task[pm];
+    const failures=coordinatorTaskGraphFailures(mutated);
+    const expected=`COORDINATOR_PM_NOT_DISPATCHABLE: ${pm}`;
+    assert(failures.length===1&&failures[0]===expected,`orchestrator PM admission control not isolated: ${pm} => ${JSON.stringify(failures)}`);
+  });
+  for(const target of [pm,coveragePmAgents.find((name)=>name!==pm),"gentle-orchestrator"]){
+    control(3,()=>{
+      const mutated=cloneAgents();
+      mutated[pm].permission.task[target]="allow";
+      const failures=coordinatorTaskGraphFailures(mutated);
+      const expected=`COORDINATOR_SELF_OR_DEEP_DISPATCH: ${pm}.${target}`;
+      assert(failures.includes(expected),`self/peer/orchestrator dispatch control missed ${expected}: ${JSON.stringify(failures)}`);
+    });
+  }
+  for(const wildcard of ["missing","allow"]){
+    control(3,()=>{
+      const mutated=cloneAgents();
+      if(wildcard==="missing") delete mutated[pm].permission.task["*"];
+      else mutated[pm].permission.task["*"]="allow";
+      const failures=coordinatorTaskGraphFailures(mutated);
+      const expected=`PM_TASK_WILDCARD_NOT_DENIED: ${pm}`;
+      assert(failures.length===1&&failures[0]===expected,`wildcard ${wildcard} control not isolated: ${pm} => ${JSON.stringify(failures)}`);
+    });
+  }
+  for(const value of ["allow","deny"]){
+    control(3,()=>{
+      const mutated=cloneAgents();
+      mutated[pm].permission.task["arbitrary-writer"]=value;
+      const failures=coordinatorTaskGraphFailures(mutated);
+      const expected=`PM_TASK_GRANT_UNDECLARED: ${pm}.arbitrary-writer`;
+      assert(failures.length===1&&failures[0]===expected,`arbitrary ${value} control not isolated: ${pm} => ${JSON.stringify(failures)}`);
+    });
+  }
+  control(3,()=>{
+    const mutated=cloneAgents();
+    mutated[pm].permission.task.general="allow";
+    const failures=coordinatorTaskGraphFailures(mutated);
+    assert(failures.includes(`PM_TASK_GRANT_UNDECLARED: ${pm}.general`)&&failures.includes(`GENERAL_DISPATCH_OUTSIDE_TINY_FIX: ${pm}`),`general dispatch control missed: ${pm} => ${JSON.stringify(failures)}`);
+  });
+}
+for(const leaf of leafAgents){
+  control(3,()=>{
+    const mutated=cloneAgents();
+    mutated[leaf].permission.task={"synthetic-leaf-target":"allow"};
+    const failures=coordinatorTaskGraphFailures(mutated);
+    const expected=`NON_COORDINATOR_TASK_DISPATCH: ${leaf}`;
+    assert(failures.length===1&&failures[0]===expected,`leaf dispatch control not isolated: ${leaf} => ${JSON.stringify(failures)}`);
+  });
+}
+console.log(`coverage-group-3-taskgraph: ${coverageCounts[3]} controls passed`);
 
 // Group 5: the production PM general-dispatch helper for both PMs.
 for(const pm of coveragePmAgents){
@@ -282,6 +399,7 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             "hostReviewNewGrantSweepFailures",
             "pmGeneralDispatchFailures",
             "pmIdentityFailures",
+            "coordinatorTaskGraphFailures",
         )
         extracted = []
         for name in names:
@@ -307,6 +425,7 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             declarations,
             "coordinator set must derive from the shared pmAgents declaration",
         )
+        self.assertEqual(sum(len(v) for v in PM_REQUIRED_DISPATCH.values()), 11, "unexpected required dispatch lane inventory")
         identity_needles = json.loads(
             "[" + self.verifier.split("const needles=[", 1)[1].split("]", 1)[0] + "]"
         )
@@ -315,6 +434,8 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             COVERAGE_CONTROLS_TEMPLATE.replace(
                 "__PM_AGENTS__", json.dumps(["pm-odd", "pm-systematic"])
             )
+            .replace("__PM_REQUIRED__", json.dumps(PM_REQUIRED_DISPATCH))
+            .replace("__LEAF_AGENTS__", json.dumps(LEAF_DISPATCH_AGENTS))
             .replace("__HANDOFF_TEXT__", json.dumps(self.handoff))
             .replace("__IDENTITY_NEEDLES__", json.dumps(identity_needles))
             .replace("__PM_TINYFIX__", json.dumps(PM_TINY_FIX_INSTRUCTION))
@@ -322,6 +443,8 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
         )
         for placeholder in (
             "__PM_AGENTS__",
+            "__PM_REQUIRED__",
+            "__LEAF_AGENTS__",
             "__HANDOFF_TEXT__",
             "__IDENTITY_NEEDLES__",
             "__PM_TINYFIX__",
@@ -391,8 +514,9 @@ console.log("extracted verifier assertions and positive controls passed");
         for marker in (
             "coverage-group-1-identity: 27 controls passed",
             "coverage-group-2-handoff: 8 controls passed",
+            "coverage-group-3-taskgraph: 40 controls passed",
             "coverage-group-5-pmgeneral: 10 controls passed",
-            "coverage-total: 45 controls passed",
+            "coverage-total: 85 controls passed",
         ):
             self.assertIn(marker, result.stdout)
 

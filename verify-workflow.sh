@@ -2968,6 +2968,61 @@ function pmIdentityFailures(agents,handoff) {
     catch (error) { fail(`PM_HANDOFF_CONTRACT_UNREADABLE: ${error.message}`) }
   }
   for (const failure of pmIdentityFailures(deployedAgents,handoffText)) fail(failure)
+  for (const failure of coordinatorTaskGraphFailures(deployedAgents)) fail(failure)
+}
+function coordinatorTaskGraphFailures(agents) {
+  const failures=[]
+  const pmRequired={
+    "pm-odd":["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","explore"],
+    "pm-systematic":["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","explore"],
+  }
+  // Strict per-PM MAXIMUM allowlist. A key outside this set is a grant even when
+  // its value is "deny"; only the declared named lanes may appear at all.
+  const pmMaximum={
+    "pm-odd":new Set([
+      "*","advisor-design-post","advisor-design-pre","advisor-gemini-post","advisor-gemini-pre",
+      "advisor-integration-post","advisor-integration-pre","advisor-maintainability-post",
+      "advisor-maintainability-pre","advisor-security-post","advisor-security-pre",
+      "advisor-testing-post","advisor-testing-pre","explore","gentle-ai-worker",
+      "gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","odd-apply",
+    ]),
+    "pm-systematic":new Set([
+      "*","advisor-design-post","advisor-design-pre","advisor-gemini-post","advisor-gemini-pre",
+      "advisor-integration-post","advisor-integration-pre","advisor-maintainability-post",
+      "advisor-maintainability-pre","advisor-security-post","advisor-security-pre",
+      "advisor-testing-post","advisor-testing-pre","bug-reproduction-validator",
+      "correctness-reviewer","explore","frontend-apply","frontend-apply-local","frontend-dev",
+      "frontend-dev-premium","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify",
+      "gentle-ai-verify-astra","project-standards-reviewer","repo-research-analyst",
+      "systematic-implementer","testing-reviewer",
+    ]),
+  }
+  const taskOf=(name)=>agents?.[name]?.permission?.task
+  const orchestratorTask=taskOf("gentle-orchestrator")
+  if (!orchestratorTask || typeof orchestratorTask!=="object" || Array.isArray(orchestratorTask)) failures.push("ORCHESTRATOR_TASK_MAP_MISSING")
+  else for (const pm of pmAgents) if (orchestratorTask[pm]!=="allow") failures.push(`COORDINATOR_PM_NOT_DISPATCHABLE: ${pm}`)
+  for (const [name,agent] of Object.entries(agents??{})) {
+    const task=agent?.permission?.task
+    if (!task || typeof task!=="object" || Array.isArray(task)) continue
+    for (const coordinator of coordinatorAgents) {
+      if (name==="gentle-orchestrator" && coordinator!=="gentle-orchestrator") continue
+      if (task[coordinator]==="allow") failures.push(`COORDINATOR_SELF_OR_DEEP_DISPATCH: ${name}.${coordinator}`)
+    }
+    // The tiny-fix `general` exception belongs to the orchestrator alone.
+    if (task["general"]==="allow" && name!=="gentle-orchestrator") failures.push(`GENERAL_DISPATCH_OUTSIDE_TINY_FIX: ${name}`)
+  }
+  for (const pm of pmAgents) {
+    const task=taskOf(pm)
+    if (!task || task["*"]!=="deny") failures.push(`PM_TASK_WILDCARD_NOT_DENIED: ${pm}`)
+    const allowed=pmMaximum[pm]
+    for (const key of Object.keys(task??{})) if (!allowed.has(key)) failures.push(`PM_TASK_GRANT_UNDECLARED: ${pm}.${key}`)
+    for (const required of pmRequired[pm]) if (task?.[required]!=="allow") failures.push(`PM_REQUIRED_DISPATCH_MISSING: ${pm}.${required}`)
+  }
+  for (const name of ["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","explore"]) {
+    const task=taskOf(name)
+    if (task && typeof task==="object" && Object.values(task).some((value)=>value==="allow")) failures.push(`NON_COORDINATOR_TASK_DISPATCH: ${name}`)
+  }
+  return failures
 }
 function reviewAgentLockdownFailures(name,agent) {
   const failures=[]
