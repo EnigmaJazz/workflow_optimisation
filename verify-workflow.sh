@@ -2787,7 +2787,11 @@ function hostReviewDiffReadFailures(name,agent) {
   if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_diff_read") || agent.permission.host_review_diff_read!=="allow") failures.push(`HOST_REVIEW_DIFF_READ_NOT_ALLOW: ${name}`)
   return failures
 }
-for (const name of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
+// Q59 coordinator inventory: coordinator-generic checks use this shared set.
+// Orchestrator-only checks below keep fixed-host, tiny-fix and registration names.
+const pmAgents=["pm-odd","pm-systematic"]
+const coordinatorAgents=["gentle-orchestrator",...pmAgents]
+for (const name of coordinatorAgents) {
   const agent=deployedAgents[name]
   if (!agent) { fail(`HOST_REVIEW_AGENT_MISSING: ${name}`); continue }
   for (const failure of hostReviewAssessFailures(name,agent)) fail(failure)
@@ -2796,7 +2800,7 @@ for (const name of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
   const mismatched=hostReviewAssessFailures(`${name}-mismatched`,{permission:{host_review_assess:"ask"}})
   if (!mismatched.includes(`HOST_REVIEW_ASSESS_NOT_ALLOW: ${name}-mismatched`)) fail(`HOST_REVIEW_ASSESS_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
 }
-for (const name of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
+for (const name of coordinatorAgents) {
   const agent=deployedAgents[name]
   if (!agent) { fail(`HOST_REVIEW_AGENT_MISSING: ${name}`); continue }
   for (const failure of hostReviewDiffReadFailures(name,agent)) fail(failure)
@@ -2810,7 +2814,7 @@ function hostReviewMaterializeFailures(name,agent) {
   if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_materialize") || agent.permission.host_review_materialize!=="allow") failures.push(`HOST_REVIEW_MATERIALIZE_NOT_ALLOW: ${name}`)
   return failures
 }
-for (const name of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
+for (const name of coordinatorAgents) {
   const agent=deployedAgents[name]
   if (!agent) { fail(`HOST_REVIEW_MATERIALIZE_AGENT_MISSING: ${name}`); continue }
   for (const failure of hostReviewMaterializeFailures(name,agent)) fail(failure)
@@ -2829,7 +2833,7 @@ function hostReviewPersistFailures(name,agent) {
   if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_persist") || agent.permission.host_review_persist!=="ask") failures.push(`HOST_REVIEW_PERSIST_NOT_ASK: ${name}`)
   return failures
 }
-for (const name of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
+for (const name of coordinatorAgents) {
   const agent=deployedAgents[name]
   if (!agent) { fail(`HOST_REVIEW_AGENT_MISSING: ${name}`); continue }
   for (const failure of hostReviewPipelineRunFailures(name,agent)) fail(failure)
@@ -2911,7 +2915,7 @@ const hostReviewExceptionWrong=hostReviewMaterializeExceptionFailures(gatedHostM
 if (!hostReviewExceptionWrong.includes('ORCHESTRATOR_HOST_REVIEW_MATERIALIZE_EXCEPTION_NOT_ALLOW: "ask"')) fail("HOST_REVIEW_MATERIALIZE_EXCEPTION_VALUE_POSITIVE_CONTROL_FAILED")
 else console.log("   ok: host_review_materialize exception positive control detected ask instead of allow")
 for (const [name,agent] of Object.entries(deployedAgents)) {
-  if (["gentle-orchestrator","pm-odd","pm-systematic"].includes(name)) continue
+  if (coordinatorAgents.includes(name)) continue
   if (cfgPerm(agent,"host_review_materialize")==="allow") fail(`HOST_REVIEW_MATERIALIZE_GRANTED_OUTSIDE_ALLOWLIST: ${name}`)
 }
 const hostReviewSweepProbe={"synthetic-fourth-agent":{permission:{host_review_materialize:"allow"}}}
@@ -2919,7 +2923,7 @@ const hostReviewSweepProbeFailures=Object.entries(hostReviewSweepProbe).filter((
 if (!hostReviewSweepProbeFailures.includes("HOST_REVIEW_MATERIALIZE_GRANTED_OUTSIDE_ALLOWLIST: synthetic-fourth-agent")) fail("HOST_REVIEW_MATERIALIZE_SWEEP_POSITIVE_CONTROL_FAILED")
 else console.log("   ok: host_review_materialize negative-sweep positive control detected synthetic-fourth-agent")
 function hostReviewNewGrantSweepFailures(agents) {
-  const allowed=new Set(["gentle-orchestrator","pm-odd","pm-systematic"])
+  const allowed=new Set(coordinatorAgents)
   const failures=[]
   for (const [name,agent] of Object.entries(agents??{})) {
     if (allowed.has(name)) continue
@@ -3013,7 +3017,6 @@ for (const name of v4MutationTools) {
   if (cfgTool(deployedAgents["gentle-ai-verify"],name)!==false) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-verify.${name} must be false`)
 }
 
-const pmAgents=["pm-odd","pm-systematic"]
 const pmAndAgents=[...pmAgents]
 const pmNoExecutionTools=["sandbox_write","sandbox_edit","sandbox_apply_patch","sandbox_apply","sandbox_bash","sandbox_finish","sandbox_discard","sandbox_copy_in","sandbox_copy_out","bash","edit","write"]
 const pmNoSandboxReadTools=["sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"]
@@ -3066,11 +3069,20 @@ else {
   const pmTask=cfgPerm(deployedAgents["pm-odd"],"task")
   const orchestratorTask=cfgPerm(deployedAgents["gentle-orchestrator"],"task")
   if (pmTask?.["odd-apply"]!=="allow") fail(`ODD_APPLY_NOT_ALLOWED_TO_PM: pm-odd.odd-apply=${show(pmTask?.["odd-apply"])}`)
+  // Q59 correction: PMs keep only their named DeepSeek writers/verifiers. The
+  // orchestrator alone owns the `general` tiny-fix lane, so `general` must NOT
+  // be required (or granted) on either PM.
+  function pmGeneralDispatchFailures(name,task) {
+    return task?.["general"]==="allow" ? [`PM_GENERAL_DISPATCH_NOT_ALLOWED: ${name}`] : []
+  }
   for (const pm of ["pm-odd","pm-systematic"]) {
     const task=cfgPerm(deployedAgents[pm],"task")
-    for (const key of ["general","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra"]) {
+    for (const key of ["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra"]) {
       if (task?.[key]!=="allow") fail(`TINY_FIX_AGENT_NOT_ALLOWED_TO_PM: ${pm}.${key}=${show(task?.[key])}`)
     }
+    for (const failure of pmGeneralDispatchFailures(pm,task)) fail(failure)
+    const probe=pmGeneralDispatchFailures(`${pm}-positive-control`,{general:"allow"})
+    if (!probe.includes(`PM_GENERAL_DISPATCH_NOT_ALLOWED: ${pm}-positive-control`)) fail(`PM_GENERAL_DISPATCH_POSITIVE_CONTROL_FAILED: ${pm}`)
   }
   if (orchestratorTask?.["odd-apply"]==="allow") fail("ODD_APPLY_ALLOWED_TO_ORCHESTRATOR")
 }
@@ -3079,8 +3091,8 @@ else {
 // Q76: the Argon advisors may only delegate to the Flash evidence gatherer, which keeps the
 // shared sandbox-only advisor surface. Only the orchestrator and the PMs dispatch the advisors;
 // no other agent may reach the gatherer. None of the three may fall back to another model.
-// Self-contained so tests/test_gemini_advisor_route.py can execute it against fixtures.
-function geminiAdvisorRouteFailures(agents,fallback) {
+// The coordinator set is passed in so tests can execute this block in isolation.
+function geminiAdvisorRouteFailures(agents,fallback,coordinatorAgents) {
   const out=[]
   const advisors=["advisor-gemini-pre","advisor-gemini-post"]
   const evidence="advisor-gemini-evidence"
@@ -3111,7 +3123,7 @@ function geminiAdvisorRouteFailures(agents,fallback) {
     if (tools.task!==false || !sameMap(perms.task,{"*":"deny"})) out.push(`GEMINI_EVIDENCE_TASK_NOT_DENIED: ${evidence}`)
     if (perms.ctx_memory!=="deny") out.push(`GEMINI_EVIDENCE_MEMORY_EXPOSED: ${evidence}`)
   }
-  for (const dispatcher of ["gentle-orchestrator","pm-odd","pm-systematic"]) {
+  for (const dispatcher of coordinatorAgents) {
     const task=asMap(asMap(agents?.[dispatcher]?.permission).task)
     for (const name of advisors) if (task[name]!=="allow") out.push(`GEMINI_ADVISOR_NOT_DISPATCHABLE: ${dispatcher}.${name}`)
   }
@@ -3119,7 +3131,7 @@ function geminiAdvisorRouteFailures(agents,fallback) {
     if (advisors.includes(name)) continue
     const task=a?.permission?.task
     if (!task || typeof task!=="object" || Array.isArray(task)) continue
-    if (!["gentle-orchestrator","pm-odd","pm-systematic"].includes(name)) {
+    if (!coordinatorAgents.includes(name)) {
       for (const advisor of advisors) {
         const effectiveAdvisor=Object.prototype.hasOwnProperty.call(task,advisor) ? task[advisor] : task["*"]
         if (effectiveAdvisor==="allow") out.push(`GEMINI_ADVISOR_DISPATCHABLE: ${name}.${advisor}='allow'`)
@@ -3136,8 +3148,8 @@ function geminiAdvisorRouteFailures(agents,fallback) {
 {
   let geminiFallback
   try { geminiFallback=parseJsonc(fallbackPolicySourcePath) } catch { geminiFallback=undefined }
-  for (const failure of geminiAdvisorRouteFailures(deployedAgents,geminiFallback)) fail(failure)
-  const controlFailures=geminiAdvisorRouteFailures({},{})
+  for (const failure of geminiAdvisorRouteFailures(deployedAgents,geminiFallback,coordinatorAgents)) fail(failure)
+  const controlFailures=geminiAdvisorRouteFailures({},{},coordinatorAgents)
   if (!controlFailures.includes("GEMINI_ADVISOR_MISSING: advisor-gemini-pre") || !controlFailures.includes("GEMINI_EVIDENCE_MISSING: advisor-gemini-evidence")) {
     fail(`GEMINI_ADVISOR_ROUTE_POSITIVE_CONTROL_FAILED: ${JSON.stringify(controlFailures)}`)
   } else {

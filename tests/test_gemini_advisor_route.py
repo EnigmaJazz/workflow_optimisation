@@ -21,6 +21,7 @@ Run: python3 -m unittest tests.test_gemini_advisor_route -v
 import copy
 import importlib.util
 import json
+import shutil
 import subprocess
 import unittest
 from pathlib import Path
@@ -177,18 +178,34 @@ def extract_block(text):
     return text[start:end]
 
 
+def production_declarations(text):
+    """Return the verifier's shared pmAgents/coordinatorAgents declaration lines."""
+    lines = []
+    for name in ("pmAgents", "coordinatorAgents"):
+        start = text.index(f"const {name}=")
+        end = text.index("\n", start)
+        lines.append(text[start:end])
+    return "\n".join(lines)
+
+
 def run_verifier_block(agents, fallback):
-    """Execute the extracted verifier block under node; return its failure list."""
-    block = extract_block(SCRIPT.read_text(encoding="utf-8"))
+    """Execute the extracted verifier block; return its failure list."""
+    text = SCRIPT.read_text(encoding="utf-8")
+    block = extract_block(text)
     if block is None:
         raise AssertionError("gemini-advisor-route block not found in verify-workflow.sh")
+    declarations = production_declarations(text)
+    if 'const coordinatorAgents=["gentle-orchestrator",...pmAgents]' not in declarations:
+        raise AssertionError("coordinator set must derive from the shared pmAgents declaration")
     program = (
         block
+        + "\n" + declarations
         + "\nconst input=JSON.parse(require('fs').readFileSync(0,'utf8'))"
-        + "\nprocess.stdout.write(JSON.stringify(geminiAdvisorRouteFailures(input.agents,input.fallback)))\n"
+        + "\nprocess.stdout.write(JSON.stringify(geminiAdvisorRouteFailures(input.agents,input.fallback,coordinatorAgents)))\n"
     )
+    runtime = shutil.which("bun") or shutil.which("node") or "node"
     proc = subprocess.run(
-        ["node", "-e", program],
+        [runtime, "-e", program],
         input=json.dumps({"agents": agents, "fallback": fallback}),
         capture_output=True,
         text=True,

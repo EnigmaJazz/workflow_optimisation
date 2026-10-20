@@ -1,6 +1,8 @@
 import json
 import re
+import shutil
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -13,6 +15,56 @@ PIPELINE_RUN = "host_review_pipeline_run"
 PERSIST = "host_review_persist"
 ASSESS = "host_review_assess"
 DIFF_READ = "host_review_diff_read"
+
+
+def hardcoded_coordinator_triple_lines(text):
+    """Line numbers carrying the retired hard-coded coordinator triple."""
+    return [
+        number
+        for number, line in enumerate(text.splitlines(), 1)
+        if '["gentle-orchestrator","pm-odd","pm-systematic"]' in line
+    ]
+
+
+def extract_declaration(text, name):
+    """Return the production ``const <name>=...`` declaration line."""
+    start = text.index(f"const {name}=")
+    end = text.index("\n", start)
+    return text[start:end]
+
+
+# Executed against the extracted production predicate. Every control increments
+# the group counter only after its assertion passes, so the printed marker proves
+# each mutation ran and was detected. Runtime fixtures are test fixtures, never
+# live-runtime evidence.
+COVERAGE_CONTROLS_TEMPLATE = r"""
+const coverageCounts={5:0};
+const control=(group,check)=>{check();coverageCounts[group]+=1;};
+const coveragePmAgents=__PM_AGENTS__;
+
+// Group 5: the production PM general-dispatch helper for both PMs.
+for(const pm of coveragePmAgents){
+  control(5,()=>{
+    const failures=pmGeneralDispatchFailures(pm,agents[pm].permission.task);
+    assert(failures.length===0,`real PM general-dispatch control rejected: ${pm} => ${JSON.stringify(failures)}`);
+  });
+  for(const task of [{general:"deny"},{general:"ask"},undefined]){
+    control(5,()=>{
+      const failures=pmGeneralDispatchFailures(pm,task);
+      assert(failures.length===0,`non-allow general dispatch rejected: ${pm} ${JSON.stringify(task)} => ${JSON.stringify(failures)}`);
+    });
+  }
+  control(5,()=>{
+    const failures=pmGeneralDispatchFailures(pm,{general:"allow"});
+    const expected=`PM_GENERAL_DISPATCH_NOT_ALLOWED: ${pm}`;
+    assert(failures.length===1&&failures[0]===expected,`general allow control not isolated: ${pm} => ${JSON.stringify(failures)}`);
+  });
+}
+console.log(`coverage-group-5-pmgeneral: ${coverageCounts[5]} controls passed`);
+
+const coverageTotal=Object.values(coverageCounts).reduce((sum,value)=>sum+value,0);
+console.log(`coverage-total: ${coverageTotal} controls passed`);
+"""
 
 
 def permission_failures(agents):
@@ -63,6 +115,11 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             self.assertIs(self.agents[name]["tools"][DIFF_READ], True)
         self.assertEqual(permission_failures(self.agents), [])
 
+    def test_pm_task_maps_do_not_grant_general(self):
+        for name in ("pm-odd", "pm-systematic"):
+            with self.subTest(agent=name):
+                self.assertNotIn("general", self.agents[name]["permission"]["task"])
+
     def test_missing_pipeline_grant_is_detected(self):
         agents = json.loads(json.dumps(self.agents))
         del agents["pm-odd"]["permission"][PIPELINE_RUN]
@@ -106,6 +163,15 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
         self.assertIn("HOST_REVIEW_ASSESS_OMITTED_POSITIVE_CONTROL_FAILED", self.verifier)
         self.assertIn("hostReviewNewGrantSweepFailures", self.verifier)
 
+    def test_coordinator_inventory_uses_shared_set_without_hardcoded_triple(self):
+        self.assertEqual(hardcoded_coordinator_triple_lines(self.verifier), [])
+        self.assertIn('const coordinatorAgents=["gentle-orchestrator",...pmAgents]', self.verifier)
+        self.assertNotIn("gentle-orchestrator-legacy", self.verifier)
+        planted = "\n".join(
+            ["// mutation control", 'for (const name of ["gentle-orchestrator","pm-odd","pm-systematic"]) {']
+        )
+        self.assertEqual(hardcoded_coordinator_triple_lines(planted), [2])
+
     def test_extracted_verifier_functions_pass_and_detect_reverted_controls(self):
         names = (
             "hostReviewAssessFailures",
@@ -116,6 +182,7 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             "hostReviewNewToolFailures",
             "hostReviewPipelineRunExceptionFailures",
             "hostReviewNewGrantSweepFailures",
+            "pmGeneralDispatchFailures",
         )
         extracted = []
         for name in names:
@@ -132,9 +199,22 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
                         break
             else:
                 self.fail(f"unterminated verifier function: {name}")
+        declarations = "\n".join(
+            extract_declaration(self.verifier, name)
+            for name in ("pmAgents", "coordinatorAgents")
+        )
+        self.assertIn(
+            'const coordinatorAgents=["gentle-orchestrator",...pmAgents]',
+            declarations,
+            "coordinator set must derive from the shared pmAgents declaration",
+        )
+        coverage_controls = COVERAGE_CONTROLS_TEMPLATE.replace(
+            "__PM_AGENTS__", json.dumps(["pm-odd", "pm-systematic"])
+        )
+        self.assertNotIn("__PM_AGENTS__", coverage_controls)
         gated_source = self.verifier.split("const gatedHostMutations=[", 1)[1].split("]", 1)[0]
         gated = re.findall(r'"([^"]+)"', gated_source)
-        script = "\n".join(extracted) + "\n" + f"""
+        script = "\n".join(extracted) + "\n" + declarations + "\n" + f"""
 const agents={json.dumps(self.agents)};
 const gated={json.dumps(gated)};
 const cfgPerm=(agent,tool)=>agent?.permission?.[tool];
@@ -170,14 +250,32 @@ for(const tool of ["host_review_assess","host_review_diff_read","host_review_pip
 assert(hostReviewPipelineRunExceptionFailures(gated.filter(name=>name!=="host_review_pipeline_run"),{{permission:{{host_review_pipeline_run:"allow"}}}}).length===1,"exception omission control is vacuous");
 assert(hostReviewPipelineRunExceptionFailures(gated,{{permission:{{host_review_pipeline_run:"ask"}}}}).length===1,"exception value control is vacuous");
 for(const tool of ["host_review_assess","host_review_diff_read","host_review_pipeline_run","host_review_persist"]) assert(hostReviewNewGrantSweepFailures({{"synthetic-fourth-agent":{{permission:{{[tool]:"allow"}}}}}}).length===1,`sweep control is vacuous: ${{tool}}`);
+assert(pmGeneralDispatchFailures("pm-odd",agents["pm-odd"].permission.task).length===0,"PM general-dispatch control rejected pm-odd");
+assert(pmGeneralDispatchFailures("pm-systematic",agents["pm-systematic"].permission.task).length===0,"PM general-dispatch control rejected pm-systematic");
+assert(pmGeneralDispatchFailures("pm-odd",{{general:"allow"}}).length===1,"PM general-dispatch allow control is vacuous");
 console.log("extracted verifier assertions and positive controls passed");
-"""
+""" + "\n" + coverage_controls
         try:
-            result = subprocess.run(["bun", "-e", script], cwd=ROOT, capture_output=True, text=True, check=False)
+            runtime = shutil.which("bun") or "bun"
+            with tempfile.TemporaryDirectory() as tmp:
+                script_path = Path(tmp) / "verifier-harness.ts"
+                script_path.write_text(script, encoding="utf-8")
+                result = subprocess.run(
+                    [runtime, str(script_path)],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
         except PermissionError:
             self.skipTest("sandbox policy denies child Bun processes; run the extracted verifier harness directly")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("extracted verifier assertions and positive controls passed", result.stdout)
+        for marker in (
+            "coverage-group-5-pmgeneral: 10 controls passed",
+            "coverage-total: 10 controls passed",
+        ):
+            self.assertIn(marker, result.stdout)
 
 
 if __name__ == "__main__":

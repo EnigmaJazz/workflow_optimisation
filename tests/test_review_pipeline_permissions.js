@@ -31,7 +31,23 @@ function extractFunction(name) {
 
 const gatedSource = verifier.split("const gatedHostMutations=[", 2)[1].split("]", 1)[0];
 const gated = [...gatedSource.matchAll(/"([^"]+)"/g)].map((match) => match[1]);
-const source = functionNames.map(extractFunction).join("\n");
+
+// The production coordinator set is a declaration, not a function. Extract it
+// (and its pmAgents dependency) from the verifier so the isolated program cannot
+// drift from the real generic set.
+function extractDeclaration(name) {
+  const start = verifier.indexOf(`const ${name}=`);
+  assert.notEqual(start, -1, `missing verifier declaration ${name}`);
+  const end = verifier.indexOf("\n", start);
+  return verifier.slice(start, end === -1 ? verifier.length : end);
+}
+const declarations = ["pmAgents", "coordinatorAgents"].map(extractDeclaration).join("\n");
+assert.ok(
+  declarations.includes('const coordinatorAgents=["gentle-orchestrator",...pmAgents]'),
+  "coordinatorAgents must derive from the shared pmAgents declaration",
+);
+
+const source = declarations + "\n" + functionNames.map(extractFunction).join("\n");
 const cfgPerm = (agent, tool) => agent?.permission?.[tool];
 const show = (value) => JSON.stringify(value);
 const checks = new Function("cfgPerm", "show", `${source}\nreturn {${functionNames.join(",")}};`)(cfgPerm, show);
