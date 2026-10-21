@@ -32,10 +32,9 @@ with the existing Q67 ("Retired SDD command detector") on `feat/gentle-ai-v4`, s
    readability, reliability) plus refuter and validator. Keep judgment-day as an optional skill
    for high-stakes work; the owner uses it very rarely (2026-10-21), so its judge cost barely
    touches the pool. See "Model assignment" below.
-6. **Frontend route independence: reopened by the 2026-10-21 revision.** The revision seats
-   `kimi-k2.7-code` (Moonshot) on native readability and two advisor lenses. If a Kimi frontend
-   worker still exists, those seats review same-family code (rule 2). **OWNER DECISION:** confirm
-   the frontend worker is no longer Kimi, or move those seats.
+6. **Frontend route independence: resolved.** The revision seats `kimi-k2.7-code` (Moonshot)
+   on native readability and two advisor lenses. There is no Kimi frontend worker (owner,
+   2026-10-21), so rule 2 holds. If a Moonshot worker is ever added, move those seats.
 7. **OpenCode Go is ONE shared pool, not a per-model allowance (owner correction, 2026-10-19).**
    The brief's "limits are per model" and design goal 4 ("spread load across per-model pools")
    are wrong. Every request draws on the same monthly dollar cap, and the 5-hour (20%) and weekly
@@ -76,7 +75,7 @@ including that writer's fallbacks (see fix 1 below).
 | Planner | `openai/gpt-6.1-sol` · high; xhigh for gate 1 on multistep or high-risk work | Avoid max (owner-cited benchmark: costlier than xhigh, lower on one agentic test) |
 | PM | `glm-5.3-flash` · high; fallback `qwen3.8-flash` · high | Needs an `agentFallbackModels` entry; the model-level fallback for GLM is mimo |
 | Workers | `deepseek-v4.1-flash` · high; `deepseek-v4-pro` · high for algorithm-heavy or repo-level work | |
-| Tiny route | `opencode-go/gpt-6-luna` · medium, never above high | Owner-cited: Luna xhigh scored below high. See fix 6 |
+| Tiny route | `openai/gpt-6-luna` · medium, never above high | Owner-cited: Luna xhigh scored below high. OpenAI provider (fix 6) |
 
 ### Native review (fixed)
 
@@ -98,7 +97,7 @@ too, not only `review-*`, and keep each mirroring its lens's model and level.
 |---|---|
 | `jd-judge-a` | `qwen3.8-max` · high |
 | `jd-judge-b` | `glm-5.3` · max |
-| `jd-fix-agent` | `opencode-go/gpt-6-luna` · high; Sol · high for consequential cases |
+| `jd-fix-agent` | `openai/gpt-6-luna` · high; Sol · high for consequential cases |
 
 ### Advisors (pre → post)
 
@@ -122,7 +121,8 @@ advisors run at high because GLM has no medium. Rule 4 holds: no lens uses the s
 post. Map these lenses onto the existing `advisor-*` agents (verify item 6).
 
 **High-risk escalations (the planner chooses):** Architecture `qwen3.8-max` · high; Bug hunt
-`glm-5.3` · max; auth or payment security on Gemini (see fix 5).
+`glm-5.3` · max; auth or payment security on `google/gemini-4-argon`, fed by a
+`google/gemini-flash-latest` evidence subagent (see fix 5).
 
 **If `minimax-m3.1-flash` becomes paid on Go:** `review-reliability` moves to it at xhigh (the
 vendor reports most of the gain by xhigh) and every `minimax-m3` advisor seat moves to it at high.
@@ -135,8 +135,11 @@ at least M3's and it passes the OpenCode session and hang checks.
    `deepseek-v4.1-flash` and `deepseek-v4-flash` (and `glm-5.3-flash`, `kimi-k2.7-code`,
    `qwen3.7-plus`, `muse-spark-1.3-contributor`) to `mimo-v2.6-flash`. A throttled worker then
    writes as mimo, and the mimo refuter and mimo post-code Security lens rule on its code.
-   **OWNER DECISION:** point the worker fallbacks at a model in no review or post-code seat, or
-   move the refuter and post-Security off mimo.
+   **Owner decision (2026-10-21): change the fallback.** Remove `opencode-go/mimo-v2.6-flash`
+   from the `opencode-go/deepseek-v4.1-flash` and `opencode-go/deepseek-v4-flash` chains. What
+   remains (`deepseek/deepseek-flash`, then `openrouter/deepseek/deepseek-v4.1-flash`) stays in
+   the DeepSeek family and outside the Go pool. Add a verifier check that no code-writing agent's
+   fallback chain reaches a model in a review or post-code seat.
 2. **`qwen3.8-max` stays, scoped:** judge A and the architecture escalation only (owner,
    2026-10-21: judgment day is very rarely used).
 3. **The M3 hang.** Swapping reliability with readability moves a hang to another fixed seat
@@ -145,16 +148,20 @@ at least M3's and it passes the OpenCode session and hang checks.
 4. **Model IDs not configured anywhere yet:** `claude-haiku-5-5`, `qwen3.8-flash`,
    `qwen3.8-max`. `glm-5.3` appears only as a fallback entry. Confirm each exists on Go before
    building (verify item 1).
-5. **Name the Gemini model.** Three are configured (`google/gemini-flash-latest`,
-   `google/gemini-3.8-flash`, `google/gemini-4-argon`); "default" picks none. Gemini bills
-   outside the Go pool.
-6. **Luna's provider.** The Tiny route and `jd-fix-agent` say `opencode-go/gpt-6-luna`, but the
-   current primary elsewhere is `openai/gpt-6-luna`, with Go only as a fallback. Go draws on the
-   shared pool; OpenAI bills separately. Pick one deliberately.
+5. **Gemini escalation (owner decision, 2026-10-21): `google/gemini-4-argon` judges, with a
+   `google/gemini-flash-latest` subagent gathering information.** This pattern already exists:
+   `advisor-gemini-pre` and `advisor-gemini-post` run on Argon, and `advisor-gemini-evidence`
+   gathers facts for them but runs `google/gemini-3.8-flash`. Move that evidence agent to
+   `google/gemini-flash-latest` rather than adding a new one. Gemini bills outside the Go pool.
+   Argon dispatching the evidence agent is a nested dispatch; probe it (verify item 6).
+6. **Luna's provider (owner decision, 2026-10-21): `openai/gpt-6-luna`** for the Tiny route and
+   `jd-fix-agent`. It bills outside the Go pool. Its existing fallback chain starts at
+   `opencode-go/gpt-6-luna` (shared pool), then DeepSeek; both stay independent of every review
+   seat.
 
 Unverified, owner-cited: the thinking-level names above and the Sol and Luna benchmark claims.
 
-**OWNER DECISION:** fixes 1, 5 and 6, and item 6. Re-check rules 1-3 after any worker model change.
+All model-assignment decisions are recorded. Re-check rules 1-3 after any worker model change.
 
 ## Gap list for this repo
 
@@ -162,6 +169,7 @@ Unverified, owner-cited: the thinking-level names above and the Sol and Luna ben
 |---|---|
 | New agents (PM, planner, Tiny/Luna, lens agents per the brief) with models, task permissions and per-agent tool enablement; each custom tool enabled only on its own agent | `global-config/opencode.json` |
 | Orchestrator `permission.task`: route to PM and Tiny only; keep `asi-review-*` and `advisor-*` allowed | `global-config/opencode.json` (`gentle-orchestrator`, ~line 466) |
+| Fallbacks: drop mimo from the DeepSeek chains (fix 1); `agentFallbackModels` for the PM | `global-config/rate-limit-fallback.json` |
 | Guard: new agents in `ROUTE_STAGES` (deny by default), new host tools in the host-tool list | `global-config/plugins/systematic-routing-guard.ts` (:219-224), `global-config/plugins/lib/routing-guard-helpers.ts` |
 | Route skills: Tiny/Small/Multistep selection, escape-hatch reroute, the single tick writer | `global-config/skills/workflow-route/`, `workflow-odd-secure/` |
 | Recipe: routes, gates and the advice-versus-approval rule | `WORKFLOW.md` |
@@ -188,7 +196,7 @@ the task permissions in `opencode.json`, and the route skills. Change them in on
 4. The ODD plan lives on disk at `odd/tasks/<feature>.md` and is mirrored to Magic Context. ODD's
    own flow ticks tasks today; route that through `host_task_mark` once it exists.
 5. Worker/PM/lens pairings: check rules 1-2 against the 2026-10-21 table, including worker
-   fallbacks (fix 1) and the frontend worker (item 6).
+   fallbacks after fix 1.
 6. Existing advisor and lens definitions: map the `advisor-*-pre` agents and the post lenses to
    the brief's lens list, and propose renames or merges. Nested dispatch of `advisor-*` from a
    subagent is unproven (`opencode run --agent advisor-*` already misbehaves, Q51), so probe it
@@ -205,7 +213,6 @@ per subproject, and per 5-hour window against the 20% cap.
 ## Order
 
 1. `agent-sandbox-integration` builds and tests the host tools.
-2. Owner decisions: item 6, item 8, the model-assignment fixes, and the `host_plan_write`
-   approval decision.
+2. Owner decisions: item 8 and the `host_plan_write` approval decision.
 3. This repo: queue revision, then config, guard and skills in one work unit, then the verifier.
 4. Verifier mirror, owner restart, behavioral probes (including nested advisor dispatch).
