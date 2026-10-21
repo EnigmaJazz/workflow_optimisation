@@ -638,8 +638,8 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 - **Open external/upstream item — review relay deadline:** two review lenses expired with `reviewer_relay_deadline_expired: review relay deadline of 600000 ms expired` despite taking 16–19 minutes. The deadline is `RELAY_DEADLINE_MS = 600_000` at `~/.config/opencode/plugins/lib/reviewer-relay-core.ts:112`, overridable through `config.deadlineMs` at `:778` and `:1294`. That file is not tracked here (this repository tracks only `global-config/plugins/lib/routing-guard-helpers.ts`), and nothing in this repository sets the deadline. The fix belongs to the external plugin owner, not local Q58 work; details are in `odd/tasks/pm-layer.md`. New data point (2026-10-14): a resilience review lens needed 26m18s against the 600000 ms deadline; the owner permanently increased the relay timeout, and because that file is not tracked here the fix lives with the external plugin owner.
 
 ### Q59. PM layer: verifier
-- **Status:** **NOT DONE.** Implementation `q59-pm-verifier-impl-u1` is COMPLETE and
-  SOURCE-COMMITTED in five commits on `chore/q72-t1b-tiny-fix-contract` at
+- **Status:** **DONE (source + metadata); activation/deploy UNVERIFIED.** Implementation
+  `q59-pm-verifier-impl-u1` is COMPLETE and SOURCE-COMMITTED in five commits on `chore/q72-t1b-tiny-fix-contract` at
   `41fbe77a7ba3214c340e610df935ff7fb73b62c0`: `58b1c8c` (S1), `44f22bd` (S2a), `4677915` (S2b),
   `db85a6b` (S2c), `41fbe77` (S2d/e). Each source commit has an owner-relayed native review
   APPROVED + ACKNOWLEDGED with authority burned: `review-87858bd36a02d266` (S1 + S2a),
@@ -654,7 +654,8 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   `28ff39379aee7460bce784386e62c83bf5f51aea2b93074e2f35230fa299e7ad`; historical `57fdc56c...`,
   `22aa96f9...` and `bdce2e68...` are HISTORICAL, not current. Activation/deploy is UNVERIFIED:
   verifier mirror, service restart, full verifier, deploy and live probes are HOST-ONLY and NOT
-  RUN. Unit metadata closure remains pending M2/M3; Q59 is NOT DONE and earns no Q56 pilot credit.
+  RUN. Unit metadata closure is COMPLETE in the M2/final record; Q59 earns no Q56 pilot credit
+  and no deployment claim is made.
   Tracker: `odd/tasks/q59-pm-verifier.md`.
 - **Prerequisites:** Q55; easier after Q26 and Q04. Q26 and Q04 are not hard blockers (owner:
   Q04 is NOT a blocker); re-verify Q55 handoff acceptance at implementation start rather than
