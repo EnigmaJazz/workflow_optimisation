@@ -602,11 +602,14 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   count only after Q58's enforcement is live. Q58's review must be driven independently by the
   orchestrator or another coordinator, not by the implementing `pm-odd` session: the unit that
   establishes review independence must not itself be reviewed without it.
-- **Pilot smoke (2026-10-19):** one standalone tiny-fix unit completed end to end through `pm-odd` and returned `DONE`; implementation `47781da`, metadata `a104abc`; both assessments passive; orchestrator readback matched. This does not start the ten-unit count, which begins only after Q58's enforcement is live.
+- **Pilot smoke (2026-10-19):** one standalone tiny-fix unit completed end to end through `pm-odd` and returned `DONE`; implementation `47781da`, metadata `a104abc`; both assessments passive; orchestrator readback matched. This does not start the ten-unit count, which begins only after Q58's enforcement is live. Q59's implementation is not a Q56 pilot unit and earns no pilot credit; no new pilot validation is inferred.
 
 ### Q57. PM layer: slim the orchestrator
 - **Status:** PLANNED.
 - **Prerequisites:** Q56. Coordinate with Q29c (user-owned orchestrator prompt).
+- **Cap status (owner 2026-10-19):** the numeric orchestrator cap is DEFERRED to this item; the
+  "about 8,000 characters" below is a planning target, not an enforced threshold. No threshold is
+  invented here and `docs/PLAN.md` is unchanged.
 - **Description:** new prompt (about 8,000 characters); `permission.task` deny by default with
   `explore` and `pm-*` allowed; host mutations removed except `host_register_project`; split
   `global-config/AGENTS.md`; update `WORKFLOW.md`, `workflow-route` and the adapters.
@@ -635,21 +638,50 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 - **Open external/upstream item — review relay deadline:** two review lenses expired with `reviewer_relay_deadline_expired: review relay deadline of 600000 ms expired` despite taking 16–19 minutes. The deadline is `RELAY_DEADLINE_MS = 600_000` at `~/.config/opencode/plugins/lib/reviewer-relay-core.ts:112`, overridable through `config.deadlineMs` at `:778` and `:1294`. That file is not tracked here (this repository tracks only `global-config/plugins/lib/routing-guard-helpers.ts`), and nothing in this repository sets the deadline. The fix belongs to the external plugin owner, not local Q58 work; details are in `odd/tasks/pm-layer.md`. New data point (2026-10-14): a resilience review lens needed 26m18s against the 600000 ms deadline; the owner permanently increased the relay timeout, and because that file is not tracked here the fix lives with the external plugin owner.
 
 ### Q59. PM layer: verifier
-- **Status:** READY. Planning unit `q59-pm-verifier-plan-u1` created tracker
-  `odd/tasks/q59-pm-verifier.md` and is READY FOR IMPLEMENTATION HANDOFF; implementation tasks A–E
-  remain PENDING. Post-advice plan validation: Task `ses_ea9f1a0ecffe8aPpAJIGyw2L11`, configured
-  `opencode-go/kimi-k2.7-code`, initially returned NOT READY on tracker-ownership, future-scope,
-  and receipt blockers; the plan refinement resolved them, and the PM envelope records final
-  confirmation. Planning is not a Q56 pilot unit (see the tracker's advice record).
+- **Status:** **NOT DONE.** Implementation `q59-pm-verifier-impl-u1` is COMPLETE and
+  SOURCE-COMMITTED in five commits on `chore/q72-t1b-tiny-fix-contract` at
+  `41fbe77a7ba3214c340e610df935ff7fb73b62c0`: `58b1c8c` (S1), `44f22bd` (S2a), `4677915` (S2b),
+  `db85a6b` (S2c), `41fbe77` (S2d/e). Each source commit has an owner-relayed native review
+  APPROVED + ACKNOWLEDGED with authority burned: `review-87858bd36a02d266` (S1 + S2a),
+  `review-028c45784dd7c5b9` (S2b), `review-5bea3eacbe067a77` (S2c), `review-8bf653955b7f58f5`
+  (S2d/e). These are owner-supplied acknowledgements, not worker-produced evidence; no
+  acknowledgement token was independently read and no acknowledged source candidate is
+  re-reviewed. Observed before this M1 metadata edit: focused 7 Python modules 102 PASS; full
+  Python 228 PASS with no skips; routing-guard 104 pass / 0 fail / 254 expectations; direct JS
+  harness PASS; `bash -n`, `git diff --check` and pin regex PASS; 103 same-predicate controls
+  (91 rejections + 12 accepted); all 43 prompt metrics asserted (orchestrator 57167, PMs 2968 and
+  2982; PM cap <6000; numeric orchestrator cap DEFERRED to Q57). Current pin
+  `28ff39379aee7460bce784386e62c83bf5f51aea2b93074e2f35230fa299e7ad`; historical `57fdc56c...`,
+  `22aa96f9...` and `bdce2e68...` are HISTORICAL, not current. Activation/deploy is UNVERIFIED:
+  verifier mirror, service restart, full verifier, deploy and live probes are HOST-ONLY and NOT
+  RUN. Unit metadata closure remains pending M2/M3; Q59 is NOT DONE and earns no Q56 pilot credit.
+  Tracker: `odd/tasks/q59-pm-verifier.md`.
 - **Prerequisites:** Q55; easier after Q26 and Q04. Q26 and Q04 are not hard blockers (owner:
   Q04 is NOT a blocker); re-verify Q55 handoff acceptance at implementation start rather than
   inferring it from aggregate status.
 - **Description:** replace the single-name `gentle-orchestrator` checks with a coordinator
   set that also asserts the PM identity surface; permission, depth and family-independence checks;
   prompt-size budgets; behavioural probes through the orchestrator (Q51); digest re-pin. The
-  historical "23" count is UNVERIFIED and must be replaced by the tracker's line-numbered
-  inventory/classification before any exact count is asserted. Q54's identity on a permitted
-  broker call is inferred because the broker echoes no identity.
+  historical "23" count is UNVERIFIED and is replaced by the tracker's line-numbered
+  inventory/classification. Owner decision (2026-10-19): all prompt sizes are measured
+  (`gentle-orchestrator=57167`, `pm-odd=2968`, `pm-systematic=2982`); the PM `<6000`-character cap
+  is enforced; the numeric orchestrator cap is deferred to Q57 ("about 8,000" is the planned
+  target, not an invented threshold). Corrected PM contract: the orchestrator alone keeps
+  `general`; both PMs dispatch a mid-unit tiny fix only to `odd-apply` or `gentle-ai-worker`
+  (DeepSeek), never `general`, and otherwise use their PM-authorized writer/verifier lanes (local
+  writer `kinver/professional`; verifier OpenAI Sol); strict declared maximum task keys reject an
+  unknown key whether `allow` or `deny`. Owner authorization for `global-config/opencode.json` is
+  limited to removing `general` from the two PM task maps; source commit1 also changed only the
+  two PM Tiny-fix sentences. Seven test modules were extended (six Python, one JS),
+  `test_anchor_manifest.py` ran unchanged, and the current pin is
+  `28ff39379aee7460bce784386e62c83bf5f51aea2b93074e2f35230fa299e7ad` (historical `57fdc56c...`,
+  `22aa96f9...` and `bdce2e68...` are superseded). Split source receipts: S1 253/32,732;
+  S2a 189/22,277; S2b 162/13,680; S2c 185/13,674; S2d/e 213/19,607. These five are the committed
+  source history, not a pending metadata SHA. Each commit was assessed immediately against its
+  prior boundary with `committedOnly=true`, and the now owner-supplied reviews closed the due
+  high-risk candidates. Config/prompt runtime is still not attested; full verifier, deploy and
+  live probes are HOST-ONLY and were NOT RUN. Q54's identity on a permitted broker call is inferred
+  because the broker echoes no identity.
 
 ### Q60. PM layer: model assignment
 - **Status:** PLANNED. Waits on the external model-assignment advice.

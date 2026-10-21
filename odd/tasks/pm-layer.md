@@ -86,15 +86,66 @@ task, each assessed against the last reviewed boundary.
   - The verifier rule `RELAY_TASK_GRANTED_OUTSIDE_ORCHESTRATOR` allows PM relay grants, but does not
     require them; removing the lanes from `pm-odd` and `pm-systematic` satisfies its assertion.
     `pm-sdd` remains without relay targets because it does not launch native RDD.
-- [ ] T7 (Q59) — Verifier coordinator-set checks must assert the PM identity surface as well as
-  prompt budgets, behavioural probes and digest pin; Q54's bound identity is inferred because
-  the broker does not echo identity on permitted calls. Planning unit `q59-pm-verifier-plan-u1`
-  is READY FOR IMPLEMENTATION HANDOFF; tracker: `odd/tasks/q59-pm-verifier.md`. The independent
-  post-code advice (Task `ses_ea9f1a0ecffe8aPpAJIGyw2L11`, configured
-  `opencode-go/kimi-k2.7-code`) initially returned NOT READY on the tracker ownership, future
-  scope, and receipt blockers; the plan refinement resolved them, and the PM envelope records
-  final confirmation. This planning unit does not count toward the Q56 ten-unit implementation
-  pilot; tasks A–E remain pending.
+- [ ] T7 (Q59) — **Implementation COMPLETE and SOURCE-COMMITTED; unit metadata CLOSURE PENDING
+  (Q59 NOT DONE).** Detail tracker: `odd/tasks/q59-pm-verifier.md` (its full advisory, inventory
+  and check detail will be closed in later M2/M3 units; that tracker is not part of this M1 metadata
+  candidate). Five source commits on `chore/q72-t1b-tiny-fix-contract`, boundary/HEAD
+  `41fbe77a7ba3214c340e610df935ff7fb73b62c0`:
+
+  | Step | Source commit | Subject | Authored lines / raw patch bytes | Source native review (owner-relayed) |
+  |---|---|---|---|---|
+  | S1 | `58b1c8c7366ab01086fec54b30437d582c6d09d0` | `fix(pm): align tiny-fix dispatch with independent writers` | 253 / 32,732 | `review-87858bd36a02d266` (S1 + S2a), APPROVED + ACKNOWLEDGED |
+  | S2a | `44f22bdc1d63c3f9a5e77e86bace1f274861fdbe` | `fix(verifier): share coordinator permission checks and isolate harness dependencies` | 189 / 22,277 | `review-87858bd36a02d266` (S1 + S2a), APPROVED + ACKNOWLEDGED |
+  | S2b | `4677915f2aa911b5dd7542f0f0b95d49728d0945` | `feat(verifier): enforce PM identity and handoff contracts` | 162 / 13,680 | `review-028c45784dd7c5b9`, APPROVED + ACKNOWLEDGED |
+  | S2c | `db85a6b2543effba24e2b68a3dc5dc534d5a7bc0` | `feat(verifier): enforce coordinator task allowlists and dispatch depth` | 185 / 13,674 | `review-5bea3eacbe067a77`, APPROVED + ACKNOWLEDGED |
+  | S2d/e | `41fbe77a7ba3214c340e610df935ff7fb73b62c0` | `feat(verifier): check PM model independence and prompt routing budgets` | 213 / 19,607 | `review-8bf653955b7f58f5`, APPROVED + ACKNOWLEDGED |
+
+  The four approvals are explicit **owner-relayed** facts, not worker-produced receipts or tokens;
+  this metadata unit did not independently read acknowledgement tokens and does not re-review any
+  acknowledged source candidate. Immediately after each commit its assessment was observed: S1
+  `medium`; `review_due=false`; `review_due_reason=under_budget`; S2a, S2b, S2c and S2d/e `high`
+  with `review_due=true`, each closed by the owner-supplied review above. Those are source commit
+  identities, not a metadata commit identity; no metadata SHA is asserted.
+
+  **Checks observed before this M1 edit** (prior writer/verifier sessions; this metadata unit
+  re-runs only the proportional checks below): direct `bun tests/test_review_pipeline_permissions.js`
+  PASS; focused 7 Python modules 102 PASS; full `python3 -m unittest discover -s tests` 228 PASS
+  with no skips; routing-guard 104 pass / 0 fail / 254 expectations on a fresh `mktemp` HOME;
+  `bash -n` and `git diff --check` pass; actual `read_verify_script_pin` regex and `sha256sum`
+  both match the current pin. Same-predicate controls execute 103 cases = 91 rejections + 12
+  accepted, in groups 27/8/40/18/10; group 4 runtime fixtures are NOT live model/fallback
+  attestation. Five budget-boundary fixtures include astral 5999/6000; all 43 prompt metrics are
+  reported and asserted (`gentle-orchestrator=57167`, `pm-odd=2968`, `pm-systematic=2982`). The
+  numeric orchestrator cap is **DEFERRED to Q57** (owner 2026-10-19; "about 8,000" is the planned
+  target, not an enforced cap). Five actual `PY_ODD_READONLY` consumer mutants pass; no live probe.
+  Seven changed test modules (6 Python + 1 JS); `test_anchor_manifest.py` executed unchanged.
+  Source fixtures are execution evidence, not deployment.
+
+  **Current verifier pin:** `sha256 28ff39379aee7460bce784386e62c83bf5f51aea2b93074e2f35230fa299e7ad`,
+  equal to current `verify-workflow.sh` and its `VERIFY_SCRIPT_SHA256` literal. Historical
+  `57fdc56c...`, `22aa96f9...` and `bdce2e68...` are **HISTORICAL**, not current.
+  **Activation/deploy is UNVERIFIED:** no verifier mirror, service restart, deploy, full verifier
+  or live probe ran; those are HOST-ONLY and NOT RUN. Q59 is **NOT DONE**, and this implementation
+  unit earns **no Q56 pilot credit**. The thirteen source advisories are indexed in THIS parent
+  summary only; full tracker dispositions and corrected planning wording WILL be added in M2/M3,
+  and the existing detail tracker remains unchanged with its historical status. R4-002's verifier/pin
+  ROUTER-LOG row is added in this M1 slice.
+
+  The following native finding IDs are scoped to Q59's four source review lineages above.
+  Identically numbered findings in Q58 or earlier PM-layer reviews are independent records.
+
+  **Thirteen source advisories (concise index in THIS parent; full dispositions WILL be added in
+  tracker M2/M3):** R3-001 refuted / future PM systematic `odd-apply` prompt consideration, not
+  now; R3-002 historical planning-scope wording, tracker closure pending in M2; R3-003 TODO current
+  status, corrected in this slice; R3-004 prompt allowlist alignment consideration deferred; R3-005
+  declaration extraction
+  fragility deferred; R4-001 Bun/Node `PermissionError` fallback future; R4-002 verifier/pin
+  ROUTER-LOG row added now; R3-needle-parse-fragility literal needle split future hardening;
+  R4-failfast-agg-dropped identity caller aggregation future; R3-stale-line-ref test comments at
+  stale `3130-3131` future (no test edit); R4-brace-balancing-fragility extractor not
+  string/comment-aware future; R4-family-gate-widening WARNING informational / intended
+  unknown-family fail-closed; R4-pin-binding-unverified native review could not recompute the pin,
+  mechanism is the independent verifier run of actual hash + regex PASS, no source bug claimed.
 - [ ] T8 (Q60) — Model assignment, after the external advice.
 - [ ] T9 (Q61) — Remaining routes; remove the legacy agent; `ce:compound`.
 
@@ -306,7 +357,7 @@ task, each assessed against the last reviewed boundary.
 - 2026-10-14: Read-only map reconciled the Q56 prerequisites against the code. The PM own-route-key-before-`host_review_start` requirement is IMPLEMENTED, not open (`systematic-routing-guard.ts:877-895`). The `asi-review-*` relay lanes are absent from both PM task allows while the orchestrator's block lists all six (a positive control on the same audit). Q58's behaviours are present: the orchestrator direct-writer-dispatch warning (`:968-980`), the advice-before-writer stage (`:982-994`), and the PM own-route-key gate (`:877-895`). The three-way writer-policy drift remains OPEN. Separately, `rate-limit-fallback.json:829-853` `excludeAgents` now lists all `review-*`/`asi-review-*`/advisor agents, which the tracker's DeepSeek fallback-chain concern never mentions.
 
 ## Next step
-Q55's contract-completeness and unit-start branch-verification text is complete in `docs/specs/pm-handoff.md` (commit `551b7d3`; see the T1 entry above). Q55/T3 remains open for the pilot's later steps: execute Q58 through `pm-odd` as the bootstrap unit, independently verify genuine relay-context delivery, complete the remaining Q56 smoke/deployment prerequisites, then begin and complete the ten-unit no-route-escape pilot. The bootstrap run and relay-delivery proof are not evidenced as completed here. Delivery strategy for this branch: `stacked-to-main` (owner decision 2026-10-14).
+Q55's contract-completeness and unit-start branch-verification text is complete in `docs/specs/pm-handoff.md` (commit `551b7d3`; see the T1 entry above). Q55/T3 remains open for the pilot's later steps: execute Q58 through `pm-odd` as the bootstrap unit, independently verify genuine relay-context delivery, complete the remaining Q56 smoke/deployment prerequisites, then begin and complete the ten-unit no-route-escape pilot. The bootstrap run and relay-delivery proof are not evidenced as completed here. Delivery strategy for this branch: `stacked-to-main` (owner decision 2026-10-14). Q59's implementation is COMPLETE and source-committed at `41fbe77`; its metadata closure is pending M2/M3, activation/deploy is UNVERIFIED, and Q59 is NOT DONE.
 
 ## Post-code advisory review — findings and open decisions
 
