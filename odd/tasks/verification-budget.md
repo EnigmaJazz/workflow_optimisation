@@ -2,14 +2,16 @@
 
 Feature: replace open-ended pre/post advice and verifier loops with a finite budget mapped to the
 six existing route classes. Task ID `q87-verification-budget`. Class: global-tooling-change. Route:
-delegated (`workflow-odd-secure`). Unit: `q87-verification-budget-plan-u1` (planning only). Delivery
-strategy: `ask-on-risk`.
+delegated (`workflow-odd-secure`). Units: `q87-verification-budget-plan-u1` (complete),
+`q87-verification-budget-src-u1` (U2a, source committed), `q87-verification-budget-src-u2` (U2b,
+pending). Delivery strategy: `ask-on-risk`.
 
 ## Objective
 
 Define a finite ceiling of pre-code advice, post-code checks and independent verification by task
-type, and stop treating "repeat as needed" as an unlimited refinement budget. This unit records the
-plan only; it makes no policy or source edit.
+type, and stop treating "repeat as needed" as an unlimited refinement budget. The planning unit
+recorded the plan only. U2a implemented the finite policy in source and is committed; U2b remains
+pending, so the full feature is not complete.
 
 ## Problem and evidence
 
@@ -115,14 +117,17 @@ plan only; it makes no policy or source edit.
 ## Constraints and non-goals
 
 - Planning-only: no source, test, verifier, config, prompt or pin edit; no commit, deploy, branch
-  switch, push or PR.
+  switch, push or PR. These constraints applied to the planning unit; U2a source is committed, and
+  this metadata unit edits only the three allowlisted paths.
 - Artifacts are English, compact and factual. Observations, inferences and proposed decisions are
   labelled.
 - Never claim a check, deploy or live behaviour not observed.
 
 ## Acceptance criteria (future source implementation)
 
-- **Scope note:** these are full-feature acceptance criteria; U2a is PARTIAL and U2b (overlay/regeneration) remains pending.
+- **Scope note:** these are full-feature acceptance criteria; U2a source is complete and committed,
+  while the full feature stays PARTIAL because U2b (overlay/regeneration, static-diagnostic order)
+  remains pending.
 - `WORKFLOW.md`, `docs/specs/pm-handoff.md`, both route SKILLs and `overlay.md` state the finite
   matrix and the one-correction ceiling consistently; the six route classes are unchanged.
 - The docs allowlist is explicit and fails closed; a test/verifier reader reclassifies a unit as
@@ -138,13 +143,17 @@ plan only; it makes no policy or source edit.
 
 - `T0` (this unit, `q87-verification-budget-plan-u1`): create the tracker and advice record; add the
   TODO and ROUTER-LOG entries. Planning only.
-- `T1` (future, `q87-verification-budget-src-u1`): implement the finite matrix and docs boundary
-  across `WORKFLOW.md`, `docs/specs/pm-handoff.md`, both route SKILLs, and the tests.
-- `T2` (future, `q87-verification-budget-src-u2`): align `overlay.md`, regenerate the embedded
-  prompt, and update the digest/ledger atomically (folds Q88).
-- `T3` (future): fold the Q84 sequencing drift into the aligned surfaces.
+- `T1` (`q87-verification-budget-src-u1`, U2a — COMPLETE, source committed `30f7665`): finite
+  matrix and docs boundary across `WORKFLOW.md`, `docs/specs/pm-handoff.md`, both route SKILLs, and
+  the tests. Owner advanced the source reviewed boundary to `30f7665` without native review.
+- `T2` (`q87-verification-budget-src-u2`, U2b — PENDING): align `overlay.md`, regenerate the
+  embedded prompt, and update the digest/ledger atomically (folds Q88); add the post-code
+  static-diagnostic-order rule to the `WORKFLOW.md`/`docs/specs/pm-handoff.md` clause and overlay
+  wording; keep the existing scope with no new queue ID.
+- `T3` (future, folds into U2b): fold the Q84 `advisor-gemini-post` sequencing drift into the
+  aligned surfaces.
 
-## U2a source unit evidence (in progress)
+## U2a source unit evidence (source committed)
 
 - Unit: `q87-verification-budget-src-u1` (U2a), 2026-10-21. Class:
   `global-tooling-change`. Route: delegated. `workflow-odd-secure` was loaded first, then
@@ -163,9 +172,10 @@ plan only; it makes no policy or source edit.
   contracts. The advisor's suggestion of a separate verifier-anchor commit is not adopted because
   it could break anchor/token integrity; anchors, source and tests stay together if a verifier edit
   proves necessary.
-- PM readback: `docs/TODO.md:1433-1436` already separates policy/tests from overlay/regeneration;
-  the acceptance criteria at this tracker's lines 125-130 are FULL-FEATURE acceptance. U2a is
-  PARTIAL against them and U2b remains pending; no claim of full alignment.
+- PM readback (historical): `docs/TODO.md` Q87 separates policy/tests from
+  overlay/regeneration; the acceptance criteria in this tracker are FULL-FEATURE acceptance. U2a was
+  PARTIAL at that readback; its source is now committed and U2b remains pending; no claim of full
+  alignment.
 - Verification plan: tests first, then policy text, same final candidate. No new anchors or verifier
   checks; verifier/pin edits only if an existing row requires textual change.
 - Owner override (2026-10-21, English, factual): a new Pyright diagnostic
@@ -175,9 +185,47 @@ plan only; it makes no policy or source edit.
   `correction_rounds_used` stays `1`, recorded separately with no silent reset; used exactly one
   writer `ses_e9f597b78ffe3ckTuejCTsijRt`. Observed (writer/PM-attributed, not re-run here):
   `python3 -m unittest tests.test_pm_handoff_spec -v` → 25 tests OK; result one test path `+3/-1`,
-  patch 857 bytes; PM `aft_inspect` after apply FRESH authoritative `1/1`, 0 errors, 0 warnings;
-  blockers `F01`/`Q87-V01`/`Q87-V02` closed by that targeted recheck, no new cycle; no host source
-  commit yet; assessment, U2b and metadata closure pending.
+  patch 857 bytes; PM `aft_inspect` after apply FRESH authoritative `1/1`, 0 errors, 0 warnings.
+  The earlier consolidated correction targeted recheck closed `F01`/`Q87-V01`/`Q87-V02`; this
+  null-check exception closed only the new Pyright `359:84` error, not those policy findings.
+
+### U2a source closure (observed)
+
+- Source commit `30f76652d6fcdfe97999ffd87bff643cb8e964df` on the host feature branch
+  `chore/q72-t1b-tiny-fix-contract`: 7 paths, +370/−19 = 389 authored lines, 67564 raw patch
+  bytes. Paths: `WORKFLOW.md`, `docs/specs/pm-handoff.md`,
+  `global-config/skills/workflow-odd-secure/SKILL.md`,
+  `global-config/skills/workflow-systematic/SKILL.md`, `odd/tasks/q59-pm-verifier.md`,
+  `odd/tasks/verification-budget.md`, `tests/test_pm_handoff_spec.py`.
+- Owner decision (2026-10-21): ADVANCE the source reviewed boundary to `30f7665`. This is an owner
+  disposition, not native review or acknowledgement; no native review occurred.
+- Assessment returned medium / `under_budget` / `consumed=false` / `review_due=false`. It was NOT
+  passive, approved or high, and is not native approval.
+- End-of-ODD `ce:review` is pending: future retrospective coverage of Q87 slices by owner
+  disposition.
+- Dispatch/evidence record (compact): pre advisor `ses_e9f8386eaffeAOIdz1LMHjLupw` (configured
+  `kimi-k2.7-code`; runtime not independently attested); post advisor
+  `ses_e9f757002ffeBenXB1H54KGUNZ` (reported configured/runtime `opencode-go/kimi-k2.7-code`);
+  independent verifier `ses_e9f75700cffewgIuFL1ZkIOqYN` (configured/runtime
+  `openai/gpt-6.1-sol`); initial writer `ses_e9f7f682bffeg7tiHufkH4L384`; one-correction writer
+  `ses_e9f6e808dffe13j4plhKMTDyHj`; exception writer `ses_e9f597b78ffe3ckTuejCTsijRt`.
+- Execution evidence (writer/PM-attributed; no new executions in this metadata unit): correction
+  writer full Python 240 OK and routing 104 pass; independent verifier initial full Python 239 and
+  routing 104, corrected targeted 52; exception exact
+  `python3 -m unittest tests.test_pm_handoff_spec -v` → 25 OK; PM `aft_inspect` after the exception
+  FRESH authoritative `1/1`, 0 errors, 0 warnings. Do not claim all full suites reran independently
+  after the exception.
+- Process lesson (owner, 2026-10-21): `aft_inspect` and applicable static diagnostics MUST join the
+  FIRST post-code verification pass on the INITIAL candidate, BEFORE the single correction.
+  Deferring them until after correction was a PROCESS DEFECT and necessitated the exception. This is
+  recorded as a lesson and future U2b policy change only; no normative `WORKFLOW.md`,
+  `docs/specs/pm-handoff.md` or overlay edit is made here.
+- Scope state: U2a is complete only. Whole Q87 is NOT done; U2b remains pending with its existing
+  scope plus the post-code static-diagnostic-order clause in `WORKFLOW.md` and
+  `docs/specs/pm-handoff.md` and matching overlay wording, alongside `overlay.md`, assembled
+  `global-config/opencode.json`, `advisor-gemini-post` sequencing drift, prompt assembly,
+  `CURRENT_PROMPT_SHA256`, hashes and the normative ledger. No separate queue ID is created. No full
+  source/prompt alignment or live activation is claimed.
 
 ## Checks (this planning unit)
 
@@ -206,9 +254,12 @@ plan only; it makes no policy or source edit.
   211-authored-line/27,772-byte text after stalls (log 3999–4000); it was not installed because the
   host already held the retained text.
 - This cloud `odd-apply` Task applies only the authorized correction. Researcher
-  `ses_ea061f549ffeaFsPWPWjWp7Pua` completed before dispatch. No plan commit hash is claimed.
+  `ses_ea061f549ffeaFsPWPWjWp7Pua` completed before dispatch. No plan commit hash is claimed. The
+  present metadata Task edits only this tracker, `docs/TODO.md` and `ROUTER-LOG.md`.
 
 ## Next step
 
-- PM result readback, host commit of the four paths, and risk assessment. The Magic Context mirror
-  tool is unimplemented; no mirror body was accessed.
+- PM metadata closure: staged receipt, host commit of the three authorized metadata paths (this
+  tracker, `docs/TODO.md`, `ROUTER-LOG.md`), and result-envelope assessment; the metadata commit SHA
+  belongs to the PM envelope, not this worker. U2b remains pending. The Magic Context mirror tool is
+  unimplemented; no mirror body was accessed and no readback is fabricated.

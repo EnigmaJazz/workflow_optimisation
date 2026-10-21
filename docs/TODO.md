@@ -1416,25 +1416,28 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   input only; it does not redesign or implement the parameters.
 
 ### Q87. Finite verification budget by task type
-- **Status:** IN PROGRESS — planning unit complete; source implementation pending. Tracker
-  `odd/tasks/verification-budget.md`; advice `odd/advice/verification-budget.md`. Planning unit
-  `q87-verification-budget-plan-u1` created the artifacts; the source implementation is future. The
-  local-tier writer takes exactly ONE changed file per writer Task while cloud writers may batch a
-  coherent multi-file unit; the future Q87 source unit records this rule in `WORKFLOW.md` and
-  `docs/specs/pm-handoff.md`.
-- **Prerequisites:** none for this planning unit. Source implementation starts only after this plan
-  is committed and its applicable advice/boundary/size checks are recorded. Folds Q88
-  (overlay/prompt generation) — Q88 is not a separate queue item.
-- **Source:** owner directive 2026-10-21 (finite advice/verification by task type); Q59 cycle
-  evidence; the Q84 post-code-sequencing drift.
+- **Status:** IN PROGRESS — U2a source committed; U2b pending. Planning unit
+  `q87-verification-budget-plan-u1` is complete. U2a `q87-verification-budget-src-u1` is
+  source-committed as `30f76652d6fcdfe97999ffd87bff643cb8e964df` (7 paths, 389 authored lines,
+  67564 patch bytes); owner decision 2026-10-21 advanced the source reviewed boundary to
+  `30f7665` without native review. U2a is complete only; the whole Q87 is not done and no full
+  source/prompt alignment or live activation is claimed. Tracker `odd/tasks/verification-budget.md`;
+  advice `odd/advice/verification-budget.md`.
+- **Prerequisites:** U2a source commit and its metadata closure. U2b starts only after that closure
+  and records the post-code static-diagnostic-order rule and the existing prompt/overlay scope.
+  Folds Q88 (overlay/prompt generation) — Q88 is not a separate queue item.
+- **Source:** owner directive 2026-10-21 (finite advice/verification by task type; static
+  diagnostics in the first post-code pass); Q59 cycle evidence; the Q84 post-code-sequencing drift.
 - **Description:** define 0/one/one pre-and-post phases plus an optional verifier by task type over
   the existing six route classes; a per-unit maximum of one initial writer plus one correction
   writer; a docs allowlist by actual diff that fails closed; and a `correction_rounds_used` recorder.
-  Subunits: `q87-verification-budget-plan-u1` (this planning unit),
-  `q87-verification-budget-src-u1` (policy/tests across `WORKFLOW.md`, `docs/specs/pm-handoff.md`,
-  both route SKILLs), `q87-verification-budget-src-u2` (overlay + prompt regeneration + digest/ledger,
-  folding Q88), and the Q84 sequencing fold. No edit is made by the planning unit beyond the four
-  authorized paths.
+  The local-tier writer takes exactly ONE changed file per writer Task while cloud writers may batch
+  a coherent multi-file unit. Subunits: `q87-verification-budget-plan-u1` (complete);
+  `q87-verification-budget-src-u1` (U2a, source committed `30f7665`); U2b
+  `q87-verification-budget-src-u2` (PENDING: `overlay.md`, assembled `global-config/opencode.json`,
+  prompt regeneration, `CURRENT_PROMPT_SHA256`, normative ledger, `advisor-gemini-post` sequencing
+  drift, and the post-code static-diagnostic-order clause in `WORKFLOW.md`/`docs/specs/pm-handoff.md`
+  plus overlay wording), folding Q88 and the Q84 sequencing fold with no new queue ID.
 
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
