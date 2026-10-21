@@ -5,11 +5,180 @@ dispatch whose result envelope records the anchor comparison.
 """
 
 from pathlib import Path
+import json
 import re
 import unittest
 
 
 SPEC_PATH = Path(__file__).resolve().parents[1] / "docs/specs/pm-handoff.md"
+WORKFLOW_PATH = Path(__file__).resolve().parents[1] / "WORKFLOW.md"
+ODD_SKILL_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "global-config/skills/workflow-odd-secure/SKILL.md"
+)
+SYSTEMATIC_SKILL_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "global-config/skills/workflow-systematic/SKILL.md"
+)
+BUDGET_HEADING = "## Verification and advice budget by task type"
+SIX_ROUTE_CLASSES = (
+    "Tiny fix",
+    "Small feature",
+    "Substantial feature",
+    "Bug investigation",
+    "Documentation",
+    "Global tooling change",
+)
+DOCS_ALLOWLIST_TERMS = (
+    "odd/tasks/**",
+    "odd/advice/**",
+    "ROUTER-LOG.md",
+    "CLAIM-RETRACTIONS.md",
+    "docs/TODO.md",
+    "docs/TODO-HISTORY.md",
+    "non-Constraints/non-decisions",
+    "uncertainty fails closed",
+    "Any test/verifier reader disqualifies the unit",
+    "WORKFLOW.md",
+    "AGENTS.md",
+    "docs/specs/**",
+    "global-config/**",
+    "ANCHOR_MANIFEST",
+    "command-changing docs",
+    "No automatic source-comment exemption",
+)
+BUDGET_TERMS = (
+    "zero pre-advice",
+    "zero post-advice",
+    "zero `gentle-ai-verify`",
+    "one pre-advice phase",
+    "one post-code check",
+    "`ce:review` substitutes",
+    "explicit exception",
+    "security boundary",
+    "uncertainty",
+    "live fallback/independence",
+    "explicitly reduced small-model profile",
+    "one independent verifier",
+    "Generated inherits source",
+    "Counts are check phases, not numbers of baseline reviewers",
+    "opencode-go/deepseek-v4.1-flash",
+    "NOT treated as a small/reduced profile",
+    "owner decision, 2026-10-21",
+)
+ONE_CORRECTION_TERMS = (
+    "one initial writer plus ONE fresh correction writer",
+    "all pre-commit post-code gates",
+    "`ce:review` and external advice",
+    "SAME candidate",
+    "finding IDs",
+    "one consolidated fix brief",
+    "install first, then refine on the installed base",
+    "targeted recheck",
+    "`NEEDS_INPUT`",
+    "`BLOCKED`",
+    "`correction_rounds_used`",
+    "`0|1`",
+    "record any override separately",
+    "metadata or a new task ID never silently resets the counter",
+    "targeted native validator",
+    "no PM advisor or verifier cycle",
+    "escalated after commit owes the applicable post-code check on the committed candidate",
+    "any correction is a new commit, never rewriting history",
+)
+LOCAL_WRITER_TERMS = (
+    "`gentle-ai-worker-local`",
+    "exactly ONE changed file per writer Task",
+    "cloud writers may batch a coherent multi-file unit",
+)
+
+
+def matrix_section(text):
+    """Return the budget section, or raise ValueError when absent."""
+    match = re.search(rf"^{re.escape(BUDGET_HEADING)}$", text, re.MULTILINE)
+    if not match:
+        raise ValueError(BUDGET_HEADING)
+    remainder = text[match.end():]
+    end = remainder.find("\n## ")
+    return remainder if end < 0 else remainder[:end]
+
+
+def missing_terms(text, terms):
+    return [term for term in terms if term not in text]
+
+
+def verification_budget_errors(text):
+    errors = []
+    try:
+        section = matrix_section(text)
+    except ValueError:
+        return ["missing section: " + BUDGET_HEADING]
+    for term in SIX_ROUTE_CLASSES:
+        if term not in section:
+            errors.append("missing route class: " + term)
+    for term in BUDGET_TERMS:
+        if term not in section:
+            errors.append("missing budget term: " + term)
+    for phrase in ("Repeat this loop as needed", "Repeat as needed"):
+        if phrase in text:
+            errors.append("open-ended refinement wording remains: " + phrase)
+    if "only for a code-changing unit" in text:
+        errors.append("code-only post-code gate remains")
+    return errors
+
+
+def docs_allowlist_errors(text):
+    try:
+        section = matrix_section(text)
+    except ValueError:
+        return ["missing section: " + BUDGET_HEADING]
+    return ["missing allowlist term: " + term for term in missing_terms(section, DOCS_ALLOWLIST_TERMS)]
+
+
+def one_correction_errors(text):
+    try:
+        section = matrix_section(text)
+    except ValueError:
+        return ["missing section: " + BUDGET_HEADING]
+    return ["missing correction-cap term: " + term for term in missing_terms(section, ONE_CORRECTION_TERMS)]
+
+
+def local_writer_errors(text):
+    try:
+        section = matrix_section(text)
+    except ValueError:
+        return ["missing section: " + BUDGET_HEADING]
+    return ["missing local-writer term: " + term for term in missing_terms(section, LOCAL_WRITER_TERMS)]
+
+
+def envelope_section(spec):
+    match = re.search(r"^## Versioned result envelope$", spec, re.MULTILINE)
+    if not match:
+        return ""
+    remainder = spec[match.end():]
+    end = remainder.find("\n## ")
+    return remainder if end < 0 else remainder[:end]
+
+
+def envelope_errors(spec):
+    envelope = envelope_section(spec)
+    terms = (
+        '"correction_rounds_used"',
+        '`0|1`',
+        '"docs_exemption"',
+        '"changed_paths"',
+        '"rationale"',
+        '"stats"',
+        '"diff_check"',
+        '"branch_head"',
+        '"asserted_references"',
+        '"pm_check"',
+        '"orchestrator_readback"',
+        '`advice_record` status `not-applicable`',
+        "`git diff --check`",
+        "any test reader makes the unit normative",
+    )
+    return ["missing envelope/docs evidence term: " + term for term in missing_terms(envelope, terms)]
 
 
 class PMHandoffSpecTest(unittest.TestCase):
@@ -169,6 +338,94 @@ class PMHandoffSpecTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(AssertionError, re.escape(marker)):
             self.assert_standalone_tiny_fix_anchor_contract(mutated)
+
+
+class VerificationBudgetContractTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.spec = SPEC_PATH.read_text(encoding="utf-8")
+        cls.workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        cls.odd_skill = ODD_SKILL_PATH.read_text(encoding="utf-8")
+        cls.systematic_skill = SYSTEMATIC_SKILL_PATH.read_text(encoding="utf-8")
+
+    def test_pm_spec_has_finite_budget_docs_allowlist_and_local_rule(self):
+        self.assertEqual(verification_budget_errors(self.spec), [])
+        self.assertEqual(docs_allowlist_errors(self.spec), [])
+        self.assertEqual(one_correction_errors(self.spec), [])
+        self.assertEqual(local_writer_errors(self.spec), [])
+
+    def test_result_envelope_records_correction_rounds_and_docs_evidence(self):
+        self.assertEqual(envelope_errors(self.spec), [])
+        match = re.search(r"```json\n(.*?)```", self.spec, re.DOTALL)
+        assert match is not None, "result envelope must contain a json code fence"
+        payload = json.loads(match.group(1))
+        self.assertEqual((payload["correction_rounds_used"], "docs_exemption" in payload), (0, True))
+
+    def test_workflow_declares_the_same_finite_budget(self):
+        for check in (
+            verification_budget_errors,
+            docs_allowlist_errors,
+            one_correction_errors,
+            local_writer_errors,
+        ):
+            with self.subTest(check=check.__name__):
+                self.assertEqual(check(self.workflow), [])
+
+    def test_odd_skill_applies_the_budget_and_local_rule(self):
+        self.assertIn(BUDGET_HEADING.removeprefix("## "), self.odd_skill)
+        self.assertIn("ONE fresh correction", self.odd_skill)
+        self.assertIn("exactly ONE changed file per writer Task", self.odd_skill)
+        self.assertIn("true docs/metadata unit", self.odd_skill)
+        self.assertIn("`gentle-ai-worker-local`", self.odd_skill)
+
+    def test_systematic_skill_applies_the_budget_without_a_post_code_loop(self):
+        self.assertIn(BUDGET_HEADING.removeprefix("## "), self.systematic_skill)
+        self.assertIn("ONE fresh correction", self.systematic_skill)
+        self.assertIn("exactly ONE changed file per writer Task", self.systematic_skill)
+        self.assertIn("true docs/metadata unit", self.systematic_skill)
+        self.assertNotIn("post-code advice", self.systematic_skill.lower())
+
+    def test_mutation_control_rejects_open_allowlist(self):
+        mutated = self.spec.replace("uncertainty fails closed", "uncertainty may be inferred", 1)
+        self.assertTrue(docs_allowlist_errors(mutated), "an open allowlist must fail the docs control")
+
+    def test_mutation_control_rejects_test_reader_exemption(self):
+        mutated = self.spec.replace(
+            "Any test/verifier reader disqualifies the unit",
+            "A test/verifier reader may be ignored",
+            1,
+        )
+        self.assertTrue(docs_allowlist_errors(mutated), "a test-reader exemption must fail closed")
+
+    def test_mutation_control_rejects_open_ended_correction_loop(self):
+        mutated = self.spec.replace(
+            "one initial writer plus ONE fresh correction writer",
+            "one initial writer and repeat as needed",
+            1,
+        )
+        self.assertTrue(one_correction_errors(mutated), "an open loop must fail the correction cap")
+
+    def test_mutation_control_rejects_unbounded_local_batch(self):
+        mutated = self.spec.replace(
+            "exactly ONE changed file per writer Task",
+            "any number of changed files per writer Task",
+            1,
+        )
+        self.assertTrue(local_writer_errors(mutated), "an unbounded local batch must fail the rule")
+
+    def test_mutation_control_rejects_missing_verifier_tier(self):
+        mutated = self.spec.replace("one independent verifier", "an optional verifier")
+        self.assertTrue(verification_budget_errors(mutated), "the high verifier tier must be present")
+
+    def test_mutation_control_rejects_missing_correction_counter(self):
+        mutated = self.spec.replace('"correction_rounds_used": 0,', "", 1)
+        self.assertTrue(envelope_errors(mutated), "the envelope must record correction_rounds_used")
+
+    def test_mutation_controls_reject_code_only_gate_and_native_loop(self):
+        code_only = self.spec.replace("only when the unit's actual-diff budget requires it", "only for a code-changing unit", 1)
+        self.assertTrue(verification_budget_errors(code_only))
+        native_loop = self.spec.replace("no PM advisor or verifier cycle", "a PM advisor or verifier cycle", 1)
+        self.assertTrue(one_correction_errors(native_loop))
 
 
 if __name__ == "__main__":

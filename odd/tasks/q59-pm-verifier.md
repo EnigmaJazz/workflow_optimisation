@@ -34,8 +34,7 @@ explicitly rather than assumed.
 - The installed source is frozen: the ten source paths below, `WORKFLOW.md`, and `docs/PLAN.md`
   must stay byte-identical to the worker baseline. No prompt, config, test, verifier, plugin, or
   pin edit; no deploy, branch switch, push/PR, native review/evidence, or worker commit.
-- The PM owns the fixed-host commit after fresh independent verification and post-advice. Native
-  review remains externally driven. This worker returns a staged reviewability receipt only.
+- The PM owns the fixed-host commit after factual/structural checks plus an independent orchestrator readback; zero advisors and zero verifiers run when the actual diff is inside the simple-docs allowlist and no test or verifier reads it, while a normative change, or any test/verifier reader, still takes the applicable matrix checks. Native review remains externally driven. This worker returns a staged reviewability receipt only.
 - Existing unrelated files are preserved; an untracked broker bundle is not part of the candidate.
 
 ### Frozen source paths
@@ -360,8 +359,7 @@ No advisory becomes a blocker or a source fix in this unit.
   split/authorization rather than a size exception.
 - Behavior, tests, and the digest pin remain one coherent implementation history, already split
   across five reviewed source commits. This metadata unit adds no standalone test or pin commit.
-- The metadata commit is the PM's, after fresh independent verification and post-advice. The
-  source is not re-implemented or redeployed here.
+- The metadata commit is the PM's, after factual/structural checks plus an independent orchestrator readback; zero advisors and zero verifiers run when the actual diff stays inside the simple-docs allowlist and no test or verifier reads it, while a normative change still takes the matrix checks. The source is not re-implemented or redeployed here.
 
 ## Historical planning checks (retained verbatim; superseded)
 
@@ -541,5 +539,4 @@ Source implementation is **COMPLETE, SOURCE-COMMITTED, and SOURCE-ACKNOWLEDGED**
 commits above; metadata evidence is **COMPLETE in this record**. Activation/deploy remains
 **UNVERIFIED**: no verifier mirror, restart, full verifier, deploy, or live probe ran, and
 config/prompt runtime is not attested. Q59 remains outside the Q56 pilot and earns no pilot
-credit. The PM may commit this metadata candidate after fresh independent verification and
-post-advice and record the actual metadata SHA in its envelope; no metadata SHA is invented here.
+credit. The PM may commit this metadata candidate after factual/structural checks plus an independent orchestrator readback; zero advisors and zero verifiers run when the actual diff stays inside the simple-docs allowlist and no test or verifier reads it, while a normative change still takes the matrix checks. Record the actual metadata SHA in its envelope; no metadata SHA is invented here.

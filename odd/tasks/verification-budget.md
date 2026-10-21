@@ -122,6 +122,7 @@ plan only; it makes no policy or source edit.
 
 ## Acceptance criteria (future source implementation)
 
+- **Scope note:** these are full-feature acceptance criteria; U2a is PARTIAL and U2b (overlay/regeneration) remains pending.
 - `WORKFLOW.md`, `docs/specs/pm-handoff.md`, both route SKILLs and `overlay.md` state the finite
   matrix and the one-correction ceiling consistently; the six route classes are unchanged.
 - The docs allowlist is explicit and fails closed; a test/verifier reader reclassifies a unit as
@@ -142,6 +143,41 @@ plan only; it makes no policy or source edit.
 - `T2` (future, `q87-verification-budget-src-u2`): align `overlay.md`, regenerate the embedded
   prompt, and update the digest/ledger atomically (folds Q88).
 - `T3` (future): fold the Q84 sequencing drift into the aligned surfaces.
+
+## U2a source unit evidence (in progress)
+
+- Unit: `q87-verification-budget-src-u1` (U2a), 2026-10-21. Class:
+  `global-tooling-change`. Route: delegated. `workflow-odd-secure` was loaded first, then
+  `workflow-route`, by the PM; this worker did not re-observe those skill calls. Triggers:
+  preparation, multiple non-trivial files, secure delegated mutation.
+- Scope split (owner override of the full-feature delivery): U2a changes only the finite policy,
+  docs allowlist, one-correction cap, local-writer rule, envelope, route SKILLs and tests. U2b is
+  EXCLUDED from this unit and still pending: `overlay.md`, assembled `global-config/opencode.json`,
+  prompt regeneration, `CURRENT_PROMPT_SHA256`, normative ledger, and `advisor-gemini-post` prompt.
+  U2a therefore does NOT establish full source/prompt equality.
+- Pre-code advice: `advisor-integration-pre` Task `ses_e9f8386eaffeAOIdz1LMHjLupw`, configured
+  `opencode-go/kimi-k2.7-code`; runtime fallback was not independently attested. Findings treated
+  as evidence, not approval: B1 split the tracker feature acceptance from the U2a scope; B2 replace
+  the open-ended refinement loop; B3 add the finite matrix; B4 add the correction counter to the
+  result envelope; B5 add mutation-positive controls; B6 preserve the existing anchor and tiny-fix
+  contracts. The advisor's suggestion of a separate verifier-anchor commit is not adopted because
+  it could break anchor/token integrity; anchors, source and tests stay together if a verifier edit
+  proves necessary.
+- PM readback: `docs/TODO.md:1433-1436` already separates policy/tests from overlay/regeneration;
+  the acceptance criteria at this tracker's lines 125-130 are FULL-FEATURE acceptance. U2a is
+  PARTIAL against them and U2b remains pending; no claim of full alignment.
+- Verification plan: tests first, then policy text, same final candidate. No new anchors or verifier
+  checks; verifier/pin edits only if an existing row requires textual change.
+- Owner override (2026-10-21, English, factual): a new Pyright diagnostic
+  `tests/test_pm_handoff_spec.py:359:84` (`"group" is not a known attribute of "None"`) after the one
+  correction round authorized one null-check in one file; new limit: one cloud `odd-apply` writer
+  plus targeted module test/scoped diagnostics only, no full advice/verifier cycle, no U2b;
+  `correction_rounds_used` stays `1`, recorded separately with no silent reset; used exactly one
+  writer `ses_e9f597b78ffe3ckTuejCTsijRt`. Observed (writer/PM-attributed, not re-run here):
+  `python3 -m unittest tests.test_pm_handoff_spec -v` → 25 tests OK; result one test path `+3/-1`,
+  patch 857 bytes; PM `aft_inspect` after apply FRESH authoritative `1/1`, 0 errors, 0 warnings;
+  blockers `F01`/`Q87-V01`/`Q87-V02` closed by that targeted recheck, no new cycle; no host source
+  commit yet; assessment, U2b and metadata closure pending.
 
 ## Checks (this planning unit)
 
