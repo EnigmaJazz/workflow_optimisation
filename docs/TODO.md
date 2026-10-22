@@ -1416,16 +1416,21 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   input only; it does not redesign or implement the parameters.
 
 ### Q87. Finite verification budget by task type
-- **Status:** IN PROGRESS — U2a source committed; U2b pending. Planning unit
-  `q87-verification-budget-plan-u1` is complete. U2a `q87-verification-budget-src-u1` is
-  source-committed as `30f76652d6fcdfe97999ffd87bff643cb8e964df` (7 paths, 389 authored lines,
-  67564 patch bytes); owner decision 2026-10-21 advanced the source reviewed boundary to
-  `30f7665` without native review. U2a is complete only; the whole Q87 is not done and no full
-  source/prompt alignment or live activation is claimed. Tracker `odd/tasks/verification-budget.md`;
-  advice `odd/advice/verification-budget.md`.
-- **Prerequisites:** U2a source commit and its metadata closure. U2b starts only after that closure
-  and records the post-code static-diagnostic-order rule and the existing prompt/overlay scope.
-  Folds Q88 (overlay/prompt generation) — Q88 is not a separate queue item.
+- **Status:** IN PROGRESS — SOURCE COMPLETE (U2a + U2b); deployment/live activation not performed.
+  Planning unit `q87-verification-budget-plan-u1` is complete. U2a
+  `q87-verification-budget-src-u1` is source-committed as
+  `30f76652d6fcdfe97999ffd87bff643cb8e964df` (7 paths, 389 authored lines, 67564 patch bytes);
+  owner decision 2026-10-21 advanced the source reviewed boundary to `30f7665` without native
+  review. U2b `q87-verification-budget-src-u2` is source-committed as
+  `5a8a8ab191bb5fcfcccdf810f1d46e003fc52ac5` (11 paths, +149/-7 = 156 changed lines; 154 authored
+  lines excluding the generated embedded-prompt hunk, 37667 authored patch bytes). Source
+  assessment: medium, under_budget, consumed=false, review_due=false at base `415009c...`; this is
+  not native review or approval. Deployment and live activation are separate and were not
+  performed. Tracker `odd/tasks/verification-budget.md`; advice
+  `odd/advice/verification-budget.md`.
+- **Prerequisites:** U2a source commit and its metadata closure; both are done. U2b records the
+  post-code static-diagnostic-order rule and the prompt/overlay scope. Folds Q88
+  (overlay/prompt generation) — Q88 is not a separate queue item and no new queue ID is created.
 - **Source:** owner directive 2026-10-21 (finite advice/verification by task type; static
   diagnostics in the first post-code pass); Q59 cycle evidence; the Q84 post-code-sequencing drift.
 - **Description:** define 0/one/one pre-and-post phases plus an optional verifier by task type over
@@ -1434,10 +1439,11 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   The local-tier writer takes exactly ONE changed file per writer Task while cloud writers may batch
   a coherent multi-file unit. Subunits: `q87-verification-budget-plan-u1` (complete);
   `q87-verification-budget-src-u1` (U2a, source committed `30f7665`); U2b
-  `q87-verification-budget-src-u2` (PENDING: `overlay.md`, assembled `global-config/opencode.json`,
-  prompt regeneration, `CURRENT_PROMPT_SHA256`, normative ledger, `advisor-gemini-post` sequencing
-  drift, and the post-code static-diagnostic-order clause in `WORKFLOW.md`/`docs/specs/pm-handoff.md`
-  plus overlay wording), folding Q88 and the Q84 sequencing fold with no new queue ID.
+  `q87-verification-budget-src-u2` (SOURCE COMPLETE `5a8a8ab`: `overlay.md`, assembled
+  `global-config/opencode.json`, prompt regeneration, `CURRENT_PROMPT_SHA256`, normative ledger,
+  `advisor-gemini-post` sequencing drift, and the post-code static-diagnostic-order clause in
+  `WORKFLOW.md`/`docs/specs/pm-handoff.md` plus overlay wording), folding Q88 and the Q84
+  sequencing fold with no new queue ID. Deployment/live activation remain separate.
 
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).

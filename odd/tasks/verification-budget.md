@@ -4,14 +4,16 @@ Feature: replace open-ended pre/post advice and verifier loops with a finite bud
 six existing route classes. Task ID `q87-verification-budget`. Class: global-tooling-change. Route:
 delegated (`workflow-odd-secure`). Units: `q87-verification-budget-plan-u1` (complete),
 `q87-verification-budget-src-u1` (U2a, source committed), `q87-verification-budget-src-u2` (U2b,
-pending). Delivery strategy: `ask-on-risk`.
+source committed `5a8a8ab`; deployment/live activation not performed). Delivery strategy:
+`ask-on-risk`.
 
 ## Objective
 
 Define a finite ceiling of pre-code advice, post-code checks and independent verification by task
 type, and stop treating "repeat as needed" as an unlimited refinement budget. The planning unit
-recorded the plan only. U2a implemented the finite policy in source and is committed; U2b remains
-pending, so the full feature is not complete.
+recorded the plan only. U2a implemented the finite policy in source and is committed; U2b is now
+source-committed at `5a8a8ab`, so the source scope is complete. Deployment and live activation were
+not performed and remain separate work.
 
 ## Problem and evidence
 
@@ -117,17 +119,16 @@ pending, so the full feature is not complete.
 ## Constraints and non-goals
 
 - Planning-only: no source, test, verifier, config, prompt or pin edit; no commit, deploy, branch
-  switch, push or PR. These constraints applied to the planning unit; U2a source is committed, and
-  this metadata unit edits only the three allowlisted paths.
+  switch, push or PR. These constraints applied to the planning unit; U2a and U2b source are
+  committed, and this metadata unit edits only the three allowlisted paths.
 - Artifacts are English, compact and factual. Observations, inferences and proposed decisions are
   labelled.
 - Never claim a check, deploy or live behaviour not observed.
 
 ## Acceptance criteria (future source implementation)
 
-- **Scope note:** these are full-feature acceptance criteria; U2a source is complete and committed,
-  while the full feature stays PARTIAL because U2b (overlay/regeneration, static-diagnostic order)
-  remains pending.
+- **Scope note:** these are full-feature acceptance criteria. U2a and U2b source are complete and
+  committed; deployment and live activation were not performed, so full delivery is not claimed.
 - `WORKFLOW.md`, `docs/specs/pm-handoff.md`, both route SKILLs and `overlay.md` state the finite
   matrix and the one-correction ceiling consistently; the six route classes are unchanged.
 - The docs allowlist is explicit and fails closed; a test/verifier reader reclassifies a unit as
@@ -146,14 +147,15 @@ pending, so the full feature is not complete.
 - `T1` (`q87-verification-budget-src-u1`, U2a — COMPLETE, source committed `30f7665`): finite
   matrix and docs boundary across `WORKFLOW.md`, `docs/specs/pm-handoff.md`, both route SKILLs, and
   the tests. Owner advanced the source reviewed boundary to `30f7665` without native review.
-- `T2` (`q87-verification-budget-src-u2`, U2b — PENDING): align `overlay.md`, regenerate the
-  embedded prompt, and update the digest/ledger atomically (folds Q88); add the post-code
-  static-diagnostic-order rule to the `WORKFLOW.md`/`docs/specs/pm-handoff.md` clause and overlay
-  wording; keep the existing scope with no new queue ID.
-- `T3` (future, folds into U2b): fold the Q84 `advisor-gemini-post` sequencing drift into the
-  aligned surfaces.
+- `T2` (`q87-verification-budget-src-u2`, U2b — SOURCE COMPLETE, committed `5a8a8ab`): aligned
+  `overlay.md`, regenerated the embedded prompt, and updated the digest/ledger atomically (folds
+  Q88); added the post-code static-diagnostic-order rule to the
+  `WORKFLOW.md`/`docs/specs/pm-handoff.md` clause and overlay wording; kept the existing scope with
+  no new queue ID.
+- `T3` (folds into U2b — SOURCE COMPLETE in `5a8a8ab`): the Q84 `advisor-gemini-post` sequencing
+  drift was folded into the aligned surfaces; unrelated Q84 scope was left unchanged.
 
-## U2b source unit evidence (in progress)
+## U2b source unit evidence (source committed)
 
 - Unit: `q87-verification-budget-src-u2` (U2b), 2026-10-22. Class:
   `global-tooling-change`. Route: delegated. Triggers: preparation, coherent multi-file cloud
@@ -171,6 +173,82 @@ pending, so the full feature is not complete.
   so AFT was the fallback. Its "no SKILL edit needed" conclusion is rejected because this U2b scope
   explicitly requires the static first-pass rule in both route SKILLs.
 
+### U2b source closure (observed)
+
+- Source commit `5a8a8ab191bb5fcfcccdf810f1d46e003fc52ac5` on the host branch
+  `chore/q72-t1b-tiny-fix-contract`: 11 paths, +149/-7 = 156 total changed lines. The generated
+  embedded-prompt hunk accounts for 2 of those lines and about 118315 patch bytes; the authored
+  receipt is 154 authored changed lines and 37667 authored patch bytes (total raw patch 155982
+  bytes; source-worker/PM-attributed, not re-measured here). The `advisor-gemini-post` prompt text
+  in the same file is authored, not generated. `verify-workflow.sh` and its pin are unchanged.
+- Paths: `WORKFLOW.md`, `docs/specs/pm-handoff.md`, `global-config/opencode.json`,
+  `global-config/prompts/gentle-orchestrator/normative-ledger.md`,
+  `global-config/prompts/gentle-orchestrator/overlay.md`,
+  `global-config/skills/workflow-odd-secure/SKILL.md`,
+  `global-config/skills/workflow-systematic/SKILL.md`, `odd/tasks/verification-budget.md`,
+  `tests/test_gemini_advisor_route.py`, `tests/test_orchestrator_prompt_source.py`,
+  `tests/test_pm_handoff_spec.py`. This metadata unit edits only the tracker, `docs/TODO.md` and
+  `ROUTER-LOG.md`.
+- Source Git readback (observed in the sandbox): commit parent `415009c...`; commit tree
+  `187bdb830aed34ef2d10f9d78f18cfc89e5e0fd8` equals the verified corrected candidate tree; the
+  sandbox baseline `ec58ccd` has that same tree and parent `5a8a8ab`; no branch switch. Exactly one
+  commit exists in `415009c..5a8a8ab`, so there is no duplicate correction commit. The committed
+  diffs contain F01's explicit `ModuleSpec`/loader guards and F02's explicit regex-null guards. The
+  PM-reported `host_review_materialize` plus `diff_read` materialization confirmed the same 11-path
+  inventory and both guards.
+- Initial installed source writer `ses_e9f3b15cbffeNlUniEM1N4kuPG`, result
+  `de14c726725c275d6aaff096f88b14c402e35c1b`. Its earlier stalled/empty response was later
+  recovered; this is not a terminal failure. The duplicate alternate `gentle-ai-worker`
+  `ses_e9f32dba6ffe0eTGBkqWZLXKZZ` (result `ca25127f...`) returned S16 and was EXCLUDED, not
+  installed; physical deletion was not performed (do not read that as a tool discard). No repeat
+  pre-advice phase: the H01-H05 pre-advice Task `ses_e9f3f0e5fffe6yN5JTeVG8UUmc` was configured
+  `opencode-go/kimi-k2.7-code`, runtime not independently attested.
+- First post-code phase ran on the SAME initial installed source before correction: advisor
+  `advisor-integration-post` Task `ses_e9f2817ffffeyoOBPtbPOZs0wb` (configured Kimi; runtime not
+  attested) and `gentle-ai-verify` Task `ses_e9f2817eaffejK2wrqH9yITtYw` (reported Sol). PM
+  `aft_inspect` reported 3/3 changed test files, 6 errors, 0 warnings. Independent executed
+  results: focused 7 modules 115 OK; full Python discovery 244 OK; routing-guard 104 pass / 0 fail
+  (254 assertions, throwaway HOME); `bash -n`, JSON, assembler equality/digest and ledger, 39
+  anchors / 99 tokens, `git diff --check` and `py_compile` passed. No full host verifier and no live
+  activation. Generated prompt 59950 bytes / 417 lines, SHA-256
+  `521796dfbfc71a125e49b8bbd8127de7197a491b12a0ea8bd942c29de64a046b`;
+  `tests/test_pm_layer_prompts.py` was unchanged and its existing module executed.
+- `correction_rounds_used: 1`. The one consolidated correction Task
+  `ses_e9f1cfc0effeLmcawSpnoEZUyG` applied result
+  `65270291bf1b7704a378db199ecce87b0c4e57fb`: F01 explicit `ModuleSpec`/loader guards in
+  `tests/test_gemini_advisor_route.py`; F02 explicit regex-null guards in
+  `tests/test_orchestrator_prompt_source.py`; exactly 2 files, +8/-2 = 10 lines, 2061 bytes. The
+  owner authorized only these two files, and the corrected tree replaced the frozen initial
+  candidate for equality purposes. After apply, the same independent verifier session ran
+  `python3 -m unittest tests.test_gemini_advisor_route tests.test_orchestrator_prompt_source -v`
+  -> 49 tests OK; PM `aft_inspect` authoritative 2/2 files, 0 errors, 0 warnings (overall PARTIAL
+  for unsupported Python dead-code/incomplete complexity, not a diagnostic gap). No full suite,
+  advisor or verifier rerun after correction.
+- Source assessment (observed, exact): `host_review_assess(baseRef
+  415009c65be9a0fb47072ae654dda835c68a3719, committedOnly true)` returned
+  `gentle-ai.review-assessment/v1`, risk `medium`, reason `executable_change` on `WORKFLOW.md`,
+  `changed_paths: 11`, `changed_lines: 156`, candidate `base-diff`, `consumed: false`,
+  `review_due: false`, `review_due_reason: under_budget`. Record this as medium / under budget,
+  NOT as the expected high, and NOT as native approval. RDD is on globally; no native review or
+  acknowledgement occurred, and the reviewed boundary remains `415009c...`. The metadata
+  assessment belongs to the PM envelope; the metadata commit SHA is a PENDING-COMMIT placeholder
+  here and is not invented.
+- Source clears for closure because no review is due. The future `ce:review` retrospective remains
+  the earlier owner disposition; no execution is claimed here. Source-delivered is distinct from
+  deploy/live activation, which were not performed.
+- Route evidence (attributed): `workflow-odd-secure` was loaded first and the route validated
+  `global-tooling-change`. The unit-start anchor was historical at 265 lines with an exact last-line
+  match at branch head `415009c`; after the authorized edits there was no re-anchor or reset, and
+  this record does not claim the working text equals the committed blob through the anchor. The
+  Magic Context mirror tool is unimplemented; no mirror body was accessed and no readback is
+  fabricated.
+- Metadata checks for this docs-only unit: exact changed paths/stat, `git diff --check`, compact
+  authored-line/byte stats within the 400-line and 100 KiB caps, and asserted revision/tree/
+  ancestry references; no runtime tests, advisor or verifier. A bounded literal search of `tests/`
+  and `verify-workflow.sh` for the three paths and `verification-budget` found only
+  allowlist/contract string references (the probe matched those), not a reader of the metadata
+  contents; the simple-docs classification therefore holds with no observed test-reader risk.
+
 ## U2a source unit evidence (source committed)
 
 - Unit: `q87-verification-budget-src-u1` (U2a), 2026-10-21. Class:
@@ -178,8 +256,8 @@ pending, so the full feature is not complete.
   `workflow-route`, by the PM; this worker did not re-observe those skill calls. Triggers:
   preparation, multiple non-trivial files, secure delegated mutation.
 - Scope split (owner override of the full-feature delivery): U2a changes only the finite policy,
-  docs allowlist, one-correction cap, local-writer rule, envelope, route SKILLs and tests. U2b is
-  EXCLUDED from this unit and still pending: `overlay.md`, assembled `global-config/opencode.json`,
+  docs allowlist, one-correction cap, local-writer rule, envelope, route SKILLs and tests. U2b was
+  EXCLUDED from this unit and was pending then: `overlay.md`, assembled `global-config/opencode.json`,
   prompt regeneration, `CURRENT_PROMPT_SHA256`, normative ledger, and `advisor-gemini-post` prompt.
   U2a therefore does NOT establish full source/prompt equality.
 - Pre-code advice: `advisor-integration-pre` Task `ses_e9f8386eaffeAOIdz1LMHjLupw`, configured
@@ -192,8 +270,8 @@ pending, so the full feature is not complete.
   proves necessary.
 - PM readback (historical): `docs/TODO.md` Q87 separates policy/tests from
   overlay/regeneration; the acceptance criteria in this tracker are FULL-FEATURE acceptance. U2a was
-  PARTIAL at that readback; its source is now committed and U2b remains pending; no claim of full
-  alignment.
+  PARTIAL at that readback; its source is now committed and U2b was pending then (now source-
+  complete at `5a8a8ab`); no claim of full alignment.
 - Verification plan: tests first, then policy text, same final candidate. No new anchors or verifier
   checks; verifier/pin edits only if an existing row requires textual change.
 - Owner override (2026-10-21, English, factual): a new Pyright diagnostic
@@ -236,14 +314,14 @@ pending, so the full feature is not complete.
 - Process lesson (owner, 2026-10-21): `aft_inspect` and applicable static diagnostics MUST join the
   FIRST post-code verification pass on the INITIAL candidate, BEFORE the single correction.
   Deferring them until after correction was a PROCESS DEFECT and necessitated the exception. This is
-  recorded as a lesson and future U2b policy change only; no normative `WORKFLOW.md`,
-  `docs/specs/pm-handoff.md` or overlay edit is made here.
-- Scope state: U2a is complete only. Whole Q87 is NOT done; U2b remains pending with its existing
-  scope plus the post-code static-diagnostic-order clause in `WORKFLOW.md` and
-  `docs/specs/pm-handoff.md` and matching overlay wording, alongside `overlay.md`, assembled
-  `global-config/opencode.json`, `advisor-gemini-post` sequencing drift, prompt assembly,
-  `CURRENT_PROMPT_SHA256`, hashes and the normative ledger. No separate queue ID is created. No full
-  source/prompt alignment or live activation is claimed.
+  recorded as a lesson for U2b; it was later implemented in source at `5a8a8ab`. No normative
+  `WORKFLOW.md`, `docs/specs/pm-handoff.md` or overlay edit was made in the U2a unit.
+- Scope state at U2a closure: U2a was complete only and U2b was then pending with the
+  post-code static-diagnostic-order clause in `WORKFLOW.md` and `docs/specs/pm-handoff.md` and
+  matching overlay wording, alongside `overlay.md`, assembled `global-config/opencode.json`,
+  `advisor-gemini-post` sequencing drift, prompt assembly, `CURRENT_PROMPT_SHA256`, hashes and the
+  normative ledger. No separate queue ID was created. U2b is now source-complete at `5a8a8ab` (see
+  the U2b closure); no live activation is claimed.
 
 ## Checks (this planning unit)
 
@@ -279,5 +357,6 @@ pending, so the full feature is not complete.
 
 - PM metadata closure: staged receipt, host commit of the three authorized metadata paths (this
   tracker, `docs/TODO.md`, `ROUTER-LOG.md`), and result-envelope assessment; the metadata commit SHA
-  belongs to the PM envelope, not this worker. U2b remains pending. The Magic Context mirror tool is
-  unimplemented; no mirror body was accessed and no readback is fabricated.
+  belongs to the PM envelope, not this worker. U2b source is complete; deployment and live
+  activation remain separate and were not performed. The Magic Context mirror tool is unimplemented;
+  no mirror body was accessed and no readback is fabricated.
