@@ -603,6 +603,7 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   orchestrator or another coordinator, not by the implementing `pm-odd` session: the unit that
   establishes review independence must not itself be reviewed without it.
 - **Pilot smoke (2026-10-19):** one standalone tiny-fix unit completed end to end through `pm-odd` and returned `DONE`; implementation `47781da`, metadata `a104abc`; both assessments passive; orchestrator readback matched. This does not start the ten-unit count, which begins only after Q58's enforcement is live. Q59's implementation is not a Q56 pilot unit and earns no pilot credit; no new pilot validation is inferred.
+- **Counted unit 1/10 (2026-10-22):** Q85 ce:review pipeline host permissions — verified through pm-odd; route workflow-odd-secure; no route escape; source already complete; metadata commit PENDING-COMMIT. Owner count authorization on 2026-10-22 supersedes the earlier blocked-count timing for this unit; it does not assert that Q58 enforcement or broker runtime registration is live.
 
 ### Q57. PM layer: slim the orchestrator
 - **Status:** PLANNED.
@@ -1393,10 +1394,11 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
 
 ### Q85. ce:review pipeline host permissions
 
-- **Status:** IN PROGRESS.
+- **Status:** DONE for config, verifier and source verification. Broker-side registration and runtime effect remain unverified.
 - **Prerequisites:** broker-side registration of `host_review_pipeline_run` and `host_review_persist` must be confirmed before runtime effect is claimed.
 - **Source:** `odd/tasks/q80-review-pipeline-host-permissions.md`.
-- **Description:** Grant `host_review_pipeline_run: allow` and `host_review_persist: ask` to `gentle-orchestrator`, `pm-odd`, and `pm-systematic`; retain global `deny`, verifier enforcement, per-agent controls, PM tool-map coverage, and a negative sweep. No commit or branch switch.
+- **Description:** Grant `host_review_pipeline_run: allow` and `host_review_persist: ask` to `gentle-orchestrator`, `pm-odd`, and `pm-systematic`; retain global `deny`, verifier enforcement, per-agent controls, PM tool-map coverage, and a negative sweep. No branch switch; owner-authorized counted-unit PM metadata commit (worker never commits).
+- **Verification (2026-10-22):** `python3 -m json.tool global-config/opencode.json` exit 0 (stderr empty); 43 agents total, three coordinators grant `allow`/`ask` as specified, remaining 40/40 permission maps inspected with zero explicit either key (offenders `[]`); `bun tests/test_review_pipeline_permissions.js` exit 0 with all extracted verifier assertions and reverted-fixture positive controls passing; `bash -n verify-workflow.sh` exit 0 (no output); `python3 -m unittest discover -s tests` exit 0 — 244 tests OK, zero failures/errors, no child `node` denial; verifier pin canonical literal and computed script SHA both `28ff39379aee7460bce784386e62c83bf5f51aea2b93074e2f35230fa299e7ad`; extracted `read_verify_script_pin` regex matches the real source plus single-quoted and double-quoted 64-hex fixtures; deployed plugin/pin not probed. Q56 counted unit 1/10 (2026-10-22); metadata commit PENDING-COMMIT. Broker registration remains a prerequisite for any runtime claim.
 
 ### Q85a. PM unit-start deterministic anchor
 - **Status:** IN PROGRESS.
