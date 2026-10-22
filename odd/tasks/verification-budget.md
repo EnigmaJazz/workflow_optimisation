@@ -229,13 +229,20 @@ not performed and remain separate work.
   `gentle-ai.review-assessment/v1`, risk `medium`, reason `executable_change` on `WORKFLOW.md`,
   `changed_paths: 11`, `changed_lines: 156`, candidate `base-diff`, `consumed: false`,
   `review_due: false`, `review_due_reason: under_budget`. Record this as medium / under budget,
-  NOT as the expected high, and NOT as native approval. RDD is on globally; no native review or
-  acknowledgement occurred, and the reviewed boundary remains `415009c...`. The metadata
-  assessment belongs to the PM envelope; the metadata commit SHA is a PENDING-COMMIT placeholder
-  here and is not invented.
-- Source clears for closure because no review is due. The future `ce:review` retrospective remains
-  the earlier owner disposition; no execution is claimed here. Source-delivered is distinct from
-  deploy/live activation, which were not performed.
+  NOT as the expected high, and NOT as native approval. RDD is on globally; this assessment stays
+  historical, and no native review or acknowledgement occurred.
+- Owner disposition (2026-10-21): ADVANCE the reviewed boundary from
+  `415009c65be9a0fb47072ae654dda835c68a3719` to
+  `8437aa35f0f9c902b44e61ae1297fd05bdcafd31`, closing the U2b medium slice without native review,
+  on the U2a precedent and end-of-ODD `ce:review` retrospective coverage of Q87 slices. This is an
+  explicit owner disposition, NOT native review, approval or acknowledgement. `8437aa3` is the
+  prior metadata/final HEAD at disposition, not this metadata unit's eventual commit; the metadata
+  commit SHA belongs to the PM envelope and is not invented here. The future `ce:review`
+  retrospective is not claimed executed.
+- Chain: U2a source `30f76652d6fcdfe97999ffd87bff643cb8e964df`, U2b source
+  `5a8a8ab191bb5fcfcccdf810f1d46e003fc52ac5`, prior metadata/final HEAD at disposition
+  `8437aa35f0f9c902b44e61ae1297fd05bdcafd31`. Source-delivered is distinct from deploy/live
+  activation, which were not performed.
 - Route evidence (attributed): `workflow-odd-secure` was loaded first and the route validated
   `global-tooling-change`. The unit-start anchor was historical at 265 lines with an exact last-line
   match at branch head `415009c`; after the authorized edits there was no re-anchor or reset, and
@@ -352,11 +359,18 @@ not performed and remain separate work.
 - This cloud `odd-apply` Task applies only the authorized correction. Researcher
   `ses_ea061f549ffeaFsPWPWjWp7Pua` completed before dispatch. No plan commit hash is claimed. The
   present metadata Task edits only this tracker, `docs/TODO.md` and `ROUTER-LOG.md`.
+- Current metadata unit `q87-boundary-disposition-u1` (2026-10-22): cloud `odd-apply` writer.
+  PM-observed (supplied): `workflow-odd-secure` was loaded first and `workflow-route` validated
+  `global-tooling-change`; the unit-start anchor matched 362 tracker lines at branch head
+  `8437aa3`. Writer-observed: sandbox root `/work`, branch `work`, baseline `2c7ed41` with parent
+  `8437aa3` and an equal tree, and ancestry `30f7665 -> 415009c -> 5a8a8ab -> 8437aa3`; no branch
+  switch. It records only the owner boundary disposition; no native review or approval is claimed.
 
 ## Next step
 
-- PM metadata closure: staged receipt, host commit of the three authorized metadata paths (this
-  tracker, `docs/TODO.md`, `ROUTER-LOG.md`), and result-envelope assessment; the metadata commit SHA
-  belongs to the PM envelope, not this worker. U2b source is complete; deployment and live
-  activation remain separate and were not performed. The Magic Context mirror tool is unimplemented;
-  no mirror body was accessed and no readback is fabricated.
+- PM metadata closure for `q87-boundary-disposition-u1`: staged receipt, host commit of the three
+  authorized metadata paths (this tracker, `docs/TODO.md`, `ROUTER-LOG.md`), and result-envelope
+  assessment; the metadata commit SHA belongs to the PM envelope, not this worker. The owner
+  boundary advance to `8437aa3` is recorded; no native review, approval or acknowledgement is
+  claimed, and deployment/live activation remain separate and were not performed. The Magic
+  Context mirror tool is unimplemented; no mirror body was accessed and no readback is fabricated.

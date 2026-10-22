@@ -1425,9 +1425,11 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   `5a8a8ab191bb5fcfcccdf810f1d46e003fc52ac5` (11 paths, +149/-7 = 156 changed lines; 154 authored
   lines excluding the generated embedded-prompt hunk, 37667 authored patch bytes). Source
   assessment: medium, under_budget, consumed=false, review_due=false at base `415009c...`; this is
-  not native review or approval. Deployment and live activation are separate and were not
-  performed. Tracker `odd/tasks/verification-budget.md`; advice
-  `odd/advice/verification-budget.md`.
+  not native review or approval and remains historical. Owner decision 2026-10-21 advanced the
+  reviewed boundary from `415009c` to `8437aa3`, the prior metadata/final HEAD at disposition,
+  closing the U2b medium slice without native review; `8437aa3` is not this metadata unit's
+  commit. Deployment and live activation are separate and were not performed. Tracker
+  `odd/tasks/verification-budget.md`; advice `odd/advice/verification-budget.md`.
 - **Prerequisites:** U2a source commit and its metadata closure; both are done. U2b records the
   post-code static-diagnostic-order rule and the prompt/overlay scope. Folds Q88
   (overlay/prompt generation) — Q88 is not a separate queue item and no new queue ID is created.
