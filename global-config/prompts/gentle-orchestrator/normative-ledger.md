@@ -2,9 +2,9 @@
 
 Scope: every sentence in the CURRENT prompt (`global-config/opencode.json` →
 `agent["gentle-orchestrator"].prompt`, sha256
-`803f22525a577fbdeeca91febf1fb8666269f50f9fc646644044cbcd83e04104`, 414 lines)
+`521796dfbfc71a125e49b8bbd8127de7197a491b12a0ea8bd942c29de64a046b`, 417 lines)
 containing MUST, NEVER, ALWAYS (case-insensitive, word boundary) or "hard rule".
-70 candidate sentences: **44 kept, 1 split, 10 superseded-by-base, 15
+72 candidate sentences: **46 kept, 1 split, 10 superseded-by-base, 15
 removed-by-design; zero unclassified.**
 
 Classification meanings:
@@ -91,6 +91,8 @@ wiring are produced by `global-config/prompts/gentle-orchestrator/assemble-orche
 | 68 | L534 | "Never use fallback session replay for either set because replay bypasses Task prompt injection." | kept | overlay:user:review-boundary |
 | 69 | L540 | "Always launch the three baseline reviewers (correctness, testing, project standards) and any candidate-specific reviewers selected by screening in the same independent wave." | kept | overlay:user:review-boundary |
 | 70 | L75 | "Until the deterministic host tool lands, mirror readback and tracker/mirror hash duties are suspended; the PM anchor uses only readable line count, last-line text, and feature-branch HEAD SHA, without claiming committed tracker-content equality." | kept | overlay:user:secure-odd-protocol + docs/specs/pm-handoff.md |
+| 71 | L197 | "`ce:review` substitutes for the post-code check and is never an extra cycle." | kept | overlay:user:advisory-lifecycle |
+| 72 | L197 | "Any human override is recorded separately; metadata or a new task ID never silently resets the counter." | kept | overlay:user:advisory-lifecycle |
 
 ## Structural coupling note
 

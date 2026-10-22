@@ -153,6 +153,24 @@ pending, so the full feature is not complete.
 - `T3` (future, folds into U2b): fold the Q84 `advisor-gemini-post` sequencing drift into the
   aligned surfaces.
 
+## U2b source unit evidence (in progress)
+
+- Unit: `q87-verification-budget-src-u2` (U2b), 2026-10-22. Class:
+  `global-tooling-change`. Route: delegated. Triggers: preparation, coherent multi-file cloud
+  unit, secure no-inline mutation, assembler/prompt-hash regeneration. Specialist: cloud
+  `odd-apply`.
+- Pre-code advice: Task `ses_e9f3f0e5fffe6yN5JTeVG8UUmc`, configured
+  `opencode-go/kimi-k2.7-code`; runtime fallback was not independently attested. Findings treated
+  as evidence, not approval: H01 put static diagnostics first in every required surface; H02 fix
+  Gemini pre-commit sequencing narrowly (not only the question while leaving the committed-candidate
+  phrase); H03 keep assembly/hash/ledger atomic; H04 add mutation-positive static-order tests; H05
+  separate authored and generated accounting.
+- Read-only research: Task `ses_e9f3f0e58ffeKujFP1tOiRnbeS` observed the assembler newline is
+  intentional, the overlay heading after Native Checking Contract must be preserved, and the
+  existing tiny-fix/pm-readback anchor interiors stay untouched; no `.codegraph` index was present,
+  so AFT was the fallback. Its "no SKILL edit needed" conclusion is rejected because this U2b scope
+  explicitly requires the static first-pass rule in both route SKILLs.
+
 ## U2a source unit evidence (source committed)
 
 - Unit: `q87-verification-budget-src-u1` (U2a), 2026-10-21. Class:

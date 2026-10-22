@@ -27,7 +27,7 @@ SECTIONS = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstrea
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
 CONFIG = ROOT / "global-config" / "opencode.json"
 
-CURRENT_PROMPT_SHA256 = "803f22525a577fbdeeca91febf1fb8666269f50f9fc646644044cbcd83e04104"
+CURRENT_PROMPT_SHA256 = "521796dfbfc71a125e49b8bbd8127de7197a491b12a0ea8bd942c29de64a046b"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
@@ -63,6 +63,41 @@ FORBIDDEN_RESIDUE = ("engram", "mem_", "ctx_note", "sdd-", "openspec", "/sdd")
 # Explicit allowlist of (term, allowed line substring, reason); empty by design.
 ALLOWED_RESIDUE = ()
 VALID_CLASSIFICATIONS = ("kept", "moved", "split", "superseded-by-base", "removed-by-design")
+STATIC_DIAGNOSTIC_SENTENCE = (
+    "The FIRST post-code verification pass runs on the SAME INITIAL candidate and includes the "
+    "required tests, the post-code advisor or `ce:review`, the verifier where the budget owes one, "
+    "and `aft_inspect` or applicable static diagnostics for every changed path. All findings join "
+    "the ONE correction batch. Running diagnostics for the first time only after correction is a "
+    "process defect."
+)
+ADVISORY_BUDGET_TERMS = (
+    "Finite verification and advice budget",
+    "six existing route classes",
+    "zero pre-advice",
+    "zero post-advice",
+    "one pre-advice phase",
+    "one post-code check",
+    "one independent verifier",
+    "Generated inherits source",
+    "`ce:review` substitutes",
+    "post-code-pair",
+    "same-candidate",
+    "simple-docs allowlist",
+    "ONE fresh correction",
+    "finding IDs",
+    "NEEDS_INPUT",
+    "BLOCKED",
+    "never silently resets",
+    "native correction",
+    "no PM advisor or verifier",
+    "exactly ONE changed file per writer Task",
+    "cloud writers may batch a coherent multi-file unit",
+    "FIRST post-code verification pass",
+    "SAME INITIAL candidate",
+    "aft_inspect",
+    "ONE correction batch",
+    "process defect",
+)
 
 HEADING_RE = re.compile(r"^#{1,6} ")
 BEGIN_RE = re.compile(r"^<!-- SECURE:BEGIN (?P<attrs>.*) -->$")
@@ -226,6 +261,13 @@ def scan_residue(text):
                 if not allowed:
                     violations.append((term, line_no, line.strip()[:160]))
     return violations
+
+
+def advisory_budget_errors(text):
+    errors = ["missing advisory-budget term: " + term for term in ADVISORY_BUDGET_TERMS if term not in text]
+    if STATIC_DIAGNOSTIC_SENTENCE not in text:
+        errors.append("missing first-pass static-diagnostic sentence")
+    return errors
 
 
 class OrchestratorPromptSourceTests(unittest.TestCase):
@@ -622,6 +664,16 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
         self.assertIn("cannot replace this assembler", result.stdout)
         self.assertIn("UNVERIFIED", result.stdout)
 
+    def test_assembled_prompt_states_finite_budget_and_first_pass_diagnostics(self):
+        assembled = run_assembler()
+        self.assertEqual(assembled.returncode, 0, assembled.stderr)
+        self.assertEqual(advisory_budget_errors(assembled.stdout), [])
+        mutated = assembled.stdout.replace("SAME INITIAL candidate", "later candidate", 1)
+        self.assertTrue(
+            advisory_budget_errors(mutated),
+            "moving diagnostics off the initial candidate must fail the first-pass control",
+        )
+
     def test_embedded_prompt_matches_assembler_and_sha_constant(self):
         assembled = run_assembler()
         self.assertEqual(assembled.returncode, 0, assembled.stderr)
@@ -736,9 +788,11 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
         verifier_text = verifier.read_text(encoding="utf-8")
         function = verifier_text.split("read_verify_script_pin() {", 1)[1].split("\n}", 1)[0]
         regex_literal = re.search(r"r'''(.*?)'''", function, re.DOTALL)
-        self.assertIsNotNone(regex_literal, "read_verify_script_pin regex literal must be present")
+        if regex_literal is None:
+            raise AssertionError("read_verify_script_pin regex literal must be present")
         match = re.search(regex_literal.group(1), plugin.read_text(encoding="utf-8"), flags=re.MULTILINE)
-        self.assertIsNotNone(match, "workflow-health-check.ts must contain a pin matching the verifier regex")
+        if match is None:
+            raise AssertionError("workflow-health-check.ts must contain a pin matching the verifier regex")
         script_sha = hashlib.sha256(verifier.read_bytes()).hexdigest()
         self.assertEqual(match.group(2).lower(), script_sha)
         print(f"verifier pin={match.group(2).lower()} actual={script_sha}")

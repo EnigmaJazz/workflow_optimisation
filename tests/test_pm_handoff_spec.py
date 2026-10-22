@@ -91,6 +91,13 @@ LOCAL_WRITER_TERMS = (
     "exactly ONE changed file per writer Task",
     "cloud writers may batch a coherent multi-file unit",
 )
+STATIC_DIAGNOSTIC_SENTENCE = (
+    "The FIRST post-code verification pass runs on the SAME INITIAL candidate and includes the "
+    "required tests, the post-code advisor or `ce:review`, the verifier where the budget owes one, "
+    "and `aft_inspect` or applicable static diagnostics for every changed path. All findings join "
+    "the ONE correction batch. Running diagnostics for the first time only after correction is a "
+    "process defect."
+)
 
 
 def matrix_section(text):
@@ -149,6 +156,12 @@ def local_writer_errors(text):
     except ValueError:
         return ["missing section: " + BUDGET_HEADING]
     return ["missing local-writer term: " + term for term in missing_terms(section, LOCAL_WRITER_TERMS)]
+
+
+def static_diagnostic_errors(text):
+    if STATIC_DIAGNOSTIC_SENTENCE not in text:
+        return ["missing first-pass static-diagnostic sentence"]
+    return []
 
 
 def envelope_section(spec):
@@ -384,6 +397,22 @@ class VerificationBudgetContractTest(unittest.TestCase):
         self.assertIn("exactly ONE changed file per writer Task", self.systematic_skill)
         self.assertIn("true docs/metadata unit", self.systematic_skill)
         self.assertNotIn("post-code advice", self.systematic_skill.lower())
+
+    def test_static_diagnostics_join_the_first_post_code_pass_on_every_surface(self):
+        surfaces = {
+            "pm-handoff spec": self.spec,
+            "WORKFLOW.md": self.workflow,
+            "workflow-odd-secure": self.odd_skill,
+            "workflow-systematic": self.systematic_skill,
+        }
+        for name, text in surfaces.items():
+            with self.subTest(surface=name):
+                self.assertEqual(static_diagnostic_errors(text), [])
+        mutated = self.spec.replace("SAME INITIAL candidate", "later candidate", 1)
+        self.assertTrue(
+            static_diagnostic_errors(mutated),
+            "moving diagnostics off the initial candidate must fail the first-pass control",
+        )
 
     def test_mutation_control_rejects_open_allowlist(self):
         mutated = self.spec.replace("uncertainty fails closed", "uncertainty may be inferred", 1)

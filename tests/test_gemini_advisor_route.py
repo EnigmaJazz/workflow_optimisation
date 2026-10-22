@@ -36,6 +36,10 @@ EVIDENCE = "advisor-gemini-evidence"
 ARGON = "google/gemini-4-argon"
 FLASH = "google/gemini-3.8-flash"
 DISPATCHERS = ("gentle-orchestrator", "pm-odd", "pm-systematic")
+GEMINI_POST_SEQUENCING = (
+    "post-code advisory review of the final implementation candidate before the work-unit commit",
+    "what should change before the work-unit commit",
+)
 HOST_ROUTES = (
     "edit",
     "write",
@@ -56,6 +60,10 @@ def _load_model_family():
     spec = importlib.util.spec_from_file_location(
         "q76_model_independence", REPO / "tests" / "test_model_independence.py"
     )
+    if spec is None:
+        raise ImportError("cannot build a module spec for tests/test_model_independence.py")
+    if spec.loader is None:
+        raise ImportError("module spec for tests/test_model_independence.py has no loader")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module.model_family
@@ -144,6 +152,15 @@ def dispatch_violations(data):
         if effective != "deny":
             out.append((name, f"may dispatch {EVIDENCE} ({effective!r})"))
     return out
+
+
+def gemini_post_sequencing_gaps(data):
+    """Return missing pre-commit sequencing phrases in advisor-gemini-post."""
+    agent = data.get("agent", {}).get("advisor-gemini-post")
+    prompt = agent.get("prompt") if isinstance(agent, dict) else None
+    if not isinstance(prompt, str):
+        return ["advisor-gemini-post prompt missing or not a string"]
+    return [needle for needle in GEMINI_POST_SEQUENCING if needle not in prompt]
 
 
 def fallback_violations(fallback):
@@ -241,6 +258,9 @@ class RealConfig(unittest.TestCase):
 
     def test_verifier_block_passes_real_sources(self):
         self.assertEqual(run_verifier_block(self.data["agent"], self.fallback), [])
+
+    def test_gemini_post_prompt_reviews_the_precommit_candidate(self):
+        self.assertEqual(gemini_post_sequencing_gaps(self.data), [])
 
 
 class PositiveControl(unittest.TestCase):
@@ -354,6 +374,16 @@ class PositiveControl(unittest.TestCase):
         failures = run_verifier_block({}, {})
         for name in (*ADVISORS, EVIDENCE):
             self.assertTrue(any(f.endswith(f"_MISSING: {name}") for f in failures), name)
+
+    def test_committed_candidate_gemini_sequencing_is_rejected(self):
+        data, _ = self.mutated()
+        prompt = data["agent"]["advisor-gemini-post"]["prompt"]
+        data["agent"]["advisor-gemini-post"]["prompt"] = prompt.replace(
+            GEMINI_POST_SEQUENCING[0],
+            "post-code advisory review of the committed candidate",
+            1,
+        ).replace(GEMINI_POST_SEQUENCING[1], "what should change before implementation", 1)
+        self.assertTrue(gemini_post_sequencing_gaps(data))
 
 
 if __name__ == "__main__":
