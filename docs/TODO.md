@@ -623,9 +623,12 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 - **Cap status (owner 2026-10-19):** the numeric orchestrator cap is DEFERRED to this item; the
   "about 8,000 characters" below is a planning target, not an enforced threshold. No threshold is
   invented here and `docs/PLAN.md` is unchanged.
-- **Description:** new prompt (about 8,000 characters); `permission.task` deny by default with
-  `explore` and `pm-*` allowed; host mutations removed except `host_register_project`; split
-  `global-config/AGENTS.md`; update `WORKFLOW.md`, `workflow-route` and the adapters.
+- **Description:** forward contract (Q90 decision, 2026-10-23): `permission.task` routes to PM
+  and Tiny only; the six `asi-review-*` lanes and `advisor-*` run on the PM; the orchestrator does
+  assessment/consent/acknowledgement only and is not a lens. Host mutations are removed except
+  `host_register_project`. Split `global-config/AGENTS.md`; update `WORKFLOW.md`,
+  `workflow-route` and the adapters. The earlier "deny by default with `explore` and `pm-*`
+  allowed" draft is SUPERSEDED by Q90; the numeric cap remains DEFERRED per Status above.
 
 ### Q58. PM layer: guard ordering
 - **Status:** SLICES COMPLETE AND SHIPPED; the `pm-odd` bootstrap run executed 2026-10-19 as `q58-bootstrap-advisory-clearance-u1` (task `q58-bootstrap`) and addressed the five advisory findings. Slice 1: `7a427d7`; direct-writer-dispatch warning: `d25228b`; advice-before-writer stage: `4b63481`; supporting routing-gate and breadcrumb fixes: `9c215b1`. Implementation commit `b3fba8dd6666af98cf6ba00d61eac425747b9f20` on `chore/q72-t1b-tiny-fix-contract` (six allowed paths, 66 insertions / 8 deletions; owner-supplied readback, not this writer's execution). The exact PM host assessment after that commit returned status 0 with empty stderr: `{"schema":"gentle-ai.review-assessment/v1","risk":"medium","reasons":[{"code":"executable_change","path":"tests/test_pm_handoff_spec.py"}],"changed_paths":6,"changed_lines":74,"candidate":{"kind":"base-diff","base_ref":"deab3b5b07c84c9adbd1ffe4f5b7ed02b8dd1422","consumed":false},"review_due":false,"review_due_reason":"under_budget"}`. No native review is DUE; the reviewed boundary remains `deab3b5b07c84c9adbd1ffe4f5b7ed02b8dd1422`, and the medium slice remains accumulated/pending — NOT passive, approved, or consumed; the external orchestrator drives any future native review. Independent relay-delivery proof remains UNVERIFIED and the bootstrap unit does not count toward the ten-unit pilot. Observed historical closure, scoped to metadata commit `905e347bd2dc25d814e576737bd9a53e1b948c1a` only and not a final result for any later correction commit: the final committed-candidate assessment was `medium` / `under_budget` / `review_due=false` with `changed_paths=6`, `changed_lines=94`, and `consumed=false`; the reviewed boundary was retained at `deab3b5b07c84c9adbd1ffe4f5b7ed02b8dd1422`; the medium slice remains accumulated/pending with no native review due; independent advisor Task `ses_eaa48d2e6ffeXfsGxfQXo4HFLk` inspected the METADATA candidate and returned no blockers before that metadata commit; the metadata receipt was 34 authored changed lines / 28470 bytes with no generated or binary paths; no approval claimed.
@@ -648,6 +651,11 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   tools, so a PM can start a review it cannot complete without relay lanes. Options:
   (a) the PM keeps `host_review_start` and another actor drives the lens; or
   (b) review start also leaves the PM session. Do not resolve this in Q58.
+- **Supersession (2026-10-23, Q90 decision 1):** the enforced-independence requirement and the
+  open `host_review_start` question are RESOLVED for the forward contract: the PM runs the six
+  native `asi-review-*` lanes and keeps the review lifecycle, while the lenses are independently
+  driven outside the implementing writer, not outside the PM. The historical text above is
+  retained unchanged as the record at its date.
 - **Open external/upstream item — review relay deadline:** two review lenses expired with `reviewer_relay_deadline_expired: review relay deadline of 600000 ms expired` despite taking 16–19 minutes. The deadline is `RELAY_DEADLINE_MS = 600_000` at `~/.config/opencode/plugins/lib/reviewer-relay-core.ts:112`, overridable through `config.deadlineMs` at `:778` and `:1294`. That file is not tracked here (this repository tracks only `global-config/plugins/lib/routing-guard-helpers.ts`), and nothing in this repository sets the deadline. The fix belongs to the external plugin owner, not local Q58 work; details are in `odd/tasks/pm-layer.md`. New data point (2026-10-14): a resilience review lens needed 26m18s against the 600000 ms deadline; the owner permanently increased the relay timeout, and because that file is not tracked here the fix lives with the external plugin owner.
 
 ### Q59. PM layer: verifier
@@ -696,13 +704,23 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   high-risk candidates. Config/prompt runtime is still not attested; full verifier, deploy and
   live probes are HOST-ONLY and were NOT RUN. Q54's identity on a permitted broker call is inferred
   because the broker echoes no identity.
+- **Forward check (Q90 decision 1, 2026-10-23):** verify the PM runs the six `asi-review-*` lanes
+  and the review lifecycle; do not require a "lack of relays" check. Verify the PM model/prompt
+  is `glm-5.3-flash`; keep the `<6000`-character prompt cap, the digest re-pin and the historical
+  evidence/status above.
 
 ### Q60. PM layer: model assignment
-- **Status:** PLANNED. Waits on the external model-assignment advice.
+- **Status:** PLANNED — seats selected by Q90 (2026-10-23); remaining implementation OPEN. Model-ID existence and seat/independence readiness remain open.
 - **Prerequisites:** Q56.
 - **Description:** PMs on `openai/gpt-6.1-sol`; writers on DeepSeek; move `advisor-design-pre`
   and `advisor-security-pre` off Sol; fallback chains keep a PM off its writer's family; exclude
   PMs from the Astra aliases. Owner decision: a cheaper PM for tiny-fix and documentation units.
+- **Supersession (2026-10-23, Q90 decision 3):** the old PM-on-Sol assignment is SUPERSEDED:
+  PM `glm-5.3-flash` high with `qwen3.8-flash` high fallback, Planner `openai/gpt-6.1-sol` high
+  (xhigh for gate 1 on multi-step/high-risk). Writers remain DeepSeek; `advisor-design-pre` and
+  `advisor-security-pre` move off Sol; PM/writer fallback family independence and the Astra
+  exclusion remain requirements. That implementation is still OPEN; the cheaper PM for
+  docs/tiny-fix is satisfied by the selected GLM seat, but deployment is UNVERIFIED.
 
 ### Q61. PM layer: remaining routes and close
 - **Status:** PLANNED.
@@ -1468,6 +1486,10 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   `advisor-gemini-post` sequencing drift, and the post-code static-diagnostic-order clause in
   `WORKFLOW.md`/`docs/specs/pm-handoff.md` plus overlay wording), folding Q88 and the Q84
   sequencing fold with no new queue ID. Deployment/live activation remain separate.
+- **Planning overlay (2026-10-23, Q90 decision 2):** on planned/gated routes the post-code
+  advisory actor is the PLANNER, replacing the PM `advisor-*-post` closure; the finite matrix is
+  unchanged and the docs exemption stays intact. No advice is added for true docs units. This
+  overlay is planning-only: not implemented, deployed or live.
 
 ### Q89. Multi-agent v2 phase 1 — inert plan-task permissions
 - **Status:** DONE for phase 1 (inert permissions; source and metadata complete). Planning
@@ -1496,6 +1518,61 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   and T2/T3 acceptance.
 - **Count:** Q56 counted unit 5/10, explicitly authorized by the dispatch brief even though
   earlier planning units were not counted.
+
+### Q90. Multi-agent v2 workflow config (handover 2026-10-19)
+- **Status:** IN PROGRESS — T1 queue revision only; T2-T6 PLANNED. Tracker
+  `odd/tasks/multi-agent-v2-queue.md`; handover
+  `docs/handoffs/2026-10-19-multi-agent-v2-workflow-config.md`. No implementation, deployment or
+  native review is claimed.
+- **Prerequisites:** T1: none (owner authorization 2026-10-23). Q89 phase 1 is DONE and inert; its
+  tools are not live. T2-T6 also require the external `agent-sandbox-integration` host tools to be
+  built and tested, plus owner/readiness decisions (a)-(f).
+- **Owner decisions (2026-10-23; planning direction, not live deployment and not a change to
+  current policy):**
+  1. The PM runs the six native `asi-review-*` lanes and keeps the review lifecycle; lenses are
+     independently driven outside the implementing writer, NOT outside the PM. This supersedes
+     Q58 enforced independence and resolves its open `host_review_start` question.
+  2. The Planner runs post-code advisory on planned/gated routes, replacing the PM
+     `advisor-*-post` closure; the Q87 budget matrix's forward actor is the Planner on planned
+     routes; no added advice for true docs.
+  3. PM `glm-5.3-flash` high, fallback `qwen3.8-flash` high; Planner `openai/gpt-6.1-sol` high,
+     xhigh for gate 1 on multi-step/high-risk work. Independence across PM/Planner/apply/review.
+  4. The orchestrator does assessment/consent/acknowledgement only; it is not a lens.
+  5. Q89 phase 1 is a completed prerequisite; phases 2-4 remain external to this repository.
+- **Units:**
+  - **T1 — queue revision (IN PROGRESS):** Q90, the Q57-Q60 forward lines, the Q87 planning
+    overlay, Q91 and the router row; pending PM commit and assessment.
+  - **T2 — readiness (PLANNED):** owner decisions (a)-(f), external host tools built/tested,
+    model-ID existence and seat independence, M3 hang verification.
+  - **T3 — config/agents/fallbacks (PLANNED):** `global-config/opencode.json`,
+    `global-config/rate-limit-fallback.json`.
+  - **T4 — recipe/guard/skills routing contract (PLANNED):** `WORKFLOW.md`, routing guard and
+    route skills. T3/T4 slicing is PROVISIONAL because the handover requires atomic consistency;
+    record an explicit slicing/size decision before coding.
+  - **T5 — verifier (PLANNED):** new-agent/model/tool checks and digest re-pin.
+  - **T6 — release (PLANNED):** mirror, owner restart, behavioral probes and trial metrics.
+- **Open owner/readiness decisions (do not resolve here):**
+  (a) handover item 8: `host_gate_verdict` PASS versus "advice is evidence, never approval";
+  (b) `host_plan_write` approval posture;
+  (c) `review-resilience` GLM and `review-risk` `qwen3.8-flash` seats now the PM dispatches;
+  (d) model-ID existence for `claude-haiku-5-5`, `qwen3.8-flash`, `qwen3.8-max`,
+      `glm-5.3-flash`, `mimo-v2.6-flash`, `minimax-m3`, `kimi-k2.7-code`,
+      `google/gemini-flash-latest`;
+  (e) M3 hang verification before any native seat uses `minimax-m3`;
+  (f) the handover's one-work-unit config/guard/skills versus Q87's ~400 authored changed
+      lines / 100 KiB cap: choose a slice or record an explicit owner size exception.
+- **Order:** handover Order `:213-218` is retained: host tools built/tested first; owner
+  `PASS`/plan-write decisions; queue -> config/guard/skills in one work unit -> verifier ->
+  mirror/restart/probes. The queue revision first is the owner-authorized planning exception and
+  does not enable any tool.
+- **Scope boundary:** phases 2-4 are external; the unmerged planner tier is only the Q91
+  placeholder. No `WORKFLOW.md`, `PLAN.md`, spec, config, guard or skill edit is authorized in
+  T1.
+
+### Q91. Planner tier (renumbered from the unmerged Q67 plan on docs/pm-planner-delegation, 9938cd1)
+- **Status:** PLANNED.
+- **Prerequisites:** Q90.
+- **Description:** Placeholder for the unmerged planner tier; Q90 owns the forward decisions.
 
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
