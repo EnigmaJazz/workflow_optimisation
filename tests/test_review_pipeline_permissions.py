@@ -778,5 +778,273 @@ for (const fragment of fragments) {
 ''')
 
 
+RELAY_REVIEW_AGENTS = [
+    "asi-review-risk",
+    "asi-review-resilience",
+    "asi-review-readability",
+    "asi-review-reliability",
+    "asi-review-refuter",
+    "asi-review-validator",
+]
+PLAIN_PROVIDER_REVIEW_AGENTS = [
+    "review-risk",
+    "review-resilience",
+    "review-readability",
+    "review-reliability",
+    "review-refuter",
+    "review-validator",
+]
+
+
+class ReviewDispatchPermissionTests(unittest.TestCase):
+    """Q90 T3a2: raw task-map review-dispatch enforcement."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        cls.agents = cls.config["agent"]
+        cls.verifier = VERIFIER_PATH.read_text(encoding="utf-8")
+
+    def predicate_source(self):
+        self.assertIn(
+            "function reviewDispatchFailures(",
+            self.verifier,
+            "missing production reviewDispatchFailures predicate",
+        )
+        return extract_braced_block(self.verifier, "function reviewDispatchFailures(")
+
+    def declarations(self):
+        return "\n".join(
+            extract_declaration(self.verifier, name)
+            for name in ("relayReviewAgents", "plainProviderReviewAgents")
+        )
+
+    def call_site(self):
+        lines = [
+            line.strip()
+            for line in self.verifier.splitlines()
+            if line.strip().startswith("for (const failure of reviewDispatchFailures(")
+        ]
+        self.assertEqual(len(lines), 1, "production reviewDispatchFailures call site must be unique")
+        return lines[0]
+
+    def run_script(self, body, predicate=None):
+        prelude = (
+            'import { readFileSync } from "node:fs";\n'
+            'const agents=JSON.parse(readFileSync(process.env.REVIEW_DISPATCH_AGENTS_PATH,"utf8"));\n'
+            'const expectedRelay=JSON.parse(readFileSync(process.env.REVIEW_DISPATCH_RELAY_PATH,"utf8"));\n'
+            'const expectedPlain=JSON.parse(readFileSync(process.env.REVIEW_DISPATCH_PLAIN_PATH,"utf8"));\n'
+            "const assert=(condition,message)=>{if(!condition)throw new Error(message)};\n"
+            "const clone=()=>JSON.parse(JSON.stringify(agents));\n"
+        )
+        lane_guard = (
+            'assert(JSON.stringify(relayReviewAgents)===JSON.stringify(expectedRelay),"production relay lane list drift");\n'
+            'assert(JSON.stringify(plainProviderReviewAgents)===JSON.stringify(expectedPlain),"production plain lane list drift");\n'
+        )
+        script = (
+            prelude
+            + (predicate or self.predicate_source())
+            + "\n"
+            + self.declarations()
+            + "\n"
+            + lane_guard
+            + body
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            agents_path = tmp_path / "agents.json"
+            relay_path = tmp_path / "relay.json"
+            plain_path = tmp_path / "plain.json"
+            script_path = tmp_path / "review-dispatch-controls.ts"
+            agents_path.write_text(json.dumps(self.agents), encoding="utf-8")
+            relay_path.write_text(json.dumps(RELAY_REVIEW_AGENTS), encoding="utf-8")
+            plain_path.write_text(json.dumps(PLAIN_PROVIDER_REVIEW_AGENTS), encoding="utf-8")
+            script_path.write_text(script, encoding="utf-8")
+            environment = dict(os.environ)
+            environment.update(
+                {
+                    "REVIEW_DISPATCH_AGENTS_PATH": str(agents_path),
+                    "REVIEW_DISPATCH_RELAY_PATH": str(relay_path),
+                    "REVIEW_DISPATCH_PLAIN_PATH": str(plain_path),
+                }
+            )
+            try:
+                return subprocess.run(
+                    [shutil.which("bun") or "bun", str(script_path)],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    env=environment,
+                    check=False,
+                )
+            except PermissionError:
+                self.skipTest("sandbox policy denies child Bun processes")
+
+    def assert_script(self, body):
+        result = self.run_script(body)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result
+
+    def test_production_predicate_and_call_site_exist(self):
+        self.predicate_source()
+        call = self.call_site()
+        self.assertIn("deployedAgents", call)
+        self.assertIn("relayReviewAgents", call)
+        self.assertIn("plainProviderReviewAgents", call)
+
+    def test_real_config_accepted_and_every_orchestrator_lane_required(self):
+        self.assert_script(
+            r'''
+assert(reviewDispatchFailures(agents,relayReviewAgents,plainProviderReviewAgents).length===0,"real config rejected");
+for (const name of relayReviewAgents) {
+  const mutated=clone();
+  delete mutated["gentle-orchestrator"].permission.task[name];
+  const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+  const expected=`RELAY_TASK_NOT_ALLOWED: ${name}`;
+  assert(failures.length===1&&failures[0]===expected,`relay omission not isolated: ${name} => ${JSON.stringify(failures)}`);
+}
+for (const name of plainProviderReviewAgents) {
+  for (const value of ["allow","ask"]) {
+    const mutated=clone();
+    mutated["gentle-orchestrator"].permission.task[name]=value;
+    const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+    const expected=`PLAIN_PROVIDER_REVIEW_TASK_NOT_DENIED: ${name}`;
+    assert(failures.length===1&&failures[0]===expected,`plain ${value} not isolated: ${name} => ${JSON.stringify(failures)}`);
+  }
+}
+console.log("orchestrator lanes: 6 relay + 12 plain controls passed");
+'''
+        )
+
+    def test_pm_review_grants_are_rejected_for_allow_and_ask(self):
+        result = self.assert_script(
+            r'''
+for (const pm of ["pm-odd","pm-systematic"]) {
+  for (const lane of [...relayReviewAgents,...plainProviderReviewAgents]) {
+    for (const value of ["allow","ask"]) {
+      const mutated=clone();
+      assert(!(lane in mutated[pm].permission.task),`lane already present before mutation: ${pm}.${lane}`);
+      mutated[pm].permission.task[lane]=value;
+      const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+      const expected=`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${pm}.${lane}="${value}"`;
+      assert(failures.length===1&&failures[0]===expected,`${pm}.${lane}=${value} not isolated => ${JSON.stringify(failures)}`);
+    }
+  }
+}
+console.log("PM review grants: 48 controls passed");
+'''
+        )
+        self.assertIn("PM review grants: 48 controls passed", result.stdout)
+
+    def test_partial_glob_review_grants_fail_closed(self):
+        result = self.assert_script(
+            r'''
+const partialGlobs=["asi-*","rev*","*risk","*-risk","*review*"];
+const patternAgents=["pm-odd","pm-systematic","advisor-security-pre","odd-apply","gentle-ai-worker"];
+for (const agentName of patternAgents) {
+  for (const pattern of partialGlobs) {
+    for (const value of ["allow","ask"]) {
+      const mutated=clone();
+      if (!mutated[agentName].permission) mutated[agentName].permission={};
+      if (!mutated[agentName].permission.task||typeof mutated[agentName].permission.task!=="object"||Array.isArray(mutated[agentName].permission.task)) mutated[agentName].permission.task={"*":"deny"};
+      mutated[agentName].permission.task[pattern]=value;
+      const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+      const expected=`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.${pattern}="${value}"`;
+      assert(failures.length===1&&failures[0]===expected,`${agentName}.${pattern}=${value} not isolated => ${JSON.stringify(failures)}`);
+    }
+  }
+}
+for (const pattern of partialGlobs) {
+  for (const value of ["deny",false]) {
+    const mutated=clone();
+    mutated["pm-odd"].permission.task[pattern]=value;
+    const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+    assert(failures.length===0,`protective ${pattern}=${JSON.stringify(value)} rejected => ${JSON.stringify(failures)}`);
+  }
+}
+const unrelated=clone();
+unrelated["pm-odd"].permission.task["frontend-*"]="ask";
+assert(reviewDispatchFailures(unrelated,relayReviewAgents,plainProviderReviewAgents).length===0,"non-review partial glob was flagged");
+console.log(`partial-glob review grants: ${partialGlobs.length*patternAgents.length*2} grants + ${partialGlobs.length*2+1} non-grants passed`);
+'''
+        )
+        self.assertIn(
+            "partial-glob review grants: 50 grants + 11 non-grants passed",
+            result.stdout,
+        )
+
+    def test_advisor_writer_and_wildcard_scalar_shapes_fail_closed(self):
+        self.assert_script(
+            r'''
+for (const agentName of ["advisor-security-pre","odd-apply","gentle-ai-worker","general"]) {
+  for (const lane of relayReviewAgents) {
+    const mutated=clone();
+    if (!mutated[agentName].permission) mutated[agentName].permission={};
+    if (!mutated[agentName].permission.task||typeof mutated[agentName].permission.task!=="object"||Array.isArray(mutated[agentName].permission.task)) mutated[agentName].permission.task={"*":"deny"};
+    mutated[agentName].permission.task[lane]="allow";
+    const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+    const expected=`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.${lane}="allow"`;
+    assert(failures.length===1&&failures[0]===expected,`${agentName}.${lane} not isolated => ${JSON.stringify(failures)}`);
+  }
+}
+for (const agentName of ["pm-odd","pm-systematic","advisor-security-pre","odd-apply"]) {
+  for (const value of ["allow","ask"]) {
+    let mutated=clone();
+    mutated[agentName].permission.task={"*":value};
+    let failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+    let expected=`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.*="${value}"`;
+    assert(failures.length===1&&failures[0]===expected,`wildcard ${agentName}=${value} not isolated => ${JSON.stringify(failures)}`);
+    mutated=clone();
+    mutated[agentName].permission.task=value;
+    failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+    expected=`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}="${value}"`;
+    assert(failures.length===1&&failures[0]===expected,`scalar ${agentName}=${value} not isolated => ${JSON.stringify(failures)}`);
+  }
+}
+for (const malformed of [[],null,42,true]) {
+  const mutated=clone();
+  mutated["pm-odd"].permission.task=malformed;
+  const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+  assert(failures.length===1&&failures[0]==="REVIEW_TASK_MAP_INVALID: pm-odd",`malformed ${JSON.stringify(malformed)} not isolated => ${JSON.stringify(failures)}`);
+}
+const denied=clone();
+denied["pm-odd"].permission.task["asi-review-risk"]="deny";
+assert(reviewDispatchFailures(denied,relayReviewAgents,plainProviderReviewAgents).length===0,"named deny review key treated as a grant");
+console.log("advisor/writer/wildcard/scalar/malformed controls passed");
+'''
+        )
+
+    def test_production_call_site_propagates_failures(self):
+        call = self.call_site()
+        self.assert_script(
+            "const runCallSite=(deployedAgents,fail)=>{" + call + "};\n"
+            'const bad=clone();\n'
+            'bad["pm-odd"].permission.task["asi-review-risk"]="allow";\n'
+            "const badFailures=[];\n"
+            "runCallSite(bad,(message)=>badFailures.push(message));\n"
+            'assert(badFailures.length===1&&badFailures[0]===\'REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: pm-odd.asi-review-risk="allow"\',`call site did not propagate: ${JSON.stringify(badFailures)}`);\n'
+            "const goodFailures=[];\n"
+            "runCallSite(clone(),(message)=>goodFailures.push(message));\n"
+            'assert(goodFailures.length===0,`valid call site rejected: ${JSON.stringify(goodFailures)}`);\n'
+            'console.log("production call site propagation controls passed");\n'
+        )
+
+    def test_always_pass_predicate_mutation_is_rejected(self):
+        predicate = self.predicate_source()
+        mutated = re.sub(r"return failures\s*\n\}", "return []\n}", predicate, count=1)
+        self.assertNotEqual(mutated, predicate, "always-pass predicate mutation did not apply")
+        result = self.run_script(
+            r'''
+const mutated=clone();
+mutated["pm-odd"].permission.task["asi-review-risk"]="allow";
+const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+assert(failures.length===1&&failures[0]==='REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: pm-odd.asi-review-risk="allow"',`always-pass predicate was not rejected: ${JSON.stringify(failures)}`);
+''',
+            predicate=mutated,
+        )
+        self.assertNotEqual(result.returncode, 0, "always-pass predicate satisfied the negative control")
+        self.assertIn("always-pass predicate was not rejected", result.stderr + result.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

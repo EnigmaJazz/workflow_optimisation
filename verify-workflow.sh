@@ -2856,6 +2856,8 @@ function hostReviewDiffReadFailures(name,agent) {
 // Orchestrator-only checks below keep fixed-host, tiny-fix and registration names.
 const pmAgents=["pm-odd","pm-systematic"]
 const coordinatorAgents=["gentle-orchestrator",...pmAgents]
+const relayReviewAgents=["asi-review-risk","asi-review-resilience","asi-review-readability","asi-review-reliability","asi-review-refuter","asi-review-validator"]
+const plainProviderReviewAgents=["review-risk","review-resilience","review-readability","review-reliability","review-refuter","review-validator"]
 for (const name of coordinatorAgents) {
   const agent=deployedAgents[name]
   if (!agent) { fail(`HOST_REVIEW_AGENT_MISSING: ${name}`); continue }
@@ -3087,6 +3089,56 @@ function coordinatorTaskGraphFailures(agents) {
   for (const name of ["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","explore"]) {
     const task=taskOf(name)
     if (task && typeof task==="object" && Object.values(task).some((value)=>value==="allow")) failures.push(`NON_COORDINATOR_TASK_DISPATCH: ${name}`)
+  }
+  return failures
+}
+// Q90 T3a2: one canonical raw task-map predicate for review dispatch. The
+// orchestrator owns the six relay lanes and denies the six plain lanes. Every
+// other agent must not grant a named relay/plain review lane, a partial glob
+// that overlaps one of those lanes, an allow wildcard, or a scalar allow. A
+// wildcard/scalar ask is also a grant except for the canonical frontend
+// coordinator, whose existing wildcard ask is preserved. This is a conservative
+// raw-map check, not a runtime permission resolver: cfgPerm does not model
+// inherited defaults or glob expansion.
+function reviewDispatchFailures(agents, relayReviewAgents, plainProviderReviewAgents) {
+  const failures=[]
+  const wildcardAskAllowed=(name)=>name==="frontend-dev-premium"
+  const protectedReviewLanes=[...relayReviewAgents,...plainProviderReviewAgents]
+  const globOverlapsReviewLane=(pattern,lane)=>{
+    let source="^"
+    for (const char of pattern) {
+      if (char==="*") source+=".*"
+      else if (char==="?") source+="."
+      else source+=char.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")
+    }
+    return new RegExp(source+"$").test(lane)
+  }
+  const orchestratorTask=agents?.["gentle-orchestrator"]?.permission?.task
+  if (!orchestratorTask || typeof orchestratorTask!=="object" || Array.isArray(orchestratorTask)) {
+    failures.push("ORCHESTRATOR_TASK_MAP_MISSING")
+  } else {
+    for (const name of relayReviewAgents) if (orchestratorTask[name]!=="allow") failures.push(`RELAY_TASK_NOT_ALLOWED: ${name}`)
+    for (const name of plainProviderReviewAgents) if (orchestratorTask[name]!=="deny") failures.push(`PLAIN_PROVIDER_REVIEW_TASK_NOT_DENIED: ${name}`)
+  }
+  for (const [agentName,agent] of Object.entries(agents??{})) {
+    if (agentName==="gentle-orchestrator") continue
+    const delegated=agent?.permission?.task
+    if (delegated===undefined) continue
+    if (delegated===null || typeof delegated!=="object" || Array.isArray(delegated)) {
+      if (delegated==="allow" || (delegated==="ask" && !wildcardAskAllowed(agentName))) failures.push(`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}="${delegated}"`)
+      else if (delegated!=="ask" && delegated!==false && delegated!=="deny") failures.push(`REVIEW_TASK_MAP_INVALID: ${agentName}`)
+      continue
+    }
+    for (const [target,value] of Object.entries(delegated)) {
+      if (target==="*") {
+        if (value==="allow" || (value==="ask" && !wildcardAskAllowed(agentName))) failures.push(`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.*="${value}"`)
+        else if (value!=="ask" && value!==false && value!=="deny") failures.push(`REVIEW_TASK_MAP_INVALID: ${agentName}.*`)
+        continue
+      }
+      const namedReviewLane=target.startsWith("asi-review-")||target.startsWith("review-")
+      if (!namedReviewLane && !protectedReviewLanes.some((lane)=>globOverlapsReviewLane(target,lane))) continue
+      if (value!=="deny" && value!==false) failures.push(`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.${target}="${value}"`)
+    }
   }
   return failures
 }
@@ -3402,17 +3454,20 @@ else {
   for (const name of ["frontend-dev","frontend-dev-premium"]) {
     if (task?.[name]!=="allow") fail(`FRONTEND_LANE_NOT_ALLOWED: ${name}`)
   }
-  const relayReviewAgents=["asi-review-risk","asi-review-resilience","asi-review-readability","asi-review-reliability","asi-review-refuter","asi-review-validator"]
-  const plainProviderReviewAgents=["review-risk","review-resilience","review-readability","review-reliability","review-refuter","review-validator"]
-  for (const name of relayReviewAgents) if (task?.[name]!=="allow") fail(`RELAY_TASK_NOT_ALLOWED: ${name}`)
-  for (const name of plainProviderReviewAgents) if (task?.[name]!=="deny") fail(`PLAIN_PROVIDER_REVIEW_TASK_NOT_DENIED: ${name}`)
-  for (const [agentName,agentConfig] of Object.entries(deployedAgents)) {
-    if (agentName==="gentle-orchestrator") continue
-    const delegated=cfgPerm(agentConfig,"task")
-    if (!delegated || typeof delegated!=="object") continue
-    if (delegated["*"]==="allow") fail(`RELAY_TASK_WILDCARD_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}`)
-    for (const relayName of relayReviewAgents) if (delegated[relayName]==="allow" && !agentName.startsWith("pm-")) fail(`RELAY_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.${relayName}`)
-  }
+  for (const failure of reviewDispatchFailures(deployedAgents,relayReviewAgents,plainProviderReviewAgents)) fail(failure)
+  const reviewDispatchOrchestratorTask={"*":"ask"}
+  for (const name of relayReviewAgents) reviewDispatchOrchestratorTask[name]="allow"
+  for (const name of plainProviderReviewAgents) reviewDispatchOrchestratorTask[name]="deny"
+  const reviewDispatchGrantProbe=reviewDispatchFailures({
+    "gentle-orchestrator":{permission:{task:reviewDispatchOrchestratorTask}},
+    "pm-odd":{permission:{task:{"*":"deny","asi-review-risk":"allow"}}},
+  },relayReviewAgents,plainProviderReviewAgents)
+  if (!reviewDispatchGrantProbe.includes('REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: pm-odd.asi-review-risk="allow"')) fail("REVIEW_DISPATCH_GRANT_POSITIVE_CONTROL_FAILED")
+  const reviewDispatchScalarProbe=reviewDispatchFailures({
+    "gentle-orchestrator":{permission:{task:reviewDispatchOrchestratorTask}},
+    "pm-odd":{permission:{task:"ask"}},
+  },relayReviewAgents,plainProviderReviewAgents)
+  if (!reviewDispatchScalarProbe.includes('REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: pm-odd="ask"')) fail("REVIEW_DISPATCH_SCALAR_POSITIVE_CONTROL_FAILED")
 
   const orchPrompt=typeof orch.prompt==="string" ? orch.prompt : ""
   for (const failure of hostToolPromptFailures(orchPrompt)) fail(failure)
