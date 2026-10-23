@@ -2611,37 +2611,6 @@
             "cache_read": 0.003
           }
         },
-        "deepseek-v4-pro": {
-          "name": "DeepSeek V4 Pro (New)",
-          "provider": {
-            "npm": "@ai-sdk/openai-compatible",
-            "api": "http://127.0.0.1:8788/v1"
-          },
-          "reasoning": true,
-          "tool_call": true,
-          "attachment": false,
-          "temperature": true,
-          "interleaved": {
-            "field": "reasoning_content"
-          },
-          "modalities": {
-            "input": [
-              "text"
-            ],
-            "output": [
-              "text"
-            ]
-          },
-          "limit": {
-            "context": 1000000,
-            "output": 384000
-          },
-          "cost": {
-            "input": 0.66,
-            "output": 1.98,
-            "cache_read": 0.022
-          }
-        },
         "glm-5.3-flash": {
           "name": "GLM-5.3-Flash",
           "provider": {
