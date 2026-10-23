@@ -1524,9 +1524,11 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   `114366b35651316e00c972f71f723b7804fcae4c`; metadata
   `dfbeb296af708f02151d7444d8d76431606abff6`. Final PM assessment completed at retained boundary
   `22132adc686629cceaa7b32e469c5ec10d009e2a`: medium/`under_budget`. T2 COMPLETE for
-  decisions/evidence (2026-10-23); T3a-T6 PLANNED. Tracker `odd/tasks/multi-agent-v2-queue.md`;
-  handover `docs/handoffs/2026-10-19-multi-agent-v2-workflow-config.md`. No deployment or native
-  review is claimed.
+  decisions/evidence (2026-10-23), metadata closed at `2f196b6`. T3a1 COMPLETE: source
+  `b89f5a00d0bc1412f672954aaa7c1810c7a34092`; native review `review-1ca5500bc130a1cf` approved
+  and acknowledged, authority burned. T3a2 PLANNED NEXT; T3b-T6 PLANNED. Tracker
+  `odd/tasks/multi-agent-v2-queue.md`; handover
+  `docs/handoffs/2026-10-19-multi-agent-v2-workflow-config.md`. No deployment is claimed.
 - **Prerequisites:** T1: none (owner authorization 2026-10-23). Q89 phase 1 is a completed, inert
   prerequisite; its tools are not live. Phases 2-4 remain external to this repository. The
   external `agent-sandbox-integration` host tools must be built and tested, and the remaining
@@ -1589,10 +1591,27 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     with no owner size exception and no intermediate guard-denies/skill-allows state. Host-tool
     built/tested, session and independence checks remain future implementation gates, NOT
     completed by T2.
-  - **T3a — orchestrator slice (PLANNED, high risk):** plan-draft tool, review dispatch and the
-    ask-gated `host_plan_write` permission; same three surfaces plus orchestrator `WORKFLOW.md`
-    lines. Owes pre-advice, post-advice, one independent verifier, ONE correction round and
-    native review after commit.
+  - **T3a — orchestrator slice (T3a1 COMPLETE, T3a2 PLANNED NEXT, high risk):** T3a1 bounded the
+    plan/test tools and ask-gated `host_plan_write` across the three policy surfaces plus
+    orchestrator `WORKFLOW.md`; source `b89f5a0`, 11 paths, 400 authored changed lines / 48,326
+    bytes; 77 focused tests plus Bun controls; native review `review-1ca5500bc130a1cf` (target
+    sha256:3bb686d938a115b6330bb81f9da519f06bab7c2562e74642e79ab4c5a6e6f271) approved, four
+    lenses acknowledged, authority burned; three informational/non-blocking reviewer claims
+    recorded below, no correction opened. T3a2 review-dispatch actor migration remains untouched
+    and owes the full high-risk gate.
+  - **T3a1 reviewer claims (informational/non-blocking; deferred follow-up, not endorsed or
+    implemented):** R4-1 resilience WARNING `verify-workflow.sh:2809-2817` (proof `:2836`) —
+    `host_test_run` has a grant sweep excluding only orchestrator but `host_plan_write` has no
+    equivalent verifier/Python/Bun sweep, so future non-orchestrator not-deny plan grants would
+    pass gates; existing PM plan-write asks are intentionally preserved by source scope. R4-2
+    resilience SUGGESTION `tests/test_review_pipeline_permissions.py:709-715` — `run_controls`
+    skips only `PermissionError`, and missing Bun falls back to `'bun'` and raises unhandled
+    `FileNotFoundError` instead of skipping. R2-001 readability SUGGESTION
+    `global-config/prompts/gentle-orchestrator/overlay.md:57` — "narrowly defined, pre-registered"
+    `host_test_run` qualifier names no registry, authority or allowed-test list, so maintainers
+    cannot determine the permitted set from the contract alone. `host_test_run` remains inert
+    until the host tool ships. No `minimax-m3.1-flash` promotion is attached to T3a1; that
+    substitution belongs to T3d.
   - **T3b — Planner slice (PLANNED, high risk):** advisor, evidence-agent and both gate-verdict
     permissions; same three surfaces plus Planner `WORKFLOW.md` lines.
   - **T3c — PM slice (PLANNED, high risk):** drop relay/advisor dispatch and set the GLM seat;
@@ -1613,6 +1632,21 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   `consumed=false`, `review_due=false`, 6 cumulative paths / 563 lines — cumulative source slice,
   NOT this unit's 206 lines and NOT the final metadata statistics. Final PM assessment completed
   medium/`under_budget`; boundary `22132ad` retained. This is not native review or approval.
+- **T3a1 evidence (2026-10-23):** source writer `ses_e9572b051ffexBxZRVrDekeEtA`; pre advisors
+  security `ses_e957e891bffeVQZBnoMD7HKtyq` (Sol) and integration
+  `ses_e957e890effeymwKzrfR3yBr7m` (Kimi); independent verifier
+  `ses_e9562bcafffeOQNeIGCxxCnel4` (Sol) executed 77 tests plus Bun controls and prompt/digest
+  checks; post advisors `ses_e9562bccdffeexMrjlOz20JrPa` (security) and
+  `ses_e9562bcc4ffeZ3GFFnyZBf71BD` (integration) before source commit; correction rounds 0.
+  Assembled orchestrator prompt 419 lines / 61,050 bytes SHA-256
+  `0cf8da259010ca402320756ef19aaa148b9706d8c93f31a535cd97684b767838`; verifier SHA-256
+  `9b10a8bee1873fd7adc2e23ecd68fb9f0bd2edf5a41eb2cffdbe6dd9cc865c29`. First-pass static
+  `aft_inspect` PARTIAL: seven diagnostics at unchanged Python sites (pre-existing, inferred), no
+  static-clean claim. Full verifier, runtime load, live consumer and tool enforcement are
+  host-only NOT run; no deploy. Readability attempt 1 was an incomplete-JSON transport refusal,
+  attempt 2 admitted; the rejected artifact
+  `.git/gentle-ai/rejected-results/review-1ca5500bc130a1cf/review-readability-1-42837fe6b897.json`
+  is transport evidence, not a finding.
 - **Resolved decisions and standing gates (2026-10-23):**
   (a) RESOLVED: handover item 8 — advice is evidence, the gate verdict is the approval act
       (decision 6);
@@ -1645,12 +1679,14 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   decisions; then T3a -> T3b -> T3c -> T3d actor slices -> T4 verifier/digest -> T5
   mirror/owner restart -> T6 behavioral probes/trial metrics. The queue revision was the
   owner-authorized planning exception and enabled no tool.
-- **Scope boundary:** T2 is planning/evidence only. Phases 2-4 are external; the unmerged
-  planner tier is only the Q91 placeholder. No `WORKFLOW.md`, `PLAN.md`, spec, config, guard or
-  skill edit is authorized before T3a, which is high risk and owes pre-advice, post-advice, one
-  independent verifier, ONE correction round and native review after commit.
-- **Pending gate:** the previous pending medium slice must close by explicit owner decision or
-  review before the next high-risk commit. Boundary `22132ad` is retained; no advance is claimed.
+- **Scope boundary (historical):** T2 was planning/evidence only; T3a1 has since landed. Phases
+  2-4 are external; the unmerged planner tier is only the Q91 placeholder. T3a2 is next, high
+  risk, and owes pre-advice, post-advice, one independent verifier, ONE correction round and
+  native review after commit.
+- **Slice closure and boundary:** prior medium slice `22132ad`..`2f196b6` is CLOSED by explicit
+  owner decision 2026-10-23; the boundary advanced to `2f196b6` BEFORE T3a1 source. That closure
+  is not native review of the prior slice. The current native-reviewed source boundary is
+  `b89f5a00d0bc1412f672954aaa7c1810c7a34092`; T3a2 is next and remains untouched.
 
 ### Q91. Planner tier (renumbered from the unmerged Q67 plan on docs/pm-planner-delegation, 9938cd1)
 - **Status:** PLANNED.
