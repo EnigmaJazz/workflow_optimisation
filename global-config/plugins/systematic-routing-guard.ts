@@ -46,6 +46,7 @@ import type { Plugin } from "@opencode-ai/plugin"
 import {
   ROUTE_STAGES,
   READ_ONLY_SPECIALIST_PATTERNS,
+  hasTinyFixDispatchMarker,
   isCoordinator,
   pmRequiredRouteSkill,
   stageMarkerNames,
@@ -256,6 +257,14 @@ async function appendRoutingLog(line: string): Promise<void> {
         // Reporting a logging failure must never fail the tool call.
       }
     }
+  }
+}
+
+function encodeObservationField(value: string): string {
+  try {
+    return encodeURIComponent(value)
+  } catch {
+    return "invalid"
   }
 }
 
@@ -810,6 +819,103 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
   const warnedConsole = new Set<string>()
   const reportedKeyStatuses = new Set<string>()
 
+  // Q72 tiny-fix: a scoped ONE-SHOT permit gated ONLY by the exact leading `[tiny-fix]`
+  // description token -- never an agent-name bypass and never a persisted key/marker. The
+  // dispatch is exempt for its own stage gates; a child is exempt only after its observed message
+  // agent matches the writer captured at dispatch. Nothing is written to the routing-key
+  // directory, so no state can leak into a later dispatch; the exemption reads only the child's
+  // own session ID (no ancestor walk).
+  const tinyFixPendingParents = new Map<string, { expectedAgent: string; expiry: number }>()
+  const tinyFixCandidates = new Map<string, { parentSessionID: string; expiry: number }>()
+  const tinyFixChildPermits = new Map<string, number>()
+  const childSessions = new Set<string>()
+  const observeAgentHooks = process.env.SYSTEMATIC_ROUTING_GUARD_OBSERVE_AGENT_HOOKS === "1"
+  const TINY_FIX_PERMIT_TTL_MS = 30 * 60 * 1000
+  /*
+<!-- workflow:anchor workflow.tiny-fix-tripwire:begin -->
+Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_FIX_MAX_TOUCHED_FILES, and the path-class denylist.
+<!-- workflow:anchor workflow.tiny-fix-tripwire:end -->
+*/
+  const TINY_FIX_MAX_AUTHORED_CHANGED_LINES = 20
+  const TINY_FIX_MAX_TOUCHED_FILES = 2
+  const TINY_FIX_DENYLIST_PATH_PATTERNS: readonly string[] = [
+    "verify-workflow.sh",
+    "global-config/opencode.json",
+    "global-config/systematic.jsonc",
+    "global-config/plugins/**",
+    "**/permissions/**",
+    "**/auth/**",
+    "**/crypto/**",
+    "**/public-api/**",
+  ]
+  const tinyFixEscalationRequired = (candidate: {
+    authoredChangedLines: number
+    touchedPaths: string[]
+    addedOrDeleted: boolean
+  }): boolean =>
+    candidate.authoredChangedLines > TINY_FIX_MAX_AUTHORED_CHANGED_LINES ||
+    candidate.touchedPaths.length > TINY_FIX_MAX_TOUCHED_FILES ||
+    candidate.addedOrDeleted ||
+    candidate.touchedPaths.some((path) => TINY_FIX_DENYLIST_PATH_PATTERNS.some((pattern) =>
+      pattern.startsWith("**/") ? path.includes(pattern.endsWith("/**") ? pattern.slice(3, -3) : pattern.slice(3)) :
+        pattern.endsWith("/**") ? path.startsWith(pattern.slice(0, -2)) : path === pattern,
+    ))
+
+  const normalizeTinyFixWriter = (agent: string): string => agent.toLowerCase().replace(/-(?:local|astra)$/, "")
+  const sweepTinyFixState = (): void => {
+    const now = Date.now()
+    for (const [parent, permit] of tinyFixPendingParents) if (permit.expiry <= now) tinyFixPendingParents.delete(parent)
+    for (const [child, candidate] of tinyFixCandidates) if (candidate.expiry <= now) tinyFixCandidates.delete(child)
+    for (const [child, expiry] of tinyFixChildPermits) if (expiry <= now) tinyFixChildPermits.delete(child)
+  }
+
+  const hasExecutableFileTripwire = (paths: string[], args: Record<string, unknown> | undefined): boolean => {
+    const scriptExtension = /\.(?:sh|bash|zsh|fish|py|pl|rb|js|mjs|cjs|ts|tsx|jsx|ps1|bat|cmd|exe|com|bin|jar|wasm)$/i
+    if (paths.some((path) => scriptExtension.test(path))) return true
+    if (!args) return false
+    const content = [args.content, args.newString, args.patch]
+      .filter((value): value is string => typeof value === "string")
+      .join("\\n")
+    return /(?:^|\n)(?:\+)?#!\s*\//.test(content)
+  }
+
+  const tinyFixPermitsSession = (sessionID: string): boolean => {
+    const expiry = tinyFixChildPermits.get(sessionID)
+    if (expiry === undefined) return false
+    if (expiry <= Date.now()) {
+      tinyFixChildPermits.delete(sessionID)
+      return false
+    }
+    return true
+  }
+
+  const registerTinyFixChild = (childSessionID: string, parentSessionID: string): void => {
+    sweepTinyFixState()
+    const permit = tinyFixPendingParents.get(parentSessionID)
+    if (!permit || permit.expiry <= Date.now()) return
+    tinyFixCandidates.set(childSessionID, { parentSessionID, expiry: permit.expiry })
+  }
+
+  const matchTinyFixCandidate = (childSessionID: string, observedAgent: unknown): void => {
+    sweepTinyFixState()
+    const candidate = tinyFixCandidates.get(childSessionID)
+    if (!candidate) return
+    const permit = tinyFixPendingParents.get(candidate.parentSessionID)
+    if (!permit || permit.expiry <= Date.now()) {
+      tinyFixCandidates.delete(childSessionID)
+      return
+    }
+    if (typeof observedAgent !== "string" || normalizeTinyFixWriter(observedAgent) !== normalizeTinyFixWriter(permit.expectedAgent)) {
+      tinyFixCandidates.delete(childSessionID)
+      return
+    }
+    // Consume synchronously before any await: only one matching child can win.
+    tinyFixPendingParents.delete(candidate.parentSessionID)
+    tinyFixCandidates.delete(childSessionID)
+    tinyFixChildPermits.set(childSessionID, Date.now() + TINY_FIX_PERMIT_TTL_MS)
+    void logObservedLine(`[systematic-routing-guard] tiny-fix permit extended to child session ${childSessionID} (parent: ${candidate.parentSessionID})`)
+  }
+
   const warn = async (tool: string, sessionID: string, failure: string): Promise<void> => {
     const warningKey = `${sessionID}\u0000${tool}\u0000${failure}`
     const toConsole = !warnedConsole.has(warningKey)
@@ -819,14 +925,53 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
 
   return {
     /**
+     * Q75 tiny-fix: session creation adds a parent-linked candidate but does not grant a permit.
+     * The candidate is granted only after chat.message reports the expected writer agent. This
+     * in-memory map is needed before child writes because the task-result hook runs too late.
+     */
+    event: async ({ event }) => {
+      if (event.type === "session.created") {
+        const info = (event as { properties?: { info?: { id?: unknown; parentID?: unknown } } }).properties?.info
+        if (typeof info?.id === "string") {
+          if (typeof info.parentID === "string") {
+            childSessions.add(info.id)
+            registerTinyFixChild(info.id, info.parentID)
+          } else {
+            childSessions.delete(info.id)
+          }
+        }
+      } else if (event.type === "session.deleted") {
+        const info = (event as { properties?: { info?: { id?: unknown } } }).properties?.info
+        if (typeof info?.id === "string") {
+          tinyFixChildPermits.delete(info.id)
+          tinyFixPendingParents.delete(info.id)
+          tinyFixCandidates.delete(info.id)
+          for (const [child, candidate] of tinyFixCandidates) {
+            if (candidate.parentSessionID === info.id) tinyFixCandidates.delete(child)
+          }
+          childSessions.delete(info.id)
+        }
+      }
+    },
+
+    /**
      * A new user message starts a new routing turn. State is kept per session,
      * so subagent sessions cannot clear or contaminate their parent's state.
      */
     "chat.message": async (input) => {
+      if (observeAgentHooks) {
+        const observedAgent = typeof input.agent === "string" && input.agent.length > 0
+          ? encodeObservationField(input.agent)
+          : "none"
+        await appendRoutingLog(
+          `[systematic-routing-guard] TEMP agent-hook hook=chat.message session=${encodeObservationField(input.sessionID)} agent=${observedAgent} child=${childSessions.has(input.sessionID)}`,
+        )
+      }
       activeBySession.delete(input.sessionID)
       lastKeyRefreshBySession.delete(input.sessionID)
       // The guard observes the message agent here; it is the latest observed value, not an
-      // authenticated session identity.
+      // authenticated session identity. A matching candidate consumes the tiny-fix permit.
+      matchTinyFixCandidate(input.sessionID, input.agent)
       await boxed(persistLatestMessageAgent(input.sessionID, input.agent))
     },
 
@@ -915,7 +1060,11 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
         }
 
         // The guard is project-blind: in a multi-project session, a marker cannot satisfy a stage for the other project. A true fix needs a verified session-project source.
-        if (FILE_MUTATING_TOOLS.has(input.tool) && paths && paths.length > 0) {
+        // A tiny-fix child session is exempt from the bootstrap stage gate for its own writes.
+        if (FILE_MUTATING_TOOLS.has(input.tool) && paths && paths.length > 0 && tinyFixPermitsSession(input.sessionID) && hasExecutableFileTripwire(paths, args)) {
+          await warn(input.tool, input.sessionID, `tiny-fix executable-file tripwire: ${paths.join(", ")} must escalate before apply`)
+        }
+        if (FILE_MUTATING_TOOLS.has(input.tool) && paths && paths.length > 0 && !tinyFixPermitsSession(input.sessionID)) {
           for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
             if (routeSkill !== "workflow-odd-secure") continue
             if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
@@ -935,6 +1084,10 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       }
 
       if (input.tool !== "task" || !args) return
+
+      // Q72 tiny-fix: recognize only the exact first description token, a supported Task-schema
+      // field; ordinary descriptions that mention a tiny fix do not arm the permit.
+      const tinyFixSignal = hasTinyFixDispatchMarker(args.description)
 
       // OpenCode's current task schema has no `model` argument. Preserve the
       // historical defensive normalization so a stale Systematic/Gentle prompt
@@ -965,7 +1118,22 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
       }
 
       const dispatchedType = typeof args.subagent_type === "string" ? args.subagent_type : null
-      if (mode !== "off" && dispatchedType && !isCoordinator(dispatchedType) && !isReadOnlySpecialist(dispatchedType)) {
+      const isWriterDispatch =
+        typeof dispatchedType === "string" &&
+        !isCoordinator(dispatchedType) &&
+        !isReadOnlySpecialist(dispatchedType)
+      const tinyFix = isWriterDispatch && tinyFixSignal
+
+      // Q72 tiny-fix: arm a one-shot permit for the first explicitly marked WRITER dispatch and
+      // skip every stage gate for that dispatch. A marker on a non-writer target arms nothing.
+      if (isWriterDispatch && tinyFix) {
+        if (dispatchedType) {
+          tinyFixPendingParents.set(input.sessionID, { expectedAgent: dispatchedType, expiry: Date.now() + TINY_FIX_PERMIT_TTL_MS })
+        }
+        await logObservedLine(`[systematic-routing-guard] tiny-fix permit consumed (session: ${input.sessionID}, target: ${dispatchedType})`)
+      }
+
+      if (mode !== "off" && isWriterDispatch && !tinyFix) {
         try {
           const boundAgent = await readLatestMessageAgent(input.sessionID)
           if (

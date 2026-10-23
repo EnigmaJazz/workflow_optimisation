@@ -2,9 +2,9 @@
 
 Scope: every sentence in the CURRENT prompt (`global-config/opencode.json` →
 `agent["gentle-orchestrator"].prompt`, sha256
-`c90727b3fc99ed1de2ff073685b435d58e6379668d92b3cad6644ea125d7b360`, 403 lines)
+`521796dfbfc71a125e49b8bbd8127de7197a491b12a0ea8bd942c29de64a046b`, 417 lines)
 containing MUST, NEVER, ALWAYS (case-insensitive, word boundary) or "hard rule".
-69 candidate sentences: **43 kept, 1 split, 10 superseded-by-base, 15
+72 candidate sentences: **46 kept, 1 split, 10 superseded-by-base, 15
 removed-by-design; zero unclassified.**
 
 Classification meanings:
@@ -79,9 +79,9 @@ wiring are produced by `global-config/prompts/gentle-orchestrator/assemble-orche
 | 56 | L494 | "You MUST follow strict-tdd.md." | removed-by-design | removed: SDD apply/verify launch instruction retired (Q31); generic TDD forwarding retained in overlay:user:secure-odd-protocol |
 | 57 | L503 | "The writer must update/merge the existing Magic Context record, preserving all prior completed tasks and evidence; never create a second active apply-progress record." | removed-by-design | removed: SDD apply-progress continuity retired (Q31) |
 | 58 | L515 | "Read-only requests end after findings; never create a tracker or delegate a writer." | kept | overlay:user:secure-odd-protocol |
-| 59 | L517 | "Update and read back both after each completed task or accepted scope change; never mark a task complete without observed checks." | kept | overlay:user:secure-odd-protocol |
+| 59 | L517 | "Update the repository tracker after each completed task or accepted scope change; never mark a task complete without observed checks." | kept | overlay:user:secure-odd-protocol |
 | 60 | L519 | "The orchestrator remains read-only for project files and execution: it delegates the track/write/check actions, never creates the tracker with native host tools." | kept | overlay:user:read-only-boundary |
-| 61 | L519 | "Systematic ce:review stays advisory when selected, and its helper pipeline must run in an authorized sandbox worker." | kept | overlay:user:review-boundary |
+| 61 | L519 | "Systematic ce:review remains advisory. Any helper mechanism must satisfy the configured invocation, bounded-input, artifact, authority, and unresolved-requirement contract." | kept | overlay:user:review-boundary |
 | 62 | L521 | "Never substitute the orchestrator for an implementation worker or for independent reviewer personas." | kept | overlay:user:always-delegate |
 | 63 | L527 | "For Magic Context-only mode, derive only from actual retrieved phase artifacts and never claim that native OpenSpec status inspected those records." | removed-by-design | removed: SDD/OpenSpec artifact backend retired (Q31); Magic Context is the only store |
 | 64 | L532 | "A fixed host operation never grants ordinary host Bash, project file editing, or sandbox mutation to the orchestrator." | kept | overlay:user:host-tools-relay |
@@ -90,6 +90,9 @@ wiring are produced by `global-config/prompts/gentle-orchestrator/assemble-orche
 | 67 | L534 | "Never grant relay lanes to implementation workers or isolated reviewers." | kept | overlay:user:review-boundary |
 | 68 | L534 | "Never use fallback session replay for either set because replay bypasses Task prompt injection." | kept | overlay:user:review-boundary |
 | 69 | L540 | "Always launch the three baseline reviewers (correctness, testing, project standards) and any candidate-specific reviewers selected by screening in the same independent wave." | kept | overlay:user:review-boundary |
+| 70 | L75 | "Until the deterministic host tool lands, mirror readback and tracker/mirror hash duties are suspended; the PM anchor uses only readable line count, last-line text, and feature-branch HEAD SHA, without claiming committed tracker-content equality." | kept | overlay:user:secure-odd-protocol + docs/specs/pm-handoff.md |
+| 71 | L197 | "`ce:review` substitutes for the post-code check and is never an extra cycle." | kept | overlay:user:advisory-lifecycle |
+| 72 | L197 | "Any human override is recorded separately; metadata or a new task ID never silently resets the counter." | kept | overlay:user:advisory-lifecycle |
 
 ## Structural coupling note
 

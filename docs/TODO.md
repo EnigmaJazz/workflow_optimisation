@@ -45,6 +45,7 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   than describe all three removal checks as outstanding or passed. See Q54, Q56 and Q58 below.
   Then Q57-Q60 and Q61. Q62 (retired-model list and seat-assignment reconciliation) is independently
   planned.
+- **Advisor capacity (owner, 2026-10-17; independent of the phases):** Q76.
 
 Every source change needs the deploy step: verifier mirror, then restart. Q27 waits on an owner
 decision.
@@ -563,9 +564,14 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   `odd/tasks/pm-layer.md`.
 
 ### Q55. PM layer: handoff contract, agents and writer
-- **Status:** IN PROGRESS. Implementation landed in commit `8980254`; Q54's check (c) now confirms
-  live `pm-probe` removal (see Q54). Q55's post-code advisory review is DONE; findings and open
-  decisions are recorded in `odd/tasks/pm-layer.md`.
+- **Status:** IN PROGRESS. Implementation landed in commit `8980254`. The contract-completeness and
+  unit-start branch-verification text landed in `docs/specs/pm-handoff.md` in commit `551b7d3`
+  (brief-in `feature_branch` field at `docs/specs/pm-handoff.md:7`; branch criterion/mechanism/PASS/
+  BLOCKED hazards at `:15`, ordered unit-start step at `:19`, and deterministic missing-artifact /
+  boundary / prerequisite BLOCKED procedures at `:28`). Q55's post-code advisory review is DONE;
+  findings and open decisions are recorded in `odd/tasks/pm-layer.md`. This closes the contract-text
+  gap, not the pilot: the later `pm-odd` bootstrap run, independent relay-delivery proof, remaining
+  smoke/deployment steps, and ten-unit pilot remain open under Q56.
 - **Prerequisites:** Q53.
 - **Description:** `docs/specs/pm-handoff.md`; `pm-odd`, `pm-systematic`, `pm-sdd` and
   `odd-apply` in `global-config/opencode.json`; PM prompts within budget; guard data
@@ -596,16 +602,25 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   count only after Q58's enforcement is live. Q58's review must be driven independently by the
   orchestrator or another coordinator, not by the implementing `pm-odd` session: the unit that
   establishes review independence must not itself be reviewed without it.
+- **Pilot smoke (2026-10-19):** one standalone tiny-fix unit completed end to end through `pm-odd` and returned `DONE`; implementation `47781da`, metadata `a104abc`; both assessments passive; orchestrator readback matched. This does not start the ten-unit count, which begins only after Q58's enforcement is live. Q59's implementation is not a Q56 pilot unit and earns no pilot credit; no new pilot validation is inferred.
+- **Counted unit 1/10 (2026-10-22):** Q85 ce:review pipeline host permissions — verified through pm-odd; route workflow-odd-secure; no route escape; source already complete; metadata commit 916a4f5e3291f42507bfb47b429bcea5c6d65e4c; assessment passive (3 paths / 33 lines, review_due=false). Owner count authorization on 2026-10-22 supersedes the earlier blocked-count timing for this unit; it does not assert that Q58 enforcement or broker runtime registration is live.
+- **Counted unit 2/10 (2026-10-22):** Q85a PM unit-start deterministic anchor — verified through pm-odd; route workflow-odd-secure; no route escape; source already complete; metadata commit 1ab7647be851e2930c23023c87daa42564086066; assessment passive (4 paths / 29 lines, review_due=false).
+- Counted unit 3/10 (2026-10-22): Q79 D/E mirror-write ownership — verified through pm-odd; route workflow-odd-secure; no route escape; source verified; metadata commit PENDING-COMMIT.
+- Counted unit 4/10 (2026-10-23): Q86 ce:review 16-parameter contract revision — SOURCE COMPLETE; route workflow-odd-secure; PM-dispatched `odd-apply`; source commit `83bdeeab3d9f3bf430c54d4ffbb00e097e1856cd`; PM accepted PM01–PM05; correction_rounds_used 1; source assessment medium / `under_budget` / `review_due=false` with boundary `77b4df8` retained; metadata closure PENDING-PM-COMMIT/assessment. Reviewer delivery and helper byte custody BOTH UNRESOLVED; ASTRA caller aliases OPEN. Process exceptions: orchestrator-run pre-advice `ses_e98032642ffeiI5jf9yzRYlKki` and post-code `ses_e97ed133effeHLcEpI7U9gAhhl` are not PM checks; no PM pre-advice compliance or clean/no-process-defect claim. No route escape claimed.
 
 ### Q57. PM layer: slim the orchestrator
 - **Status:** PLANNED.
 - **Prerequisites:** Q56. Coordinate with Q29c (user-owned orchestrator prompt).
+- **Cap status (owner 2026-10-19):** the numeric orchestrator cap is DEFERRED to this item; the
+  "about 8,000 characters" below is a planning target, not an enforced threshold. No threshold is
+  invented here and `docs/PLAN.md` is unchanged.
 - **Description:** new prompt (about 8,000 characters); `permission.task` deny by default with
   `explore` and `pm-*` allowed; host mutations removed except `host_register_project`; split
   `global-config/AGENTS.md`; update `WORKFLOW.md`, `workflow-route` and the adapters.
 
 ### Q58. PM layer: guard ordering
-- **Status:** DONE — all slices complete. Slice 1: `7a427d7`; direct-writer-dispatch warning: `d25228b`; advice-before-writer stage: `4b63481`; supporting routing-gate and breadcrumb fixes: `9c215b1`.
+- **Status:** SLICES COMPLETE AND SHIPPED; the `pm-odd` bootstrap run executed 2026-10-19 as `q58-bootstrap-advisory-clearance-u1` (task `q58-bootstrap`) and addressed the five advisory findings. Slice 1: `7a427d7`; direct-writer-dispatch warning: `d25228b`; advice-before-writer stage: `4b63481`; supporting routing-gate and breadcrumb fixes: `9c215b1`. Implementation commit `b3fba8dd6666af98cf6ba00d61eac425747b9f20` on `chore/q72-t1b-tiny-fix-contract` (six allowed paths, 66 insertions / 8 deletions; owner-supplied readback, not this writer's execution). The exact PM host assessment after that commit returned status 0 with empty stderr: `{"schema":"gentle-ai.review-assessment/v1","risk":"medium","reasons":[{"code":"executable_change","path":"tests/test_pm_handoff_spec.py"}],"changed_paths":6,"changed_lines":74,"candidate":{"kind":"base-diff","base_ref":"deab3b5b07c84c9adbd1ffe4f5b7ed02b8dd1422","consumed":false},"review_due":false,"review_due_reason":"under_budget"}`. No native review is DUE; the reviewed boundary remains `deab3b5b07c84c9adbd1ffe4f5b7ed02b8dd1422`, and the medium slice remains accumulated/pending — NOT passive, approved, or consumed; the external orchestrator drives any future native review. Independent relay-delivery proof remains UNVERIFIED and the bootstrap unit does not count toward the ten-unit pilot. Observed historical closure, scoped to metadata commit `905e347bd2dc25d814e576737bd9a53e1b948c1a` only and not a final result for any later correction commit: the final committed-candidate assessment was `medium` / `under_budget` / `review_due=false` with `changed_paths=6`, `changed_lines=94`, and `consumed=false`; the reviewed boundary was retained at `deab3b5b07c84c9adbd1ffe4f5b7ed02b8dd1422`; the medium slice remains accumulated/pending with no native review due; independent advisor Task `ses_eaa48d2e6ffeXfsGxfQXo4HFLk` inspected the METADATA candidate and returned no blockers before that metadata commit; the metadata receipt was 34 authored changed lines / 28470 bytes with no generated or binary paths; no approval claimed.
+- **Bootstrap run executed 2026-10-19:** `q58-bootstrap-advisory-clearance-u1` (task `q58-bootstrap`) cleared the five advisory contract/ledger findings in `docs/specs/pm-handoff.md`, `tests/test_tiny_fix_route.py`, `tests/test_pm_handoff_spec.py`, `ROUTER-LOG.md`, and this item; the dispositions and observed check outputs are in `odd/tasks/pm-layer.md`. No native review is due (`under_budget`); any future native review is external to the implementing writer, independent relay-delivery proof remains UNVERIFIED, and this bootstrap unit does not count toward the ten-unit pilot.
 - **Prerequisites:** Q55 and Q56 pilot evidence/caveats remain recorded above. The Q58 implementation, reviewability, and slice evidence are in `odd/tasks/pm-layer.md`. Q58 feeds Q28 (gating matrix).
 - **Description:** Slice 1 adds a warning-only check that PM coordinators hold their own route's
   adapter key before gated host mutations and any `host_review_*` call; inherited and wrong-route
@@ -616,9 +631,10 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   sufficient: it verifies that the PM loaded its route skill, not that the reviewer differs from
   the author. Require relay-delivery proof from a dispatch outside the coordinating PM session,
   with a genuine provider-issued binding; Q54 showed reachability only, not delivery. The PM itself
-  must not dispatch or prove its own relay delivery. Q58 may be executed through `pm-odd` as Q56's
-  bootstrap unit only (see Q56); its review must be driven independently, not by the implementing
-  `pm-odd` session.
+  must not dispatch or prove its own relay delivery. The `pm-odd` bootstrap run executed 2026-10-19
+  (see Status above), and the independent relay-delivery proof remains UNVERIFIED. Q58 ran through
+  `pm-odd` as Q56's bootstrap unit only (see Q56); its review must be driven independently, not by
+  the implementing `pm-odd` session.
 - **Open question — undecided:** each PM still holds `host_review_start` and review lifecycle
   tools, so a PM can start a review it cannot complete without relay lanes. Options:
   (a) the PM keeps `host_review_start` and another actor drives the lens; or
@@ -626,12 +642,51 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 - **Open external/upstream item — review relay deadline:** two review lenses expired with `reviewer_relay_deadline_expired: review relay deadline of 600000 ms expired` despite taking 16–19 minutes. The deadline is `RELAY_DEADLINE_MS = 600_000` at `~/.config/opencode/plugins/lib/reviewer-relay-core.ts:112`, overridable through `config.deadlineMs` at `:778` and `:1294`. That file is not tracked here (this repository tracks only `global-config/plugins/lib/routing-guard-helpers.ts`), and nothing in this repository sets the deadline. The fix belongs to the external plugin owner, not local Q58 work; details are in `odd/tasks/pm-layer.md`. New data point (2026-10-14): a resilience review lens needed 26m18s against the 600000 ms deadline; the owner permanently increased the relay timeout, and because that file is not tracked here the fix lives with the external plugin owner.
 
 ### Q59. PM layer: verifier
-- **Status:** PLANNED.
-- **Prerequisites:** Q55; easier after Q26 and Q04.
-- **Description:** replace the 23 single-name `gentle-orchestrator` checks with a coordinator
+- **Status:** **DONE (source + metadata); activation/deploy UNVERIFIED.** Implementation
+  `q59-pm-verifier-impl-u1` is COMPLETE and SOURCE-COMMITTED in five commits on `chore/q72-t1b-tiny-fix-contract` at
+  `41fbe77a7ba3214c340e610df935ff7fb73b62c0`: `58b1c8c` (S1), `44f22bd` (S2a), `4677915` (S2b),
+  `db85a6b` (S2c), `41fbe77` (S2d/e). Each source commit has an owner-relayed native review
+  APPROVED + ACKNOWLEDGED with authority burned: `review-87858bd36a02d266` (S1 + S2a),
+  `review-028c45784dd7c5b9` (S2b), `review-5bea3eacbe067a77` (S2c), `review-8bf653955b7f58f5`
+  (S2d/e). These are owner-supplied acknowledgements, not worker-produced evidence; no
+  acknowledgement token was independently read and no acknowledged source candidate is
+  re-reviewed. Observed before this M1 metadata edit: focused 7 Python modules 102 PASS; full
+  Python 228 PASS with no skips; routing-guard 104 pass / 0 fail / 254 expectations; direct JS
+  harness PASS; `bash -n`, `git diff --check` and pin regex PASS; 103 same-predicate controls
+  (91 rejections + 12 accepted); all 43 prompt metrics asserted (orchestrator 57167, PMs 2968 and
+  2982; PM cap <6000; numeric orchestrator cap DEFERRED to Q57). Current pin
+  `28ff39379aee7460bce784386e62c83bf5f51aea2b93074e2f35230fa299e7ad`; historical `57fdc56c...`,
+  `22aa96f9...` and `bdce2e68...` are HISTORICAL, not current. Activation/deploy is UNVERIFIED:
+  verifier mirror, service restart, full verifier, deploy and live probes are HOST-ONLY and NOT
+  RUN. Unit metadata closure is COMPLETE in the M2/final record; Q59 earns no Q56 pilot credit
+  and no deployment claim is made.
+  Tracker: `odd/tasks/q59-pm-verifier.md`.
+- **Prerequisites:** Q55; easier after Q26 and Q04. Q26 and Q04 are not hard blockers (owner:
+  Q04 is NOT a blocker); re-verify Q55 handoff acceptance at implementation start rather than
+  inferring it from aggregate status.
+- **Description:** replace the single-name `gentle-orchestrator` checks with a coordinator
   set that also asserts the PM identity surface; permission, depth and family-independence checks;
-  prompt-size budgets; behavioural probes through the orchestrator (Q51); digest re-pin. Q54's
-  identity on a permitted broker call is inferred because the broker echoes no identity.
+  prompt-size budgets; behavioural probes through the orchestrator (Q51); digest re-pin. The
+  historical "23" count is UNVERIFIED and is replaced by the tracker's line-numbered
+  inventory/classification. Owner decision (2026-10-19): all prompt sizes are measured
+  (`gentle-orchestrator=57167`, `pm-odd=2968`, `pm-systematic=2982`); the PM `<6000`-character cap
+  is enforced; the numeric orchestrator cap is deferred to Q57 ("about 8,000" is the planned
+  target, not an invented threshold). Corrected PM contract: the orchestrator alone keeps
+  `general`; both PMs dispatch a mid-unit tiny fix only to `odd-apply` or `gentle-ai-worker`
+  (DeepSeek), never `general`, and otherwise use their PM-authorized writer/verifier lanes (local
+  writer `kinver/professional`; verifier OpenAI Sol); strict declared maximum task keys reject an
+  unknown key whether `allow` or `deny`. Owner authorization for `global-config/opencode.json` is
+  limited to removing `general` from the two PM task maps; source commit1 also changed only the
+  two PM Tiny-fix sentences. Seven test modules were extended (six Python, one JS),
+  `test_anchor_manifest.py` ran unchanged, and the current pin is
+  `28ff39379aee7460bce784386e62c83bf5f51aea2b93074e2f35230fa299e7ad` (historical `57fdc56c...`,
+  `22aa96f9...` and `bdce2e68...` are superseded). Split source receipts: S1 253/32,732;
+  S2a 189/22,277; S2b 162/13,680; S2c 185/13,674; S2d/e 213/19,607. These five are the committed
+  source history, not a pending metadata SHA. Each commit was assessed immediately against its
+  prior boundary with `committedOnly=true`, and the now owner-supplied reviews closed the due
+  high-risk candidates. Config/prompt runtime is still not attested; full verifier, deploy and
+  live probes are HOST-ONLY and were NOT RUN. Q54's identity on a permitted broker call is inferred
+  because the broker echoes no identity.
 
 ### Q60. PM layer: model assignment
 - **Status:** PLANNED. Waits on the external model-assignment advice.
@@ -1210,6 +1265,200 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   This is OBSERVED (found 2026-10-14 by the Q69 worker); the correct fix (restore the include
   target, inline the intended prompt, or remove the include) is undecided and needs
   investigation.
+
+### Q71. PM-handoff prompt gaps (orchestrator brief schema + PM complete-memory read)
+- **Status:** PLANNED (source not yet written).
+- **Prerequisites:** none. Part of the Q56 pilot prerequisites.
+- **Source:** observed live `pm-odd` smoke tests 2026-10-15 (an incomplete `pm-unit-brief/v1`
+  rejected with `BRIEF_SCHEMA_INCOMPLETE`; a mirror-readback claim rejected with
+  `MIRROR_COMPLETE_READBACK_UNAVAILABLE`); tracker `odd/tasks/q71-pm-handoff-prompts.md`.
+- **Description:** teach the orchestrator prompt the `pm-unit-brief/v1` required-field list (via
+  `overlay.md`, assembled into `global-config/opencode.json:590`) and teach BOTH PM prompts
+  (`pm-odd` `:1921`, `pm-systematic` `:2041`) the `ctx_memory` `action: "get"` complete-read
+  mechanism, with a committed per-agent test and non-vacuous positive controls. Tracker:
+  `odd/tasks/q71-pm-handoff-prompts.md`.
+
+### Q72. Tiny-fix route (direct delegation, no PM, no tracker)
+- **Status:** PLANNED.
+- **Prerequisites:** none. Part of the PM-layer completion work on `chore/pm-layer-completion`.
+- **Source:** gentle-ai v4.2.0 INLINE boundary (PR #5530 / issue #5529) cannot map onto a read-only
+  orchestrator; tracker `odd/tasks/q72-tiny-fix-route.md`.
+- **Description:** add a tiny-fix route for genuinely tiny work (a few lines or a config value) as a
+  direct delegation with no PM, no ODD tracker, no advice record and no review slices, available to
+  the orchestrator and both PMs. T1 gives the routing guard a tiny-fix exemption (with a paired
+  non-vacuous test), adds `gentle-ai-worker` and `gentle-ai-verify` to both PM task allowlists, edits
+  the `WORKFLOW.md` `Tiny fix` row and its escalation-only backstop, aligns the three route skills,
+  adds the tiny-fix option to both PM prompts, and adds `tests/test_pm_task_allowlists.py`. Tracker:
+  `odd/tasks/q72-tiny-fix-route.md`.
+
+### Q73. Native-review slice cadence
+- **Status:** PLANNED (T0 tracker + advice + queue entry created; T1 pending). Tracker:
+  `odd/tasks/q73-review-slice-cadence.md`.
+- **Prerequisites:** none. Part of the PM-layer completion work on `chore/pm-layer-completion`.
+- **Source:** observed 2026-10-16 in this repo: medium-risk commits assess `under_budget` with
+  `review_due: false`, so the slice accumulates; a later high-risk commit makes the accumulation due
+  and `review start` refuses it with `lens_context_budget_exceeded` (`mutation_outcome: not_started`).
+  Tracker: `odd/tasks/q73-review-slice-cadence.md`.
+- **Description:** add a review-cadence rule (NOT a routing rule) to `WORKFLOW.md`,
+  `global-config/skills/workflow-odd-secure/references/odd-and-review.md` and
+  `global-config/skills/workflow-route/references/session-decisions.md`: close the accumulated
+  medium-risk slice BEFORE a high-risk commit lands, using `--base-ref <last reviewed boundary>`
+  scoped to the accumulated slice; forbid `baseRef=<previous commit>`; reject the upstream inline
+  path because the read-only orchestrator has no write capability. Pin the rule with `ANCHOR_TOKENS`
+  rows and a committed `tests/test_review_cadence.py` with a planted-wrong-prose positive control.
+  Full scope, constraints and acceptance criteria are in the tracker.
+
+### Q74. Tiny-fix writer model independence
+- **Status:** PLANNED.
+- **Prerequisites:** none. Part of the PM-layer completion work on `chore/pm-layer-completion`.
+- **Source:** owner decision 2026-10-15 narrows writer-model independence to the tiny-fix route, where
+  the orchestrator directly dispatches the writer; tracker `odd/tasks/q74-writer-model-independence.md`.
+- **Description:** re-point the tiny-fix writer from `gentle-ai-worker` (DeepSeek) to `general`
+  (`openai/gpt-6-luna`) across every route surface; add and pin the orchestrator↔tiny-fix-writer
+  independence clause; add `tests/test_model_independence.py` with a same-family positive control.
+  PM-dispatched writer work is already independent because PMs run `openai/gpt-6.1-sol` and dispatch
+  `odd-apply` (DeepSeek), so do not re-point those models. Record PM↔`gentle-ai-verify` Sol sharing
+  and Astra-alias collapse as waivers. Full scope, constraints and acceptance criteria are in the
+  tracker.
+
+### Q75. Tiny-fix permit race: bind the permit to the intended child
+- **Status:** PLANNED (T0 tracker + advice + queue entry created; T1 pending). Tracker:
+  `odd/tasks/q75-tiny-fix-permit-race.md`.
+- **Prerequisites:** none. Part of the PM-layer completion work on `chore/pm-layer-completion`.
+- **Source:** Q72 T1a review finding `R3-tiny-fix-permit-race`: the first `session.created` from a parent consumes its pending tiny-fix permit using only `parentID`; two independent pre-code advisors graded this a BLOCKER. See `odd/advice/q75-tiny-fix-permit-race.md`.
+- **Description:** bind the one-shot permit to the intended writer using a parent-keyed candidate set plus an observed child-agent match; normalize `-local` and `-astra` writer variants; cover non-writer-first sibling races and the PM-dispatched path. Resolve whether child `chat.message` events arrive with the agent, or fail closed. Preserve one-shot, TTL, own-session-only behavior and all five existing `1d` cases. Correct or cover Q72's erroneous claim that an Astra permit case exists at `tests/routing-guard/routing-guard.test.ts:1056-1061` (that range is the PM adapter alias test).
+
+### Q76. Gemini API advisor route (Antigravity substitute) and the Antigravity Argon/Flash split
+- **Status:** IMPLEMENTED on `feat/gemini-api-advisor-route` (Claude Code, at the owner's request,
+  2026-10-17). Tracker: `odd/tasks/q76-gemini-api-advisor-route.md`. Pending items:
+  - pre-code advice from the `advisor-*` lanes (owner dispatch from the OpenCode TUI);
+  - native review of the T1 commit on the `asi-review-*` lanes (`review assess`: high, review due);
+  - verifier mirror and restart.
+- **Prerequisites:** none. Stacked on `chore/pm-layer-completion` for Q72's allowlist test and the
+  advisor `noFallbackAgents` entries.
+- **Source:** owner request, 2026-10-17. Google API credits are a pool separate from the
+  Antigravity subscription, and Argon is now on that subscription too.
+- **Description:**
+  - In-OpenCode `advisor-gemini-pre`/`-post` (Argon, delegate-only) and `advisor-gemini-evidence`
+    (Flash, sandbox-only) supply Antigravity's half of the pair under the `gemini-api-substitute`
+    rule (`WORKFLOW.md`).
+  - The verifier checks this with `geminiAdvisorRouteFailures`; `tests/test_gemini_advisor_route.py`
+    runs that check against fixtures.
+  - Antigravity gets `argon_advisor` and `evidence_collector` custom agents through the
+    `changesets/q76-antigravity-agents` change set. See `docs/gemini-api-route.md`.
+
+### Q77. PM mirror readback under Magic Context 0.46
+- **Status:** PLANNED.
+- **Prerequisites:** none. Part of the PM-layer completion work on `chore/pm-layer-completion`.
+- **Source:** owner-confirmed Magic Context 0.46 subagent tool surface and two live `pm-odd` BLOCKED results (2026-10-17); tracker `odd/tasks/q77-pm-mirror-readback.md`.
+- **Description:** make `docs/specs/pm-handoff.md`'s mandatory tracker/mirror readback achievable without registering `ctx_memory` for subagents (removed by design). U1 adds `tracker_sha256` and `mirror_sha256` to the brief, has the PM hash the committed tracker file independently and compare it with the supplied tracker hash, specifies BLOCKED outcomes, records the comparison/method in the result envelope, preserves metadata-worker mirror-write ownership, and adds a schema test. U2 updates the orchestrator overlay, both PM prompts and regeneration chain. The live runtime falsifier is HOST-ONLY. Full scope and acceptance criteria: `odd/tasks/q77-pm-mirror-readback.md`.
+
+### Q78. host_review_materialize permission for the ce:review pipeline
+- **Status:** IN PROGRESS. T1 DONE-AT-SOURCE (commit `2800586`); native review `review-9acb2006667ef984` approved and acknowledged, authority burned. Metadata record and R4-002/R4-004 follow-ups are in progress.
+- **Prerequisites:** broker-side `host_review_materialize` registration and the `ce:review` helper unit in `agent-sandbox-integration`; until installed, the permission is inert.
+- **Source:** owner decision 2026-10-17; pre-code advice in `odd/advice/q78-host-review-materialize.md`.
+- **Description:** grant explicit `allow` under `permission` to `gentle-orchestrator`, `pm-odd`, and `pm-systematic`, with a global `deny` default; add the PM `tools` map entries where applicable; enforce the exception, exact per-agent grants, positive controls, and negative agent sweep in `verify-workflow.sh`; re-pin `VERIFY_SCRIPT_SHA256` last. This is the advisory `ce:review` helper path, not native `asi-review-*`. Full scope, constraints and checks: `odd/tasks/q78-host-review-materialize.md`.
+
+### Q79. Deterministic mirror-write ownership
+- **Status:** SOURCE/PREDICATE COMPLETE for D/E (2026-10-23); units A/B/C are source-complete but NOT natively reviewed. D/E source was present; execution checks: prompt-source 29 OK including the real extracted PY heredoc equality control, PM handoff 26 OK, PM layer 13 OK, anchor 11 OK (39 anchors/99 tokens), full Python 244 OK (zero failures/errors), `bash -n` rc 0, JSON parse rc 0; extracted D predicates produced the expected mismatch codes, and the actual E heredoc returned rc 0/5/2/1/4 for real/mutation/invalid-config/assembler-failure/timeout. Explicit limitation: extracted/stubbed predicate proof only; the full host verifier was NOT run, the live synthetic mirror falsifier is pending, the deterministic mirror tool is unimplemented, and mirror write/verification was NOT performed. The A/B/C native review gap remains OPEN. Q56 counted unit 3/10 (2026-10-22); metadata commit PENDING-COMMIT.
+- **Prerequisites:** none. Part of the PM-layer completion work on `chore/q72-t1b-tiny-fix-contract`.
+- **Source:** owner decision 2026-10-18: a DETERMINISTIC host tool owns tracker-mirror write and verify; explicitly retract Q77's metadata-worker ownership decision. Magic Context 0.46 removed `ctx_memory` from subagents by design.
+- **Description:** correct the contradictory `pm-handoff.md` ownership contract and `metadata_work_unit` envelope semantics; update the orchestrator overlay and its `## Key Learnings` chain, `WORKFLOW.md`, and `odd-and-review.md`; complete the seven-step prompt regeneration atomically; add the `ctx_note` residue guard, F13 embedded-prompt/assembler verifier check, correct `systematicMemoryPolicy`, and resolve the `explore` grant. If the deterministic host tool has not landed, record that mirror write is not performed rather than implying a successful write/readback. Explicitly retract Q77 in `CLAIM-RETRACTIONS.md`. Full scope and checks: `odd/tasks/q79-mirror-write-ownership.md`; pre-code advice: `odd/advice/q79-mirror-write-ownership.md`.
+
+### Q80. Guard: advisory-strategy unit C
+- **Status:** BLOCKED (resume after PM-layer completion).
+- **Prerequisites:** PM-layer completion (Q56-Q61).
+- **Source:** `odd/tasks/q72-tiny-fix-route.md:38` (currently listed only as out of scope); pre-code advisory findings recorded in the audit that identified this gap.
+- **Description:** GUARD work, to be resumed after the PM layer. Resolve the 12 advisory findings before implementation: (1) `ROUTE_STAGES` has no post-code stage; (2) `ce:review` replacing post-code advisors is not representable; (3) “end of ODD” does not survive the review-cadence slice rule; (4) warning-only enforcement implies a documentation-only obligation; (5) the verifier checks prose presence, not behaviour; (6) the external-lane skip clause cannot be recorded; (7) the on-demand clause has no decision criteria; (8) before-commit conflicts with end-of-ODD sequencing; (9) vacuous-pass traps require positive controls; (10) identify the tests and anchor rows to change; (11) reconcile ownership disagreement among `WORKFLOW.md`, `overlay.md`, and `pm-handoff.md`; (12) distinguish post-code advice from the staged reviewability receipt.
+
+### Q81. Guard: record skipped external-advisor use
+- **Status:** BLOCKED (resume after PM-layer completion; design required).
+- **Prerequisites:** PM-layer completion (Q56-Q61).
+- **Source:** `WORKFLOW.md:507-523,533`; the audit found no skip field in `odd/advice/**`, the brief schema, or the result envelope.
+- **Description:** Design how to record a SKIPPED external-advisor use. `selection.rule` currently names selection rules only, and a missing advice record is a blocked gate, never a silent skip; define and test an explicit skip representation and its required rationale/evidence rather than treating absence as skip.
+
+### Q82. Guard: add ODD post-code and review stages
+- **Status:** BLOCKED (resume after PM-layer completion).
+- **Prerequisites:** PM-layer completion (Q56-Q61); coordinate with Q28.
+- **Source:** `global-config/plugins/lib/routing-guard-helpers.ts:74-110` (`workflow-odd-secure` currently has `advice` and `tracker` stages); `docs/TODO.md` Q28:429-430; `odd/tasks/routing-guard-keys.md:114`.
+- **Description:** Add a post-code stage to ODD `ROUTE_STAGES` and make `ce:review` satisfy an ODD review stage where applicable. Q28 mentions a guard stage but no item owns it, and the `ce:review` half is unrecorded; reconcile this with the current description of ODD review as a CONTINUOUS STATE, not an artifact.
+
+### Q83. Guard: reconcile the three writer lists
+- **Status:** BLOCKED (resume after PM-layer completion).
+- **Prerequisites:** PM-layer completion (Q56-Q61); coordinate with Q28.
+- **Source:** `global-config/plugins/lib/routing-guard-helpers.ts:18-19` (`ODD_SPECIALIST_WRITERS`, 13 writers); `global-config/skills/workflow-odd-secure/SKILL.md:15` (names only `odd-apply`); `docs/specs/routing-guard-q03.md:46` (Q28 assignment by name).
+- **Description:** Enumerate and reconcile the guard's 13 `ODD_SPECIALIST_WRITERS`, the ODD route skill's `odd-apply` writer naming, and `pm-odd`'s task allowlist. Q28 assigned this drift by name, but no item records the three lists or their comparison.
+
+### Q84. Reconcile post-code advice sequencing drift
+- **Status:** BLOCKED (resume after PM-layer completion).
+- **Prerequisites:** PM-layer completion (Q56-Q61).
+- **Source:** `WORKFLOW.md:471,520`; `docs/specs/pm-handoff.md:23`; `global-config/prompts/gentle-orchestrator/overlay.md:199`.
+- **Description:** Reconcile the three normative surfaces: `WORKFLOW.md` and `pm-handoff.md` say post-code advice runs BEFORE the work-unit commit, while the orchestrator overlay says it runs against the COMMITTED implementation snapshot before the native review entry. Record the agreed sequence and keep all three surfaces consistent.
+
+### Q85. ce:review pipeline host permissions
+
+- **Status:** DONE for config, verifier and source verification. Broker-side registration and runtime effect remain unverified.
+- **Prerequisites:** broker-side registration of `host_review_pipeline_run` and `host_review_persist` must be confirmed before runtime effect is claimed.
+- **Source:** `odd/tasks/q80-review-pipeline-host-permissions.md`.
+- **Description:** Grant `host_review_pipeline_run: allow` and `host_review_persist: ask` to `gentle-orchestrator`, `pm-odd`, and `pm-systematic`; retain global `deny`, verifier enforcement, per-agent controls, PM tool-map coverage, and a negative sweep. No branch switch; owner-authorized counted-unit PM metadata commit (worker never commits).
+- **Verification (2026-10-22):** `python3 -m json.tool global-config/opencode.json` exit 0 (stderr empty); 43 agents total, three coordinators grant `allow`/`ask` as specified, remaining 40/40 permission maps inspected with zero explicit either key (offenders `[]`); `bun tests/test_review_pipeline_permissions.js` exit 0 with all extracted verifier assertions and reverted-fixture positive controls passing; `bash -n verify-workflow.sh` exit 0 (no output); `python3 -m unittest discover -s tests` exit 0 — 244 tests OK, zero failures/errors, no child `node` denial; verifier pin canonical literal and computed script SHA both `28ff39379aee7460bce784386e62c83bf5f51aea2b93074e2f35230fa299e7ad`; extracted `read_verify_script_pin` regex matches the real source plus single-quoted and double-quoted 64-hex fixtures; focused rerun `python3 -m unittest tests.test_orchestrator_prompt_source -v` exit 0 — `Ran 29 tests`, `OK`, zero failures/errors, including `test_verifier_script_pin_matches_its_own_regex` (no full-suite rerun; correction round 1/1, 2026-10-23); deployed plugin/pin not probed. Q56 counted unit 1/10 (2026-10-22); metadata commit 916a4f5e3291f42507bfb47b429bcea5c6d65e4c; assessment passive (3 paths / 33 lines, review_due=false). Broker registration remains a prerequisite for any runtime claim.
+
+### Q85a. PM unit-start deterministic anchor
+- **Status:** DONE (source already complete; no source change in the metadata verification unit `q85a-pm-verify-u1`; metadata commit 1ab7647be851e2930c23023c87daa42564086066; assessment passive (4 paths / 29 lines, review_due=false)). Current focused checks: PM handoff 26 OK; PM layer prompts 13 OK including 7 PositiveControls; orchestrator prompt source 29 OK; full Python suite `Ran 244` OK with zero failures/errors/skips; `bash -n verify-workflow.sh` and `python3 -m json.tool global-config/opencode.json` exit 0. Current prompt SHA-256 `521796dfbfc71a125e49b8bbd8127de7197a491b12a0ea8bd942c29de64a046b` (59,950 bytes); `74838e16cf689f8c3f862dc56d3d9dc22f925dab8b8dcabc4d849bf96a2dd2ac` is HISTORICAL, not current. The owner-authorized current-state lifecycle wording records that the applied source is present and verified, while the original `sandbox_finish`-before-`sandbox_apply` sequence is not independently re-verifiable from current artifacts. Q56 counted unit 2/10 (2026-10-22).
+- **Prerequisites:** Q79 deterministic host-tool mirror ownership contract.
+- **Description:** replace the PM's unavailable `tracker_sha256` comparison with a read-verified
+  tracker byte/character count, literal last-line text, and feature-branch HEAD SHA. Suspend hash
+  duties until the deterministic host tool lands; see `odd/tasks/q85-unit-start-anchor.md`.
+
+### Q86. Record the ce:review contract parameters
+- **Status:** IN PROGRESS — unit `q86-ce-review-contract-u1` (documentation) SOURCE COMPLETE at `83bdeeab3d9f3bf430c54d4ffbb00e097e1856cd`; PM accepted PM01–PM05; metadata closure PENDING-PM-COMMIT/assessment (assess from retained boundary `77b4df8f1955fb8bc9255c3cde6a7246be5fed87`). Open follow-ups remain; whole Q86 is not solved.
+- **Prerequisites:** none.
+- **Source:** external agent `agent-sandbox-integration` supplied the contract parameters for the
+  `ce:review` helper; tracker `odd/tasks/q86-ce-review-parameters.md`.
+- **Description:** current documentation contract revision (unit `q86-ce-review-contract-u1`):
+  sixteen NORMATIVE parameters with stable, named `CEV-*` refusal codes now live in `WORKFLOW.md`
+  and the tracker; every refusal names its code and the applicable field, cap, observed size, path,
+  or policy detail. Reviewer delivery and helper byte custody are BOTH UNRESOLVED; no mechanism is
+  selected or claimed solved. The ASTRA caller-alias question remains OPEN and uninvestigated. Q56
+  counted unit 4/10 (2026-10-23): source committed at `83bdeea`; PM accepted PM01–PM05;
+  correction_rounds_used 1; source assessment medium / `under_budget` / `review_due=false` with
+  boundary `77b4df8` retained. Metadata commit and assessment are PM-owned and pending. The
+  former reviewer-delivery RESOLVED claim is retracted in `CLAIM-RETRACTIONS.md`.
+- **Deferred follow-up (not this unit, not authorized executable work):** drift-guard test for the
+  contract codes; prerequisites are this contract revision and an explicit future code
+  authorization.
+
+### Q87. Finite verification budget by task type
+- **Status:** IN PROGRESS — SOURCE COMPLETE (U2a + U2b); deployment/live activation not performed.
+  Planning unit `q87-verification-budget-plan-u1` is complete. U2a
+  `q87-verification-budget-src-u1` is source-committed as
+  `30f76652d6fcdfe97999ffd87bff643cb8e964df` (7 paths, 389 authored lines, 67564 patch bytes);
+  owner decision 2026-10-21 advanced the source reviewed boundary to `30f7665` without native
+  review. U2b `q87-verification-budget-src-u2` is source-committed as
+  `5a8a8ab191bb5fcfcccdf810f1d46e003fc52ac5` (11 paths, +149/-7 = 156 changed lines; 154 authored
+  lines excluding the generated embedded-prompt hunk, 37667 authored patch bytes). Source
+  assessment: medium, under_budget, consumed=false, review_due=false at base `415009c...`; this is
+  not native review or approval and remains historical. Owner decision 2026-10-21 advanced the
+  reviewed boundary from `415009c` to `8437aa3`, the prior metadata/final HEAD at disposition,
+  closing the U2b medium slice without native review; `8437aa3` is not this metadata unit's
+  commit. Deployment and live activation are separate and were not performed. Tracker
+  `odd/tasks/verification-budget.md`; advice `odd/advice/verification-budget.md`.
+- **Prerequisites:** U2a source commit and its metadata closure; both are done. U2b records the
+  post-code static-diagnostic-order rule and the prompt/overlay scope. Folds Q88
+  (overlay/prompt generation) — Q88 is not a separate queue item and no new queue ID is created.
+- **Source:** owner directive 2026-10-21 (finite advice/verification by task type; static
+  diagnostics in the first post-code pass); Q59 cycle evidence; the Q84 post-code-sequencing drift.
+- **Description:** define 0/one/one pre-and-post phases plus an optional verifier by task type over
+  the existing six route classes; a per-unit maximum of one initial writer plus one correction
+  writer; a docs allowlist by actual diff that fails closed; and a `correction_rounds_used` recorder.
+  The local-tier writer takes exactly ONE changed file per writer Task while cloud writers may batch
+  a coherent multi-file unit. Subunits: `q87-verification-budget-plan-u1` (complete);
+  `q87-verification-budget-src-u1` (U2a, source committed `30f7665`); U2b
+  `q87-verification-budget-src-u2` (SOURCE COMPLETE `5a8a8ab`: `overlay.md`, assembled
+  `global-config/opencode.json`, prompt regeneration, `CURRENT_PROMPT_SHA256`, normative ledger,
+  `advisor-gemini-post` sequencing drift, and the post-code static-diagnostic-order clause in
+  `WORKFLOW.md`/`docs/specs/pm-handoff.md` plus overlay wording), folding Q88 and the Q84
+  sequencing fold with no new queue ID. Deployment/live activation remain separate.
 
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).

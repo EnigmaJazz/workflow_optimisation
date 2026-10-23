@@ -18,6 +18,10 @@ export type RouteStage = {
 const SPECIALIST_WRITERS: readonly string[] = ["general", "systematic-implementer", "frontend-dev", "frontend-dev-premium", "frontend-apply", "frontend-apply-local", "jd-fix-agent", "pr-comment-resolver", "bug-reproduction-validator", "design-iterator", "gentle-ai-worker", "gentle-ai-worker-local"]
 const ODD_SPECIALIST_WRITERS: readonly string[] = [...SPECIALIST_WRITERS, "odd-apply"]
 
+/** Only the exact leading description token can signal a tiny-fix Task dispatch. */
+export const hasTinyFixDispatchMarker = (description: unknown): boolean =>
+  typeof description === "string" && /^\[tiny-fix\](?:\s|$)/.test(description)
+
 /** PM coordinators are dispatch routers, never route-stage implementation writers. */
 export const COORDINATOR_PATTERNS: readonly RegExp[] = [/^pm-[a-z0-9-]+$/]
 
@@ -34,11 +38,19 @@ export const PM_ROUTE_ADAPTER_SKILLS: Readonly<Record<string, string>> = {
   "pm-systematic": "workflow-systematic",
 }
 
+/**
+ * Astra aliases are `<agent>-astra` (created at runtime by astra-sol-upgrade.ts), so a PM's
+ * Astra variant must bind to the SAME base adapter skill as the base PM identity.
+ */
+const ASTRA_SUFFIX = "-astra"
+
 /** The adapter skill a PM session must own, or null for any non-PM agent name. */
-export const pmRequiredRouteSkill = (agent: string): string | null =>
-  Object.prototype.hasOwnProperty.call(PM_ROUTE_ADAPTER_SKILLS, agent)
-    ? (PM_ROUTE_ADAPTER_SKILLS[agent] ?? null)
+export const pmRequiredRouteSkill = (agent: string): string | null => {
+  const base = agent.endsWith(ASTRA_SUFFIX) ? agent.slice(0, -ASTRA_SUFFIX.length) : agent
+  return Object.prototype.hasOwnProperty.call(PM_ROUTE_ADAPTER_SKILLS, base)
+    ? (PM_ROUTE_ADAPTER_SKILLS[base] ?? null)
     : null
+}
 
 // Anchored on purpose: under deny-by-default a loose match would let a writer through.
 export const READ_ONLY_SPECIALIST_PATTERNS: readonly RegExp[] = [

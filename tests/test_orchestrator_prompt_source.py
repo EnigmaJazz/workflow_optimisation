@@ -8,6 +8,7 @@ residue check is proven non-vacuous by a planted positive control.
 """
 
 import hashlib
+import json
 import re
 import subprocess
 import sys
@@ -24,8 +25,9 @@ LEDGER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "normative
 TEMPLATE = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstream" / "orchestrator.template.md"
 SECTIONS = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstream" / "odd-orchestrator-sections.md"
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
+CONFIG = ROOT / "global-config" / "opencode.json"
 
-CURRENT_PROMPT_SHA256 = "c90727b3fc99ed1de2ff073685b435d58e6379668d92b3cad6644ea125d7b360"
+CURRENT_PROMPT_SHA256 = "521796dfbfc71a125e49b8bbd8127de7197a491b12a0ea8bd942c29de64a046b"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
@@ -57,10 +59,45 @@ SIGNATURES = {
     "user:frontend-lane": "### Frontend / UI Lane and Premium Escalation",
 }
 
-FORBIDDEN_RESIDUE = ("engram", "mem_", "sdd-", "openspec", "/sdd")
+FORBIDDEN_RESIDUE = ("engram", "mem_", "ctx_note", "sdd-", "openspec", "/sdd")
 # Explicit allowlist of (term, allowed line substring, reason); empty by design.
 ALLOWED_RESIDUE = ()
 VALID_CLASSIFICATIONS = ("kept", "moved", "split", "superseded-by-base", "removed-by-design")
+STATIC_DIAGNOSTIC_SENTENCE = (
+    "The FIRST post-code verification pass runs on the SAME INITIAL candidate and includes the "
+    "required tests, the post-code advisor or `ce:review`, the verifier where the budget owes one, "
+    "and `aft_inspect` or applicable static diagnostics for every changed path. All findings join "
+    "the ONE correction batch. Running diagnostics for the first time only after correction is a "
+    "process defect."
+)
+ADVISORY_BUDGET_TERMS = (
+    "Finite verification and advice budget",
+    "six existing route classes",
+    "zero pre-advice",
+    "zero post-advice",
+    "one pre-advice phase",
+    "one post-code check",
+    "one independent verifier",
+    "Generated inherits source",
+    "`ce:review` substitutes",
+    "post-code-pair",
+    "same-candidate",
+    "simple-docs allowlist",
+    "ONE fresh correction",
+    "finding IDs",
+    "NEEDS_INPUT",
+    "BLOCKED",
+    "never silently resets",
+    "native correction",
+    "no PM advisor or verifier",
+    "exactly ONE changed file per writer Task",
+    "cloud writers may batch a coherent multi-file unit",
+    "FIRST post-code verification pass",
+    "SAME INITIAL candidate",
+    "aft_inspect",
+    "ONE correction batch",
+    "process defect",
+)
 
 HEADING_RE = re.compile(r"^#{1,6} ")
 BEGIN_RE = re.compile(r"^<!-- SECURE:BEGIN (?P<attrs>.*) -->$")
@@ -226,6 +263,13 @@ def scan_residue(text):
     return violations
 
 
+def advisory_budget_errors(text):
+    errors = ["missing advisory-budget term: " + term for term in ADVISORY_BUDGET_TERMS if term not in text]
+    if STATIC_DIAGNOSTIC_SENTENCE not in text:
+        errors.append("missing first-pass static-diagnostic sentence")
+    return errors
+
+
 class OrchestratorPromptSourceTests(unittest.TestCase):
     def test_base_renders_upstream_sources_without_placeholders(self):
         text = BASE.read_text(encoding="utf-8")
@@ -334,7 +378,7 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
 
         self.assertEqual(scan_residue(result.stdout), [], "assembled output must contain no forbidden residue")
 
-        planted = result.stdout + "\nCONTROL: engram mem_ sdd- openspec /sdd\n"
+        planted = result.stdout + "\nCONTROL: engram mem_ ctx_note sdd- openspec /sdd\n"
         planted_terms = {violation[0] for violation in scan_residue(planted)}
         self.assertEqual(
             planted_terms,
@@ -619,6 +663,139 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
         self.assertIn("{file:", result.stdout)
         self.assertIn("cannot replace this assembler", result.stdout)
         self.assertIn("UNVERIFIED", result.stdout)
+
+    def test_assembled_prompt_states_finite_budget_and_first_pass_diagnostics(self):
+        assembled = run_assembler()
+        self.assertEqual(assembled.returncode, 0, assembled.stderr)
+        self.assertEqual(advisory_budget_errors(assembled.stdout), [])
+        mutated = assembled.stdout.replace("SAME INITIAL candidate", "later candidate", 1)
+        self.assertTrue(
+            advisory_budget_errors(mutated),
+            "moving diagnostics off the initial candidate must fail the first-pass control",
+        )
+
+    def test_embedded_prompt_matches_assembler_and_sha_constant(self):
+        assembled = run_assembler()
+        self.assertEqual(assembled.returncode, 0, assembled.stderr)
+        config = json.loads(CONFIG.read_text(encoding="utf-8"))
+        embedded = config["agent"]["gentle-orchestrator"]["prompt"]
+        digest = hashlib.sha256(assembled.stdout.encode("utf-8")).hexdigest()
+        self.assertEqual(embedded, assembled.stdout, "embedded orchestrator prompt must equal assembler output")
+        self.assertEqual(digest, CURRENT_PROMPT_SHA256, "test constant must match assembled prompt sha256")
+        with tempfile.TemporaryDirectory() as tmp:
+            assembled_path = Path(tmp) / "gentle-orchestrator-prompt.md"
+            assembled_path.write_bytes(assembled.stdout.encode("utf-8"))
+            payload = assembled_path.read_bytes()
+        lines = payload.decode("utf-8").splitlines()
+        instruction_line = next(i for i, line in enumerate(lines, 1) if "Until the deterministic host tool for tracker-mirror write" in line)
+        baseline = subprocess.run(
+            ["git", "show", "HEAD:global-config/opencode.json"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        baseline_prompt = json.loads(baseline.stdout)["agent"]["gentle-orchestrator"]["prompt"]
+        baseline_payload = baseline_prompt.encode("utf-8")
+        print("assembled prompt: sha256=%s bytes=%d lines=%d instruction_line=%d; generated delta bytes=%+d lines=%+d" % (digest, len(payload), payload.count(bytes([10])), instruction_line, len(payload) - len(baseline_payload), payload.count(bytes([10])) - baseline_payload.count(bytes([10]))))
+
+    def test_pm_brief_uses_readable_anchor_without_claiming_committed_tracker_contents(self):
+        assembled = run_assembler()
+        self.assertEqual(assembled.returncode, 0, assembled.stderr)
+        for needle in (
+            "exact line count",
+            "exact last-line text",
+            "feature-branch `HEAD` commit SHA",
+            "does not establish that the tracker contents are committed",
+        ):
+            self.assertIn(needle, assembled.stdout)
+        self.assertNotIn("The ORCHESTRATOR includes `tracker_sha256`", assembled.stdout)
+        self.assertIn("Hash-based `tracker_sha256` and `mirror_sha256` duties are SUSPENDED", assembled.stdout)
+
+    def test_pm_brief_does_not_block_on_unimplemented_mirror_tool(self):
+        assembled = run_assembler()
+        self.assertEqual(assembled.returncode, 0, assembled.stderr)
+        self.assertIn("mirror readback is SUSPENDED", assembled.stdout)
+        self.assertIn("a missing mirror is NOT a blocker", assembled.stdout)
+        self.assertIn("Hash-based `tracker_sha256` and `mirror_sha256` duties are SUSPENDED", assembled.stdout)
+        self.assertIn("do not require or supply those values until that tool lands", assembled.stdout)
+
+    def test_embedded_prompt_verifier_has_real_bidirectional_equality_control(self):
+        verifier = (ROOT / "verify-workflow.sh").read_text(encoding="utf-8")
+        check = verifier.split("check_embedded_orchestrator_prompt() {", 1)[1].split("\n}", 1)[0]
+        self.assertIn("timeout=30", check)
+        self.assertIn("mutated = assembled +", check)
+        self.assertIn("if not matches(assembled):", check)
+        self.assertIn("if not matches(embedded):", check)
+        self.assertIn("ORCHESTRATOR_PROMPT_ASSEMBLER_FAILED", check)
+        self.assertIn("ORCHESTRATOR_PROMPT_CONFIG_INVALID", check)
+        self.assertIn("ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT", check)
+        self.assertIn('if [ "$RECOVERY_ONLY" -eq 0 ] && [ "${WORKFLOW_VERIFY_PLUGIN_LOADS_ONLY:-0}" != "1" ]', verifier)
+        python_block = check.split("<<'PY'\n", 1)[1].split("\nPY\n", 1)[0]
+        result = subprocess.run(
+            [sys.executable, "-c", python_block, str(ROOT)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=40,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_odd_readonly_probe_requires_route_skill_after_router(self):
+        verifier = (ROOT / "verify-workflow.sh").read_text(encoding="utf-8")
+        block = verifier.split("<<'PY_ODD_READONLY'\n", 1)[1].split("\nPY_ODD_READONLY", 1)[0]
+
+        def run(events):
+            with tempfile.TemporaryDirectory() as tmp:
+                events_path = Path(tmp) / "events.jsonl"
+                root = Path(tmp) / "probe"
+                root.mkdir()
+                events_path.write_text("\n".join(json.dumps(event) for event in events), encoding="utf-8")
+                return subprocess.run(
+                    [sys.executable, "-c", block, str(events_path), str(root)],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                )
+
+        router = {"part": {"tool": "skill", "state": {"input": {"name": "workflow-route"}}}}
+        odd = {"part": {"tool": "skill", "state": {"input": {"name": "workflow-odd-secure"}}}}
+        systematic = {"part": {"tool": "skill", "state": {"input": {"name": "workflow-systematic"}}}}
+        passed = run([router, odd])
+        self.assertEqual(passed.returncode, 0, passed.stdout + passed.stderr)
+        self.assertIn("planning-only request", passed.stdout)
+        # Mutation controls: the same predicate must reject a missing router, a
+        # missing, wrong, or wrong-order route adapter, and an extra unexpected
+        # workflow skill.
+        no_router = run([])
+        self.assertNotEqual(no_router.returncode, 0)
+        self.assertIn("ODD_ROUTER_SKILL_NOT_LOADED", no_router.stdout + no_router.stderr)
+        missing = run([router])
+        self.assertNotEqual(missing.returncode, 0)
+        self.assertIn("ODD_ROUTE_SKILL_NOT_LOADED", missing.stdout + missing.stderr)
+        wrong = run([router, systematic])
+        self.assertNotEqual(wrong.returncode, 0)
+        self.assertIn("ODD_ROUTE_SKILL_NOT_ASSIGNED", wrong.stdout + wrong.stderr)
+        order = run([odd, router])
+        self.assertNotEqual(order.returncode, 0)
+        self.assertIn("ODD_ROUTE_SKILL_ORDER", order.stdout + order.stderr)
+        unexpected = run([router, odd, systematic])
+        self.assertNotEqual(unexpected.returncode, 0)
+        self.assertIn("ODD_ROUTE_SKILL_UNEXPECTED", unexpected.stdout + unexpected.stderr)
+
+    def test_verifier_script_pin_matches_its_own_regex(self):
+        verifier = ROOT / "verify-workflow.sh"
+        plugin = ROOT / "global-config" / "plugins" / "workflow-health-check.ts"
+        verifier_text = verifier.read_text(encoding="utf-8")
+        function = verifier_text.split("read_verify_script_pin() {", 1)[1].split("\n}", 1)[0]
+        regex_literal = re.search(r"r'''(.*?)'''", function, re.DOTALL)
+        if regex_literal is None:
+            raise AssertionError("read_verify_script_pin regex literal must be present")
+        match = re.search(regex_literal.group(1), plugin.read_text(encoding="utf-8"), flags=re.MULTILINE)
+        if match is None:
+            raise AssertionError("workflow-health-check.ts must contain a pin matching the verifier regex")
+        script_sha = hashlib.sha256(verifier.read_bytes()).hexdigest()
+        self.assertEqual(match.group(2).lower(), script_sha)
+        print(f"verifier pin={match.group(2).lower()} actual={script_sha}")
 
     def test_normative_ledger_rows_are_classified(self):
         text = LEDGER.read_text(encoding="utf-8")

@@ -199,6 +199,56 @@ fail() {
   FAIL=1
 }
 
+check_embedded_orchestrator_prompt() {
+  local output status
+  output=$(python3 - "$WORKSPACE" <<'PY'
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+assembler = root / "global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py"
+config_path = root / "global-config/opencode.json"
+try:
+    result = subprocess.run([sys.executable, str(assembler)], cwd=root, capture_output=True, timeout=30)
+except subprocess.TimeoutExpired:
+    print("ORCHESTRATOR_PROMPT_ASSEMBLER_TIMEOUT: assembler exceeded 30 seconds")
+    raise SystemExit(4)
+if result.returncode != 0:
+    print("ORCHESTRATOR_PROMPT_ASSEMBLER_FAILED: " + result.stderr.decode("utf-8", errors="replace").strip())
+    raise SystemExit(1)
+try:
+    embedded = json.loads(config_path.read_text(encoding="utf-8"))["agent"]["gentle-orchestrator"]["prompt"]
+except (OSError, ValueError, KeyError, TypeError) as error:
+    print("ORCHESTRATOR_PROMPT_CONFIG_INVALID: " + str(error))
+    raise SystemExit(2)
+assembled = result.stdout.decode("utf-8")
+def matches(prompt):
+    return prompt == assembled
+if not matches(assembled):
+    print("ORCHESTRATOR_PROMPT_EQUALITY_CONTROL_FAILED: identical prompts did not match")
+    raise SystemExit(3)
+mutated = assembled + "\nCONTROL: mutated embedded prompt\n"
+if matches(mutated):
+    print("ORCHESTRATOR_PROMPT_INEQUALITY_CONTROL_FAILED: mutated prompt matched")
+    raise SystemExit(3)
+if not matches(embedded):
+    print("ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT: embedded prompt differs from assembler output")
+    raise SystemExit(5)
+PY
+  2>&1)
+  status=$?
+  if [ "$status" -eq 0 ]; then
+    echo "   ok: embedded orchestrator prompt matches assembler output; equality controls pass"
+  else
+    fail "$output"
+  fi
+}
+if [ "$RECOVERY_ONLY" -eq 0 ] && [ "${WORKFLOW_VERIFY_PLUGIN_LOADS_ONLY:-0}" != "1" ]; then
+  check_embedded_orchestrator_prompt
+fi
+
 plugin_check_failure() {
   local failure_policy="$1"
   shift
@@ -377,6 +427,7 @@ required_agents = {
     "advisor-testing-pre", "advisor-maintainability-pre",
     "advisor-design-post", "advisor-security-post", "advisor-integration-post",
     "advisor-testing-post", "advisor-maintainability-post",
+    "advisor-gemini-pre", "advisor-gemini-post", "advisor-gemini-evidence",
 }
 
 # These package identities are intentionally version-managed by the reviewed
@@ -909,9 +960,12 @@ cancel_start = "<!-- gentle-ai:subagent-cancellation -->"
 cancel_end = "<!-- /gentle-ai:subagent-cancellation -->"
 search_start = "<!-- user:grep-tool-enforcement -->"
 search_end = "<!-- /user:grep-tool-enforcement -->"
+sandbox_start = "<!-- gentle-ai:sandbox-tool-contract -->"
+sandbox_end = "<!-- /gentle-ai:sandbox-tool-contract -->"
 canonical_codegraph = canonical_block(codegraph_start, codegraph_end)
 canonical_cancel = canonical_block(cancel_start, cancel_end)
 canonical_search = canonical_block(search_start, search_end)
+canonical_sandbox = canonical_block(sandbox_start, sandbox_end)
 
 if target.is_file():
     try:
@@ -979,6 +1033,8 @@ try:
             new_text = new_text[:first] + new_text[first + len(cancel_end):]
     new_text = replace_marked(new_text, cancel_start, cancel_end,
                               canonical_cancel, "<!-- user:grep-tool-enforcement -->")
+    new_text = replace_marked(new_text, sandbox_start, sandbox_end,
+                              canonical_sandbox, search_start)
     new_text = replace_marked(new_text, search_start, search_end,
                               canonical_search, "<!-- user:workflow-routing -->")
     # gentle-ai v4 retired the host SDD runtime block. Converge the deployed
@@ -1731,8 +1787,8 @@ for (const category of categoriesInBundle) {
 
 const systematicMemoryPolicy = {
   workflow: "allow",
-  research: "allow",
-  design: "allow",
+  research: "deny",
+  design: "deny",
   review: "deny",
   "document-review": "deny",
 }
@@ -1911,8 +1967,12 @@ function normalizeModel(value) {
 // Provider aliases do not establish review independence: OpenAI and Go Luna
 // are the same family, as are direct and Go DeepSeek Flash.
 function modelFamily(value) {
-  const model=normalizeModel(value)?.split("/").slice(1).join("/").toLowerCase()
-  if (!model) return undefined
+  const normalized=normalizeModel(value)?.toLowerCase()
+  if (!normalized) return undefined
+  // Owner-confirmed Kinver model-family mapping; provider identity avoids
+  // misclassifying unrelated models that happen to use a generic model name.
+  if (normalized.startsWith("kinver/")) return "qwen"
+  const model=normalized.split("/").slice(1).join("/")
   if (/(^|\/)gpt-[0-9]/.test(model)) return "gpt"
   if (model.includes("deepseek")) return "deepseek"
   if (model.includes("glm-")) return "glm"
@@ -1924,6 +1984,19 @@ function modelFamily(value) {
   if (model.includes("grok")) return "grok"
   if (model.includes("gemini")) return "gemini"
   return undefined
+}
+function promptBudgetFailures(agents) {
+  const failures=[]
+  for (const [name,agent] of Object.entries(agents??{})) {
+    const prompt=agent?.prompt
+    if (typeof prompt!=="string") continue
+    // The owner's cap is characters, not UTF-16 code units, so astral text is
+    // measured by code point to agree with Python `len(prompt)`.
+    const size=Array.from(prompt).length
+    console.log(`   prompt-size: ${name}=${size}`)
+    if (name.startsWith("pm-") && size>=6000) failures.push(`PM_PROMPT_SIZE_CAP_EXCEEDED: ${name}=${size}`)
+  }
+  return failures
 }
 const debugCache = new Map()
 
@@ -2170,8 +2243,8 @@ for (const name of controlNames) {
   }
   const memoryExpected = {
     workflow: true,
-    research: true,
-    design: true,
+    research: false,
+    design: false,
     review: false,
     "document-review": false,
   }[agent.category]
@@ -2332,7 +2405,9 @@ if (genericRuntimeReady && ggaRuntimeReady && !distinct) {
 
 // Compare underlying families, not provider prefixes or exact model IDs.
 // A Go Luna fallback for OpenAI Luna does not create an independent reviewer.
-for (const [writer,reviewer] of [["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"]]) {
+// Q59: the dispatcher-to-writer pairs add the Sol PMs against their DeepSeek
+// writers; the existing orchestrator/general and worker/verifier pairs remain.
+for (const [writer,reviewer] of [["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"],["pm-odd","odd-apply"],["pm-systematic","gentle-ai-worker"]]) {
   for (const [surface,writerModel,reviewerModel] of [
     ["configured",deployedAgents[writer]?.model,deployedAgents[reviewer]?.model],
     ["runtime",readDebug(writer)?.model,readDebug(reviewer)?.model],
@@ -2708,8 +2783,8 @@ for (const [name,agent] of Object.entries(deployedAgents)) {
 for (const t of ["sandbox_apply","sandbox_apply_patch","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_edit","sandbox_finish","sandbox_write"]) if (gp[t]!=="deny") fail(`SANDBOX_MUTATION_DEFAULT_NOT_DENY: ${t}=${show(gp[t])}`)
 
 
-const registeredHostReads=["host_review_assess","host_review_mode_status","host_review_status","host_review_lens_context","host_sandbox_result"]
-const gatedHostMutations=["host_git_commit","host_git_push","host_gh_issue_create","host_plan_append","host_register_project","host_review_start","host_review_capture_result","host_review_capture_unachievable","host_review_acknowledge_approved","host_review_capture_correction_plan","host_review_capture_refuter","host_review_capture_validation","host_review_validate","host_review_recover","host_sandbox_result_install","host_git_clear_commit_intent"]
+const registeredHostReads=["host_review_mode_status","host_review_status","host_review_lens_context","host_sandbox_result"]
+const gatedHostMutations=["host_review_diff_read","host_git_commit","host_git_push","host_gh_issue_create","host_plan_append","host_register_project","host_review_start","host_review_materialize","host_review_pipeline_run","host_review_persist","host_review_capture_result","host_review_capture_unachievable","host_review_acknowledge_approved","host_review_capture_correction_plan","host_review_capture_refuter","host_review_capture_validation","host_review_validate","host_review_recover","host_sandbox_result_install","host_git_clear_commit_intent"]
 const retiredHostOperations=["host_sdd_verify_validate","host_sdd_attempt_status","host_sdd_attempt_acquire","host_sdd_attempt_begin","host_sdd_attempt_rescope","host_sdd_attempt_finish","host_sdd_attempt_reset","host_sdd_attempt_settle","host_sdd_attempt_grant","host_sdd_archive_compose","host_sdd_status","host_sdd_continue","host_sdd_task_result"]
 for (const name of registeredHostReads) if (gp[name]!=="allow") fail(`HOST_READ_PERMISSION_MISMATCH: ${name}`)
 for (const name of [...gatedHostMutations,...retiredHostOperations]) if (gp[name]!=="deny") fail(`HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY: ${name}`)
@@ -2717,6 +2792,254 @@ for (const name of ["host_system","host_service_status","host_service_logs","hos
 
 function cfgTool(agent,t) { return agent?.tools && typeof agent.tools==="object" ? agent.tools[t] : undefined }
 function cfgPerm(agent,t) { return agent?.permission && typeof agent.permission==="object" ? agent.permission[t] : undefined }
+function hostReviewAssessFailures(name,agent) {
+  const failures=[]
+  if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_assess") || agent.permission.host_review_assess!=="allow") failures.push(`HOST_REVIEW_ASSESS_NOT_ALLOW: ${name}`)
+  return failures
+}
+function hostReviewDiffReadFailures(name,agent) {
+  const failures=[]
+  if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_diff_read") || agent.permission.host_review_diff_read!=="allow") failures.push(`HOST_REVIEW_DIFF_READ_NOT_ALLOW: ${name}`)
+  return failures
+}
+// Q59 coordinator inventory: coordinator-generic checks use this shared set.
+// Orchestrator-only checks below keep fixed-host, tiny-fix and registration names.
+const pmAgents=["pm-odd","pm-systematic"]
+const coordinatorAgents=["gentle-orchestrator",...pmAgents]
+for (const name of coordinatorAgents) {
+  const agent=deployedAgents[name]
+  if (!agent) { fail(`HOST_REVIEW_AGENT_MISSING: ${name}`); continue }
+  for (const failure of hostReviewAssessFailures(name,agent)) fail(failure)
+  const omitted=hostReviewAssessFailures(`${name}-omitted`,{permission:{}})
+  if (!omitted.includes(`HOST_REVIEW_ASSESS_NOT_ALLOW: ${name}-omitted`)) fail(`HOST_REVIEW_ASSESS_OMITTED_POSITIVE_CONTROL_FAILED: ${name}`)
+  const mismatched=hostReviewAssessFailures(`${name}-mismatched`,{permission:{host_review_assess:"ask"}})
+  if (!mismatched.includes(`HOST_REVIEW_ASSESS_NOT_ALLOW: ${name}-mismatched`)) fail(`HOST_REVIEW_ASSESS_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
+}
+for (const name of coordinatorAgents) {
+  const agent=deployedAgents[name]
+  if (!agent) { fail(`HOST_REVIEW_AGENT_MISSING: ${name}`); continue }
+  for (const failure of hostReviewDiffReadFailures(name,agent)) fail(failure)
+  const omitted=hostReviewDiffReadFailures(`${name}-omitted`,{permission:{}})
+  if (!omitted.includes(`HOST_REVIEW_DIFF_READ_NOT_ALLOW: ${name}-omitted`)) fail(`HOST_REVIEW_DIFF_READ_OMITTED_POSITIVE_CONTROL_FAILED: ${name}`)
+  const mismatched=hostReviewDiffReadFailures(`${name}-mismatched`,{permission:{host_review_diff_read:"ask"}})
+  if (!mismatched.includes(`HOST_REVIEW_DIFF_READ_NOT_ALLOW: ${name}-mismatched`)) fail(`HOST_REVIEW_DIFF_READ_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
+}
+function hostReviewMaterializeFailures(name,agent) {
+  const failures=[]
+  if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_materialize") || agent.permission.host_review_materialize!=="allow") failures.push(`HOST_REVIEW_MATERIALIZE_NOT_ALLOW: ${name}`)
+  return failures
+}
+for (const name of coordinatorAgents) {
+  const agent=deployedAgents[name]
+  if (!agent) { fail(`HOST_REVIEW_MATERIALIZE_AGENT_MISSING: ${name}`); continue }
+  for (const failure of hostReviewMaterializeFailures(name,agent)) fail(failure)
+  const omitted=hostReviewMaterializeFailures(`${name}-omitted`,{permission:{}})
+  if (!omitted.includes(`HOST_REVIEW_MATERIALIZE_NOT_ALLOW: ${name}-omitted`)) fail(`HOST_REVIEW_MATERIALIZE_OMITTED_POSITIVE_CONTROL_FAILED: ${name}`)
+  const mismatched=hostReviewMaterializeFailures(`${name}-mismatched`,{permission:{host_review_materialize:"ask"}})
+  if (!mismatched.includes(`HOST_REVIEW_MATERIALIZE_NOT_ALLOW: ${name}-mismatched`)) fail(`HOST_REVIEW_MATERIALIZE_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
+}
+function hostReviewPipelineRunFailures(name,agent) {
+  const failures=[]
+  if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_pipeline_run") || agent.permission.host_review_pipeline_run!=="allow") failures.push(`HOST_REVIEW_PIPELINE_RUN_NOT_ALLOW: ${name}`)
+  return failures
+}
+function hostReviewPersistFailures(name,agent) {
+  const failures=[]
+  if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_persist") || agent.permission.host_review_persist!=="ask") failures.push(`HOST_REVIEW_PERSIST_NOT_ASK: ${name}`)
+  return failures
+}
+for (const name of coordinatorAgents) {
+  const agent=deployedAgents[name]
+  if (!agent) { fail(`HOST_REVIEW_AGENT_MISSING: ${name}`); continue }
+  for (const failure of hostReviewPipelineRunFailures(name,agent)) fail(failure)
+  for (const failure of hostReviewPersistFailures(name,agent)) fail(failure)
+  const pipelineOmitted=hostReviewPipelineRunFailures(`${name}-omitted`,{permission:{}})
+  if (!pipelineOmitted.includes(`HOST_REVIEW_PIPELINE_RUN_NOT_ALLOW: ${name}-omitted`)) fail(`HOST_REVIEW_PIPELINE_RUN_OMITTED_POSITIVE_CONTROL_FAILED: ${name}`)
+  const pipelineWrong=hostReviewPipelineRunFailures(`${name}-wrong`,{permission:{host_review_pipeline_run:"ask"}})
+  if (!pipelineWrong.includes(`HOST_REVIEW_PIPELINE_RUN_NOT_ALLOW: ${name}-wrong`)) fail(`HOST_REVIEW_PIPELINE_RUN_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
+  const persistOmitted=hostReviewPersistFailures(`${name}-omitted`,{permission:{}})
+  if (!persistOmitted.includes(`HOST_REVIEW_PERSIST_NOT_ASK: ${name}-omitted`)) fail(`HOST_REVIEW_PERSIST_OMITTED_POSITIVE_CONTROL_FAILED: ${name}`)
+  const persistWrong=hostReviewPersistFailures(`${name}-wrong`,{permission:{host_review_persist:"allow"}})
+  if (!persistWrong.includes(`HOST_REVIEW_PERSIST_NOT_ASK: ${name}-wrong`)) fail(`HOST_REVIEW_PERSIST_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
+}
+function hostReviewNewToolFailures(name,agent) {
+  const failures=[]
+  for (const tool of ["host_review_assess","host_review_diff_read","host_review_pipeline_run","host_review_persist"]) {
+    if (!agent?.tools || typeof agent.tools!=="object" || Array.isArray(agent.tools) || !Object.prototype.hasOwnProperty.call(agent.tools,tool) || agent.tools[tool]!==true) failures.push(`HOST_REVIEW_TOOL_NOT_ENABLED: ${name}.${tool}`)
+  }
+  return failures
+}
+for (const name of ["pm-odd","pm-systematic"]) {
+  const agent=deployedAgents[name]
+  if (!agent) { fail(`HOST_REVIEW_AGENT_MISSING: ${name}`); continue }
+  for (const failure of hostReviewNewToolFailures(name,agent)) fail(failure)
+  for (const tool of ["host_review_assess","host_review_diff_read","host_review_pipeline_run","host_review_persist"]) {
+    const omitted=hostReviewNewToolFailures(`${name}-omitted`,{tools:{}})
+    if (!omitted.includes(`HOST_REVIEW_TOOL_NOT_ENABLED: ${name}-omitted.${tool}`)) fail(`HOST_REVIEW_TOOL_OMITTED_POSITIVE_CONTROL_FAILED: ${name}.${tool}`)
+    const disabled=hostReviewNewToolFailures(`${name}-disabled`,{tools:{[tool]:false}})
+    if (!disabled.includes(`HOST_REVIEW_TOOL_NOT_ENABLED: ${name}-disabled.${tool}`)) fail(`HOST_REVIEW_TOOL_VALUE_POSITIVE_CONTROL_FAILED: ${name}.${tool}`)
+  }
+}
+function hostReviewMaterializeToolFailures(name,agent) {
+  const failures=[]
+  if (!agent?.tools || typeof agent.tools!=="object" || Array.isArray(agent.tools) || !Object.prototype.hasOwnProperty.call(agent.tools,"host_review_materialize") || agent.tools.host_review_materialize!==true) failures.push(`HOST_REVIEW_MATERIALIZE_TOOL_NOT_ENABLED: ${name}`)
+  return failures
+}
+for (const name of ["pm-odd","pm-systematic"]) {
+  const agent=deployedAgents[name]
+  if (!agent) { fail(`HOST_REVIEW_MATERIALIZE_AGENT_MISSING: ${name}`); continue }
+  for (const failure of hostReviewMaterializeToolFailures(name,agent)) fail(failure)
+  const omitted=hostReviewMaterializeToolFailures(`${name}-omitted`,{tools:{}})
+  if (!omitted.includes(`HOST_REVIEW_MATERIALIZE_TOOL_NOT_ENABLED: ${name}-omitted`)) fail(`HOST_REVIEW_MATERIALIZE_TOOL_OMITTED_POSITIVE_CONTROL_FAILED: ${name}`)
+  const disabled=hostReviewMaterializeToolFailures(`${name}-disabled`,{tools:{host_review_materialize:false}})
+  if (!disabled.includes(`HOST_REVIEW_MATERIALIZE_TOOL_NOT_ENABLED: ${name}-disabled`)) fail(`HOST_REVIEW_MATERIALIZE_TOOL_VALUE_POSITIVE_CONTROL_FAILED: ${name}`)
+}
+function hostReviewMaterializeGlobalDefaultFailures(value) {
+  return value==="deny" ? [] : [`HOST_REVIEW_MATERIALIZE_GLOBAL_DEFAULT_NOT_DENY: ${show(value)}`]
+}
+for (const failure of hostReviewMaterializeGlobalDefaultFailures(gp.host_review_materialize)) fail(failure)
+const hostReviewGlobalDefaultProbe=hostReviewMaterializeGlobalDefaultFailures("allow")
+if (!hostReviewGlobalDefaultProbe.includes('HOST_REVIEW_MATERIALIZE_GLOBAL_DEFAULT_NOT_DENY: "allow"')) fail("HOST_REVIEW_MATERIALIZE_GLOBAL_DEFAULT_POSITIVE_CONTROL_FAILED")
+else console.log("   ok: host_review_materialize global-default positive control detected allow")
+function hostReviewNewGlobalDefaultFailures(tool,value) {
+  return value==="deny" ? [] : [`HOST_REVIEW_GLOBAL_DEFAULT_NOT_DENY: ${tool}=${show(value)}`]
+}
+for (const tool of ["host_review_assess","host_review_diff_read","host_review_pipeline_run","host_review_persist"]) {
+  for (const failure of hostReviewNewGlobalDefaultFailures(tool,gp[tool])) fail(failure)
+  const probe=hostReviewNewGlobalDefaultFailures(tool,"allow")
+  if (!probe.includes(`HOST_REVIEW_GLOBAL_DEFAULT_NOT_DENY: ${tool}="allow"`)) fail(`HOST_REVIEW_GLOBAL_DEFAULT_POSITIVE_CONTROL_FAILED: ${tool}`)
+}
+function hostReviewPipelineRunExceptionFailures(gated,agent) {
+  const failures=[]
+  if (!gated.includes("host_review_pipeline_run") || cfgPerm(agent,"host_review_pipeline_run")!=="allow") failures.push(`ORCHESTRATOR_HOST_REVIEW_PIPELINE_RUN_EXCEPTION_NOT_ALLOW: ${show(cfgPerm(agent,"host_review_pipeline_run"))}`)
+  return failures
+}
+const pipelineExceptionOmitted=hostReviewPipelineRunExceptionFailures(gatedHostMutations.filter((name)=>name!=="host_review_pipeline_run"),{permission:{host_review_pipeline_run:"allow"}})
+if (!pipelineExceptionOmitted.includes('ORCHESTRATOR_HOST_REVIEW_PIPELINE_RUN_EXCEPTION_NOT_ALLOW: "allow"')) fail("HOST_REVIEW_PIPELINE_RUN_EXCEPTION_OMITTED_POSITIVE_CONTROL_FAILED")
+const pipelineExceptionWrong=hostReviewPipelineRunExceptionFailures(gatedHostMutations,{permission:{host_review_pipeline_run:"ask"}})
+if (!pipelineExceptionWrong.includes('ORCHESTRATOR_HOST_REVIEW_PIPELINE_RUN_EXCEPTION_NOT_ALLOW: "ask"')) fail("HOST_REVIEW_PIPELINE_RUN_EXCEPTION_VALUE_POSITIVE_CONTROL_FAILED")
+function hostReviewMaterializeExceptionFailures(gated,agent) {
+  const failures=[]
+  if (!gated.includes("host_review_materialize") || cfgPerm(agent,"host_review_materialize")!=="allow") failures.push(`ORCHESTRATOR_HOST_REVIEW_MATERIALIZE_EXCEPTION_NOT_ALLOW: ${show(cfgPerm(agent,"host_review_materialize"))}`)
+  return failures
+}
+const hostReviewExceptionOmitted=hostReviewMaterializeExceptionFailures(gatedHostMutations.filter((name)=>name!=="host_review_materialize"),{permission:{host_review_materialize:"allow"}})
+if (!hostReviewExceptionOmitted.includes('ORCHESTRATOR_HOST_REVIEW_MATERIALIZE_EXCEPTION_NOT_ALLOW: "allow"')) fail("HOST_REVIEW_MATERIALIZE_EXCEPTION_OMITTED_POSITIVE_CONTROL_FAILED")
+else console.log("   ok: host_review_materialize exception positive control detected omitted allow-list membership")
+const hostReviewExceptionWrong=hostReviewMaterializeExceptionFailures(gatedHostMutations,{permission:{host_review_materialize:"ask"}})
+if (!hostReviewExceptionWrong.includes('ORCHESTRATOR_HOST_REVIEW_MATERIALIZE_EXCEPTION_NOT_ALLOW: "ask"')) fail("HOST_REVIEW_MATERIALIZE_EXCEPTION_VALUE_POSITIVE_CONTROL_FAILED")
+else console.log("   ok: host_review_materialize exception positive control detected ask instead of allow")
+for (const [name,agent] of Object.entries(deployedAgents)) {
+  if (coordinatorAgents.includes(name)) continue
+  if (cfgPerm(agent,"host_review_materialize")==="allow") fail(`HOST_REVIEW_MATERIALIZE_GRANTED_OUTSIDE_ALLOWLIST: ${name}`)
+}
+const hostReviewSweepProbe={"synthetic-fourth-agent":{permission:{host_review_materialize:"allow"}}}
+const hostReviewSweepProbeFailures=Object.entries(hostReviewSweepProbe).filter(([,agent])=>cfgPerm(agent,"host_review_materialize")==="allow").map(([name])=>`HOST_REVIEW_MATERIALIZE_GRANTED_OUTSIDE_ALLOWLIST: ${name}`)
+if (!hostReviewSweepProbeFailures.includes("HOST_REVIEW_MATERIALIZE_GRANTED_OUTSIDE_ALLOWLIST: synthetic-fourth-agent")) fail("HOST_REVIEW_MATERIALIZE_SWEEP_POSITIVE_CONTROL_FAILED")
+else console.log("   ok: host_review_materialize negative-sweep positive control detected synthetic-fourth-agent")
+function hostReviewNewGrantSweepFailures(agents) {
+  const allowed=new Set(coordinatorAgents)
+  const failures=[]
+  for (const [name,agent] of Object.entries(agents??{})) {
+    if (allowed.has(name)) continue
+    for (const tool of ["host_review_assess","host_review_diff_read","host_review_pipeline_run","host_review_persist"]) {
+      if (agent?.permission && typeof agent.permission==="object" && Object.prototype.hasOwnProperty.call(agent.permission,tool)) failures.push(`HOST_REVIEW_NEW_GRANT_OUTSIDE_ALLOWLIST: ${name}.${tool}`)
+    }
+  }
+  return failures
+}
+for (const failure of hostReviewNewGrantSweepFailures(deployedAgents)) fail(failure)
+for (const tool of ["host_review_pipeline_run","host_review_persist"]) {
+  const probe=hostReviewNewGrantSweepFailures({"synthetic-fourth-agent":{permission:{[tool]:tool==="host_review_pipeline_run"?"allow":"ask"}}})
+  if (!probe.includes(`HOST_REVIEW_NEW_GRANT_OUTSIDE_ALLOWLIST: synthetic-fourth-agent.${tool}`)) fail(`HOST_REVIEW_NEW_GRANT_SWEEP_POSITIVE_CONTROL_FAILED: ${tool}`)
+}
+function pmIdentityFailures(agents,handoff) {
+  const failures=[]
+  const routes={"pm-odd":"workflow-odd-secure","pm-systematic":"workflow-systematic"}
+  const needles=["exactly one","Keep one unit per PM session","validate task class and route against the current `WORKFLOW.md`","Stop as `BLOCKED`","resume the same Task `task_id`","A report is a claim, never proof","docs/specs/pm-handoff.md"]
+  // Owner correction 2026-10-19: a PM's mid-unit tiny fix dispatches a named
+  // DeepSeek-family writer and never the orchestrator-only `general` lane.
+  const tinyFixInstruction="Tiny-fix option: mid-unit, for a genuinely tiny fix dispatch `odd-apply` or `gentle-ai-worker` (DeepSeek family), never `general`, and only within the brief's allowed paths."
+  const staleTinyFixInstruction="Tiny-fix option: mid-unit, you may dispatch `general` for a genuinely tiny fix only within the brief's allowed paths."
+  for (const [name,route] of Object.entries(routes)) {
+    const prompt=agents?.[name]?.prompt
+    if (typeof prompt!=="string") { failures.push(`PM_IDENTITY_PROMPT_MISSING: ${name}`); continue }
+    if (!prompt.includes(`Load \`${route}\` FIRST`)) failures.push(`PM_ROUTE_SKILL_NOT_LOADED_FIRST: ${name}`)
+    for (const needle of needles) if (!prompt.includes(needle)) failures.push(`PM_IDENTITY_NEEDLE_MISSING: ${name}: ${needle}`)
+    if (!prompt.includes(tinyFixInstruction)) failures.push(`PM_TINYFIX_WRITER_INSTRUCTION_MISSING: ${name}`)
+    if (prompt.includes(staleTinyFixInstruction)) failures.push(`PM_TINYFIX_STALE_GENERAL_INSTRUCTION: ${name}`)
+  }
+  if (typeof handoff!=="string" || !handoff) failures.push("PM_HANDOFF_CONTRACT_UNREADABLE")
+  else for (const needle of ["pm-unit-brief/v1","pm-unit-result/v1"]) if (!handoff.includes(needle)) failures.push(`PM_HANDOFF_SCHEMA_MISSING: ${needle}`)
+  const orchestratorPrompt=agents?.["gentle-orchestrator"]?.prompt
+  if (typeof orchestratorPrompt!=="string" || !orchestratorPrompt.includes("pm-unit-brief/v1") || !orchestratorPrompt.includes("docs/specs/pm-handoff.md")) failures.push("ORCHESTRATOR_BRIEF_CONTRACT_POINTER_MISSING")
+  return failures
+}
+{
+  let handoffText=""
+  if (!workspaceRootAvailable) fail("PM_HANDOFF_CONTRACT_UNREADABLE: workspace root unavailable")
+  else {
+    try { handoffText=fs.readFileSync(path.join(workspaceRoot,"docs/specs/pm-handoff.md"),"utf8") }
+    catch (error) { fail(`PM_HANDOFF_CONTRACT_UNREADABLE: ${error.message}`) }
+  }
+  for (const failure of pmIdentityFailures(deployedAgents,handoffText)) fail(failure)
+  for (const failure of coordinatorTaskGraphFailures(deployedAgents)) fail(failure)
+  for (const failure of promptBudgetFailures(deployedAgents)) fail(failure)
+}
+function coordinatorTaskGraphFailures(agents) {
+  const failures=[]
+  const pmRequired={
+    "pm-odd":["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","explore"],
+    "pm-systematic":["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","explore"],
+  }
+  // Strict per-PM MAXIMUM allowlist. A key outside this set is a grant even when
+  // its value is "deny"; only the declared named lanes may appear at all.
+  const pmMaximum={
+    "pm-odd":new Set([
+      "*","advisor-design-post","advisor-design-pre","advisor-gemini-post","advisor-gemini-pre",
+      "advisor-integration-post","advisor-integration-pre","advisor-maintainability-post",
+      "advisor-maintainability-pre","advisor-security-post","advisor-security-pre",
+      "advisor-testing-post","advisor-testing-pre","explore","gentle-ai-worker",
+      "gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","odd-apply",
+    ]),
+    "pm-systematic":new Set([
+      "*","advisor-design-post","advisor-design-pre","advisor-gemini-post","advisor-gemini-pre",
+      "advisor-integration-post","advisor-integration-pre","advisor-maintainability-post",
+      "advisor-maintainability-pre","advisor-security-post","advisor-security-pre",
+      "advisor-testing-post","advisor-testing-pre","bug-reproduction-validator",
+      "correctness-reviewer","explore","frontend-apply","frontend-apply-local","frontend-dev",
+      "frontend-dev-premium","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify",
+      "gentle-ai-verify-astra","project-standards-reviewer","repo-research-analyst",
+      "systematic-implementer","testing-reviewer",
+    ]),
+  }
+  const taskOf=(name)=>agents?.[name]?.permission?.task
+  const orchestratorTask=taskOf("gentle-orchestrator")
+  if (!orchestratorTask || typeof orchestratorTask!=="object" || Array.isArray(orchestratorTask)) failures.push("ORCHESTRATOR_TASK_MAP_MISSING")
+  else for (const pm of pmAgents) if (orchestratorTask[pm]!=="allow") failures.push(`COORDINATOR_PM_NOT_DISPATCHABLE: ${pm}`)
+  for (const [name,agent] of Object.entries(agents??{})) {
+    const task=agent?.permission?.task
+    if (!task || typeof task!=="object" || Array.isArray(task)) continue
+    for (const coordinator of coordinatorAgents) {
+      if (name==="gentle-orchestrator" && coordinator!=="gentle-orchestrator") continue
+      if (task[coordinator]==="allow") failures.push(`COORDINATOR_SELF_OR_DEEP_DISPATCH: ${name}.${coordinator}`)
+    }
+    // The tiny-fix `general` exception belongs to the orchestrator alone.
+    if (task["general"]==="allow" && name!=="gentle-orchestrator") failures.push(`GENERAL_DISPATCH_OUTSIDE_TINY_FIX: ${name}`)
+  }
+  for (const pm of pmAgents) {
+    const task=taskOf(pm)
+    if (!task || task["*"]!=="deny") failures.push(`PM_TASK_WILDCARD_NOT_DENIED: ${pm}`)
+    const allowed=pmMaximum[pm]
+    for (const key of Object.keys(task??{})) if (!allowed.has(key)) failures.push(`PM_TASK_GRANT_UNDECLARED: ${pm}.${key}`)
+    for (const required of pmRequired[pm]) if (task?.[required]!=="allow") failures.push(`PM_REQUIRED_DISPATCH_MISSING: ${pm}.${required}`)
+  }
+  for (const name of ["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","explore"]) {
+    const task=taskOf(name)
+    if (task && typeof task==="object" && Object.values(task).some((value)=>value==="allow")) failures.push(`NON_COORDINATOR_TASK_DISPATCH: ${name}`)
+  }
+  return failures
+}
 function reviewAgentLockdownFailures(name,agent) {
   const failures=[]
   if (!agent?.tools || typeof agent.tools!=="object" || Array.isArray(agent.tools)) {
@@ -2796,7 +3119,6 @@ for (const name of v4MutationTools) {
   if (cfgTool(deployedAgents["gentle-ai-verify"],name)!==false) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-verify.${name} must be false`)
 }
 
-const pmAgents=["pm-odd","pm-systematic"]
 const pmAndAgents=[...pmAgents]
 const pmNoExecutionTools=["sandbox_write","sandbox_edit","sandbox_apply_patch","sandbox_apply","sandbox_bash","sandbox_finish","sandbox_discard","sandbox_copy_in","sandbox_copy_out","bash","edit","write"]
 const pmNoSandboxReadTools=["sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"]
@@ -2849,7 +3171,92 @@ else {
   const pmTask=cfgPerm(deployedAgents["pm-odd"],"task")
   const orchestratorTask=cfgPerm(deployedAgents["gentle-orchestrator"],"task")
   if (pmTask?.["odd-apply"]!=="allow") fail(`ODD_APPLY_NOT_ALLOWED_TO_PM: pm-odd.odd-apply=${show(pmTask?.["odd-apply"])}`)
+  // Q59 correction: PMs keep only their named DeepSeek writers/verifiers. The
+  // orchestrator alone owns the `general` tiny-fix lane, so `general` must NOT
+  // be required (or granted) on either PM.
+  function pmGeneralDispatchFailures(name,task) {
+    return task?.["general"]==="allow" ? [`PM_GENERAL_DISPATCH_NOT_ALLOWED: ${name}`] : []
+  }
+  for (const pm of ["pm-odd","pm-systematic"]) {
+    const task=cfgPerm(deployedAgents[pm],"task")
+    for (const key of ["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra"]) {
+      if (task?.[key]!=="allow") fail(`TINY_FIX_AGENT_NOT_ALLOWED_TO_PM: ${pm}.${key}=${show(task?.[key])}`)
+    }
+    for (const failure of pmGeneralDispatchFailures(pm,task)) fail(failure)
+    const probe=pmGeneralDispatchFailures(`${pm}-positive-control`,{general:"allow"})
+    if (!probe.includes(`PM_GENERAL_DISPATCH_NOT_ALLOWED: ${pm}-positive-control`)) fail(`PM_GENERAL_DISPATCH_POSITIVE_CONTROL_FAILED: ${pm}`)
+  }
   if (orchestratorTask?.["odd-apply"]==="allow") fail("ODD_APPLY_ALLOWED_TO_ORCHESTRATOR")
+}
+
+// gemini-advisor-route:begin
+// Q76: the Argon advisors may only delegate to the Flash evidence gatherer, which keeps the
+// shared sandbox-only advisor surface. Only the orchestrator and the PMs dispatch the advisors;
+// no other agent may reach the gatherer. None of the three may fall back to another model.
+// The coordinator set is passed in so tests can execute this block in isolation.
+function geminiAdvisorRouteFailures(agents,fallback,coordinatorAgents) {
+  const out=[]
+  const advisors=["advisor-gemini-pre","advisor-gemini-post"]
+  const evidence="advisor-gemini-evidence"
+  const grants=new Set(["allow","ask"])
+  const hostRoutes=["edit","write","bash","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]
+  const asMap=(value)=>value && typeof value==="object" && !Array.isArray(value) ? value : {}
+  const sameMap=(value,expected)=>{
+    const actual=asMap(value)
+    return Object.keys(actual).length===Object.keys(expected).length && Object.entries(expected).every(([k,v])=>actual[k]===v)
+  }
+  for (const name of advisors) {
+    const a=agents?.[name]
+    if (!a || typeof a!=="object") { out.push(`GEMINI_ADVISOR_MISSING: ${name}`); continue }
+    if (a.model!=="google/gemini-4-argon") out.push(`GEMINI_ADVISOR_MODEL_MISMATCH: ${name}=${JSON.stringify(a.model)}`)
+    const tools=asMap(a.tools), perms=asMap(a.permission)
+    if (tools["*"]!==false || tools.task!==true) out.push(`GEMINI_ADVISOR_TOOL_SURFACE_MISMATCH: ${name}`)
+    for (const [t,v] of Object.entries(tools)) if (v===true && t!=="task") out.push(`GEMINI_ADVISOR_TOOL_EXPOSED: ${name}.${t}`)
+    for (const [t,v] of Object.entries(perms)) if (t!=="task" && grants.has(v)) out.push(`GEMINI_ADVISOR_TOOL_EXPOSED: ${name}.${t}`)
+    if (!sameMap(perms.task,{"*":"deny",[evidence]:"allow"})) out.push(`GEMINI_ADVISOR_TASK_SCOPE_MISMATCH: ${name}=${JSON.stringify(perms.task)}`)
+    if (perms.ctx_memory!=="deny") out.push(`GEMINI_ADVISOR_MEMORY_EXPOSED: ${name}`)
+  }
+  const gatherer=agents?.[evidence]
+  if (!gatherer || typeof gatherer!=="object") out.push(`GEMINI_EVIDENCE_MISSING: ${evidence}`)
+  else {
+    if (gatherer.model!=="google/gemini-3.8-flash") out.push(`GEMINI_EVIDENCE_MODEL_MISMATCH: ${evidence}=${JSON.stringify(gatherer.model)}`)
+    const tools=asMap(gatherer.tools), perms=asMap(gatherer.permission)
+    for (const t of hostRoutes) if (tools[t]===true || perms[t]!=="deny") out.push(`GEMINI_EVIDENCE_HOST_ROUTE_EXPOSED: ${evidence}.${t}`)
+    if (tools.task!==false || !sameMap(perms.task,{"*":"deny"})) out.push(`GEMINI_EVIDENCE_TASK_NOT_DENIED: ${evidence}`)
+    if (perms.ctx_memory!=="deny") out.push(`GEMINI_EVIDENCE_MEMORY_EXPOSED: ${evidence}`)
+  }
+  for (const dispatcher of coordinatorAgents) {
+    const task=asMap(asMap(agents?.[dispatcher]?.permission).task)
+    for (const name of advisors) if (task[name]!=="allow") out.push(`GEMINI_ADVISOR_NOT_DISPATCHABLE: ${dispatcher}.${name}`)
+  }
+  for (const [name,a] of Object.entries(asMap(agents))) {
+    if (advisors.includes(name)) continue
+    const task=a?.permission?.task
+    if (!task || typeof task!=="object" || Array.isArray(task)) continue
+    if (!coordinatorAgents.includes(name)) {
+      for (const advisor of advisors) {
+        const effectiveAdvisor=Object.prototype.hasOwnProperty.call(task,advisor) ? task[advisor] : task["*"]
+        if (effectiveAdvisor==="allow") out.push(`GEMINI_ADVISOR_DISPATCHABLE: ${name}.${advisor}='allow'`)
+      }
+    }
+    const effective=Object.prototype.hasOwnProperty.call(task,evidence) ? task[evidence] : task["*"]
+    if (effective!=="deny") out.push(`GEMINI_EVIDENCE_DISPATCHABLE: ${name}=${JSON.stringify(effective)}`)
+  }
+  const noFallback=Array.isArray(fallback?.noFallbackAgents) ? fallback.noFallbackAgents : []
+  for (const name of [...advisors,evidence]) if (!noFallback.includes(name)) out.push(`GEMINI_ADVISOR_FALLBACK_ALLOWED: ${name}`)
+  return out
+}
+// gemini-advisor-route:end
+{
+  let geminiFallback
+  try { geminiFallback=parseJsonc(fallbackPolicySourcePath) } catch { geminiFallback=undefined }
+  for (const failure of geminiAdvisorRouteFailures(deployedAgents,geminiFallback,coordinatorAgents)) fail(failure)
+  const controlFailures=geminiAdvisorRouteFailures({},{},coordinatorAgents)
+  if (!controlFailures.includes("GEMINI_ADVISOR_MISSING: advisor-gemini-pre") || !controlFailures.includes("GEMINI_EVIDENCE_MISSING: advisor-gemini-evidence")) {
+    fail(`GEMINI_ADVISOR_ROUTE_POSITIVE_CONTROL_FAILED: ${JSON.stringify(controlFailures)}`)
+  } else {
+    console.log("   ok: Gemini advisor route shape, dispatch scope and no-fallback policy")
+  }
 }
 
 const ordinaryMemoryAgents=new Set([
@@ -2865,6 +3272,7 @@ const isolatedMemoryAgents=new Set([
   "advisor-security-pre","advisor-maintainability-pre",
   "advisor-design-post","advisor-integration-post","advisor-testing-post",
   "advisor-security-post","advisor-maintainability-post",
+  "advisor-gemini-pre","advisor-gemini-post","advisor-gemini-evidence",
   "asi-review-risk","asi-review-resilience","asi-review-readability",
   "asi-review-reliability","asi-review-refuter","asi-review-validator",
 ])
@@ -2872,6 +3280,7 @@ const isolatedMemoryAgents=new Set([
 for (const [name,a] of Object.entries(deployedAgents)) {
   let expected
   if (isolatedMemoryAgents.has(name)) expected="deny"
+  else if (name === "explore") expected="deny"
   else if (ordinaryMemoryAgents.has(name)) expected="allow"
   else {
     fail(`MAGIC_CONTEXT_MEMORY_POLICY_UNCLASSIFIED_AGENT: ${name}`)
@@ -2917,7 +3326,10 @@ else {
   if (!configuredOrchestratorVariant) fail(`ORCHESTRATOR_VARIANT_NOT_EXPLICIT: ${show(orch.variant)}`)
   if (cfgPerm(orch,"edit")!=="deny" || cfgPerm(orch,"write")!=="deny") fail("ORCHESTRATOR_HOST_WRITE_NOT_DENIED")
   if (cfgPerm(orch,"bash")!=="deny") fail("ORCHESTRATOR_HOST_BASH_NOT_DENIED")
-  for (const name of gatedHostMutations) if (cfgPerm(orch,name)!=="ask") fail(`ORCHESTRATOR_HOST_TOOL_NOT_ASK: ${name}`)
+  for (const name of gatedHostMutations) if (name!=="host_review_start" && name!=="host_review_materialize" && name!=="host_review_pipeline_run" && name!=="host_review_diff_read" && cfgPerm(orch,name)!=="ask") fail(`ORCHESTRATOR_HOST_TOOL_NOT_ASK: ${name}`)
+  if (cfgPerm(orch,"host_review_start")!=="allow") fail(`ORCHESTRATOR_HOST_REVIEW_START_NOT_ALLOW: ${show(cfgPerm(orch,"host_review_start"))}`)
+  for (const failure of hostReviewMaterializeExceptionFailures(gatedHostMutations,orch)) fail(failure)
+  for (const failure of hostReviewPipelineRunExceptionFailures(gatedHostMutations,orch)) fail(failure)
   for (const name of retiredHostOperations) if (cfgPerm(orch,name)!=="deny") fail(`ORCHESTRATOR_RETIRED_HOST_TOOL_EXPOSED: ${name}`)
   if (cfgPerm(orch,"host_register_project")!=="ask") fail(`ORCHESTRATOR_HOST_REGISTER_PROJECT_NOT_ASK: ${show(cfgPerm(orch,"host_register_project"))}`)
   if (cfgTool(orch,"bash")===true || cfgTool(orch,"edit")===true || cfgTool(orch,"write")===true) fail("ORCHESTRATOR_LEGACY_HOST_TOOL_EXPOSED")
@@ -3075,7 +3487,7 @@ else {
     "ctx_search",
     "ctx_expand",
     "ctx_memory",
-    "Ordinary working agents may persist durable knowledge",
+    "The subagent returns learnings as text; the orchestrator persists only the evidence-backed durable ones via `ctx_memory`",
     "Isolated evaluation actors (review lanes, refuters, validators, judges) remain memory-write denied",
     "### Secure Project Registration",
     "`host_register_project`",
@@ -3244,9 +3656,10 @@ if (researcherRuntime) {
   for (const t of ["sandbox_bash","sandbox_edit","sandbox_write","sandbox_apply_patch","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]) {
     if (tool(researcherRuntime,t)!==false) fail(`RESEARCHER_RUNTIME_MUTATION_EXPOSED: ${t}`)
   }
-  for (const t of ["aft_inspect","aft_outline","aft_zoom","sandbox_read","sandbox_list","sandbox_grep","sandbox_diff","ctx_search","ctx_expand","ctx_memory"]) {
+  for (const t of ["aft_inspect","aft_outline","aft_zoom","sandbox_read","sandbox_list","sandbox_grep","sandbox_diff","ctx_search","ctx_expand"]) {
     if (tool(researcherRuntime,t)!==true) fail(`RESEARCHER_READ_OR_MEMORY_TOOL_MISSING: ${t}`)
   }
+  if (tool(researcherRuntime,"ctx_memory")!==false) fail("RESEARCHER_MEMORY_TOOL_EXPOSED: ctx_memory")
   const hostRegisterResearchPermission=permissionActionForWildcard(researcherRuntime,"host_register_project")
   if (hostRegisterResearchPermission!=="deny") {
     fail(`RESEARCHER_HOST_REGISTER_PROJECT_RUNTIME_NOT_DENY: ${show(hostRegisterResearchPermission)}`)
@@ -4474,6 +4887,12 @@ ANCHOR_MANIFEST=(
   "workflow.specialists.routing-precedence~$ROUTER_SKILLS_SOURCE/workflow-systematic/references/specialists.md~global-config/skills/workflow-systematic/references/specialists.md~systematic-implementer"
   "workflow.specialists.sandbox-mutation~$ROUTER_SKILLS_SOURCE/workflow-systematic/references/specialists.md~global-config/skills/workflow-systematic/references/specialists.md~sandbox_apply_patch"
   "workflow.agents.secure-router~$AGENTS_SOURCE~global-config/AGENTS.md~skill({name:\"workflow-route\"})"
+  "workflow.tiny-fix~$WORKFLOW~WORKFLOW.md~Tiny fix selects one delegated"
+  "workflow.tiny-fix-tripwire~$ROUTING_GUARD_SOURCE~systematic-routing-guard.ts~TINY_FIX_MAX_AUTHORED_CHANGED_LINES"
+  "workflow.tiny-fix-odd-route~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/SKILL.md~workflow-odd-secure tiny-fix route~Tiny-fix route:"
+  "workflow.tiny-fix-systematic-route~$ROUTER_SKILLS_SOURCE/workflow-systematic/SKILL.md~workflow-systematic tiny-fix route~Tiny-fix route:"
+  "workflow.tiny-fix-overlay~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~orchestrator inline boundary~Upstream's “small tasks stay inline” wording is NOT adopted"
+  "workflow.pm-brief-readback~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~PM brief tracker/mirror hashes~tracker_sha256"
 )
 ANCHOR_FAIL_BEFORE=${#FAIL_MESSAGES[@]}
 for anchor_row in "${ANCHOR_MANIFEST[@]}"; do
@@ -4492,12 +4911,22 @@ fi
 # mixed literal-checking scheme remains. See the classification rule above.
 ANCHOR_TOKENS=(
   # WORKFLOW.md
+  "workflow.tiny-fix~$WORKFLOW~WORKFLOW.md~Tiny fix selects one delegated writer per the dispatcher-specific selection in the Task Classes row"
+  "workflow.tiny-fix~$WORKFLOW~WORKFLOW.md~The one-way tripwire remains an escalation-only pre-install guard"
+  "workflow.tiny-fix-tripwire~$ROUTING_GUARD_SOURCE~systematic-routing-guard.ts~TINY_FIX_MAX_AUTHORED_CHANGED_LINES"
+  "workflow.route-skill.route-statement~$ROUTER_SKILLS_SOURCE/workflow-route/SKILL.md~workflow-route tiny-fix route~Tiny-fix route:"
+  "workflow.tiny-fix-odd-route~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/SKILL.md~workflow-odd-secure tiny-fix route~openai/gpt-6-luna"
+  "workflow.tiny-fix-systematic-route~$ROUTER_SKILLS_SOURCE/workflow-systematic/SKILL.md~workflow-systematic tiny-fix route~openai/gpt-6-luna"
+  "workflow.tiny-fix-overlay~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~orchestrator inline boundary~Upstream's “small tasks stay inline” wording is NOT adopted"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`authored_changed_lines\`"
+  "workflow.pm-brief-readback~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~PM brief tracker hash field~tracker_sha256"
+  "workflow.pm-brief-readback~$WORKSPACE/global-config/prompts/gentle-orchestrator/overlay.md~PM brief optional mirror hash~\`mirror_sha256\` is optional and must be absent"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`authored_patch_bytes\`"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`generated_or_binary_paths\`"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~400 authored changed lines and 100 KiB"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~200 KiB serialized per-runtime review-input budget"
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~\`review-size-exception\`"
+  "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~Close the open medium-risk slice before the next high-risk commit."
   "workflow.work-unit-review~$WORKFLOW~WORKFLOW.md~Do not leave the evidence update uncommitted"
   "workflow.project-registration~$WORKFLOW~WORKFLOW.md~host_register_project"
   "workflow.project-registration~$WORKFLOW~WORKFLOW.md~Fish shell"
@@ -4532,6 +4961,11 @@ ANCHOR_TOKENS=(
   "workflow.review-relay~$WORKFLOW~WORKFLOW.md~provider-issued task line verbatim"
   "workflow.execution-skills~$WORKFLOW~WORKFLOW.md~Systematic v3.18.4+"
   "workflow.execution-skills~$WORKFLOW~WORKFLOW.md~workflow-guard result is authoritative"
+  "workflow.execution-boundary~$WORKFLOW~WORKFLOW.md~The orchestrator must not dispatch a writer that shares its own model family."
+  "workflow.tiny-fix-odd-route~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/SKILL.md~workflow-odd-secure tiny-fix route~Temporary writer deviation (owner decision, 2026-10-17)"
+  "workflow.execution-boundary~$WORKFLOW~WORKFLOW.md~CLOUD or LOCAL tier"
+  "workflow.execution-boundary~$WORKFLOW~WORKFLOW.md~provided its model family differs from the orchestrator's"
+  "workflow.execution-boundary~$WORKFLOW~WORKFLOW.md~An unrecognized model family is NOT proven independent"
   "workflow.astra-escalation~$WORKFLOW~WORKFLOW.md~astra-sol-upgrade.ts"
   "workflow.astra-escalation~$WORKFLOW~WORKFLOW.md~selection never edits global config or requires an OpenCode restart"
   # global-config/skills/workflow-odd-secure/references/odd-and-review.md
@@ -4539,7 +4973,12 @@ ANCHOR_TOKENS=(
   "workflow.odd-and-review.odd-delegation~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~more than about 5 sequential lookups"
   "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~route/trigger evidence"
   "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~ODD_TASKS key=odd/{project}/{feature-name}/tasks"
+  "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~The orchestrator must not dispatch a writer that shares its own model family."
+  "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~CLOUD or LOCAL tier"
+  "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~provided its model family differs from the orchestrator's"
+  "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~An unrecognized model family is NOT proven independent"
   "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~400 authored changed lines and 100 KiB"
+  "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~Close the pending medium-risk slice before the next high-risk commit."
   "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~200 KiB serialized per-runtime review-input budget"
   "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~--base-ref <last reviewed boundary> --committed-only --json"
   "workflow.odd-and-review.work-unit-review~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~candidate.consumed"
@@ -4561,12 +5000,14 @@ ANCHOR_TOKENS=(
   "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~Forward the provider-issued task line verbatim"
   "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~two transports cannot own one Task"
   "workflow.odd-and-review.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~Never grant review lanes to implementation workers or isolated reviewers"
+  "workflow.odd-and-review.odd-protocol~$ROUTER_SKILLS_SOURCE/workflow-odd-secure/references/odd-and-review.md~global-config/skills/workflow-odd-secure/references/odd-and-review.md~executable-file class: a script/executable extension or content opening with a shebang"
   # global-config/skills/workflow-route/references/session-decisions.md
   "workflow.session-decisions.astra~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Use Astra upgrade (Recommended)"
   "workflow.session-decisions.astra~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Astra is never an implementation agent"
   "workflow.session-decisions.shell~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Fish shell"
   "workflow.session-decisions.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Forward the provider-issued task line verbatim"
   "workflow.session-decisions.4r-lanes~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~never grant review lanes to implementation workers or isolated reviewers"
+  "workflow.session-decisions.reviewability-budget~$ROUTER_SKILLS_SOURCE/workflow-route/references/session-decisions.md~global-config/skills/workflow-route/references/session-decisions.md~Close the accumulated medium-risk slice before the next high-risk commit."
   # global-config/skills/workflow-route/SKILL.md
   "workflow.route-skill.route-statement~$ROUTER_SKILLS_SOURCE/workflow-route/SKILL.md~global-config/skills/workflow-route/SKILL.md~basis: WORKFLOW.md"
   # global-config/AGENTS.md — checked against the reviewed SOURCE, never the deployed copy
@@ -5099,6 +5540,7 @@ import sys
 events = Path(sys.argv[1])
 root = Path(sys.argv[2])
 loaded_router = False
+skill_calls = []
 for line in events.read_text(encoding="utf-8", errors="replace").splitlines():
     try:
         event = json.loads(line)
@@ -5114,13 +5556,29 @@ for line in events.read_text(encoding="utf-8", errors="replace").splitlines():
     launch = state.get("input") or {}
     if not isinstance(launch, dict):
         launch = {}
-    if tool == "skill" and launch.get("name") == "workflow-route":
-        loaded_router = True
+    if tool == "skill" and isinstance(launch.get("name"), str):
+        skill_calls.append(launch["name"])
+        if launch["name"] == "workflow-route":
+            loaded_router = True
     if tool in {"sandbox_write","sandbox_edit","sandbox_apply_patch","sandbox_bash","sandbox_apply","write","edit","bash","host_plan_append","host_review_start","host_register_project"} or (tool == "task" and launch.get("subagent_type") not in {"explore"}):
         print(f"   !! ODD_READ_ONLY_MUTATION_OR_WRITER: tool={tool} agent={launch.get('subagent_type')}")
         raise SystemExit(1)
 if not loaded_router:
     print("   !! ODD_ROUTER_SKILL_NOT_LOADED: expected native skill(workflow-route) call")
+    raise SystemExit(1)
+route_skills = [name for name in skill_calls if name.startswith("workflow-") and name != "workflow-route"]
+assigned_route = "workflow-odd-secure"
+if not route_skills:
+    print("   !! ODD_ROUTE_SKILL_NOT_LOADED: expected the assigned workflow-odd-secure route adapter after workflow-route")
+    raise SystemExit(1)
+if assigned_route not in route_skills:
+    print(f"   !! ODD_ROUTE_SKILL_NOT_ASSIGNED: expected {assigned_route}, observed {route_skills!r}")
+    raise SystemExit(1)
+if skill_calls.index("workflow-route") > skill_calls.index(assigned_route):
+    print("   !! ODD_ROUTE_SKILL_ORDER: workflow-route must load before the assigned route adapter")
+    raise SystemExit(1)
+if route_skills != [assigned_route]:
+    print(f"   !! ODD_ROUTE_SKILL_UNEXPECTED: expected only {assigned_route}, observed {route_skills!r}")
     raise SystemExit(1)
 if (root / "odd" / "tasks").exists():
     print("   !! ODD_READ_ONLY_TRACKER_CREATED: odd/tasks exists in probe")
