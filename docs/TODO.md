@@ -606,6 +606,7 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 - **Counted unit 1/10 (2026-10-22):** Q85 ce:review pipeline host permissions — verified through pm-odd; route workflow-odd-secure; no route escape; source already complete; metadata commit 916a4f5e3291f42507bfb47b429bcea5c6d65e4c; assessment passive (3 paths / 33 lines, review_due=false). Owner count authorization on 2026-10-22 supersedes the earlier blocked-count timing for this unit; it does not assert that Q58 enforcement or broker runtime registration is live.
 - **Counted unit 2/10 (2026-10-22):** Q85a PM unit-start deterministic anchor — verified through pm-odd; route workflow-odd-secure; no route escape; source already complete; metadata commit 1ab7647be851e2930c23023c87daa42564086066; assessment passive (4 paths / 29 lines, review_due=false).
 - Counted unit 3/10 (2026-10-22): Q79 D/E mirror-write ownership — verified through pm-odd; route workflow-odd-secure; no route escape; source verified; metadata commit PENDING-COMMIT.
+- Counted unit 4/10 (2026-10-23): Q86 ce:review 16-parameter contract revision — IN PROGRESS; route workflow-odd-secure; PM-dispatched `odd-apply`; docs revision PENDING-COMMIT; reviewer delivery and helper byte custody BOTH UNRESOLVED; ASTRA caller aliases OPEN; no route escape claimed.
 
 ### Q57. PM layer: slim the orchestrator
 - **Status:** PLANNED.
@@ -1410,14 +1411,20 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   duties until the deterministic host tool lands; see `odd/tasks/q85-unit-start-anchor.md`.
 
 ### Q86. Record the ce:review contract parameters
-- **Status:** PLANNED.
+- **Status:** IN PROGRESS — contract revision PENDING-COMMIT (unit `q86-ce-review-contract-u1`, documentation).
 - **Prerequisites:** none.
 - **Source:** external agent `agent-sandbox-integration` supplied the contract parameters for the
   `ce:review` helper; tracker `odd/tasks/q86-ce-review-parameters.md`.
-- **Description:** revise our use of the `ce:review` route against the supplied parameters, resolve
-  the REVIEWER DELIVERY and HELPER SOURCE requirements without assuming mechanisms, and check
-  whether the ASTRA caller aliases inherit or need explicit grants. This entry records the plan
-  input only; it does not redesign or implement the parameters.
+- **Description:** current documentation contract revision (unit `q86-ce-review-contract-u1`):
+  sixteen NORMATIVE parameters with stable, named `CEV-*` refusal codes now live in `WORKFLOW.md`
+  and the tracker; every refusal names its code and the applicable field, cap, observed size, path,
+  or policy detail. Reviewer delivery and helper byte custody are BOTH UNRESOLVED; no mechanism is
+  selected or claimed solved. The ASTRA caller-alias question remains OPEN and uninvestigated. Q56
+  counted unit 4/10 (2026-10-23) is IN PROGRESS, with commit and assessment PENDING-COMMIT. The
+  former reviewer-delivery RESOLVED claim is retracted in `CLAIM-RETRACTIONS.md`.
+- **Deferred follow-up (not this unit, not authorized executable work):** drift-guard test for the
+  contract codes; prerequisites are this contract revision and an explicit future code
+  authorization.
 
 ### Q87. Finite verification budget by task type
 - **Status:** IN PROGRESS — SOURCE COMPLETE (U2a + U2b); deployment/live activation not performed.
