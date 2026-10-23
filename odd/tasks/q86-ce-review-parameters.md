@@ -1,92 +1,112 @@
 # Q86 — ce:review contract parameters
 
-Feature: revise our use of the `ce:review` route against an externally supplied contract. Task ID `q86-ce-review-parameters`. Class: global-tooling-change. Route: `workflow-odd-secure` (delegated). Unit status: T0 record created; planning only. Delivery strategy: stacked-to-main.
+Feature: revise our use of the `ce:review` route against an externally supplied contract. Task ID `q86-ce-review-parameters`. Class: documentation. Route: `workflow-odd-secure` (delegated). Unit `q86-ce-review-contract-u1`: contract revision IN PROGRESS; commit PENDING-COMMIT. Delivery strategy: stacked-to-main.
 
 ## Objective
 
-Record the supplied `ce:review` contract parameters as the authoritative input for revising our use of that route. Our current plan gets the execution environment wrong: it requires the helper pipeline to run in an authorized sandbox worker even though the helper is STDIN-only and sandbox bash is argv-only, making the required pipe or redirection impossible.
+Record the supplied `ce:review` contract parameters as the authoritative input for revising our use of that route. Our earlier plan got the execution environment wrong: it required the helper pipeline to run in an authorized sandbox worker even though the helper is STDIN-only and sandbox bash is argv-only, making the required pipe or redirection impossible. This unit converts the supplied input into normative contract text.
 
-## Why our current plan is wrong
+## Why our earlier plan was wrong (historical rationale)
 
-`global-config/skills/workflow-odd-secure/references/odd-and-review.md:22` says the helper pipeline “must run in an authorized sandbox worker”, which CANNOT be satisfied: the helper is STDIN-only and the sandbox bash surface is argv-only, so it can neither pipe nor redirect.
+`global-config/skills/workflow-odd-secure/references/odd-and-review.md:22` said the helper pipeline “must run in an authorized sandbox worker”, which CANNOT be satisfied: the helper is STDIN-only and the sandbox bash surface is argv-only, so it can neither pipe nor redirect. This remains the reason the contract forbids prescribing an execution location that cannot satisfy stdin delivery.
 
-## Supplied parameters
+## Normative contract parameters (current, authoritative)
 
-The following supplied parameters are the authoritative input for revising the plan. They are recorded as-is; this tracker does not select implementation mechanisms.
+The sixteen requirements below are the current authoritative `ce:review` contract, mirrored in `WORKFLOW.md` under “Current upstream review lifecycle”. `CEV-*` identifiers are stable normative contract codes defined by this revision; they are not claims that an implementation exists and they record no executed verification. Every refusal MUST name its code plus the applicable field, cap, observed size, path, or policy detail.
 
-### INVOCATION
+1. **Helper identity.** A configured absolute helper path, a separately configured SHA-256, and a separate configured absolute, regular, executable interpreter. None is PATH-resolved or defaulted. All three are verified before every invocation. An absent or non-absolute helper path refuses `CEV-HELPER-PATH-ABSENT` or `CEV-HELPER-PATH-NOT-ABSOLUTE`; a non-regular helper refuses `CEV-HELPER-PATH-NOT-REGULAR`; a digest mismatch refuses `CEV-HELPER-DIGEST-MISMATCH`; an absent or non-absolute interpreter refuses `CEV-INTERPRETER-PATH-ABSENT` or `CEV-INTERPRETER-PATH-NOT-ABSOLUTE`; a non-regular interpreter refuses `CEV-INTERPRETER-NOT-REGULAR`; a non-executable interpreter refuses `CEV-INTERPRETER-NOT-EXECUTABLE`; an attempted PATH resolution or default refuses `CEV-IDENTITY-PATH-RESOLUTION`. There is no fallback on any of these.
+2. **Byte custody and the operator anchor.** The pinned helper's bytes MUST come from a source the confined agent cannot write, and the digest MUST verify against an operator-authored anchor; a digest computed at install time over agent-writable bytes is not a trust anchor (`CEV-ANCHOR-UNTRUSTED-SOURCE`). The anchor is an operator-authored file inside the project repository working tree containing one `"<semver> <sha256>"` line per helper version; a missing anchor refuses `CEV-ANCHOR-MISSING`, a malformed line refuses `CEV-ANCHOR-MALFORMED`, and a duplicate version refuses `CEV-ANCHOR-VERSION-DUPLICATE`. The installer takes an explicit `--review-helper-version` and refuses without it (`CEV-HELPER-VERSION-MISSING`); an unknown version refuses `CEV-HELPER-VERSION-UNKNOWN`; immediately before writing the pin it re-verifies the staged bytes against the anchor and refuses a mismatch with `CEV-STAGED-DIGEST-MISMATCH`; selecting a version because it is the highest present in a cache refuses `CEV-CACHE-VERSION-SELECTION`. The underlying custody of a source the confined agent cannot write at all remains UNRESOLVED below; these install and anchor checks are normative compensating controls, not a claim that custody is solved.
+3. **Inline stdin cap.** The payload is capped at 256 KiB (262,144) of real bytes. An over-cap payload refuses `CEV-STDIN-CAP-EXCEEDED`, naming `cap_bytes=262144` and the observed byte size. The payload is never truncated.
+4. **Slices.** A slice is limited to 1,500 realized diff lines or 46,080 bytes, whichever binds first, packed on file boundaries. A single file exceeding either bound refuses `CEV-SLICE-FILE-OVERSIZED`, naming both caps, the observed line count and byte size, and the path. A slice is never split mid-file and never truncated.
+5. **Fixed argv.** Per phase the argv is exactly: `screen --reviewer <persona> --harness opencode`; bare `prepare`; bare `merge`; bare `finalize`; `artifact <path>`. The harness is server-side and is never caller input. Any additional, missing, or substituted argument refuses `CEV-ARGV-INVALID`; a caller-supplied harness refuses `CEV-HARNESS-CALLER-SUPPLIED`.
+6. **Timeouts.** Thirty seconds per helper invocation and a sixty-second client timeout, so the client cannot abort mid-write. A helper exceeding thirty seconds refuses `CEV-HELPER-TIMEOUT`; a client exceeding sixty seconds refuses `CEV-CLIENT-TIMEOUT`.
+7. **Exit codes.** `0` valid; `1` structural rejection (`CEV-EXIT-STRUCTURAL-REJECTION`); `2` usage or unreadable path (`CEV-EXIT-USAGE`); `3` legacy artifact missing `schema_version` (`CEV-EXIT-LEGACY-NO-SCHEMA`). Exit `1` whose stderr begins with the exact literal `ce-review-validator: internal error in ` (including the trailing space) is a helper CRASH (`CEV-HELPER-CRASH`), not a rejection; that prefix is the only discriminator, so a crash and a structural rejection MUST never share a code. Any other exit code refuses `CEV-EXIT-UNEXPECTED`.
+8. **Range data.** Resolved base and head object IDs are supplied as range data; reviewer-side Git is not used for resolution. A missing or unresolved range refuses `CEV-RANGE-UNRESOLVED`; a range value that is not a commit object ID refuses `CEV-RANGE-INVALID`; any attempt to resolve the range in reviewer-side Git refuses `CEV-REVIEWER-GIT-RESOLUTION`.
+9. **Artifacts.** Every phase publishes its raw output bytes as a deterministic per-phase artifact with byte length and SHA-256. Callers receive references, lengths, hashes, and bounded summaries only, never raw helper output inline. A phase that returns without publishing refuses `CEV-ARTIFACT-NOT-PUBLISHED`; a non-deterministic artifact name refuses `CEV-ARTIFACT-NAME-NONDETERMINISTIC`; a hash or length that does not match the published bytes refuses `CEV-ARTIFACT-INTEGRITY-MISMATCH`; returning raw helper output inline refuses `CEV-ARTIFACT-INLINE-FORBIDDEN`.
+10. **Single approval gate.** Exactly one approval, on `persist`, is taken before dispatch. Denial dispatches zero requests. `materialize` and the four phases need no approval. A `persist` dispatched without its approval refuses `CEV-APPROVAL-MISSING`; an approval requested for `materialize` or a phase refuses `CEV-APPROVAL-EXTRA`; any dispatch after denial refuses `CEV-DENIAL-DISPATCHED`; an approval taken after dispatch refuses `CEV-APPROVAL-ORDER`.
+11. **Phase envelopes.** `prepare` payload: `{ "screen_results": [ { "reviewer": "<persona>", "result": <screen artifact> } ], "selected_dispatches": [ { "persona": "<persona>", "dispatch_outcome": "<outcome>" } ] }`. The two persona sets must match exactly (`CEV-PREPARE-PERSONA-MISMATCH`); `input_finding_count` inside a dispatch entry is REJECTED (`CEV-PREPARE-INPUT-FINDING-COUNT`); any other prepare shape change refuses `CEV-PREPARE-ENVELOPE-INVALID`. `merge` payload: `{ "prepared": <prepare artifact>, "adjudication": { "decisions": [ ... ] } }`; any other merge shape refuses `CEV-MERGE-ENVELOPE-INVALID`. `finalize` payload: `{ "merge": ..., "prepared": ..., "screen_results": ..., "dispatch_records": ..., "validator_lifecycle_results": ..., "plan_assessment": { "verdict": ..., "results": ... }, "parent_run_metadata": { ... } }`. `plan_assessment` accepts ONLY `verdict` and `results` (`CEV-PLAN-ASSESSMENT-FIELD-FORBIDDEN`). `parent_run_metadata.timestamps` requires both `started_at` and `completed_at` (`CEV-TIMESTAMP-MISSING`). `validation.status` MUST be `not_attempted` at finalize with a non-empty `reason` (`CEV-VALIDATION-STATUS-INVALID`, `CEV-VALIDATION-REASON-MISSING`). `head_sha` is bound by the runtime, and a differing caller value refuses `CEV-HEAD-SHA-MISMATCH`. Any other finalize shape change refuses `CEV-FINALIZE-ENVELOPE-INVALID`.
+12. **Projection failure keeps the evidence.** A phase publishes its raw helper output as the artifact BEFORE validating any projection; projecting first refuses `CEV-PUBLISH-BEFORE-PROJECTION`. If projection rejects malformed helper output, the phase returns a typed failure carrying the published artifact reference instead of discarding the bytes; a typed failure missing that reference refuses `CEV-PROJECTION-FAILURE-NO-ARTIFACT`, the malformed projection refuses `CEV-PROJECTION-INVALID`, and discarding the published bytes refuses `CEV-ARTIFACT-DISCARDED`.
+13. **Validator requests are projected to the caller.** `merge` and `prepare` results expose a bounded structured summary containing `validator_requests` as `{ finding_id, file, line }`, with an explicit truncation flag (`CEV-VALIDATOR-TRUNCATION-FLAG-MISSING`) and a documented cap, currently 32 requests (`CEV-VALIDATOR-CAP-UNDOCUMENTED`). `finalize` requires `validator_lifecycle_results` per requested finding (`CEV-VALIDATOR-LIFECYCLE-MISSING`). If the caller cannot see a request, the run fails at the last phase with the literal diagnostic `missing validator result at validator_requests.N.finding_id`; a malformed projected summary refuses `CEV-VALIDATOR-SUMMARY-INVALID`.
+14. **`selected_dispatches` is phase-scoped.** Only `prepare` accepts this field, and only when a multi-input `inputRefs` payload is supplied. Every other phase refuses the field by name (`CEV-DISPATCHES-PHASE-FORBIDDEN`), and `prepare` with `stdin` or a single `inputRef` refuses it by name (`CEV-DISPATCHES-INPUT-MODE-FORBIDDEN`). Duplicate personas are rejected (`CEV-DISPATCHES-DUPLICATE-PERSONA`). The de-duplicated array, not the caller's original array, is passed to the helper; passing the original array refuses `CEV-DISPATCHES-NOT-DEDUPED`.
+15. **Protected content is refused, never redacted.** `materialize` refuses to publish any path denied by the ordinary read policy, including secrets, environment files, and keys, naming the path and policy code (`CEV-PROTECTED-PATH` with `path` and `policy_code`). Redaction is forbidden (`CEV-REDACTION-FORBIDDEN`) because a redacted artifact is indistinguishable from a complete one.
+16. **The persist approval is described by broker-derived facts.** The single approval presents what will actually be published: artifact digest, resolved base and head object IDs, verdict with its source, finding counts, and whether the finalize artifact is a reference or an inline body. Facts are derived from the run store, never asserted by the caller (`CEV-PERSIST-FACT-CALLER-ASSERTED`), and a missing fact refuses `CEV-PERSIST-FACT-MISSING`. A persist that cannot succeed refuses before asking for approval (`CEV-PERSIST-CANNOT-SUCCEED`).
 
-- Helper identity = absolute path plus sha256, BOTH from config; a separate configured INTERPRETER (absolute path, regular file, executable, never resolved from PATH, never defaulted); verified before EVERY invocation; mismatch/absence/non-regular type is a named refusal; no implicit fallback.
-- argv fixed per phase: `screen --reviewer <persona> --harness opencode`; `prepare`, `merge`, `finalize` bare; `artifact <path>`; the harness is server-side and not a caller parameter.
-- stdin: payload inline, bounded to 256 KiB measured in REAL bytes, refused (never truncated) naming the cap and observed size; accepts a byte array as well as a string because a JSON string cannot express invalid UTF-8.
+## Supplementary non-contradictory input details
+
+These details from the supplied input are retained because they do not add or contradict the sixteen requirements above. They do not create a second authoritative set.
+
 - Working directory: the repository root for phases; the staging root for artifact validation.
-- Environment: REPLACEMENT not merged — PATH only for diff/git work; PATH plus a real HOME and prompt-suppressed git for ignore checks.
-- Budgets: 30 s per helper invocation; client timeout above it (60 s) so the client cannot abort mid-write.
-- Exit codes: 0 valid · 1 structural rejection (issues on stderr) · 2 usage or unreadable path · 3 legacy artifact lacking schema_version; an exit 1 whose stderr carries the fixed prefix `ce-review-validator: internal error in` is a HELPER CRASH, not a rejection, and must map differently.
-
-### INPUT
-
-- The range as data — baseRef and headRef resolved to commit object ids via `rev-parse --verify --end-of-options <ref>^{commit}`; diff produced under the replacement environment with external diff, textconv and paging disabled.
-- Slicing: 1500 realized diff lines OR 46,080 bytes per slice, whichever binds first, packed on file boundaries; a single file exceeding one slice is REFUSED naming the cap and observed size — never split mid-file, never truncated.
+- Environment: REPLACEMENT, not merged — PATH only for diff/git work; PATH plus a real HOME and prompt-suppressed git for ignore checks.
+- Range resolution: `rev-parse --verify --end-of-options <ref>^{commit}`; diff produced under the replacement environment with external diff, textconv and paging disabled.
 - Chaining: a phase may take stdin from a prior phase's published artifact in the same run (`inputRef`); exactly one of `stdin` and `inputRef` is required, and supplying neither or both is refused.
-- Personas: enumerated allowlist `review-risk`, `review-resilience`, `review-readability`, `review-reliability`, required for `screen` and forbidden elsewhere.
-
-### OUTPUT
-
-- Each phase publishes its RAW OUTPUT BYTES into a broker-owned run store as a deterministic per-phase artifact, byte-identical, with byte length and sha256 recorded; phase outputs are named per persona, so four `screen` runs produce four artifacts.
-- The operation returns ONLY artifact refs, byte lengths, sha256 values and bounded summaries — never the full output inline.
-- The run record carries a broker-generated run id bound to the session, the resolved base and head object ids, the artifact manifest, and after `finalize` the provenance (artifact name, byte length, sha256, phase name, outcome).
-- `persist` extracts only the artifact member, inserts `schema_version` when absent, and writes to `<repo>/.context/systematic/ce-review/<runId>/review-summary.json`; it validates BEFORE publishing with four statuses: `passed`, `failed`, `unavailable`, `not_attempted`; nothing is published into the project unless validation passed, and a failed or unavailable result retains the staged copy in the run store and reports its path.
+- Artifact publication: raw output bytes go to a broker-owned run store as a deterministic per-phase artifact; the run record carries a broker-generated run id bound to the session, resolved base and head object ids, the artifact manifest, and after `finalize` the provenance (artifact name, byte length, sha256, phase name, outcome).
+- `persist` extracts only the artifact member, inserts `schema_version` when absent, and writes `<repo>/.context/systematic/ce-review/<runId>/review-summary.json`; it validates before publishing with the statuses `passed`, `failed`, `unavailable`, `not_attempted`; nothing is published into the project unless validation passed, and a failed or unavailable result retains the staged copy in the run store and reports its path.
 - Ignore provisioning writes an entry covering the run directory only, only when not already ignored, and reports whether it created, changed or left the file unchanged.
-
-### AUTHORITY
-
-- `materialize` and the phases write only into the broker-owned run store and need NO approval.
-- `persist` is the SINGLE approval gate, raised BEFORE dispatch; a denial dispatches zero requests.
 - `report_only` writes nothing into the project and its prompt must say so.
-- Callers: the orchestrator and the PM identities (INCLUDING THE ASTRA VARIANTS); denied for general agents.
-- The project path is NEVER a caller parameter.
+- Callers: the orchestrator and the PM identities (including the ASTRA variants); denied for general agents. The project path is never a caller parameter.
+- **Retired input:** the former line that enumerated native 4R lens names as the `ce:review` persona allowlist is RETIRED and is not part of the current allowlist. The current allowlist is the baseline reviewers plus screening-selected personas; native 4R names are never a `ce:review` allowlist.
 
-## Confirmation against our config
+## Confirmation against our config (supplied, not freshly verified)
 
-The supplied confirmation is that our grants already match: `host_review_materialize` = allow, `host_review_pipeline_run` = allow, `host_review_persist` = ask, which is exactly the authority model above (materialize + phases no approval; persist the single approval gate).
+The supplied confirmation is that our grants already match: `host_review_materialize` = allow, `host_review_pipeline_run` = allow, `host_review_persist` = ask, which is the authority model above (materialize + phases no approval; persist the single approval gate). This is SUPPLIED CONFIRMATION recorded for context; it was not freshly verified in this unit.
 
-## Gaps to check
+## Requirements status (current)
 
-- The caller list includes the ASTRA variants; we granted `pm-odd` and `pm-systematic` but the `-astra` aliases were not explicitly granted — determine whether they inherit or need explicit grants.
-- Reviewer delivery is RESOLVED by `host_review_diff_read`; the HELPER SOURCE pin requirement remains UNRESOLVED. Both are recorded as REQUIREMENTS, not mechanisms:
-  - REVIEWER DELIVERY (RESOLVED by `host_review_diff_read`: the caller reads the diff slice through this read-only host tool and passes it into the `ce:review` subagent prompt, so each lens receives its slice without needing a read path of its own).
-  - HELPER SOURCE (the pinned bytes currently come from the package cache, which is WRITABLE by the confined agent, so the digest vouches for whatever it was given; the contract should require the pinned bytes to originate from a source the agent cannot write).
+- **Reviewer delivery — UNRESOLVED.** Automated reviewers are child sessions with no store access. The native relay lane has every tool disabled, so the orchestrator materializes the diff and inlines it into the persona prompt. An inline-body capture is refused for any runtime whose compiled transport is the provider-injected one, so a reviewer result can only arrive through that transport. The contract still owes a precise account of how a reviewer receives its slice without store access and without execution; no mechanism is selected here.
+- **Helper byte custody — UNRESOLVED.** The pinned helper currently lives in an agent-writable package cache selected by version, which is why the operator anchor exists. A future contract should name a source the confined agent cannot write at all. The anchor and install checks in requirement 2 are normative compensating controls; they do not resolve custody.
+- **ASTRA caller aliases — OPEN, NOT INVESTIGATED.** The supplied caller list includes the ASTRA variants; whether the `-astra` aliases inherit or need explicit grants is not determined in this unit.
+
+## Pre-code advice (orchestrator-supplied)
+
+Source: orchestrator-supplied advice from `advisor-integration-pre`, Task `ses_e98032642ffeiI5jf9yzRYlKki`. This unit did not dispatch another advice Task. The text is advice evidence, not approval and not independent verification.
+
+- BLOCKER — enumerate all sixteen parameters in `WORKFLOW.md`; disposition: addressed by this contract revision.
+- BLOCKER — stable refusal codes for every fail condition; disposition: addressed by the normative `CEV-*` codes defined in this revision, which are contract identifiers rather than implementation claims.
+- BLOCKER — retract the false reviewer-delivery RESOLVED claim; disposition: addressed by the 2026-10-23 retraction in Progress and the `CLAIM-RETRACTIONS.md` row.
+- BLOCKER — separate the `ce:review` persona set from the native 4R lens set; disposition: addressed by the persona-set boundary in `WORKFLOW.md` and this tracker.
+- BLOCKER — distinguish the normative installer/anchor contract from the still-open byte custody; disposition: addressed by requirement 2 plus the UNRESOLVED custody statement.
+- WARNING — the class is documentation and the docs budget is finite; disposition: acknowledged; this is a documentation-only unit with no runtime work.
+- SUGGESTION — state persona authority and the structured test-request boundary; disposition: addressed by the persona-authority paragraph in `WORKFLOW.md`.
 
 ## Constraints
 
-Do not redesign the parameters; do not choose a mechanism for the unresolved HELPER SOURCE requirement; this is a RECORD.
+Do not redesign the parameters and do not choose a mechanism for the unresolved helper custody requirement. This unit records normative contract text only; it adds no executable or example test command and grants no execution.
 
 ## Acceptance criteria
 
-- Every supplied parameter above is recorded with its exact values.
-- The plan-defect is stated.
-- Reviewer delivery is recorded as resolved, and the HELPER SOURCE item as an unresolved requirement, not a mechanism.
-- The grant confirmation and the gaps are recorded.
+- All sixteen supplied parameters are normative in `WORKFLOW.md` and this tracker, each fail condition carrying a stable `CEV-*` code.
+- Reviewer delivery and helper byte custody are BOTH recorded UNRESOLVED; no mechanism is claimed or selected.
+- The former reviewer-delivery RESOLVED claim is withdrawn in Progress with a matching `CLAIM-RETRACTIONS.md` row.
+- Persona authority and the separation of the `ce:review` persona set from the native 4R lens set are stated; the native lane is unchanged.
+- The ASTRA caller-alias question remains OPEN and is not investigated.
 
 ## Tasks
 
-- [ ] Revise our ce:review plan against these parameters, resolve the remaining HELPER SOURCE requirement, and check the ASTRA caller grants.
+- [x] Revise the `ce:review` contract in `WORKFLOW.md` and this tracker against the sixteen supplied parameters (unit `q86-ce-review-contract-u1`, documentation; source PENDING-COMMIT).
+- [ ] Determine whether the ASTRA caller aliases inherit or need explicit grants (OPEN; not investigated in this unit).
+- [ ] Name a source the confined agent cannot write at all for the pinned helper (UNRESOLVED custody).
+- [ ] Drift-guard test for the contract codes (DEFERRED follow-up; prerequisites: this contract revision and an explicit future code authorization; not implemented or run in this unit).
 
 ## Delivery strategy
 
-**Chosen strategy:** stacked-to-main (owner decision 2026-10-14). **Forecast:** about 100 authored changed lines for this record and queue entry; planning-only follow-up forecast to be revised when its scope is defined.
+**Chosen strategy:** stacked-to-main (owner decision 2026-10-14). **Forecast:** this contract-revision unit stays under the 400-authored-line / 100 KiB per-commit reviewability cap; the exact authored counts are returned in the reviewability receipt rather than estimated here.
 
 ## Progress
 
 - 2026-10-18: T0 — tracker and queue entry created; supplied parameters recorded as authoritative planning input. No implementation or mechanism selection.
 - 2026-10-18: Contract-gap correction — replaced the impossible sandbox-worker execution-location clause in the ODD reference, WORKFLOW.md, and orchestrator prompt with the required contract properties and the two requirements recorded in this tracker. The prompt regeneration chain matches at `803f22525a577fbdeeca91febf1fb8666269f50f9fc646644044cbcd83e04104`; focused tests pass, while the full Python suite has 204 passes, 10 errors from sandbox-denied `node`, and 1 skip. The HELPER SOURCE requirement remains deliberately unresolved; no mechanism selected and no commit made.
 - 2026-10-18: Reviewer delivery resolved: granted `host_review_diff_read` to `gentle-orchestrator`, `pm-odd`, and `pm-systematic`; the caller reads each slice through that tool and passes it in the `ce:review` subagent prompt, so a lens needs no separate read path. Added per-agent verifier checks, positive controls, and tests. Verification and apply outcome are recorded in ROUTER-LOG; no commit or branch switch.
+- 2026-10-23: RETRACTION — the 2026-10-18 “Reviewer delivery resolved” entry is withdrawn. The immutable input states reviewer delivery remains UNRESOLVED: automated reviewers are child sessions with no store access, and an inline-body capture is refused for any runtime whose compiled transport is the provider-injected one, so a reviewer result can only arrive through that transport. A caller-side read tool does not resolve how a reviewer receives its slice without store access and without execution. Source: owner report; the matching row is appended to `CLAIM-RETRACTIONS.md`.
+- 2026-10-23: Unit `q86-ce-review-contract-u1` (documentation) — replaced the INVOCATION/INPUT/OUTPUT/AUTHORITY record with the sixteen normative terms and stable `CEV-*` codes; both requirements recorded UNRESOLVED; the former native-4R allowlist retired; pre-code advice recorded with dispositions. Q56 counted unit 4/10 IN PROGRESS; commit PENDING-COMMIT; mirror write/verification UNIMPLEMENTED because the deterministic tool has not landed; post-code check PENDING; PM check PENDING.
 
 ## Route / trigger evidence
 
-Route: delegated. Specialist: sandbox worker fallback. Trigger: explicit user authorization for this tracker-and-queue record; the secure ODD policy delegates project mutation, and the user explicitly assigned this worker without a Task/subagent dispatch. Host branch specified by user: `chore/q72-t1b-tiny-fix-contract`; sandbox internal branch `work` is expected. No commit; never switch branches.
+Route: delegated, `workflow-odd-secure`. Specialist: `odd-apply` (DeepSeek-family cloud sandbox writer). Triggers: secure ODD writer policy; multi-file change; preparation ahead of the writer. Actual dispatch: PM-dispatched `odd-apply`; the broker baseline names sandbox session `ses_e97fbe413ffeWOI01suJwJDbUa` (the Task session ID is otherwise PM-supplied). Host feature branch `chore/q72-t1b-tiny-fix-contract` at `3c6649a95d3b6ebc2900eb74aa161db73b506119`; sandbox internal branch `work`; no branch switch; no commit.
+
+## Log
+
+- 2026-10-23: `q86-ce-review-contract-u1` docs revision prepared by the delegated `odd-apply` sandbox writer. Checks: documentation presence/consistency and `git diff --check` only; no runtime verification, tests, verifier, advice dispatch, or native review. Post-code check PENDING; PM check PENDING; commit PENDING-COMMIT.
 
 ## Next step
 
-Revise the existing `ce:review` plan against this recorded contract, determine whether the ASTRA aliases inherit or require explicit grants, and resolve the remaining HELPER SOURCE requirement without assuming a mechanism in this record.
+PM factual/static check, then orchestrator post-code findings, at most one correction writer, then PM commit; after the commit, assess the committed candidate under RDD. Do not claim completion, approval, or review before those steps.
