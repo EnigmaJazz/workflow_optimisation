@@ -46,6 +46,10 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   Then Q57-Q60 and Q61. Q62 (retired-model list and seat-assignment reconciliation) is independently
   planned.
 - **Advisor capacity (owner, 2026-10-17; independent of the phases):** Q76.
+- **Multi-agent v2 (owner-authorized, 2026-10-23):** Q89 phase 1 only — permissions first, inert.
+  Phases 2-4 (tool implementation with dormant protection, the workflow/tracker change, and
+  verification) belong to agent-sandbox-integration and are explicitly excluded here until
+  separately authorized.
 
 Every source change needs the deploy step: verifier mirror, then restart. Q27 waits on an owner
 decision.
@@ -607,6 +611,10 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 - **Counted unit 2/10 (2026-10-22):** Q85a PM unit-start deterministic anchor — verified through pm-odd; route workflow-odd-secure; no route escape; source already complete; metadata commit 1ab7647be851e2930c23023c87daa42564086066; assessment passive (4 paths / 29 lines, review_due=false).
 - Counted unit 3/10 (2026-10-22): Q79 D/E mirror-write ownership — verified through pm-odd; route workflow-odd-secure; no route escape; source verified; metadata commit PENDING-COMMIT.
 - Counted unit 4/10 (2026-10-23): Q86 ce:review 16-parameter contract revision — SOURCE COMPLETE; route workflow-odd-secure; PM-dispatched `odd-apply`; source commit `83bdeeab3d9f3bf430c54d4ffbb00e097e1856cd`; PM accepted PM01–PM05; correction_rounds_used 1; source assessment medium / `under_budget` / `review_due=false` with boundary `77b4df8` retained; metadata closure PENDING-PM-COMMIT/assessment. Reviewer delivery and helper byte custody BOTH UNRESOLVED; ASTRA caller aliases OPEN. Process exceptions: orchestrator-run pre-advice `ses_e98032642ffeiI5jf9yzRYlKki` and post-code `ses_e97ed133effeHLcEpI7U9gAhhl` are not PM checks; no PM pre-advice compliance or clean/no-process-defect claim. No route escape claimed.
+- **Counted unit 5/10 (2026-10-23):** Q89 multi-agent v2 phase 1 planning — route
+  workflow-odd-secure; PM-dispatched `odd-apply`; planning artifact PENDING-COMMIT; count
+  explicitly authorized by the dispatch brief even though earlier planning units were not counted;
+  no implementation, deployment, or native review claimed.
 
 ### Q57. PM layer: slim the orchestrator
 - **Status:** PLANNED.
@@ -1459,6 +1467,24 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   `advisor-gemini-post` sequencing drift, and the post-code static-diagnostic-order clause in
   `WORKFLOW.md`/`docs/specs/pm-handoff.md` plus overlay wording), folding Q88 and the Q84
   sequencing fold with no new queue ID. Deployment/live activation remain separate.
+
+### Q89. Multi-agent v2 phase 1 — inert plan-task permissions
+- **Status:** IN PROGRESS — planning. Unit `q90-phase1-plan-u1` authored; PENDING-COMMIT.
+  Implementation T2/T3 not started. Tracker `odd/tasks/multi-agent-v2-phase1.md`.
+- **Prerequisites:** committed input `docs/contracts/multi-agent-v2-workflow-prompt.md` (commit
+  `92a2a38`, base `41c293de5365c861242ed78999a3fbc1d565e5fb`); RDD enabled (global); current
+  `global-config/opencode.json` permission blocks. Phases 2-4 are OUT OF SCOPE: they belong to
+  agent-sandbox-integration and require separate authorization.
+- **Source:** owner-supplied multi-agent v2 contract and dispatch brief, 2026-10-23.
+- **Description:** phase 1 only — add inert permission entries for `host_plan_write`,
+  `host_gate_verdict` and `host_task_mark`: global deny after `host_plan_append`; `pm-odd` and
+  `pm-systematic` `host_plan_write`/`host_task_mark` ask after `host_sandbox_result_install`.
+  No tool implementation, no tools-map key, no orchestrator grant, no `host_gate_verdict` PM
+  grant, and no `WORKFLOW.md`/tracker-rule/plan-root-protection change. The prompt is committed
+  input, not output. The tracker records the exact line positions, author split, tool contracts
+  and T2/T3 acceptance.
+- **Count:** Q56 counted unit 5/10, explicitly authorized by the dispatch brief even though
+  earlier planning units were not counted.
 
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
