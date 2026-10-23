@@ -606,7 +606,7 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 - **Counted unit 1/10 (2026-10-22):** Q85 ce:review pipeline host permissions — verified through pm-odd; route workflow-odd-secure; no route escape; source already complete; metadata commit 916a4f5e3291f42507bfb47b429bcea5c6d65e4c; assessment passive (3 paths / 33 lines, review_due=false). Owner count authorization on 2026-10-22 supersedes the earlier blocked-count timing for this unit; it does not assert that Q58 enforcement or broker runtime registration is live.
 - **Counted unit 2/10 (2026-10-22):** Q85a PM unit-start deterministic anchor — verified through pm-odd; route workflow-odd-secure; no route escape; source already complete; metadata commit 1ab7647be851e2930c23023c87daa42564086066; assessment passive (4 paths / 29 lines, review_due=false).
 - Counted unit 3/10 (2026-10-22): Q79 D/E mirror-write ownership — verified through pm-odd; route workflow-odd-secure; no route escape; source verified; metadata commit PENDING-COMMIT.
-- Counted unit 4/10 (2026-10-23): Q86 ce:review 16-parameter contract revision — IN PROGRESS; route workflow-odd-secure; PM-dispatched `odd-apply`; docs revision PENDING-COMMIT; reviewer delivery and helper byte custody BOTH UNRESOLVED; ASTRA caller aliases OPEN; no route escape claimed.
+- Counted unit 4/10 (2026-10-23): Q86 ce:review 16-parameter contract revision — SOURCE COMPLETE; route workflow-odd-secure; PM-dispatched `odd-apply`; source commit `83bdeeab3d9f3bf430c54d4ffbb00e097e1856cd`; PM accepted PM01–PM05; correction_rounds_used 1; source assessment medium / `under_budget` / `review_due=false` with boundary `77b4df8` retained; metadata closure PENDING-PM-COMMIT/assessment. Reviewer delivery and helper byte custody BOTH UNRESOLVED; ASTRA caller aliases OPEN. Process exceptions: orchestrator-run pre-advice `ses_e98032642ffeiI5jf9yzRYlKki` and post-code `ses_e97ed133effeHLcEpI7U9gAhhl` are not PM checks; no PM pre-advice compliance or clean/no-process-defect claim. No route escape claimed.
 
 ### Q57. PM layer: slim the orchestrator
 - **Status:** PLANNED.
@@ -1411,7 +1411,7 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   duties until the deterministic host tool lands; see `odd/tasks/q85-unit-start-anchor.md`.
 
 ### Q86. Record the ce:review contract parameters
-- **Status:** IN PROGRESS — contract revision PENDING-COMMIT (unit `q86-ce-review-contract-u1`, documentation).
+- **Status:** IN PROGRESS — unit `q86-ce-review-contract-u1` (documentation) SOURCE COMPLETE at `83bdeeab3d9f3bf430c54d4ffbb00e097e1856cd`; PM accepted PM01–PM05; metadata closure PENDING-PM-COMMIT/assessment (assess from retained boundary `77b4df8f1955fb8bc9255c3cde6a7246be5fed87`). Open follow-ups remain; whole Q86 is not solved.
 - **Prerequisites:** none.
 - **Source:** external agent `agent-sandbox-integration` supplied the contract parameters for the
   `ce:review` helper; tracker `odd/tasks/q86-ce-review-parameters.md`.
@@ -1420,7 +1420,9 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   and the tracker; every refusal names its code and the applicable field, cap, observed size, path,
   or policy detail. Reviewer delivery and helper byte custody are BOTH UNRESOLVED; no mechanism is
   selected or claimed solved. The ASTRA caller-alias question remains OPEN and uninvestigated. Q56
-  counted unit 4/10 (2026-10-23) is IN PROGRESS, with commit and assessment PENDING-COMMIT. The
+  counted unit 4/10 (2026-10-23): source committed at `83bdeea`; PM accepted PM01–PM05;
+  correction_rounds_used 1; source assessment medium / `under_budget` / `review_due=false` with
+  boundary `77b4df8` retained. Metadata commit and assessment are PM-owned and pending. The
   former reviewer-delivery RESOLVED claim is retracted in `CLAIM-RETRACTIONS.md`.
 - **Deferred follow-up (not this unit, not authorized executable work):** drift-guard test for the
   contract codes; prerequisites are this contract revision and an explicit future code
