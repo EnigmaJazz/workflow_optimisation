@@ -2,8 +2,9 @@
 
 Feature: multi-agent v2 plan tools, gating, and the ODD tracker change. Task ID
 `multi-agent-v2-phase1`. Class: global tooling change. Route: `workflow-odd-secure` (delegated).
-Unit `q90-phase1-plan-u1`: PLANNING COMPLETE; PENDING-COMMIT. Implementation tasks T2 and T3 are
-NOT STARTED. Delivery strategy: auto-chain with the resolved topology stacked-to-main
+Unit `q90-phase1-plan-u1`: PLANNING COMMITTED as `28d4a4368e0e3925069208ce7775b73c84c4922a`.
+This metadata unit closes the planning evidence; implementation tasks T2 and T3 are NOT STARTED.
+Delivery strategy: auto-chain with the resolved topology stacked-to-main
 (owner-supplied); each unit gets its own commit; no push or PR. Q56 counted unit 5/10
 (brief-authorized 2026-10-23; earlier planning units were not counted). RDD enabled (global);
 input boundary `41c293de5365c861242ed78999a3fbc1d565e5fb`.
@@ -50,7 +51,7 @@ Current-state observations at base `41c293d` (verify again in T2 before editing)
 This unit does not edit the config. T2 is the config-only implementation unit and must preserve
 the exact ordering above.
 
-## Author split (normative)
+## Author split (normative for the future supplied contract)
 
 | Record | Author and path |
 | --- | --- |
@@ -59,8 +60,10 @@ the exact ordering above.
 | Task ticks and evidence | PM through `host_task_mark`. |
 | Reading all of it | ORCHESTRATOR, read-only. |
 
-The split protects fidelity and posture: the orchestrator cannot mutate project state and must not
-gain a plan-writing tool to route around the worker ban.
+This table records the FUTURE supplied contract; it does not replace today's rule. Until the plan
+tools land and phase 3 changes the tracker rule, the current workflow still delegates tracker
+creation to a sandbox writer. The split protects fidelity and posture: the orchestrator cannot
+mutate project state and must not gain a plan-writing tool to route around the worker ban.
 
 ## Tool contracts (future; not implemented here)
 
@@ -90,8 +93,9 @@ gain a plan-writing tool to route around the worker ban.
 - Phases 2-4 (tool implementation with dormant protection, the workflow/tracker change, and
   verification) belong to agent-sandbox-integration and are explicitly OUT OF SCOPE. They require
   separate authorization; no work-unit allocation for them is created here.
-- This phase makes no `WORKFLOW.md`, tracker-rule, plan-root-protection, tool-implementation,
-  source, test or prompt change.
+- This planning unit makes no `WORKFLOW.md`, tracker-rule, plan-root-protection,
+  tool-implementation, source, test or prompt change. (T2, the phase-1 config unit, later edits
+  only the three permission surfaces in `global-config/opencode.json`.)
 - Native 4R review is unchanged. The `ce:review` revision is separate. Magic Context must not
   mirror verdicts or ticks; the record stays file-only, and the PM never reads the mirror.
 - Mirror writing and verification are UNIMPLEMENTED until the deterministic host tool lands.
@@ -99,7 +103,9 @@ gain a plan-writing tool to route around the worker ban.
 ## Stable task IDs
 
 - [x] **T1 — planning.** `q90-phase1-plan-u1`: author this tracker, the Q89 queue entry and the
-  router row. Planning artifact complete; commit PENDING-COMMIT. No implementation claimed.
+  router row. Planning artifact committed as `28d4a4368e0e3925069208ce7775b73c84c4922a` and
+  assessed medium/`under_budget` against `41c293d`. Planning source complete; no implementation
+  claimed.
 - [ ] **T2 — permission implementation.** Add the three names to the three permission surfaces
   exactly as above; no tools-map key, no orchestrator grant and no `host_gate_verdict` PM grant.
   JSON parse and config diff readback are the required checks; no tool implementation.
@@ -115,7 +121,7 @@ Planning unit (this unit):
 - The tracker accurately reflects the committed contract and the current config, including
   explicit denies rather than an imagined wildcard.
 - Q89 is collision-free, appears once in the queue, and links this tracker; Q56 records 5/10.
-- The router row records the actual branch/HEAD and PENDING-COMMIT; no fabricated results.
+- The router row records the actual branch/commit and committed assessment; no fabricated results.
 - `git diff --check` is clean; the reviewability receipt is supplied by the worker.
 - Zero advice and zero verifier Tasks: the actual diff is simple docs. No runtime tests are run.
 
@@ -135,19 +141,45 @@ T2 future acceptance (not this unit):
   is present at the boundary and was committed by `92a2a38676641473bea2f0bf0c3b868581162e4c`.
   No divergence observed. Host branch `chore/multi-agent-v2-phase1` is dispatch-supplied; the
   worker can observe only its synthetic `work`/`baseline` refs.
+- Metadata closure (2026-10-23): delegated to `odd-apply` session
+  `ses_e9727236dffeHvVgHnHvAlrar0` (DeepSeek-family cloud sandbox), actual root `/work`, branch
+  `work`; base `28d4a43` and parent `41c293d`. No branch switch and no commit from this worker.
 - 2026-10-23: T1 planning records the exact future insertions, author split and tool contracts;
   no config, source, test, prompt or workflow edit. Q56 counted unit 5/10 recorded in the queue.
   Advice/verifier: zero, on the simple-docs actual diff. Mirror write/verification UNIMPLEMENTED.
 - 2026-10-23: T2/T3 NOT STARTED; no implementation, deployment, live-tool claim or native review.
+- 2026-10-23: PM installed the planning result and created commit
+  `28d4a4368e0e3925069208ce7775b73c84c4922a` on `chore/multi-agent-v2-phase1`: exactly the
+  three authorized paths, +212/-0, 21736-byte authored patch, no generated or binary paths. Base
+  `41c293de5365c861242ed78999a3fbc1d565e5fb`; the commit's parent is the base and the committed
+  input prompt blob (`555128eea526e4d54a609eaf47097732690390e2`) is unchanged. No divergence or
+  hygiene issue observed; the only untracked item is the sandbox session bundle.
+- 2026-10-23: PM structural readback: tracker 185 lines, the Q89 entry intact with Q56 5/10, and
+  the router row present. Initial static inspection was PARTIAL: no Markdown LSP producer exists
+  for the three paths, so no syntax-clean claim is made. `git diff --check` on the committed
+  planning candidate is clean. No runtime tests run.
+- 2026-10-23: PM committed assessment (`host_review_assess`, base
+  `41c293de5365c861242ed78999a3fbc1d565e5fb`, committed-only): schema
+  `gentle-ai.review-assessment/v1`, risk `medium`, reason `executable_change` on
+  `odd/tasks/multi-agent-v2-phase1.md`, 3 paths / 212 changed lines, candidate
+  `base-diff`/consumed=false, `review_due=false` (`under_budget`), status 0. The reviewed
+  boundary remains `41c293d`, not advanced; this is not approval or native review.
+- 2026-10-23: This metadata unit replaces the precommit placeholders with the committed SHA and
+  assessment, marks T1 committed, and leaves T2/T3 not started. Independent orchestrator
+  readback is still pending; the medium slice needs an explicit owner closure or native review
+  before the next high-risk implementation (T2). Post-metadata assessment is PM-owned closure,
+  with its durable evidence in the PM return envelope; this unit's own commit SHA is
+  intentionally not claimed here.
 
 ## Delivery strategy and forecast
 
 **Chosen strategy:** auto-chain with the resolved topology stacked-to-main (owner-supplied); each
-unit gets its own commit; no push or PR. **Forecast:** phase 1 is approximately 200-230 authored
-changed lines (planning tracker plus TODO/router text, then the small config-only T2 and its
-evidence). No deletions are forecast. Each unit stays under the 400-authored-line / 100 KiB
-per-commit reviewability cap; actual counts and patch bytes are returned in the worker receipt.
-Phases 2-4 are external and are not estimated or allocated in this repository.
+unit gets its own commit; no push or PR. **Forecast:** at least 212 planning lines plus 7 config
+lines in T2, plus metadata churn; roughly 260-320 authored additions/deletions across phase 1.
+Actual receipts remain authoritative and are not compressed to fit the reviewability cap. Each
+unit stays under the 400-authored-line / 100 KiB per-commit reviewability cap; actual counts and
+patch bytes are returned in the worker receipt. Phases 2-4 are external and are not estimated or
+allocated in this repository.
 
 ## Count
 
@@ -162,24 +194,38 @@ writer). Triggers: preparation ahead of a writer; a two-or-more non-trivial-file
 every-write delegation rule. Actual dispatch: PM-dispatched `odd-apply`; worker session
 `ses_e973e8912ffeXn7tgIZQy2wIwm`; actual root `/work`. Worker baseline `work` at `603b203`
 (parent `41c293d`); host branch/HEAD `chore/multi-agent-v2-phase1` at `41c293d`
-(dispatch-supplied and PM-read; not observable from the worker). RDD enabled (global); boundary
-`41c293d`. No branch switch and no commit.
+(planning dispatch; dispatch-supplied and PM-read; not observable from the worker). RDD enabled
+(global); boundary `41c293d`. No branch switch and no commit.
 
 ## Log
 
 - 2026-10-23: `q90-phase1-plan-u1` planning prepared by delegated `odd-apply`. Checks: exact
   three-path scope, config/contract readback, Q89 collision check, `git diff --check`; no runtime
-  tests, advice dispatch, verifier or native review. Commit PENDING-COMMIT; PM assessment pending.
+  tests, advice dispatch, verifier or native review. Commit `28d4a43`; PM assessment
+  medium/`under_budget` (see below).
 - 2026-10-23: T2/T3 remain unchecked. Mirror write/verification UNIMPLEMENTED; PM never reads the
   mirror. No implementation or activation is claimed.
+- 2026-10-23: Metadata closure by delegated `odd-apply` session
+  `ses_e9727236dffeHvVgHnHvAlrar0`, actual root `/work`. Checks executed: initial HEAD `f78b2d4`
+  parent `28d4a43`; `28d4a43^ = 41c293d`; base ancestry holds; the contract blob at `41c293d`
+  and HEAD is equal (`555128e...`); `git diff --numstat/--name-status` is exactly the three
+  authorized paths +212/-0; committed-candidate `git diff --check` is clean. No runtime tests,
+  advice, verifier or native review ran.
+- 2026-10-23: Limitation: static inspection was PARTIAL for all three Markdown paths (no LSP
+  producer), so no syntax-clean claim is made. PM structural check read the tracker at 185 lines,
+  Q89 at `docs/TODO.md:1471-1487`, and the router row at `ROUTER-LOG.md:274`. Independent
+  orchestrator readback remains pending.
+- 2026-10-23: Native/medium boundary: the committed candidate assessed medium/`under_budget`;
+  boundary retained at `41c293d`; no approval, acknowledgement or native review. An explicit
+  owner slice closure or native review is required before the next high-risk implementation.
+  Post-metadata assessment is PM-owned closure, evidenced in the PM return envelope.
 
 ## Next step
 
-PM commits the planning result and assesses the committed candidate against boundary `41c293d`.
-If the assessment is medium/`under_budget`, retain the boundary and require an explicit owner
-closure or native review before the next high-risk commit. The next unit (T2) is a high-risk
-config-only change: it owes the consequential two-family pre-advice (one phase), an independent
-post-advice check, an independent `gentle-ai-verify`, static diagnostics on the initial candidate,
-one correction ceiling, then commit and native assessment/review. The writer choice for that
-actual code change must be resolved by the parent before dispatch; this planning unit does not
-choose it.
+Planning is committed as `28d4a43` and assessed medium/`under_budget`; the reviewed boundary
+remains `41c293d`. Before the next high-risk implementation (T2), the owner must explicitly close
+this medium slice or run native review. T2 is a high-risk config-only change: it owes the
+consequential two-family pre-advice (one phase), an independent post-advice check, an independent
+`gentle-ai-verify`, static diagnostics on the initial candidate, one correction ceiling, then
+commit and native assessment/review. The writer choice for that actual code change must be
+resolved by the parent before dispatch; this planning unit does not choose it.

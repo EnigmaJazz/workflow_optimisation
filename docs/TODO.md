@@ -612,7 +612,8 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 - Counted unit 3/10 (2026-10-22): Q79 D/E mirror-write ownership — verified through pm-odd; route workflow-odd-secure; no route escape; source verified; metadata commit PENDING-COMMIT.
 - Counted unit 4/10 (2026-10-23): Q86 ce:review 16-parameter contract revision — SOURCE COMPLETE; route workflow-odd-secure; PM-dispatched `odd-apply`; source commit `83bdeeab3d9f3bf430c54d4ffbb00e097e1856cd`; PM accepted PM01–PM05; correction_rounds_used 1; source assessment medium / `under_budget` / `review_due=false` with boundary `77b4df8` retained; metadata closure PENDING-PM-COMMIT/assessment. Reviewer delivery and helper byte custody BOTH UNRESOLVED; ASTRA caller aliases OPEN. Process exceptions: orchestrator-run pre-advice `ses_e98032642ffeiI5jf9yzRYlKki` and post-code `ses_e97ed133effeHLcEpI7U9gAhhl` are not PM checks; no PM pre-advice compliance or clean/no-process-defect claim. No route escape claimed.
 - **Counted unit 5/10 (2026-10-23):** Q89 multi-agent v2 phase 1 planning — route
-  workflow-odd-secure; PM-dispatched `odd-apply`; planning artifact PENDING-COMMIT; count
+  workflow-odd-secure; PM-dispatched `odd-apply`; planning artifact committed as
+  `28d4a43` and assessed medium/`under_budget`; count
   explicitly authorized by the dispatch brief even though earlier planning units were not counted;
   no implementation, deployment, or native review claimed.
 
@@ -1469,8 +1470,12 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   sequencing fold with no new queue ID. Deployment/live activation remain separate.
 
 ### Q89. Multi-agent v2 phase 1 — inert plan-task permissions
-- **Status:** IN PROGRESS — planning. Unit `q90-phase1-plan-u1` authored; PENDING-COMMIT.
-  Implementation T2/T3 not started. Tracker `odd/tasks/multi-agent-v2-phase1.md`.
+- **Status:** IN PROGRESS — planning committed. `q90-phase1-plan-u1` is committed as
+  `28d4a4368e0e3925069208ce7775b73c84c4922a`; PM assessment medium/`under_budget` at base
+  `41c293de5365c861242ed78999a3fbc1d565e5fb` (`review_due=false`), reviewed boundary retained,
+  not advanced. Implementation T2/T3 not started. Tracker `odd/tasks/multi-agent-v2-phase1.md`.
+  An explicit owner slice closure or native review is required before the next high-risk
+  implementation.
 - **Prerequisites:** committed input `docs/contracts/multi-agent-v2-workflow-prompt.md` (commit
   `92a2a38`, base `41c293de5365c861242ed78999a3fbc1d565e5fb`); RDD enabled (global); current
   `global-config/opencode.json` permission blocks. Phases 2-4 are OUT OF SCOPE: they belong to
