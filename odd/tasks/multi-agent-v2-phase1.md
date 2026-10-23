@@ -256,6 +256,13 @@ T2 acceptance (implemented; retained as the criterion):
   unchanged (blob `854e5c4adf495f10251e093bbe597a7cf642e2e8`). No new advice, verifier, review,
   deploy or runtime test ran; metadata commit and assessment remain PM-owned and independent
   orchestrator readback is pending.
+- 2026-10-23: Owner decision closed the T2 source medium slice and advanced the reviewed boundary
+  from `b154ef3a33ce692bba5218c0547def92755dc371` to
+  `22132adc686629cceaa7b32e469c5ec10d009e2a` (metadata). T2 source is
+  `473c9cd85db1c70122ed5ea007241fce10be9f59`. The prior owner-supplied assessment is
+  medium/`under_budget`, 5 paths / 287 changed lines. This is explicit OWNER closure, NOT native
+  review or approval. Deployment/restart and consumer loading are the owner's separate host
+  action and remain UNVERIFIED here; the tools are inert and NOT live.
 
 ## Delivery strategy and forecast
 
@@ -331,9 +338,9 @@ authorized lifecycle, cloud `gentle-ai-worker`; the actual root observed in its 
 
 ## Next step
 
-Phase 1 source is committed as `473c9cd` and assessed medium/`under_budget`; the reviewed boundary
-stays `b154ef3` (owner closure advanced it from `41c293d`, and the source assessment did not advance
-it further). The tools are inert and not live. Next: the PM commits this metadata unit and obtains
-its own post-metadata assessment, followed by an independent orchestrator readback. No phase 2-4
-work is allocated here; those phases belong to agent-sandbox-integration under separate
-authorization.
+Phase 1 source and metadata are complete: source `473c9cd` and metadata `22132ad`, with the
+reviewed boundary advanced to `22132ad` by explicit owner closure (not native review or approval).
+Deployment/restart and consumer loading are the owner's separate host action and remain UNVERIFIED
+here; the tools are inert and NOT live. Phases 2-4 are out of scope and belong to
+agent-sandbox-integration under separate authorization. Q56 stays 5/10 with no authorized
+increment.

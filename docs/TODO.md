@@ -1470,18 +1470,18 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   sequencing fold with no new queue ID. Deployment/live activation remain separate.
 
 ### Q89. Multi-agent v2 phase 1 — inert plan-task permissions
-- **Status:** IN PROGRESS — SOURCE COMPLETE (inert permissions only; tools not live). Planning
-  `q90-phase1-plan-u1` committed as `28d4a4368e0e3925069208ce7775b73c84c4922a` and assessed
-  medium/`under_budget` at base `41c293de...`. Owner decision (2026-10-23) closed that medium slice
-  and advanced the reviewed boundary from `41c293de5365c861242ed78999a3fbc1d565e5fb` to
-  `b154ef3a33ce692bba5218c0547def92755dc371` (owner closure, not native review/approval). T2/T3
-  source implemented and committed as `473c9cd85db1c70122ed5ea007241fce10be9f59` (7 additions,
-  0 removals; config blob `854e5c4...`). Source assessment medium/`under_budget` at base
-  `b154ef3`, `review_due=false`, boundary retained at `b154ef3` (not advanced to `473c9cd`). No
-  deploy, restart or full verifier ran. Tracker `odd/tasks/multi-agent-v2-phase1.md`; advice
-  `odd/advice/multi-agent-v2-phase1.md`. Metadata commit and its assessment remain PM-owned and
-  are not claimed here. One metadata factual correction round (round 1 of 1); source unchanged;
-  metadata commit/assessment and independent orchestrator readback pending.
+- **Status:** DONE for phase 1 (inert permissions; source and metadata complete). Planning
+  `q90-phase1-plan-u1` committed as `28d4a4368e0e3925069208ce7775b73c84c4922a`; T2 source
+  `473c9cd85db1c70122ed5ea007241fce10be9f59` (7 additions, 0 removals; config blob
+  `854e5c4...`). Owner decision (2026-10-23) closed the T2 medium slice and advanced the reviewed
+  boundary from `b154ef3a33ce692bba5218c0547def92755dc371` to
+  `22132adc686629cceaa7b32e469c5ec10d009e2a` (metadata). The prior owner-supplied assessment is
+  medium/`under_budget`, 5 paths / 287 changed lines. This is owner closure, NOT native review or
+  approval. Deployment/restart and consumer loading are the owner's separate host action and
+  remain UNVERIFIED; the tools are inert and not live. Tracker
+  `odd/tasks/multi-agent-v2-phase1.md`; advice `odd/advice/multi-agent-v2-phase1.md`. One metadata
+  factual correction round (round 1 of 1) is historical; source bytes unchanged. Metadata identity
+  and assessment are PM-supplied; no independent verification is claimed here.
 - **Prerequisites:** committed input `docs/contracts/multi-agent-v2-workflow-prompt.md` (commit
   `92a2a38`, base `41c293de5365c861242ed78999a3fbc1d565e5fb`); RDD enabled (global); current
   `global-config/opencode.json` permission blocks. Phases 2-4 are OUT OF SCOPE: they belong to
