@@ -1520,10 +1520,11 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   earlier planning units were not counted.
 
 ### Q90. Multi-agent v2 workflow config (handover 2026-10-19)
-- **Status:** IN PROGRESS — T1 queue revision only; T2-T6 PLANNED. Tracker
-  `odd/tasks/multi-agent-v2-queue.md`; handover
-  `docs/handoffs/2026-10-19-multi-agent-v2-workflow-config.md`. No implementation, deployment or
-  native review is claimed.
+- **Status:** IN PROGRESS — T1 queue revision COMPLETE/SOURCE-COMMITTED
+  `114366b35651316e00c972f71f723b7804fcae4c`; metadata commit and final PM assessment pending.
+  T2-T6 PLANNED. Tracker `odd/tasks/multi-agent-v2-queue.md`; handover
+  `docs/handoffs/2026-10-19-multi-agent-v2-workflow-config.md`. No deployment or native review
+  is claimed.
 - **Prerequisites:** T1: none (owner authorization 2026-10-23). Q89 phase 1 is DONE and inert; its
   tools are not live. T2-T6 also require the external `agent-sandbox-integration` host tools to be
   built and tested, plus owner/readiness decisions (a)-(f).
@@ -1540,8 +1541,9 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   4. The orchestrator does assessment/consent/acknowledgement only; it is not a lens.
   5. Q89 phase 1 is a completed prerequisite; phases 2-4 remain external to this repository.
 - **Units:**
-  - **T1 — queue revision (IN PROGRESS):** Q90, the Q57-Q60 forward lines, the Q87 planning
-    overlay, Q91 and the router row; pending PM commit and assessment.
+  - **T1 — queue revision (COMPLETE/SOURCE-COMMITTED `114366b`):** Q90, the Q57-Q60 forward
+    lines, the Q87 planning overlay, Q91 and the router row. Metadata commit and final PM
+    assessment pending.
   - **T2 — readiness (PLANNED):** owner decisions (a)-(f), external host tools built/tested,
     model-ID existence and seat independence, M3 hang verification.
   - **T3 — config/agents/fallbacks (PLANNED):** `global-config/opencode.json`,
@@ -1551,6 +1553,11 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     record an explicit slicing/size decision before coding.
   - **T5 — verifier (PLANNED):** new-agent/model/tool checks and digest re-pin.
   - **T6 — release (PLANNED):** mirror, owner restart, behavioral probes and trial metrics.
+- **T1 evidence (2026-10-23):** implementation commit `114366b35651316e00c972f71f723b7804fcae4c`;
+  receipt 206 authored lines / 25,263 bytes / generated-binary []; PM factual readback accepted,
+  correction 1/1; assessment at retained boundary `22132adc686629cceaa7b32e469c5ec10d009e2a`
+  medium/`under_budget`, `consumed=false`, `review_due=false`, 6 cumulative paths / 563 lines
+  (not this unit's 206). Pending slice is not native review or approval.
 - **Open owner/readiness decisions (do not resolve here):**
   (a) handover item 8: `host_gate_verdict` PASS versus "advice is evidence, never approval";
   (b) `host_plan_write` approval posture;
