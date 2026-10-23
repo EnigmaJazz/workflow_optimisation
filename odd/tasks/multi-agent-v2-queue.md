@@ -1,58 +1,55 @@
 # Multi-agent v2 workflow config — Q90 queue revision
-Task `q90-multi-agent-v2-queue`; units `q90-queue-revision-u1` (initial) and
-`q90-decisions-correction-u1` (this correction). Class: documentation; route `workflow-odd-secure`
-delegated cloud `odd-apply`. Base boundary `22132ad`; start HEAD `dfbeb29` (dispatch-supplied) on
-`chore/multi-agent-v2-phase1`; source candidate `114366b`. No push, PR, deployment or native review.
+Task `q90-multi-agent-v2-queue`; units `q90-queue-revision-u1` (initial),
+`q90-decisions-correction-u1` (correction) and `q90-t2-readiness-u1` (this T2 readiness closure).
+Class: documentation; route `workflow-odd-secure` delegated cloud `odd-apply`. Base boundary
+`22132ad`; host branch ref read by the PM `21ff2a5` on `chore/multi-agent-v2-phase1`; prior
+candidates: T1 source `114366b`, T1 metadata `dfbeb29`, decision-set correction `21ff2a5`.
+No push, PR, deployment or native review.
 
 ## Problem
-`docs/TODO.md` and this tracker still carried the earlier same-day "PM runs the lenses / PM owns the
-review lifecycle" wording, plus the item-8 and GLM-seat questions, contradicting the owner's later
-2026-10-23 correction. This unit records FUTURE PLANNING only; it changes no executable policy and
-enables no host tool. Goal: six decisions, exact pipeline, four-lens terminology, Q90 six-unit
-queue and the Q91 placeholder.
+Earlier same-day text still carried open plan-write, model-ID, M3-seat and slicing questions plus
+the superseded "PM runs the lenses" wording. This unit records the owner's final T2 readiness
+decisions as FUTURE PLANNING only; it changes no executable policy and enables no host tool.
 
 ## Scope
-- Update only `docs/TODO.md` (Q90 section), `ROUTER-LOG.md` (one appended row) and this tracker.
-- Six decisions, pipeline order, four-lens terminology, same-day supersession, item 8.
-- Q57-Q60 forward wording untouched; the same-day contradictory statements are superseded only
-  inside Q90/tracker. Q58's historical body remains intact.
-- No `WORKFLOW.md`, `PLAN.md`, spec, config, guard, skill, prompt, test or Q89 edit.
+- Update only `docs/TODO.md` (Q90), `ROUTER-LOG.md` and this tracker.
+- Record decisions (b), (d), (e) and (f) and the T3a-d -> T4 -> T5 -> T6 dependency order.
+- Update contradictory OPEN approval and M3 seat language; label earlier evidence historical.
+- No `WORKFLOW.md`, `PLAN.md`, spec, config, guard, skill, prompt, test, handoff or Q89 edit.
 
 ## Constraints
-- Handover order retained: host tools built/tested first; owner PASS/plan-write decisions; queue
-  -> config/guard/skills in one unit -> verifier -> mirror/restart/probes.
-- T3/T4 slicing is PROVISIONAL: config/guard/skills atomic consistency requires an explicit
-  slicing/size decision before coding.
+- Handover order retained: host tools built/tested first; owner decisions; then actor slices ->
+  verifier/digest -> mirror/restart -> behavioral probes/trial metrics.
+- T3 slicing is RESOLVED (f): each actor commit changes config task permissions, guard
+  `ROUTE_STAGES`/helper lists, route skills and its own `WORKFLOW.md` lines together.
 - Deterministic Magic Context mirror is UNIMPLEMENTED; the PM never reads the mirror body.
-- Q89 phase 1 is DONE and inert; phases 2-4 belong to agent-sandbox-integration, unchanged.
-- RDD/native review: the PM commits/assesses this docs unit; the orchestrator dispatches review lanes
-  and owns consent/acknowledgement; the owner approves delivery. Future planning stays distinct from
-  the PM's current risk-assessment permission.
+- RDD/native review: the PM commits/assesses; the orchestrator dispatches the lanes and owns
+  consent/acknowledgement; the owner approves delivery.
 
 ## Owner decisions (2026-10-23, corrected; future planning)
 1. Review returns to the orchestrator: it dispatches FOUR lenses and the provider-selected
    refuter/validator, and keeps assessment, consent and acknowledgement. The PM dispatches no
-   review lanes. The earlier 2026-10-23 "PM runs the lenses" decision is SUPERSEDED the same day;
-   Q58's restriction is restored. The same-day Q57/Q58 forward statements that the PM runs the
-   lanes are superseded; their historical sections are untouched.
-2. The orchestrator first drafts the plan; the PM reads it and hands it to the Planner with its own
-   suggestions, passing NO advice; the Planner finalises, calls ALL pre-code advisors itself plus
+   review lanes. The earlier same-day "PM runs the lenses" decision is SUPERSEDED; Q58's
+   restriction is restored; Q57/Q58 historical sections are untouched.
+2. The orchestrator first drafts the plan; the PM reads it and hands it to the Planner with its
+   own suggestions, passing NO advice; the Planner finalises, calls ALL pre-code advisors plus
    its own read-only Luna evidence agent, runs post-code advisory, and issues BOTH gate verdicts.
    No additional advice for true docs; Q87's forward post-code actor is the Planner.
 3. PM `glm-5.3-flash` high, fallback `qwen3.8-flash` high; Planner `openai/gpt-6.1-sol` high,
-   xhigh for Gate 1 on multi-step/high-risk. Independence across orchestrator, PM, Planner, apply
-   and review models. New planner-evidence uses `openai/gpt-6-luna`; sharing Luna with the Tiny
-   writer `general` and `jd-fix-agent` is an explicit agreed exception (Tiny is passive/ungated).
-4. The orchestrator does plan drafting + review dispatch, including a deliberate narrow
-   `host_plan_write` exception limited to plan documents (grant approval posture still OPEN, not
-   live), plus assessment/consent/acknowledgement. The PM loses relay AND advisor dispatch.
+   xhigh for Gate 1 on multi-step/high-risk. Independence across orchestrator, PM, Planner,
+   apply and review models. Planner-evidence uses `openai/gpt-6-luna`; sharing Luna with the
+   Tiny writer `general` and `jd-fix-agent` is an explicit agreed exception (Tiny is
+   passive/ungated).
+4. The orchestrator does plan drafting + review dispatch, plus assessment/consent/acknowledgement.
+   Its `host_plan_write` posture is RESOLVED by T2 decision (b): ask-gated for BOTH orchestrator
+   and Planner, NO no-ask exception. The PM loses relay AND advisor dispatch.
 5. Q89 phase 1 is a completed prerequisite; phases 2-4 remain external to this repository.
 6. Item 8 is RESOLVED: advice is evidence; the gate verdict is the approval act. On gated routes
    the Planner issues PASS/REFINE/ESCALATE after reading the plan revision, the pre-code advice it
-   called, the post-code advice it ran, the raw lens findings, and the evidence commit assessment
+   called, the post-code advice it ran, the raw lens findings and the evidence commit assessment
    tier, phase-appropriate (Gate 1 does not imply post-code evidence exists). PASS technically
    approves the change and authorises the PM tick, NOT delivery/deployment/acceptance. Non-gated
-   routes take advice as evidence only, with no verdict.
+   routes take advice as evidence only, no verdict.
 
 ## Pipeline (exact)
 orchestrator drafts plan -> PM reads/suggests -> Planner finalises, calls pre-code advisors and
@@ -60,71 +57,87 @@ Luna evidence agent -> Gate 1 -> writer implements -> PM closes unit -> orchestr
 four post-commit lenses, Planner runs post-code advice -> Gate 2 -> PM ticks -> orchestrator
 assesses/acknowledges -> owner approves delivery.
 
-## Review terminology
-FOUR lenses — R1 risk `qwen3.8-flash`, R2 readability `kimi-k2.7-code`, R3 reliability `minimax-m3`
-(pending the M3 hang check), R4 resilience `glm-5.3-flash` — PLUS the provider-selected refuter
-`mimo-v2.6-flash` and validator `claude-haiku-5-5`.
+## T2 readiness (complete)
+Owner decisions dated 2026-10-23; evidence is owner-supplied. These close DECISIONS only, not the
+remaining host-tool built/tested, session, independence or hang checks.
 
-## Superseded decisions
-Earlier 2026-10-23: PM ran the review lanes and owned the lifecycle and advisor dispatch; item 8
-and the GLM-seat collision were open. Later 2026-10-23 (authoritative): review returns to the
-orchestrator (four lenses plus provider refuter/validator); PM dispatches no review lane or
-advisor; Planner calls all advisors and its evidence agent; item 8 resolved, GLM collision gone;
-Q58's restriction restored; Q57/Q58 sections unchanged.
-
-## Planning record
-- v2 planning source: `docs/handoffs/2026-10-19-multi-agent-v2-workflow-config.md`.
-- Q89 phase 1: `odd/tasks/multi-agent-v2-phase1.md`; source `473c9cd`, metadata `22132ad`; inert,
-  tools not live; boundary advanced to `22132ad` by owner closure, not native review.
-- Queue: Q90 T1 COMPLETE — source `114366b`, metadata `dfbeb29`, final PM assessment
-  medium/`under_budget` at retained boundary `22132ad`. Q90 IN PROGRESS; T2-T6 PLANNED; Q91 PLANNED.
+(b) RESOLVED — `host_plan_write` is ask-gated for BOTH the orchestrator and the Planner; NO
+    no-ask exception. PM suggestions are messages, not plan writes; the no-`ctx.ask` ask is rejected.
+(d) RESOLVED — all named model IDs resolve, evidenced by THREE owner-reported host
+    `opencode models` runs on 2026-10-23. Go pool present: qwen3.8-flash, qwen3.8-max,
+    glm-5.3-flash, glm-5.3, kimi-k2.7-code, minimax-m3, minimax-m3.1-flash, mimo-v2.6-flash,
+    claude-haiku-5-5, claude-sonnet-5-5, gpt-6-luna. OpenAI present: openai/gpt-6.1-sol
+    (+ -fast, -ultrafast) and openai/gpt-6-luna (+ -fast). Google present:
+    google/gemini-flash-latest, google/gemini-4-argon, google/gemini-3.8-flash. Shared-pool
+    opencode-go/gpt-6-luna and opencode-go/gemini-3.8-flash exist but are NOT the handover's
+    named providers.
+(e) FAIL CLOSED — `minimax-m3` is excluded from EVERY native review seat until the hang is proven
+    absent. The owner states the repo holds no hang record (owner-attributed absence; no
+    independent search is claimed here). `minimax-m3.1-flash` exists but is NOT promoted without
+    session and hang checks. R3 reliability has NO confirmed seat. T3d chooses a replacement
+    from claude-sonnet-5-5, minimax-m3.1-flash (after checks), muse-spark-1.3-contributor or
+    step-5-preview. No seat is chosen in this unit; model-ID resolution does NOT prove seat
+    independence or hang clearance. Other seats unchanged: R1 risk `qwen3.8-flash`, R2
+    readability `kimi-k2.7-code`, R4 resilience `glm-5.3-flash`; refuter `mimo-v2.6-flash`,
+    validator `claude-haiku-5-5`.
+(f) RESOLVED — actor slices: T3a orchestrator (plan draft + review dispatch); T3b Planner (advisor +
+    evidence-agent + verdict permissions); T3c PM (drop relay/advisor dispatch; GLM seat); T3d
+    fallbacks/remaining seats. EACH actor commit changes config task permissions, guard
+    `ROUTE_STAGES`/helper lists, route skills and its own `WORKFLOW.md` lines together; no size
+    exception and no intermediate guard-denies/skill-allows state — any inconsistent slice STOPS AND ASKS.
 
 ## Work units
 | Unit | Scope | Status | Prerequisites |
 |---|---|---|---|
 | T1 | Queue revision: Q90, Q87 overlay, Q91, router | COMPLETE source `114366b`, metadata `dfbeb29`, medium/`under_budget` | owner authorization 2026-10-23 |
-| T2 | Readiness: decisions b/d/e/f, host tools built/tested, model IDs, seat independence, M3 hang | PLANNED | T1; agent-sandbox-integration host tools |
-| T3 | Config/agents/fallbacks: orchestrator plan tool + review dispatch, Planner advisor/evidence permissions, PM loses relay/advisor dispatch, new planner-evidence agent | PLANNED | T2; explicit T3/T4 slicing decision |
-| T4 | Recipe/guard/skills contract for the same actors/permissions | PLANNED | T2; T3 slice decision; atomic consistency |
-| T5 | Verifier checks + digest re-pin | PLANNED | T3, T4 |
-| T6 | Mirror, owner restart, behavioral probes, trial metrics | PLANNED | T5; owner restart |
+| T2 | Readiness: decisions b/d/e/f, model IDs, M3/hang and seat gates | COMPLETE for decisions/evidence; host-tool, session and independence checks remain future implementation gates | T1; owner decisions 2026-10-23 |
+| T3a | Orchestrator slice: plan draft tool + review dispatch; ask-gated `host_plan_write` | PLANNED, high risk | T2; pre-advice, post-advice, one independent verifier, ONE correction round, native review after commit |
+| T3b | Planner slice: advisor + evidence-agent + both verdict permissions | PLANNED, high risk | T2; T3a landed with consistent surfaces |
+| T3c | PM slice: drop relay/advisor dispatch; GLM seat | PLANNED, high risk | T2; T3a/T3b landed with consistent surfaces |
+| T3d | Fallbacks and remaining seats; R3 replacement selection | PLANNED, high risk | T2; T3a-T3c; M3 hang proof and session checks before any `minimax-m3.1-flash` promotion |
+| T4 | Verifier checks + digest re-pin | PLANNED | ALL T3a-T3d slices landed |
+| T5 | Mirror and owner restart | PLANNED | T4 |
+| T6 | Behavioral probes and trial metrics | PLANNED | T5; owner restart |
 
-## Open owner/readiness decisions
-a. RESOLVED (item 8): advice is evidence; the gate verdict is the approval act.
-b. OPEN: `host_plan_write` approval posture, including the orchestrator's narrow plan-document
-   exception; not live.
-c. RESOLVED: the PM dispatches no review lanes, so the `review-resilience` GLM / `review-risk`
-   `qwen3.8-flash` seat collision is gone.
-d. OPEN: model IDs — `claude-haiku-5-5`, `qwen3.8-flash`, `qwen3.8-max`, `glm-5.3-flash`,
-   `mimo-v2.6-flash`, `minimax-m3`, `kimi-k2.7-code`, `google/gemini-flash-latest`.
-e. OPEN: M3 hang verification before any native seat uses `minimax-m3`.
-f. OPEN: one-work-unit config/guard/skills versus Q87's ~400 lines / 100 KiB: choose a slice or
-   record an explicit owner size exception.
+## Open choices and standing gates
+- Genuine open choices: (i) the R3 reliability replacement in T3d; (ii) M3 hang verification before
+  any `minimax-m3.1-flash` promotion. Prerequisites (host tools built/tested, sessions, seat
+  independence) remain prerequisites, not owner decisions, and are NOT completed by T2.
+- Resolved: (a) item 8; (b) plan-write ask-gated; (c) GLM/`qwen3.8-flash` collision gone; (d) model
+  IDs; (f) actor slicing. Standing FAIL CLOSED: `minimax-m3` excluded from every native seat (e).
 
 ## Commit and assessment evidence
-- Source `114366b`; metadata `dfbeb29`; final PM assessment medium/`under_budget` at retained
-  boundary `22132adc686629cceaa7b32e469c5ec10d009e2a`.
-- Historical initial-unit receipt: 206 authored lines, 25,263 authored patch bytes, generated/
-  binary []; correction 1/1. Its SOURCE assessment was 6 cumulative paths / 563 lines
-  (`consumed=false`, `review_due=false`): a cumulative slice, NOT the unit's 206 lines and NOT
-  final metadata statistics. This correction unit does not consume another correction round.
-- The PM envelope supplies this correction unit's commit SHA and assessment; no hash or assessment
-  success is claimed here.
+- Historical record: v2 planning source
+  `docs/handoffs/2026-10-19-multi-agent-v2-workflow-config.md`; Q89 phase 1 source `473c9cd`,
+  metadata `22132ad`, inert, tools not live.
+- Historical T1: source `114366b`; metadata `dfbeb29`; final PM assessment medium/`under_budget` at
+  retained boundary `22132adc686629cceaa7b32e469c5ec10d009e2a`; receipt 206 lines / 25,263 bytes /
+  generated-binary []; SOURCE assessment 6 cumulative paths / 563 lines (slice, not this unit).
+- Current unit (`q90-t2-readiness-u1`): the writer receipt (authored changed lines, patch bytes,
+  generated/binary []) is reported to the PM; the PM envelope supplies the commit SHA and
+  assessment; no hash, review or assessment success is claimed here.
+- The previous pending medium slice must close by explicit owner decision or review before the
+  next high-risk (T3a) commit. Boundary `22132ad` is retained; no advance is claimed.
 
 ## Log
-- Route: delegated `workflow-odd-secure`, cloud `odd-apply`; PM-dispatched; initial writer
-  `ses_e96403ac5ffecd6SwEe5qMfxM2` (frozen result `5b035b6bf790e732fbd644f377073b65936a37c4`,
-  installed); this correction round 1/1 `ses_e9635ed7affeJUhfScAR23O6zs`; PM owns commit/assessment; mirror UNIMPLEMENTED.
-- Initial unit: three allowed paths, +202/-4 = 206 authored lines / 25,263 bytes; committed
-  `114366b`; metadata `dfbeb29`; PM factual readback F1-F5 accepted; correction 1/1.
-- This unit: sandbox root `/work`; baseline HEAD `0aa908b` (synthetic baseline; parent `dfbeb29`;
-  tree includes the installed initial result); branch `work`; `22132ad`, `114366b`, `dfbeb29` are
-  ancestors; no merge/rebase. PM first-pass readback F1-F3 accepted; initial `aft_inspect` PARTIAL
-  (no Markdown LSP producer for all three paths), not syntax clean. Acceptance/forecast: exactly 3
-  paths; tracker <=130 lines; future planning only; <=400 authored lines / 102,400 bytes; ask-on-risk
-  feature-delivery strategy retained, no PR. Checks: `git diff --check` and `git diff --cached --check`
-  clean; structural readback of six decisions/pipeline/terminology/open decisions and one router row; no advisor/verifier/runtime suite.
+- Historical initial writer `ses_e96403ac5ffecd6SwEe5qMfxM2` (frozen result
+  `5b035b6bf790e732fbd644f377073b65936a37c4`, installed); correction writer
+  `ses_e9635ed7affeJUhfScAR23O6zs`; both previous units, not this one.
+- Initial Task evidence (PM-observed): dispatch `ses_e96143036ffeG9d4jb9Xh3I9WB` completed and
+  APPLIED; frozen result `c09ab9b30aac08418dc46f2423537ca23208f641`; exactly 3 allowed paths,
+  321 authored lines / 39,048 bytes. Current correction round 1/1.
+- Current unit: trigger owner authorization 2026-10-23; delegated `workflow-odd-secure`, cloud
+  `odd-apply`, PM-dispatched. Sandbox workspace `/work`, branch `work`, synthetic baseline HEAD
+  `7c08e45` (parent `21ff2a5`), not the host branch. Host branch ref read by the PM: `21ff2a5`
+  on `chore/multi-agent-v2-phase1`; `.git/HEAD` itself exposes only the symbolic branch, not the
+  SHA. `22132ad`, `114366b` and `dfbeb29` resolve and are ancestors; no merge/rebase in progress.
+- Observed checks: exactly three allowed paths; `git diff --check` and `git diff --cached --check`
+  clean. PM static check (`aft_inspect` scoped to all 3 paths): PARTIAL; no Markdown LSP producer
+  for the 3 files; complexity unfinished / `dead_code` unsupported; no syntax-clean claim. No
+  advisor, verifier, runtime, deployment or native-review evidence; zero runtime tests. The
+  pre-existing untracked sandbox bundle is excluded and not staged.
 
 ## Next step
-T2 readiness only — open decisions (b), (d), (e), (f), external host tools built/tested, model IDs,
-seat independence and M3 hang — not config coding. Q90 remains IN PROGRESS.
+T3a (orchestrator slice) is next: a high-risk config + guard + route-skill + `WORKFLOW.md` change
+owing pre-code advice, post-advice, one independent verifier, ONE correction round, and native
+review after commit. Close the pending medium slice first. Q90 remains IN PROGRESS.

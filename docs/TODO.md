@@ -1523,14 +1523,15 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
 - **Status:** IN PROGRESS — T1 COMPLETE: source
   `114366b35651316e00c972f71f723b7804fcae4c`; metadata
   `dfbeb296af708f02151d7444d8d76431606abff6`. Final PM assessment completed at retained boundary
-  `22132adc686629cceaa7b32e469c5ec10d009e2a`: medium/`under_budget`. T2-T6 PLANNED. Tracker
-  `odd/tasks/multi-agent-v2-queue.md`; handover
-  `docs/handoffs/2026-10-19-multi-agent-v2-workflow-config.md`. No deployment or native review
-  is claimed.
+  `22132adc686629cceaa7b32e469c5ec10d009e2a`: medium/`under_budget`. T2 COMPLETE for
+  decisions/evidence (2026-10-23); T3a-T6 PLANNED. Tracker `odd/tasks/multi-agent-v2-queue.md`;
+  handover `docs/handoffs/2026-10-19-multi-agent-v2-workflow-config.md`. No deployment or native
+  review is claimed.
 - **Prerequisites:** T1: none (owner authorization 2026-10-23). Q89 phase 1 is a completed, inert
-  prerequisite; its tools are not live. Phases 2-4 remain external to this repository. T2-T6 also
-  require the external `agent-sandbox-integration` host tools to be built and tested, plus open
-  owner/readiness decisions (b), (d), (e) and (f), model IDs and M3 hang verification.
+  prerequisite; its tools are not live. Phases 2-4 remain external to this repository. The
+  external `agent-sandbox-integration` host tools must be built and tested, and the remaining
+  session and seat-independence checks must pass before the relevant T3 slices. These are
+  prerequisites, not owner decisions; T2 decision closure does NOT complete them.
 - **Owner decisions (2026-10-23, corrected; planning direction, not live deployment and not a
   change to current policy):**
   1. Review returns to the orchestrator: it dispatches FOUR lenses and the provider-selected
@@ -1548,9 +1549,10 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
      apply and review models. The new planner-evidence agent uses `openai/gpt-6-luna`; sharing
      Luna with the Tiny writer `general` and `jd-fix-agent` is an explicit agreed exception,
      accepted because Tiny is passive/ungated.
-  4. The orchestrator does plan drafting + review dispatch, including a deliberate narrow
-     `host_plan_write` exception limited to plan documents (grant approval posture still OPEN, not
-     live), plus assessment/consent/acknowledgement. The PM loses relay AND advisor dispatch.
+  4. The orchestrator does plan drafting + review dispatch, plus assessment/consent/acknowledgement.
+     `host_plan_write` is ask-gated for BOTH the orchestrator and the Planner, with NO no-ask
+     exception (T2 decision (b), RESOLVED); PM suggestions are messages, never plan writes. The PM
+     loses relay AND advisor dispatch.
   5. Q89 phase 1 is a completed prerequisite; phases 2-4 remain external to this repository,
      unchanged.
   6. Item 8 is RESOLVED: advice is evidence; the gate verdict is the approval act. On gated
@@ -1564,22 +1566,46 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   orchestrator dispatches four post-commit lenses, Planner runs post-code advice -> Gate 2 -> PM
   ticks -> orchestrator assesses/acknowledges -> owner approves delivery.
 - **Review terminology:** FOUR lenses — R1 risk `qwen3.8-flash`, R2 readability `kimi-k2.7-code`,
-  R3 reliability `minimax-m3` (pending the M3 hang check), R4 resilience `glm-5.3-flash` — PLUS
-  the provider-selected refuter `mimo-v2.6-flash` and validator `claude-haiku-5-5`.
+  R3 reliability NO CONFIRMED SEAT (`minimax-m3` is excluded fail-closed from every seat until
+  the hang is proven absent; `minimax-m3.1-flash` is not promoted without session and hang
+  checks; T3d selects the replacement), R4 resilience `glm-5.3-flash` — PLUS the
+  provider-selected refuter `mimo-v2.6-flash` and validator `claude-haiku-5-5`.
 - **Units:**
   - **T1 — queue revision (COMPLETE):** Q90, the Q57-Q60 forward lines, the Q87 planning overlay,
     Q91 and the router row. Source `114366b`; metadata `dfbeb29`; final assessment
     medium/`under_budget` at retained boundary `22132ad`.
-  - **T2 — readiness (PLANNED):** open decisions (b), (d), (e) and (f), external host tools
-    built/tested, model-ID existence, seat independence, M3 hang verification.
-  - **T3 — config/agents/fallbacks (PLANNED):** `global-config/opencode.json`,
-    `global-config/rate-limit-fallback.json`; orchestrator plan tool + review dispatch, Planner
-    advisor/evidence permissions, PM loses relay/advisor dispatch, new planner-evidence agent.
-  - **T4 — recipe/guard/skills routing contract (PLANNED):** `WORKFLOW.md`, routing guard and
-    route skills for the same actor/permission changes. T3/T4 slicing is PROVISIONAL because the
-    handover requires atomic consistency; record an explicit slicing/size decision before coding.
-  - **T5 — verifier (PLANNED):** new-agent/model/tool checks and digest re-pin.
-  - **T6 — release (PLANNED):** mirror, owner restart, behavioral probes and trial metrics.
+  - **T2 — readiness (COMPLETE for decisions/evidence, 2026-10-23):** decisions (b), (d), (e) and
+    (f) closed. (b) `host_plan_write` ask-gated for BOTH orchestrator and Planner, no no-ask
+    exception; PM suggestions are messages, never plan writes. (d) all named model IDs resolve,
+    evidenced by THREE owner-reported host `opencode models` runs: Go pool plus
+    `openai/gpt-6.1-sol` (+ -fast, -ultrafast), `openai/gpt-6-luna` (+ -fast), and the Google
+    models `google/gemini-flash-latest`, `google/gemini-4-argon`, `google/gemini-3.8-flash`;
+    shared-pool variants exist but are not the named providers. (e) `minimax-m3` is excluded
+    fail-closed from EVERY native review seat until the hang is proven absent; R3 has no
+    confirmed seat, `minimax-m3.1-flash` is not promoted without session/hang checks, and T3d
+    chooses from `claude-sonnet-5-5`, `minimax-m3.1-flash`, `muse-spark-1.3-contributor` or
+    `step-5-preview`. (f) actor slices T3a-d, each atomic across `opencode.json` task
+    permissions, guard `ROUTE_STAGES`/helper lists, route skills and its own `WORKFLOW.md` lines,
+    with no owner size exception and no intermediate guard-denies/skill-allows state. Host-tool
+    built/tested, session and independence checks remain future implementation gates, NOT
+    completed by T2.
+  - **T3a — orchestrator slice (PLANNED, high risk):** plan-draft tool, review dispatch and the
+    ask-gated `host_plan_write` permission; same three surfaces plus orchestrator `WORKFLOW.md`
+    lines. Owes pre-advice, post-advice, one independent verifier, ONE correction round and
+    native review after commit.
+  - **T3b — Planner slice (PLANNED, high risk):** advisor, evidence-agent and both gate-verdict
+    permissions; same three surfaces plus Planner `WORKFLOW.md` lines.
+  - **T3c — PM slice (PLANNED, high risk):** drop relay/advisor dispatch and set the GLM seat;
+    same three surfaces plus PM `WORKFLOW.md` lines.
+  - **T3d — fallbacks and remaining seats (PLANNED, high risk):** fallback policy and the R3
+    replacement selection. Only `minimax-m3.1-flash` promotion requires the M3 session AND hang
+    checks; unrelated candidate selection must not wait for proving the M3 hang absent.
+    `minimax-m3` stays excluded from EVERY native seat; no seat chosen here. Same three surfaces.
+  - **T4 — verifier (PLANNED):** new-agent/model/tool checks and digest re-pin, after ALL T3a-d
+    slices.
+  - **T5 — mirror and owner restart (PLANNED):** after T4.
+  - **T6 — release (PLANNED):** behavioral probes and trial metrics, after T5 and the owner
+    restart.
 - **T1 evidence (2026-10-23):** source `114366b35651316e00c972f71f723b7804fcae4c`; metadata
   `dfbeb296af708f02151d7444d8d76431606abff6`; source receipt 206 authored lines / 25,263 bytes /
   generated-binary [], PM factual readback accepted, correction 1/1. The SOURCE assessment at
@@ -1587,26 +1613,44 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   `consumed=false`, `review_due=false`, 6 cumulative paths / 563 lines — cumulative source slice,
   NOT this unit's 206 lines and NOT the final metadata statistics. Final PM assessment completed
   medium/`under_budget`; boundary `22132ad` retained. This is not native review or approval.
-- **Open owner/readiness decisions:**
+- **Resolved decisions and standing gates (2026-10-23):**
   (a) RESOLVED: handover item 8 — advice is evidence, the gate verdict is the approval act
       (decision 6);
-  (b) OPEN: `host_plan_write` approval posture, now including the orchestrator's deliberate
-      narrow plan-document exception; not live;
+  (b) RESOLVED: `host_plan_write` is ask-gated for BOTH the orchestrator and the Planner, with NO
+      no-ask exception; PM suggestions are messages, never plan writes. The companion design ask
+      for no `ctx.ask` is rejected; the repository safety model stands;
   (c) RESOLVED: the PM dispatches no review lanes, so the `review-resilience` GLM and
       `review-risk` `qwen3.8-flash` seat collision is gone;
-  (d) OPEN: model-ID existence for `claude-haiku-5-5`, `qwen3.8-flash`, `qwen3.8-max`,
-      `glm-5.3-flash`, `mimo-v2.6-flash`, `minimax-m3`, `kimi-k2.7-code`,
-      `google/gemini-flash-latest`;
-  (e) OPEN: M3 hang verification before any native seat uses `minimax-m3`;
-  (f) OPEN: the handover's one-work-unit config/guard/skills versus Q87's ~400 authored changed
-      lines / 100 KiB cap: choose a slice or record an explicit owner size exception.
+  (d) RESOLVED: all named model IDs resolve, per THREE owner-reported host `opencode models` runs
+      on 2026-10-23. Go pool, OpenAI `openai/gpt-6.1-sol` and `openai/gpt-6-luna`, and Google
+      `google/gemini-flash-latest`, `google/gemini-4-argon`, `google/gemini-3.8-flash`; the
+      shared-pool `opencode-go/*` variants are not the named providers. Model-ID resolution does
+      NOT prove seat independence;
+  (e) FAIL CLOSED: `minimax-m3` is excluded from EVERY native review seat until the hang is
+      proven absent. The owner states the repo holds no hang record (owner-attributed absence,
+      no independent search claimed). R3 has NO confirmed seat; `minimax-m3.1-flash` is not
+      promoted without session and hang checks. T3d chooses the replacement from
+      `claude-sonnet-5-5`, `minimax-m3.1-flash` (after checks), `muse-spark-1.3-contributor` or
+      `step-5-preview`. No seat is chosen here;
+  (f) RESOLVED: actor slices T3a orchestrator, T3b Planner, T3c PM, T3d fallbacks/remaining
+      seats. EACH actor commit changes the same three policy surfaces consistently —
+      `global-config/opencode.json` task permissions; guard `ROUTE_STAGES`/helper lists; route
+      skills — PLUS that actor's `WORKFLOW.md` lines. No owner size exception; no intermediate
+      guard-denies/skill-allows state; any slice unable to remain consistent STOPS AND ASKS.
+- **Genuine open choices:** the R3 reliability replacement in T3d and M3 hang verification before
+  any `minimax-m3.1-flash` promotion. All other listed items are resolved or standing gates.
+  Host-tool built/tested, session and seat-independence checks remain prerequisites, not owner
+  decisions.
 - **Order:** handover Order `:213-218` is retained: host tools built/tested first; owner
-  `PASS`/plan-write decisions; queue -> config/guard/skills in one work unit -> verifier ->
-  mirror/restart/probes. The queue revision first is the owner-authorized planning exception and
-  does not enable any tool.
-- **Scope boundary:** phases 2-4 are external; the unmerged planner tier is only the Q91
-  placeholder. No `WORKFLOW.md`, `PLAN.md`, spec, config, guard or skill edit is authorized in
-  T1.
+  decisions; then T3a -> T3b -> T3c -> T3d actor slices -> T4 verifier/digest -> T5
+  mirror/owner restart -> T6 behavioral probes/trial metrics. The queue revision was the
+  owner-authorized planning exception and enabled no tool.
+- **Scope boundary:** T2 is planning/evidence only. Phases 2-4 are external; the unmerged
+  planner tier is only the Q91 placeholder. No `WORKFLOW.md`, `PLAN.md`, spec, config, guard or
+  skill edit is authorized before T3a, which is high risk and owes pre-advice, post-advice, one
+  independent verifier, ONE correction round and native review after commit.
+- **Pending gate:** the previous pending medium slice must close by explicit owner decision or
+  review before the next high-risk commit. Boundary `22132ad` is retained; no advance is claimed.
 
 ### Q91. Planner tier (renumbered from the unmerged Q67 plan on docs/pm-planner-delegation, 9938cd1)
 - **Status:** PLANNED.
