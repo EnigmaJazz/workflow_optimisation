@@ -54,4 +54,17 @@ The second live `pm-odd` smoke test passed 4/8 checks and preserved the expected
 - [x] Read the complete current `docs/specs/pm-handoff.md` before editing.
 - [x] Replace the hash obligation in both PM prompts and regenerate the orchestrator prompt source/embed/ledger chain.
 - [x] Replace the byte-count anchor with exact line count and narrow the committed-state claim.
-- [ ] Apply the sandbox result only after `sandbox_finish` and report whether apply succeeded.
+- [x] Historical lifecycle item (2026-10-22, owner-authorized current-state wording): the Q85a applied source is present in the tree and verified by the current focused and full suites; the original `sandbox_finish`-before-`sandbox_apply` sequence is not independently re-verifiable from current artifacts.
+- 2026-10-22: Q56 counted unit 2/10 — verified through pm-odd; source already complete; no source change; metadata commit PENDING-COMMIT
+
+## Current checks (2026-10-22)
+- Execution-only Task `ses_e98b24e9effeuOXlbgGe3zUrdL` (zero tracked changes) ran: `python3 -m unittest tests.test_pm_handoff_spec -v` exit 0, 26 tests OK; `python3 -m unittest tests.test_pm_layer_prompts -v` exit 0, 13 tests OK including 7 PositiveControls; `python3 -m unittest tests.test_orchestrator_prompt_source -v` exit 0, 29 tests OK; `python3 -m unittest discover -s tests` exit 0, `Ran 244 tests`, OK, zero failures/errors/skips; `bash -n verify-workflow.sh` exit 0 with no output; `python3 -m json.tool global-config/opencode.json` exit 0.
+- The assembler recomputed 59,950 bytes with SHA-256 `521796dfbfc71a125e49b8bbd8127de7197a491b12a0ea8bd942c29de64a046b`; the embedded/constant/ledger equality tests passed. Prompt SHA-256 `74838e16cf689f8c3f862dc56d3d9dc22f925dab8b8dcabc4d849bf96a2dd2ac` (55,246 bytes / 414 lines) is HISTORICAL, not current; the earlier historical checks above are preserved.
+- The PM's original anchor observation was a MATCH (57 lines, exact original last line, ref `916a4f5e3291f42507bfb47b429bcea5c6d65e4c`, correct `.git/HEAD`), but it is a working-tree/ref observation, not a committed tracker-blob witness.
+
+## Log
+- Route: delegated `workflow-odd-secure` to cloud `odd-apply`; trigger: secure mandatory mutation delegation. RDD: on, decided by global.
+- Research `ses_e98b55799ffe7dJejVknk1x2TM` inspected the anchor contract and metadata; execution-only Task `ses_e98b24e9effeuOXlbgGe3zUrdL` ran the current checks with zero tracked changes.
+- Original lifecycle state was blocked because the `sandbox_finish`-before-`sandbox_apply` sequence could not be independently re-verified; the owner continuance dated 2026-10-22 resolved it with the exact current-state wording recorded above. The source was already complete; this unit changes metadata only.
+- Anchor MATCH limitation: the PM observed readable line count, last-line text and the branch ref only; it did not prove tracker blob equality. Current PM metadata factual check: pending. Independent orchestrator readback: pending.
+- Current metadata commit and postcommit assessment: PENDING, not performed; nothing is claimed. Mirror: tool unimplemented/not performed; the PM did not read the mirror body.
