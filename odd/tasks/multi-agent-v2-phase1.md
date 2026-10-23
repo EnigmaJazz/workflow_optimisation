@@ -3,11 +3,19 @@
 Feature: multi-agent v2 plan tools, gating, and the ODD tracker change. Task ID
 `multi-agent-v2-phase1`. Class: global tooling change. Route: `workflow-odd-secure` (delegated).
 Unit `q90-phase1-plan-u1`: PLANNING COMMITTED as `28d4a4368e0e3925069208ce7775b73c84c4922a`.
-This metadata unit closes the planning evidence; implementation tasks T2 and T3 are NOT STARTED.
+The planning medium slice was closed by an explicit OWNER decision (2026-10-23) that advanced the
+reviewed boundary from `41c293de5365c861242ed78999a3fbc1d565e5fb` to
+`b154ef3a33ce692bba5218c0547def92755dc371`; this is owner closure, NOT native review or approval.
+Phase 1 source (T2) is implemented and committed as
+`473c9cd85db1c70122ed5ea007241fce10be9f59` (inert permissions only; tools are NOT live). T3
+records the source checks, receipt and assessment. This separate metadata unit's own commit and
+post-metadata assessment remain PM-owned and are NOT claimed here.
 Delivery strategy: auto-chain with the resolved topology stacked-to-main
 (owner-supplied); each unit gets its own commit; no push or PR. Q56 counted unit 5/10
-(brief-authorized 2026-10-23; earlier planning units were not counted). RDD enabled (global);
-input boundary `41c293de5365c861242ed78999a3fbc1d565e5fb`.
+(brief-authorized 2026-10-23; earlier planning units were not counted; no increment for this source
+or metadata unit). RDD enabled (global); the source unit's input boundary was
+`b154ef3a33ce692bba5218c0547def92755dc371`; the reviewed boundary remains `b154ef3` after the
+source medium assessment (not advanced to `473c9cd`).
 
 ## Objective
 
@@ -29,7 +37,7 @@ Phase 1 adds the three permission names to `global-config/opencode.json`; it add
 implementation, no tools-map key, no new activation and no reader. A permission for a tool that
 does not exist grants nothing and blocks nothing, which is why it can land first.
 
-### Exact future permission insertions (T2 acceptance; NOT implemented by this unit)
+### T2 insertion contract (pre-edit baseline positions; implemented)
 
 | Surface | Entries | Insert after | Insert before |
 | --- | --- | --- | --- |
@@ -48,8 +56,8 @@ Current-state observations at base `41c293d` (verify again in T2 before editing)
 - There is no `host_gate_verdict` grantee and no orchestrator permission grant. There are no
   tools-map keys for any of the three names.
 
-This unit does not edit the config. T2 is the config-only implementation unit and must preserve
-the exact ordering above.
+The T1 planning unit did not edit the config. T2 was the config-only implementation unit and
+preserved the exact ordering above.
 
 ## Author split (normative for the future supplied contract)
 
@@ -106,16 +114,18 @@ mutate project state and must not gain a plan-writing tool to route around the w
   router row. Planning artifact committed as `28d4a4368e0e3925069208ce7775b73c84c4922a` and
   assessed medium/`under_budget` against `41c293d`. Planning source complete; no implementation
   claimed.
-- [ ] **T2 — permission implementation.** Add the three names to the three permission surfaces
-  exactly as above; no tools-map key, no orchestrator grant and no `host_gate_verdict` PM grant.
-  JSON parse and config diff readback are the required checks; no tool implementation.
-- [ ] **T3 — implementation evidence and closure.** Record the T2 commit, actual checks, review
-  receipt and native assessment; close only after the committed candidate is assessed. Do not
-  claim the tools are live: phase 1 is inert.
+- [x] **T2 — permission implementation.** Implemented and source-committed as `473c9cd`: exactly
+  the three names on the three permission surfaces in the stated order and posture; no tools-map
+  key, no orchestrator grant, no `host_gate_verdict` PM grant and no tool implementation. Actual
+  diff is 7 additions / 0 removals in `global-config/opencode.json`; config blob
+  `854e5c4adf495f10251e093bbe597a7cf642e2e8`. JSON parse and targeted line readback executed.
+- [x] **T3 — implementation evidence and closure.** T2 commit, actual checks, reviewability
+  receipt and native assessment are recorded below. Source is complete; the tools are NOT live
+  (phase 1 is inert), and this unit is not DONE until the PM's metadata commit and assessment land.
 
 ## Acceptance criteria and checks
 
-Planning unit (this unit):
+Planning unit (T1, historical):
 
 - Exactly `odd/tasks/multi-agent-v2-phase1.md`, `docs/TODO.md` and `ROUTER-LOG.md` change.
 - The tracker accurately reflects the committed contract and the current config, including
@@ -125,7 +135,7 @@ Planning unit (this unit):
 - `git diff --check` is clean; the reviewability receipt is supplied by the worker.
 - Zero advice and zero verifier Tasks: the actual diff is simple docs. No runtime tests are run.
 
-T2 future acceptance (not this unit):
+T2 acceptance (implemented; retained as the criterion):
 
 - The three entries exist on exactly the three surfaces, in the stated order and posture.
 - `global-config/opencode.json` still parses; no tools-map keys, no orchestrator grant, no
@@ -170,6 +180,82 @@ T2 future acceptance (not this unit):
   before the next high-risk implementation (T2). Post-metadata assessment is PM-owned closure,
   with its durable evidence in the PM return envelope; this unit's own commit SHA is
   intentionally not claimed here.
+- 2026-10-23: Owner decision closed the planning medium slice: the reviewed boundary advanced from
+  `41c293de5365c861242ed78999a3fbc1d565e5fb` to `b154ef3a33ce692bba5218c0547def92755dc371`
+  before the source commit. This is explicit OWNER closure, not native review, acknowledgement or
+  approval.
+- 2026-10-23: T2 source implemented by delegated cloud writer `odd-apply` session
+  `ses_e97161e9bffejKEybYwkA7eTDv` (`opencode-go/deepseek-v4.1-flash@worker`; model self-reported,
+  the writer did not capture its root). Frozen result `293ac0a115daf4f660212f682b147a7a39f986db`;
+  host source commit `473c9cd85db1c70122ed5ea007241fce10be9f59` on branch
+  `chore/multi-agent-v2-phase1`, parent `b154ef3a33ce692bba5218c0547def92755dc371`. Actual
+  receipt: 7 authored changed lines, 1171 authored patch bytes, generated/binary `[]`. PM broker
+  read the exact 7 additions only; positional readback `2176-2177`, `2323-2324`, `2540-2542`.
+  correction_rounds_used: 0; no source change after the initial edit.
+- 2026-10-23: Pre-code advice ran as one independent frozen wave before implementation.
+  `advisor-security-pre` (`ses_e971b9420ffen8ZDFcKAdcp79L`, `openai/gpt-6.1-sol`): no blockers;
+  recommended a duplicate-safe exact delta and in-memory controls; incorporated.
+  `advisor-integration-pre` (`ses_e971b9443ffedeeCzM3YTF7ash`, `opencode-go/kimi-k2.7-code`): no
+  blockers; correctly noted the named tests do not cover the new entries, but its proposed global
+  anchor was WRONG (`581` is `orchestrator.permission`); PM read the true global block at
+  `2535-2536` and rejected that recommendation. Independent preparation explorer
+  `ses_e971b9439ffeYgjZNmnvVVvdn2` corroborated the anchors and permissions; it is not an advisor.
+  PM-supplied project `.atl` fallback log `4154-4168` records the integration same-model Kimi replay
+  completing; independence is preserved (OpenAI security vs Kimi integration). This is not full
+  consensus approval.
+- 2026-10-23: Post-code advice ran on the SAME INITIAL candidate. `advisor-security-post`
+  (`ses_e9709c92affeeCr6OWGjHy6x2X`, `opencode-go/qwen3.7-plus`): no blockers. The same Task's
+  clarification corrected its erroneous DeepSeek-family label and a SHA typo and exposed the
+  runtime Qwen route. Its literal tools-map grep was vacuous and is NOT cited as evidence; the
+  broker exact patch plus the verifier's recursive key/byte checks are used instead. No second
+  review or advice cycle ran.
+- 2026-10-23: Independent verifier `gentle-ai-verify` (`ses_e9709c923ffeu6JhdfDuLb41Wh`,
+  `openai/gpt-6.1-sol`), actual root `/work`, candidate blob
+  `854e5c4adf495f10251e093bbe597a7cf642e2e8`, SHA-256
+  `4e7d356fc3a81698b4382a1e3b0358fa49951c09d98db0f8e6e0fd0b925f996d`. Observed:
+  `python3 -m json.tool global-config/opencode.json` exit 0 with empty stderr;
+  `python3 -m unittest tests.test_pm_task_allowlists tests.test_pm_handoff_spec -v` exit 0 with
+  34 tests OK; `git diff --check` and the base diff whitespace check exit 0. It also executed an
+  independent duplicate-reject parse, exact baseline+7 bytes including the newline, values/
+  adjacency/recursive target locations (no tools map, no orchestrator grant, no agent verdict), and
+  six in-memory negative controls that rejected three global deny->allow flips, each PM verdict
+  grant and a duplicate key.
+- 2026-10-23: Initial static diagnostics were PARTIAL: `aft_inspect` on
+  `global-config/opencode.json` reported diagnostics unknown because Biome has no workspace root
+  marker (`biome.json`/`biome.jsonc`); complexity incomplete and Python dead-code unsupported and
+  unrelated. No syntax-clean, consumer or live-enforcement claim is made; the JSON source syntax
+  was independently parsed, while consumer loading remains UNVERIFIED and out of scope.
+- 2026-10-23: PM `host_review_mode_status` observed `on` (decided `global`), no toggles. PM
+  post-source `host_review_assess` (baseRef `b154ef3a33ce692bba5218c0547def92755dc371`,
+  committedOnly true) returned status 0 with empty stderr: schema
+  `gentle-ai.review-assessment/v1`, risk `medium`,
+  reasons `[{code: configuration_change, path: global-config/opencode.json}]`, changed_paths 1,
+  changed_lines 7, candidate `{kind: base-diff, base_ref: b154ef3..., consumed: false}`,
+  `review_due: false`, `review_due_reason: under_budget`. The native assessment was medium despite
+  the high-risk planning budget; review was not due and the boundary stays `b154ef3`. No native
+  review started; no approval or acknowledgement.
+- 2026-10-23: Route: delegated global tooling change under `workflow-odd-secure`; the source writer
+  was the cloud tier chosen by the brief, on the source-only policy trigger. The advice records in
+  `odd/advice/multi-agent-v2-phase1.md` are written in this later authorized metadata step
+  (deferred, not pre-existing). Mirror
+  writing/verification remains UNIMPLEMENTED and no mirror body was read. Q56 stays 5/10 with no
+  authorized increment. No phase 2-4 allocation is created.
+- 2026-10-23: This metadata unit updates the tracker, creates the advice record, refreshes the Q89
+  queue status and appends the router row. Metadata commit and its assessment are PM-owned and not
+  claimed here; independent orchestrator readback is still pending.
+- 2026-10-23: Metadata correction round 1/1 (`correction_rounds_used: 1`) on the installed initial
+  metadata (prior frozen result `ba6872bb9ed25f1dc957f37ef9149b9fafc65df4`; installed sandbox
+  baseline commit `2423918`, parent `473c9cd`; source commit `473c9cd` unchanged). Findings fixed:
+  M1 — the advice record attributed the integration same-model Kimi replay to a rate-limit
+  fallback; it now states a stall-triggered same-model replay from PM-supplied project `.atl`
+  evidence `4153`/`4154`/`4156`/`4166` and asserts no rate-limit or overload cause. M2 — the T2
+  insertion heading now records the implemented status instead of "NOT implemented by this unit";
+  the insertion table and future contracts are unchanged. M3 — this correction accounting is
+  recorded here, in the advice disposition, in the Q89 status and in the current router row. The
+  source candidate itself required 0 corrections; `global-config/opencode.json` bytes are
+  unchanged (blob `854e5c4adf495f10251e093bbe597a7cf642e2e8`). No new advice, verifier, review,
+  deploy or runtime test ran; metadata commit and assessment remain PM-owned and independent
+  orchestrator readback is pending.
 
 ## Delivery strategy and forecast
 
@@ -184,8 +270,8 @@ allocated in this repository.
 ## Count
 
 Q56 counted unit **5/10** (2026-10-23), explicitly authorized by the dispatch brief even though
-earlier planning units were not counted. This is a planning unit; it does not assert Q58
-enforcement, deployment or broker runtime registration.
+earlier planning units were not counted. No increment is authorized for the source or metadata
+units. This tracker does not assert Q58 enforcement, deployment or broker runtime registration.
 
 ## Route / trigger evidence
 
@@ -197,14 +283,22 @@ every-write delegation rule. Actual dispatch: PM-dispatched `odd-apply`; worker 
 (planning dispatch; dispatch-supplied and PM-read; not observable from the worker). RDD enabled
 (global); boundary `41c293d`. No branch switch and no commit.
 
+Source unit dispatch (2026-10-23): PM-dispatched cloud `odd-apply` writer
+`ses_e97161e9bffejKEybYwkA7eTDv` (`opencode-go/deepseek-v4.1-flash@worker`; model self-reported,
+root not captured by the writer — assumed `/work`, not observed). Input boundary `b154ef3`; source
+commit `473c9cd`; no branch switch and no commit from the writer. Metadata unit (this one): separate
+authorized lifecycle, cloud `gentle-ai-worker`; the actual root observed in its own sandbox is
+`/work`, recorded in the PM receipt.
+
 ## Log
 
 - 2026-10-23: `q90-phase1-plan-u1` planning prepared by delegated `odd-apply`. Checks: exact
   three-path scope, config/contract readback, Q89 collision check, `git diff --check`; no runtime
   tests, advice dispatch, verifier or native review. Commit `28d4a43`; PM assessment
   medium/`under_budget` (see below).
-- 2026-10-23: T2/T3 remain unchecked. Mirror write/verification UNIMPLEMENTED; PM never reads the
-  mirror. No implementation or activation is claimed.
+- 2026-10-23: At planning closure T2/T3 remained unchecked (now implemented in the source unit
+  above). Mirror write/verification UNIMPLEMENTED; PM never reads the mirror. No implementation or
+  activation was claimed at that point.
 - 2026-10-23: Metadata closure by delegated `odd-apply` session
   `ses_e9727236dffeHvVgHnHvAlrar0`, actual root `/work`. Checks executed: initial HEAD `f78b2d4`
   parent `28d4a43`; `28d4a43^ = 41c293d`; base ancestry holds; the contract blob at `41c293d`
@@ -219,13 +313,27 @@ every-write delegation rule. Actual dispatch: PM-dispatched `odd-apply`; worker 
   boundary retained at `41c293d`; no approval, acknowledgement or native review. An explicit
   owner slice closure or native review is required before the next high-risk implementation.
   Post-metadata assessment is PM-owned closure, evidenced in the PM return envelope.
+- 2026-10-23: Owner closed the planning medium slice (boundary `41c293d` -> `b154ef3`) before the
+  source commit; owner closure only, no native review or approval.
+- 2026-10-23: T2 source committed `473c9cd` (7 additions, 0 removals; blob `854e5c4...`); T3
+  records the source checks, receipt and medium/`under_budget` assessment. Tools remain inert and
+  not live; no deploy, restart or full verifier ran.
+- 2026-10-23: Advice/verifier on the source unit: two-family pre wave (security Sol, integration
+  Kimi), post security Qwen with no blockers, independent Sol verifier; details and dispositions
+  are in `odd/advice/multi-agent-v2-phase1.md`. Static diagnostics PARTIAL. Metadata commit and
+  assessment remain PM-owned.
+- 2026-10-23: Correction round 1/1 (`correction_rounds_used: 1`) on the installed metadata
+  baseline (`2423918`, parent `473c9cd`; PM-frozen prior result `ba6872bb`). Checked: exactly the
+  four authorized metadata paths changed; `global-config/opencode.json` blob unchanged
+  (`854e5c4...`); targeted readback of M1–M3; `git diff --check` clean. Source candidate correction
+  count remains 0; no new advice/verifier/review cycle, no runtime tests, no deploy. Metadata
+  commit and assessment are PM-owned.
 
 ## Next step
 
-Planning is committed as `28d4a43` and assessed medium/`under_budget`; the reviewed boundary
-remains `41c293d`. Before the next high-risk implementation (T2), the owner must explicitly close
-this medium slice or run native review. T2 is a high-risk config-only change: it owes the
-consequential two-family pre-advice (one phase), an independent post-advice check, an independent
-`gentle-ai-verify`, static diagnostics on the initial candidate, one correction ceiling, then
-commit and native assessment/review. The writer choice for that actual code change must be
-resolved by the parent before dispatch; this planning unit does not choose it.
+Phase 1 source is committed as `473c9cd` and assessed medium/`under_budget`; the reviewed boundary
+stays `b154ef3` (owner closure advanced it from `41c293d`, and the source assessment did not advance
+it further). The tools are inert and not live. Next: the PM commits this metadata unit and obtains
+its own post-metadata assessment, followed by an independent orchestrator readback. No phase 2-4
+work is allocated here; those phases belong to agent-sandbox-integration under separate
+authorization.
