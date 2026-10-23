@@ -113,9 +113,16 @@ remaining host-tool built/tested, session, independence or hang checks.
 - Historical T1: source `114366b`; metadata `dfbeb29`; final PM assessment medium/`under_budget` at
   retained boundary `22132adc686629cceaa7b32e469c5ec10d009e2a`; receipt 206 lines / 25,263 bytes /
   generated-binary []; SOURCE assessment 6 cumulative paths / 563 lines (slice, not this unit).
-- Current unit (`q90-t2-readiness-u1`): the writer receipt (authored changed lines, patch bytes,
-  generated/binary []) is reported to the PM; the PM envelope supplies the commit SHA and
-  assessment; no hash, review or assessment success is claimed here.
+- Closure unit (`q90-t2-readiness-u1`): observed implementation commit `115fbdd3810ad942ec1aed0e769232f9897ad5f7`;
+  targeted recheck F1-F5 ACCEPTED; observed IMPLEMENTATION assessment at retained boundary
+  `22132adc686629cceaa7b32e469c5ec10d009e2a` = medium/`under_budget`, 6 cumulative paths / 671 lines,
+  `consumed=false`, `review_due=false` (not the metadata/forecast assessment; metadata result not claimed).
+  ROUTER-LOG row 279 closure wording and row 272 Q79 D/E metadata-commit text were corrected to
+  "metadata commit not recorded; see odd/tasks/q79-mirror-write-ownership.md"; two-row evidence
+  convention only (not workflow policy): no literal pending-commit label, self-referential SHA =
+  "commit SHA recorded in the PM envelope". Owner authorized one additional metadata lifecycle after
+  NEEDS_INPUT without resetting the original correction count 1/1 (reason: PM metadata closure;
+  scope: rows 272/279 + tracker; limit: one cloud writer, no code/config/T3a; metadata self-SHA as above).
 - The previous pending medium slice must close by explicit owner decision or review before the
   next high-risk (T3a) commit. Boundary `22132ad` is retained; no advance is claimed.
 
