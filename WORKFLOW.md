@@ -151,7 +151,8 @@ The `gentle-orchestrator` is a strictly read-only technical lead.
 - It may classify, ask questions, perform bounded read-only inspection, route/delegate, call reviewed fixed control-plane tools, and synthesize.
 - It has no native host Bash, native edit/write/apply-patch, sandbox shell, or sandbox mutation/lifecycle authority.
 - There is **no direct-inline implementation route**. Upstream's one-file direct-inline mutation case maps to one delegated sandbox writer here.
-- Tests, builds, installs, formatters, Git mutation, router-log writes, and project commands are executor work.
+- Tests, builds, installs, formatters, Git mutation, router-log writes, and project commands are executor work, except the narrowly defined fixed-tool exception below.
+- The orchestrator may draft plan documents through the ask-gated `host_plan_write` fixed tool (plan documents only, never code or configuration) and run narrowly defined, pre-registered tests through the allow-gated `host_test_run` fixed tool (never arbitrary caller argv, pipes, redirects, or shell). These fixed control-plane exceptions grant no generic Bash, edit/write, sandbox mutation, Git, `gh`, or `systemctl` authority, and a failed or unavailable test run is evidence, never permission to widen authority. `host_test_run` is not implemented in the current surface and remains inert until the host tool ships.
 - Provider-issued CLI-shaped lifecycle commands do not grant shell authority. Run them only through an available reviewed fixed/native integration or correctly authorized delegated executor; otherwise stop as blocked.
 - Named Systematic/frontend/review specialists take precedence over generic `explore`/`general`.
 - When no named specialist owns the work, use `explore` as the read-only researcher fallback and `general` as the sandbox worker fallback.

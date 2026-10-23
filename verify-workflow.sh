@@ -2792,6 +2792,56 @@ for (const name of ["host_system","host_service_status","host_service_logs","hos
 
 function cfgTool(agent,t) { return agent?.tools && typeof agent.tools==="object" ? agent.tools[t] : undefined }
 function cfgPerm(agent,t) { return agent?.permission && typeof agent.permission==="object" ? agent.permission[t] : undefined }
+// Q90 T3a1: the orchestrator-only fixed-tool surface. Plan drafting is ask-gated;
+// the narrowly defined pre-registered test runner is allow-gated. Neither is a
+// generic shell/edit authority, and no other agent may receive either grant.
+function hostTestRunGlobalDefaultFailures(value) {
+  return value==="deny" ? [] : [`HOST_TEST_RUN_GLOBAL_DEFAULT_NOT_DENY: ${show(value)}`]
+}
+function hostPlanWriteGlobalDefaultFailures(value) {
+  return value==="deny" ? [] : [`HOST_PLAN_WRITE_GLOBAL_DEFAULT_NOT_DENY: ${show(value)}`]
+}
+function hostTestRunOrchestratorFailures(agent) {
+  return cfgPerm(agent,"host_test_run")==="allow" ? [] : [`ORCHESTRATOR_HOST_TEST_RUN_NOT_ALLOW: ${show(cfgPerm(agent,"host_test_run"))}`]
+}
+function hostPlanWriteOrchestratorFailures(agent) {
+  return cfgPerm(agent,"host_plan_write")==="ask" ? [] : [`ORCHESTRATOR_HOST_PLAN_WRITE_NOT_ASK: ${show(cfgPerm(agent,"host_plan_write"))}`]
+}
+function hostTestRunGrantSweepFailures(agents) {
+  const failures=[]
+  for (const [name,agent] of Object.entries(agents??{})) {
+    if (name==="gentle-orchestrator") continue
+    const value=cfgPerm(agent,"host_test_run")
+    if (value!==undefined && value!=="deny") failures.push(`HOST_TEST_RUN_GRANTED_OUTSIDE_ORCHESTRATOR: ${name}=${show(value)}`)
+  }
+  return failures
+}
+function hostToolPromptFailures(prompt) {
+  const required=[
+    "may draft plan documents through the ask-gated `host_plan_write` fixed tool",
+    "plan documents only, never code or configuration",
+    "narrowly defined, pre-registered tests through the allow-gated `host_test_run` fixed tool",
+    "never arbitrary caller argv, pipes, redirects, or shell",
+    "a failed or unavailable test run is evidence, never permission to widen authority",
+    "`host_test_run` is not implemented in the current surface and remains inert until the host tool ships",
+  ]
+  return required.filter((fragment)=>!prompt.includes(fragment)).map((fragment)=>`HOST_TOOL_PROMPT_CLAUSE_MISSING: ${JSON.stringify(fragment)}`)
+}
+for (const failure of hostTestRunGlobalDefaultFailures(gp.host_test_run)) fail(failure)
+const hostTestRunGlobalProbe=hostTestRunGlobalDefaultFailures("allow")
+if (!hostTestRunGlobalProbe.includes('HOST_TEST_RUN_GLOBAL_DEFAULT_NOT_DENY: "allow"')) fail("HOST_TEST_RUN_GLOBAL_DEFAULT_POSITIVE_CONTROL_FAILED")
+else console.log("   ok: host_test_run global-default positive control detected allow")
+for (const failure of hostPlanWriteGlobalDefaultFailures(gp.host_plan_write)) fail(failure)
+const hostPlanWriteGlobalProbe=hostPlanWriteGlobalDefaultFailures("ask")
+if (!hostPlanWriteGlobalProbe.includes('HOST_PLAN_WRITE_GLOBAL_DEFAULT_NOT_DENY: "ask"')) fail("HOST_PLAN_WRITE_GLOBAL_DEFAULT_POSITIVE_CONTROL_FAILED")
+else console.log("   ok: host_plan_write global-default positive control detected ask")
+for (const failure of hostTestRunGrantSweepFailures(deployedAgents)) fail(failure)
+for (const value of ["ask","allow"]) {
+  const probe=hostTestRunGrantSweepFailures({[`synthetic-${value}-agent`]:{permission:{host_test_run:value}}})
+  const expected=`HOST_TEST_RUN_GRANTED_OUTSIDE_ORCHESTRATOR: synthetic-${value}-agent=${show(value)}`
+  if (!probe.includes(expected)) fail(`HOST_TEST_RUN_GRANT_SWEEP_POSITIVE_CONTROL_FAILED: ${value}`)
+}
+console.log("   ok: host_test_run is denied globally and granted only to the orchestrator")
 function hostReviewAssessFailures(name,agent) {
   const failures=[]
   if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_assess") || agent.permission.host_review_assess!=="allow") failures.push(`HOST_REVIEW_ASSESS_NOT_ALLOW: ${name}`)
@@ -3332,6 +3382,16 @@ else {
   for (const failure of hostReviewPipelineRunExceptionFailures(gatedHostMutations,orch)) fail(failure)
   for (const name of retiredHostOperations) if (cfgPerm(orch,name)!=="deny") fail(`ORCHESTRATOR_RETIRED_HOST_TOOL_EXPOSED: ${name}`)
   if (cfgPerm(orch,"host_register_project")!=="ask") fail(`ORCHESTRATOR_HOST_REGISTER_PROJECT_NOT_ASK: ${show(cfgPerm(orch,"host_register_project"))}`)
+  for (const failure of hostTestRunOrchestratorFailures(orch)) fail(failure)
+  for (const failure of hostPlanWriteOrchestratorFailures(orch)) fail(failure)
+  const testRunOmitted=hostTestRunOrchestratorFailures({permission:{}})
+  if (!testRunOmitted.includes("ORCHESTRATOR_HOST_TEST_RUN_NOT_ALLOW: undefined")) fail("ORCHESTRATOR_HOST_TEST_RUN_OMITTED_POSITIVE_CONTROL_FAILED")
+  const testRunWrong=hostTestRunOrchestratorFailures({permission:{host_test_run:"ask"}})
+  if (!testRunWrong.includes('ORCHESTRATOR_HOST_TEST_RUN_NOT_ALLOW: "ask"')) fail("ORCHESTRATOR_HOST_TEST_RUN_VALUE_POSITIVE_CONTROL_FAILED")
+  const planWriteOmitted=hostPlanWriteOrchestratorFailures({permission:{}})
+  if (!planWriteOmitted.includes("ORCHESTRATOR_HOST_PLAN_WRITE_NOT_ASK: undefined")) fail("ORCHESTRATOR_HOST_PLAN_WRITE_OMITTED_POSITIVE_CONTROL_FAILED")
+  const planWriteWrong=hostPlanWriteOrchestratorFailures({permission:{host_plan_write:"allow"}})
+  if (!planWriteWrong.includes('ORCHESTRATOR_HOST_PLAN_WRITE_NOT_ASK: "allow"')) fail("ORCHESTRATOR_HOST_PLAN_WRITE_VALUE_POSITIVE_CONTROL_FAILED")
   if (cfgTool(orch,"bash")===true || cfgTool(orch,"edit")===true || cfgTool(orch,"write")===true) fail("ORCHESTRATOR_LEGACY_HOST_TOOL_EXPOSED")
   for (const t of ["sandbox_bash","sandbox_edit","sandbox_write","sandbox_apply_patch","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]) {
     if (cfgPerm(orch,t)!=="deny" || cfgTool(orch,t)===true) fail(`ORCHESTRATOR_MUTATION_EXPOSED: ${t}`)
@@ -3355,6 +3415,7 @@ else {
   }
 
   const orchPrompt=typeof orch.prompt==="string" ? orch.prompt : ""
+  for (const failure of hostToolPromptFailures(orchPrompt)) fail(failure)
   const orchestratorAssemblerRel="global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py"
   if (!workspaceRootAvailable) {
     // WORKSPACE_ROOT_UNAVAILABLE was already reported above; repo-relative
@@ -3378,6 +3439,15 @@ else {
           fail(`ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT: embedded=${embeddedDigest} assembled=${assembledDigest}; command: python3 ${orchestratorAssemblerRel}`)
         } else {
           console.log(`   ok: embedded orchestrator prompt equals assembler output (sha256 ${embeddedDigest}; command: python3 ${orchestratorAssemblerRel})`)
+        }
+        const promptTestSource=fs.readFileSync(path.join(workspaceRoot,"tests/test_orchestrator_prompt_source.py"),"utf8")
+        const constantMatch=promptTestSource.match(/CURRENT_PROMPT_SHA256 = "([0-9a-f]{64})"/)
+        if (!constantMatch) {
+          fail("ORCHESTRATOR_PROMPT_TEST_SHA_CONSTANT_MISSING")
+        } else if (constantMatch[1]!==assembledDigest) {
+          fail(`ORCHESTRATOR_PROMPT_TEST_SHA_DRIFT: constant=${constantMatch[1]} assembled=${assembledDigest}`)
+        } else {
+          console.log(`   ok: prompt test constant matches assembled sha256 ${assembledDigest}`)
         }
       }
     }
@@ -3460,7 +3530,13 @@ else {
     "### Secure Fixed Host Tools and Review Relay",
     "### Secure Always-Delegate Rules (MANDATORY)",
     "the orchestrator coordinates; specialist agents execute",
-    "PR creation, push, and merge require separate user intent"
+    "PR creation, push, and merge require separate user intent",
+    "may draft plan documents through the ask-gated `host_plan_write` fixed tool",
+    "plan documents only, never code or configuration",
+    "narrowly defined, pre-registered tests through the allow-gated `host_test_run` fixed tool",
+    "never arbitrary caller argv, pipes, redirects, or shell",
+    "a failed or unavailable test run is evidence, never permission to widen authority",
+    "`host_test_run` is not implemented in the current surface and remains inert until the host tool ships"
   ]
   for (const fragment of v3Required) if (!orchPrompt.includes(fragment)) fail(`GENTLE_AI_V3_ORCHESTRATOR_CONTRACT_MISSING: ${JSON.stringify(fragment)}`)
   for (const retired of ["### Gentle AI v2.7 workflow compatibility", "### Research and Pre-Proposal Gate — Gentle AI v2.7", "### Native Runtime Attempt Authority", "confirmed preproposal + explore", "400-line budget risk: High"]) if (orchPrompt.includes(retired)) fail(`GENTLE_AI_V3_RETIRED_ORCHESTRATOR_GATE: ${JSON.stringify(retired)}`)

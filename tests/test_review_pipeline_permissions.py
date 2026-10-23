@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -49,6 +50,24 @@ LEAF_DISPATCH_AGENTS = [
     "gentle-ai-verify",
     "explore",
 ]
+HOST_TEST_RUN = "host_test_run"
+HOST_PLAN_WRITE = "host_plan_write"
+HOST_TOOL_PROMPT_FRAGMENTS = (
+    "may draft plan documents through the ask-gated `host_plan_write` fixed tool",
+    "plan documents only, never code or configuration",
+    "narrowly defined, pre-registered tests through the allow-gated `host_test_run` fixed tool",
+    "never arbitrary caller argv, pipes, redirects, or shell",
+    "a failed or unavailable test run is evidence, never permission to widen authority",
+    "`host_test_run` is not implemented in the current surface and remains inert until the host tool ships",
+)
+HOST_TOOL_FUNCTION_NAMES = (
+    "hostTestRunGlobalDefaultFailures",
+    "hostPlanWriteGlobalDefaultFailures",
+    "hostTestRunOrchestratorFailures",
+    "hostPlanWriteOrchestratorFailures",
+    "hostTestRunGrantSweepFailures",
+    "hostToolPromptFailures",
+)
 
 
 def hardcoded_coordinator_triple_lines(text):
@@ -643,6 +662,120 @@ console.log("extracted verifier assertions and positive controls passed");
             "coverage-total: 103 controls passed",
         ):
             self.assertIn(marker, result.stdout)
+
+
+class HostFixedToolPermissionTests(unittest.TestCase):
+    """Q90 T3a1: the orchestrator-only plan-write and test-run fixed tools."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        cls.agents = cls.config["agent"]
+        cls.verifier = VERIFIER_PATH.read_text(encoding="utf-8")
+        cls.prompt = cls.agents["gentle-orchestrator"]["prompt"]
+
+    def run_controls(self, body, fragments=None):
+        functions = "\n".join(
+            extract_braced_block(self.verifier, f"function {name}(")
+            for name in HOST_TOOL_FUNCTION_NAMES
+        )
+        script = (
+            'import { readFileSync } from "node:fs";\n'
+            "const show=(value)=>JSON.stringify(value);\n"
+            "const cfgPerm=(agent,tool)=>agent?.permission?.[tool];\n"
+            "const assert=(condition,message)=>{if(!condition)throw new Error(message)};\n"
+            + functions
+            + "\nconst config=JSON.parse(readFileSync(process.env.HOST_TOOL_CONFIG_PATH,\"utf8\"));\n"
+            "const agents=config.agent;\nconst gp=config.permission;\n"
+            "const prompt=readFileSync(process.env.HOST_TOOL_PROMPT_PATH,\"utf8\");\n"
+            "const fragments=JSON.parse(readFileSync(process.env.HOST_TOOL_FRAGMENTS_PATH,\"utf8\"));\n"
+            + body
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            paths = {
+                "HOST_TOOL_CONFIG_PATH": tmp_path / "config.json",
+                "HOST_TOOL_PROMPT_PATH": tmp_path / "prompt.txt",
+                "HOST_TOOL_FRAGMENTS_PATH": tmp_path / "fragments.json",
+            }
+            paths["HOST_TOOL_CONFIG_PATH"].write_text(json.dumps(self.config), encoding="utf-8")
+            paths["HOST_TOOL_PROMPT_PATH"].write_text(self.prompt, encoding="utf-8")
+            paths["HOST_TOOL_FRAGMENTS_PATH"].write_text(
+                json.dumps(list(fragments or HOST_TOOL_PROMPT_FRAGMENTS)), encoding="utf-8"
+            )
+            script_path = tmp_path / "controls.ts"
+            script_path.write_text(script, encoding="utf-8")
+            environment = dict(os.environ)
+            environment.update({key: str(value) for key, value in paths.items()})
+            try:
+                result = subprocess.run(
+                    [shutil.which("bun") or "bun", str(script_path)],
+                    cwd=ROOT, capture_output=True, text=True, env=environment, check=False,
+                )
+            except PermissionError:
+                self.skipTest("sandbox policy denies child Bun processes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_actual_config_and_tool_maps(self):
+        self.assertEqual(self.config["permission"][HOST_TEST_RUN], "deny")
+        self.assertEqual(self.config["permission"][HOST_PLAN_WRITE], "deny")
+        permission = self.agents["gentle-orchestrator"]["permission"]
+        self.assertEqual(permission[HOST_TEST_RUN], "allow")
+        self.assertEqual(permission[HOST_PLAN_WRITE], "ask")
+        for name, agent in self.agents.items():
+            if name != "gentle-orchestrator" and HOST_TEST_RUN in agent.get("permission", {}):
+                with self.subTest(agent=name):
+                    self.assertEqual(agent["permission"][HOST_TEST_RUN], "deny")
+        maps = [self.config.get("tools", {})] + [agent.get("tools", {}) for agent in self.agents.values()]
+        for tools in maps:
+            for key in (HOST_TEST_RUN, HOST_PLAN_WRITE):
+                self.assertNotIn(key, tools)
+        self.run_controls(
+            'assert(hostTestRunGlobalDefaultFailures(gp.host_test_run).length===0,"test-run default");\n'
+            'assert(hostPlanWriteGlobalDefaultFailures(gp.host_plan_write).length===0,"plan-write default");\n'
+            'assert(hostTestRunOrchestratorFailures(agents["gentle-orchestrator"]).length===0,"test-run grant");\n'
+            'assert(hostPlanWriteOrchestratorFailures(agents["gentle-orchestrator"]).length===0,"plan-write grant");\n'
+            'assert(hostTestRunGrantSweepFailures(agents).length===0,"test-run sweep");\n'
+        )
+
+    def test_negative_controls_remove_or_flip_grants(self):
+        self.run_controls(
+            r'''
+const removed=JSON.parse(JSON.stringify(agents));
+delete removed["gentle-orchestrator"].permission.host_test_run;
+delete removed["gentle-orchestrator"].permission.host_plan_write;
+assert(hostTestRunOrchestratorFailures(removed["gentle-orchestrator"]).includes('ORCHESTRATOR_HOST_TEST_RUN_NOT_ALLOW: undefined'),"missing test-run");
+assert(hostPlanWriteOrchestratorFailures(removed["gentle-orchestrator"]).includes('ORCHESTRATOR_HOST_PLAN_WRITE_NOT_ASK: undefined'),"missing plan-write");
+const wrong=JSON.parse(JSON.stringify(agents));
+wrong["gentle-orchestrator"].permission.host_test_run="ask";
+wrong["gentle-orchestrator"].permission.host_plan_write="allow";
+assert(hostTestRunOrchestratorFailures(wrong["gentle-orchestrator"]).includes('ORCHESTRATOR_HOST_TEST_RUN_NOT_ALLOW: "ask"'),"test-run ask");
+assert(hostPlanWriteOrchestratorFailures(wrong["gentle-orchestrator"]).includes('ORCHESTRATOR_HOST_PLAN_WRITE_NOT_ASK: "allow"'),"plan-write allow");
+assert(hostTestRunGlobalDefaultFailures("allow").includes('HOST_TEST_RUN_GLOBAL_DEFAULT_NOT_DENY: "allow"'),"global test-run");
+assert(hostTestRunGlobalDefaultFailures("ask").includes('HOST_TEST_RUN_GLOBAL_DEFAULT_NOT_DENY: "ask"'),"global test-run ask");
+assert(hostPlanWriteGlobalDefaultFailures("allow").includes('HOST_PLAN_WRITE_GLOBAL_DEFAULT_NOT_DENY: "allow"'),"global plan-write");
+assert(hostPlanWriteGlobalDefaultFailures("ask").includes('HOST_PLAN_WRITE_GLOBAL_DEFAULT_NOT_DENY: "ask"'),"global plan-write ask");
+for (const name of ["pm-odd","pm-systematic","general","odd-apply","gentle-ai-worker","review-risk","advisor-security-pre","synthetic-agent"]) {
+  for (const value of ["ask","allow"]) {
+    const failures=hostTestRunGrantSweepFailures({[name]:{permission:{host_test_run:value}}});
+    assert(failures.some((failure)=>failure.includes(`HOST_TEST_RUN_GRANTED_OUTSIDE_ORCHESTRATOR: ${name}="${value}"`)),`sweep ${name}=${value}`);
+  }
+}
+assert(hostTestRunGrantSweepFailures({"gentle-orchestrator":{permission:{host_test_run:"allow"}}}).length===0,"orchestrator allow");
+assert(hostTestRunGrantSweepFailures({"pm-odd":{permission:{host_test_run:"deny"}}}).length===0,"explicit deny");
+''')
+
+    def test_prompt_clauses_and_removal_controls(self):
+        self.run_controls(
+            r'''
+assert(hostToolPromptFailures(prompt).length===0,"real prompt rejected");
+assert(hostToolPromptFailures("").length===fragments.length,"empty prompt");
+for (const fragment of fragments) {
+  const mutated=prompt.replace(fragment,"removed");
+  assert(mutated!==prompt,`fragment absent: ${fragment}`);
+  assert(hostToolPromptFailures(mutated).some((failure)=>failure.includes(JSON.stringify(fragment))),`removal control: ${fragment}`);
+}
+''')
 
 
 if __name__ == "__main__":

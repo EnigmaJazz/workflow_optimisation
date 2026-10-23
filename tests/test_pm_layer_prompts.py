@@ -37,6 +37,12 @@ AGENT_NAMES = ("pm-odd", "pm-systematic")
 # The orchestrator must name the brief schema tag AND its authoritative contract
 # file, so an orchestrator can build a valid pm-unit-brief/v1 handoff.
 ORCHESTRATOR_NEEDLES = ("pm-unit-brief/v1", "docs/specs/pm-handoff.md")
+ORCHESTRATOR_FIXED_TOOL_NEEDLES = (
+    "ask-gated `host_plan_write`",
+    "allow-gated `host_test_run`",
+    "never arbitrary caller argv, pipes, redirects, or shell",
+    "remains inert until the host tool ships",
+)
 
 # The PM must use only observable read output and avoid claiming commit/content equality.
 PM_ANCHOR_NEEDLES = (
@@ -78,6 +84,12 @@ def prompt_of(data, name):
     """Return agent NAME's prompt string, or None when absent or not a string."""
     prompt = data.get("agent", {}).get(name, {}).get("prompt")
     return prompt if isinstance(prompt, str) else None
+
+
+def fixed_tool_prompt_gaps(prompt):
+    """Return the fixed-host-tool needles missing from one orchestrator prompt."""
+    text = prompt if isinstance(prompt, str) else ""
+    return [needle for needle in ORCHESTRATOR_FIXED_TOOL_NEEDLES if needle not in text]
 
 
 def missing_prompt_needles(data, agents=AGENT_NAMES):
@@ -161,6 +173,11 @@ class RealConfig(unittest.TestCase):
                     f"{ORCHESTRATOR} prompt is missing {needle!r}",
                 )
 
+    def test_orchestrator_prompt_names_narrow_fixed_tool_exceptions(self):
+        prompt = prompt_of(self.data, ORCHESTRATOR)
+        self.assertIsInstance(prompt, str, "orchestrator prompt must be a string")
+        self.assertEqual(fixed_tool_prompt_gaps(prompt), [])
+
     def test_each_pm_prompt_teaches_readable_anchor_and_working_tree_limit(self):
         for name in AGENT_NAMES:
             with self.subTest(agent=name):
@@ -193,7 +210,10 @@ class PositiveControl(unittest.TestCase):
 
     @staticmethod
     def _synthetic():
-        orchestrator = "orchestrator preamble " + " ".join(ORCHESTRATOR_NEEDLES)
+        orchestrator = (
+            "orchestrator preamble "
+            + " ".join((*ORCHESTRATOR_NEEDLES, *ORCHESTRATOR_FIXED_TOOL_NEEDLES))
+        )
         pm = "pm preamble " + " ".join(
             (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE, PM_TINY_FIX_INSTRUCTION)
         )
@@ -246,6 +266,15 @@ class PositiveControl(unittest.TestCase):
             [("pm-odd", needle, "prompt does not contain the needle")
              for needle in (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE)],
         )
+
+    def test_fixed_tool_needle_removal_is_detected(self):
+        data = self._synthetic()
+        prompt = data["agent"][ORCHESTRATOR]["prompt"]
+        self.assertEqual(fixed_tool_prompt_gaps(prompt), [])
+        for needle in ORCHESTRATOR_FIXED_TOOL_NEEDLES:
+            with self.subTest(needle=needle):
+                mutated = prompt.replace(needle, "", 1)
+                self.assertIn(needle, fixed_tool_prompt_gaps(mutated))
 
     def test_absent_agent_key_is_reported(self):
         data = self._synthetic()
