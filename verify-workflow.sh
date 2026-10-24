@@ -1985,6 +1985,52 @@ function modelFamily(value) {
   if (model.includes("gemini")) return "gemini"
   return undefined
 }
+// supported-variant-validator:begin
+// Staged by q90-t30-variants-u1 for the T3.0.2 activation gate; not called against live seats yet.
+// Self-contained and marked for extraction. Full model IDs only; no root or plural provider shape.
+// The allowed names are the owner/tracker target subset, not the full provider catalog.
+const SUPPORTED_VARIANT_TARGETS = Object.freeze({
+  "openai/gpt-6-luna": Object.freeze(["none","low","medium","high","xhigh","max"]),
+  "opencode-go/glm-5.3-flash": Object.freeze(["low","high","max"]),
+  "opencode-go/glm-5.3": Object.freeze(["low","high","max"]),
+  "opencode-go/deepseek-v4.1-flash": Object.freeze(["low","high"]),
+  "opencode-go/deepseek-v4.1-flash@worker": Object.freeze(["low","high","max"]),
+  "opencode-go/deepseek-v4-pro": Object.freeze(["high"]),
+  "opencode-go/claude-haiku-5-5": Object.freeze(["high"]),
+  "opencode-go/minimax-m3.1-flash": Object.freeze(["high","xhigh"]),
+  "opencode-go/qwen3.8-flash": Object.freeze([]),
+  "opencode-go/qwen3.8-max": Object.freeze([]),
+  "opencode-go/kimi-k2.7-code": Object.freeze([]),
+  "opencode-go/mimo-v2.6-flash": Object.freeze([]),
+  "google/gemini-flash-latest": Object.freeze([]),
+  "google/gemini-4-argon": Object.freeze([]),
+})
+function variantValueType(value) {
+  if (value === null) return "null"
+  if (Array.isArray(value)) return "array"
+  return typeof value
+}
+function supportedVariantFailure(model, variant) {
+  if (typeof model !== "string" || model.length === 0) {
+    return `SUPPORTED_VARIANT_MODEL_INVALID: model=${JSON.stringify(model)} variant=${JSON.stringify(variant)}`
+  }
+  if (variant === undefined) return undefined
+  if (typeof variant === "string" && variant === "") {
+    return `SUPPORTED_VARIANT_EMPTY_REFUSED: model=${model} variant=""`
+  }
+  if (typeof variant !== "string") {
+    return `SUPPORTED_VARIANT_TYPE_REFUSED: model=${model} variantType=${variantValueType(variant)} variant=${JSON.stringify(variant)}`
+  }
+  const names = Object.prototype.hasOwnProperty.call(SUPPORTED_VARIANT_TARGETS, model) ? SUPPORTED_VARIANT_TARGETS[model] : undefined
+  if (names === undefined) {
+    return `SUPPORTED_VARIANT_MODEL_UNCLASSIFIED: model=${model} variant=${JSON.stringify(variant)}`
+  }
+  if (!names.includes(variant)) {
+    return `SUPPORTED_VARIANT_UNKNOWN_REFUSED: model=${model} variant=${JSON.stringify(variant)}`
+  }
+  return undefined
+}
+// supported-variant-validator:end
 function promptBudgetFailures(agents) {
   const failures=[]
   for (const [name,agent] of Object.entries(agents??{})) {

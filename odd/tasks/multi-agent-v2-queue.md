@@ -402,7 +402,7 @@ medium metadata slice from `77ef08a` by native review or an explicit owner bound
 | Unit | Scope | Estimate (ESTIMATES, NOT MEASURED: authored lines / patch bytes) | Prerequisites | Split/rollback |
 |---|---|---|---|---|
 | T3.0.1 `q90-t30-variants-u1` | Add the target model variant maps, effective-variant verifier semantics and absent-versus-empty fixtures; no seat reassignment yet | 160-220 / 22,000-30,000 | `77ef08a` metadata boundary closed | Revert whole unit; no seat depends on it |
-| T3.0.2 `q90-t30-core-seats-u1` | Orchestrator high; explorer nonthinking/low; cloud workers high with alias; Tiny Luna medium; jd-fix Luna high; Systematic implementer/validator/resolver high; check: consumer re-read of exact model and variant for both families plus the plain Systematic seats | 170-250 / 20,000-32,000 | T3.0.1 | Revert; review seats untouched |
+| T3.0.2 `q90-t30-core-seats-u1` | Orchestrator high; explorer nonthinking/low; cloud workers high with alias; Tiny Luna medium; jd-fix Luna high; Systematic implementer/validator/resolver high; check: consumer re-read of exact model and variant for both families plus the plain Systematic seats | 170-250 / 20,000-32,000 | T3.0.1; set the orchestrator to `high` and activate the strict validator for all confirmed models; the validator is staged and untested against live seats until this step (`supportedVariantFailure`, staged by T3.0.1) | Revert; review seats untouched |
 | T3.0.3a `q90-t30-pm-u1` | PM GLM high + qwen fallback; PM model-failure versus provider-failure tests; check: PM seat equality and stated outage semantics | 200-280 / 25,000-38,000 | T3.0.2 | Revert PM; judges untouched |
 | T3.0.3b `q90-t30-judges-u1` | Judge A `qwen3.8-max` high, judge B GLM max; noFallback/judge-fallback contract and verifier branch controls; check: judge seat equality and effective no-fallback evidence | 180-260 / 22,000-35,000 | T3.0.3a | Revert judges; PM untouched |
 | T3.0.4a `q90-t30-fallback-writer-u1` | Fix 1 DeepSeek writer base + `@worker` cleanup, design-iterator primary, maintainability-post migration, legacy-identity assertion; check: no DeepSeek writer closure reaches a review/post seat and no interim writer collision | 260-360 / 32,000-48,000 | T3.0.3b | Revert writer kernel; guard stays disabled |
@@ -428,6 +428,15 @@ T3.0.4a is the safe scoped writer/legacy behavior; T3.0.4b is the remaining clos
 proof. Neither enables the global guard, and completeness remains T3.0.9. A new advisor lens-pair
 unit (7a-f) normally spans definitions, prompts, permissions, guard/skills, verifier, tests and pin
 together; its estimate above is the real expected scope, not an arbitrary small number.
+
+**T3.0.2 activation prerequisite (explicit):** set the orchestrator to `high` and activate the strict validator for all confirmed models; the validator is staged and untested against live seats until this step (`supportedVariantFailure`, staged by T3.0.1). T3.0.1's staged fixture verification is NOT live seat/runtime clearance. The full `opencode-go/deepseek-v4-pro` identity remains an ASSUMPTION (owner-named model plus the plan's Go convention, not a resolved full ID); resolve it before the optional v4-pro profile. No unavailability claim is made.
+
+**Owner PM deferral (2026-10-24):** PM reassignment is deferred until Planner setup is complete; this supersedes the earlier PM-before-T3b ordering. It does not rewrite other task design and does not migrate seats.
+
+### T3.0.1 staged variant validator (source unit)
+Unit `q90-t30-variants-u1`; class `global-tooling-change`; route `workflow-odd-secure`; delegated cloud `odd-apply`. Route/trigger: multi-file source unit plus secure preparation; delegated, not inline; mirror UNIMPLEMENTED/not read. Owner boundary: `77ef08a..544a2630` closed by owner DECISION, not native review; boundary `544a2630...`; Q90 IN PROGRESS.
+Scope: stage self-contained `supportedVariantFailure(model, variant)` in the verifier JS heredoc, marked for extraction. Full IDs (including `@worker`); explicit target subset, not full catalog. Absent accepted; `""`/unknown/non-string refused by name with model+variant. qwen/kimi/mimo absence only; Mini high/xhigh; Luna every listed name; GLM and `@worker` low/high/max; base DS low/high; DS v4-pro and Haiku high; Gemini absence only, no literal `default`. Not called against live/configured seats; `opencode.json` unchanged; exact GGA/Systematic checks and the explicit orchestrator requirement unchanged.
+Activation prerequisite: set the orchestrator to `high` and activate the strict validator for all confirmed models; the validator is staged and untested against live seats until this step (`supportedVariantFailure`). T3.0.1 fixture verification is not live seat/runtime clearance.
 
 ### Planned checks per slice (plan only; none run here)
 
@@ -458,7 +467,7 @@ longer an open target: it stays the unchanged read-only Sol design coordinator.
 | T1 | Queue revision: Q90, Q87 overlay, Q91, router | COMPLETE source `114366b`, metadata `dfbeb29`, medium/`under_budget` | owner authorization 2026-10-23 |
 | T2 | Readiness: decisions b/d/e/f, model IDs, M3/hang and seat gates | COMPLETE for decisions/evidence; metadata commit `2f196b6`; owner decision 2026-10-23 closed the retained MEDIUM SLICE (`22132ad`..`2f196b6`), not a native review of it; host-tool, session and independence checks remain future gates | T1; owner decisions 2026-10-23 |
 | T3a | Orchestrator slice: T3a1 plan/test tools + ask-gated `host_plan_write`; T3a2 review dispatch | T3a1 COMPLETE source `b89f5a0`, native review `review-1ca5500bc130a1cf` approved/acknowledged, authority burned; T3a2 COMPLETE source `77ef08a`, approved lineage `review-bff8f73a89ebffa5` (target `3677691…`), four deferred WARNINGs | T2; T3.0 and T3b owe their own high-risk gates |
-| T3.0 | Model and role assignment: complete source table, variant mechanics, fallback fix graph, native/`asi` review seats, 12-lens advisor mapping, escalations; atomic subunits T3.0.1-T3.0.9 | PLAN COMPLETE in this tracker (planning only; no source). T3.0.1 is FIRST and high risk | T2; T3a1/T3a2 landed; owner direction 2026-10-23/24; no `agent-sandbox-integration` dependency; close the pending `77ef08a` metadata slice first |
+| T3.0 | Model and role assignment: complete source table, variant mechanics, fallback fix graph, native/`asi` review seats, 12-lens advisor mapping, escalations; atomic subunits T3.0.1-T3.0.9 | PLAN COMPLETE; T3.0.1 source STAGED and unactivated (fixture checks only, not live seat/runtime clearance); T3.0.2 next | T2; T3a1/T3a2 landed; owner direction 2026-10-23/24; no `agent-sandbox-integration` dependency; `77ef08a..544a2630` closed by owner DECISION, not native review |
 | T3b | Planner slice: advisor + evidence-agent + both verdict permissions | PLANNED, high risk, after T3.0 | T2; T3a1/T3a2/T3.0 landed with consistent surfaces; the existing current actor owns advice until T3b |
 | T3c | PM slice: permission-only drop of relay/advisor dispatch, after the T3.0 model migration | PLANNED, high risk | T2; T3.0/T3b landed; no model seat deferred to T3c |
 | T3d | Residual fallbacks/routing audit only; no duplicated model or fallback seat work already done in T3.0 | PLANNED, high risk | T2; T3.0-T3c; M3.1 session/hang/Go-allowance acceptance before its promotion goes live |
@@ -498,9 +507,12 @@ longer an open target: it stays the unchanged read-only Sol design coordinator.
 - T3.0 planning unit `q90-t30-model-plan-u1` (2026-10-24): DOCS-ONLY; allowed paths exactly this
   tracker, `docs/TODO.md` and `ROUTER-LOG.md`; no config/test/verifier/skill/prompt/agent/deploy
   change, no branch switch and no commit. Baseline/ancestry observed in the sandbox; the commit SHA
-  for this unit is recorded in the PM envelope. The pending medium metadata slice from `77ef08a`
-  must be closed by native review or an explicit owner boundary before the first high-risk T3.0
-  source unit; `under_budget` alone does not close it.
+  for this unit is recorded in the PM envelope. Owner closed `77ef08a..544a2630` by DECISION, not
+  native review; the boundary is now `544a2630...`.
+- Q90 T3.0.1 `q90-t30-variants-u1` (2026-10-24): source staged, not activated; six intended paths
+  (this tracker, advice, ROUTER-LOG, test, verifier, pin only); `opencode.json` unchanged; staged
+  `supportedVariantFailure` not called against live seats; T3.0.2 owns activation/live testing; PM
+  owns commit/review; exact receipt in the PM envelope; mirror UNIMPLEMENTED/not read.
 
 ## Review-size exception
 `review-size-exception` — OWNER AUTHORIZED 2026-10-24 for ONE three-path docs commit on
@@ -586,8 +598,23 @@ authorized this one-commit review-size exception.
   returned to the PM. No source tests, full verifier, live model resolution or native review ran.
   The prior initial prohibited `grep -o/-c/-n` incident remains recorded and rejected, not repaired
   by this round. Mirror UNIMPLEMENTED/not read; PM owns the commit and assessment.
+- T3.0.1 `q90-t30-variants-u1` (2026-10-24): SOURCE STAGED, not activated. Initial writer sandbox `ses_e92b5326affe5Y5TpcXbN3OgK3`, root `/work`, synthetic branch `work`, baseline `9479c0ab3dd7d1962afbc68290e8b8a688cc19ed` (parent `544a2630...`); route `workflow-odd-secure`, delegated cloud `odd-apply`, multi-file plus secure-preparation trigger; owner closed `77ef08a..544a2630` by DECISION, not native review; boundary `544a2630...`.
+  `supportedVariantFailure` staged; not called against live seats; `opencode.json` unchanged; T3.0.2 must set orchestrator `high` and activate the strict validator; fixture checks are not live clearance.
+  Initial RED: 22 tests, 20 failures + 5 errors from the absent block/controls; initial GREEN after source+pin: 22/22, Gemini 20/20, `bash -n`/`git diff --check` clean, verifier+pin `f18638...`.
+  Correction `1/1` (fresh pass; baseline snapshot `b79bcd20bff56e38af8c950caac46a46df3abd7e`, parent `544a2630`, snapshot label `ses_e92a38cacffegugfXPCSsJNNj7`): the PM's first post-code `aft_inspect` was PARTIAL with 11 Pyright optional-access errors in `tests/test_model_variants.py:85,86,90-93,180,191,196,201,228`; after that correction the last VERIFIED host diagnostics were 11→1 remaining at `tests/test_model_variants.py:203:33` (`extract_block().replace` on optional `None`); AFT Bash 0, and the TS workspace marker is absent and Markdown has no producer, so no all-static-clean or zero-error claim.
+  F-STATIC partially fixed with a typed `required_block` accessor (explicit None guard) and an explicit regex `match` guard; no blanket ignores, and `extract_block` still returns None so the missing-marker negative control is retained, but correction 1/1 left the one optional-`None` diagnostic at line 203. OWNER OVERRIDE (2026-10-24): exactly one fresh correction; reason the residual optional `None.replace` at line 203; scope this one-line `required_block().replace(...)` change plus factual evidence and targeted tests; one new writer; normal correction count remains 1/1; previous task IDs, dispositions, owner quote, the `77ef08a..544a2630` closure-by-DECISION and PM deferral are preserved. The exceptional accessor fix is this round; final host `aft_inspect` confirmation is pending the PM envelope.
+  F-PROTOTYPE fixed with an own-key lookup, so `constructor`, `__proto__` and `toString` return named `SUPPORTED_VARIANT_MODEL_UNCLASSIFIED` rather than crashing on `.includes`; a new executable test covers those three plus the ordinary unclassified-model control; observed RED before the source fix and GREEN after.
+  F-EVIDENCE: the advice record now carries the post-code advisor (`ses_e92aa908bffeq3Wgqt0lx7lxbL`, `opencode-go/kimi-k2.7-code`, no blockers) and independent verifier (`ses_e92aa9096ffeN3ynypfY0hWNyf`, `openai/gpt-6.1-sol`) results; the verifier's INITIAL 50-test execution and first-pass diagnostics are recorded as evidence, not approval.
+  V1: the full `opencode-go/deepseek-v4-pro` identity remains an ASSUMPTION (owner names the model; `opencode-go/` follows the plan convention, not a resolved full ID); resolve it before the optional v4-pro profile. No unavailability claim.
+  V2: the activation test accepts any matching line rather than independently requiring both the T3.0.2 row and its prerequisite (both are present); recorded as optional/deferred test-strength, not changed.
+  Post-correction checks: 23/23 variant tests GREEN (RED observed for the new prototype test before the source fix), Gemini 20/20, model-independence 8/8 (51 total), `bash -n` and `git diff --check` clean, verifier/pin both `d2555af8325d5f2e8c854f1d08bc01522f7688a5f21c57796d919f601796a6ff`. OWNER OVERRIDE rerun: same 23/23 + 20/20 + 8/8 (51/51, 0 skips), `bash -n` and `git diff --check` clean; final host diagnostics confirmation still pending.
+  No full verifier/deploy/live seat checks/native review; source checks vs live UNVERIFIED. Mirror UNIMPLEMENTED/not read; PM owns commit/assessment; exact receipt in the PM envelope.
+  This correction does not change the staged/untouched seat contract or activate the validator.
 
 ## Next step
-T3.0.1 (`q90-t30-variants-u1`) is FIRST, high risk, after the `77ef08a` metadata boundary is closed
-by native review or explicit owner decision. T3.0.2-T3.0.9 follow in order, then T3b, T3c
-(permission-only), T3d (residual), T4-T6. Q90 remains IN PROGRESS.
+T3.0.1 (`q90-t30-variants-u1`) source is STAGED with the validator unactivated; T3.0.2
+(`q90-t30-core-seats-u1`) follows after the PM/owner activation gate sets the orchestrator to
+`high` and activates the strict validator for all confirmed models. T3.0.3a PM reassignment is
+deferred until Planner setup is complete, superseding the earlier PM-before-T3b ordering. T3.0.3b-
+T3.0.9 follow in order, then T3b, T3c (permission-only), T3d (residual), T4-T6. Q90 remains IN
+PROGRESS.
