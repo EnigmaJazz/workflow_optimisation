@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,6 +67,7 @@ HOST_TOOL_FUNCTION_NAMES = (
     "hostTestRunOrchestratorFailures",
     "hostPlanWriteOrchestratorFailures",
     "hostTestRunGrantSweepFailures",
+    "hostPlanWriteGrantSweepFailures",
     "hostToolPromptFailures",
 )
 
@@ -675,6 +677,9 @@ class HostFixedToolPermissionTests(unittest.TestCase):
         cls.prompt = cls.agents["gentle-orchestrator"]["prompt"]
 
     def run_controls(self, body, fragments=None):
+        bun = shutil.which("bun")
+        if bun is None:
+            self.skipTest("Bun runtime not found on PATH; extracted verifier harness requires Bun")
         functions = "\n".join(
             extract_braced_block(self.verifier, f"function {name}(")
             for name in HOST_TOOL_FUNCTION_NAMES
@@ -709,11 +714,13 @@ class HostFixedToolPermissionTests(unittest.TestCase):
             environment.update({key: str(value) for key, value in paths.items()})
             try:
                 result = subprocess.run(
-                    [shutil.which("bun") or "bun", str(script_path)],
+                    [bun, str(script_path)],
                     cwd=ROOT, capture_output=True, text=True, env=environment, check=False,
                 )
             except PermissionError:
                 self.skipTest("sandbox policy denies child Bun processes")
+            except (FileNotFoundError, OSError):
+                self.skipTest("Bun runtime could not be executed; run the extracted verifier harness directly")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_actual_config_and_tool_maps(self):
@@ -736,6 +743,7 @@ class HostFixedToolPermissionTests(unittest.TestCase):
             'assert(hostTestRunOrchestratorFailures(agents["gentle-orchestrator"]).length===0,"test-run grant");\n'
             'assert(hostPlanWriteOrchestratorFailures(agents["gentle-orchestrator"]).length===0,"plan-write grant");\n'
             'assert(hostTestRunGrantSweepFailures(agents).length===0,"test-run sweep");\n'
+            'assert(hostPlanWriteGrantSweepFailures(agents,["gentle-orchestrator","pm-odd","pm-systematic"]).length===0,"plan-write sweep");\n'
         )
 
     def test_negative_controls_remove_or_flip_grants(self):
@@ -763,6 +771,15 @@ for (const name of ["pm-odd","pm-systematic","general","odd-apply","gentle-ai-wo
 }
 assert(hostTestRunGrantSweepFailures({"gentle-orchestrator":{permission:{host_test_run:"allow"}}}).length===0,"orchestrator allow");
 assert(hostTestRunGrantSweepFailures({"pm-odd":{permission:{host_test_run:"deny"}}}).length===0,"explicit deny");
+const planAllowed=["gentle-orchestrator","pm-odd","pm-systematic"];
+for (const name of ["general","odd-apply","gentle-ai-worker","review-risk","advisor-security-pre","synthetic-agent"]) {
+  for (const value of ["ask","allow"]) {
+    const failures=hostPlanWriteGrantSweepFailures({[name]:{permission:{host_plan_write:value}}},planAllowed);
+    assert(failures.some((failure)=>failure.includes(`HOST_PLAN_WRITE_GRANTED_OUTSIDE_COORDINATORS: ${name}="${value}"`)),`plan-write sweep ${name}=${value}`);
+  }
+}
+assert(hostPlanWriteGrantSweepFailures({"gentle-orchestrator":{permission:{host_plan_write:"ask"}}, "pm-odd":{permission:{host_plan_write:"ask"}}, "pm-systematic":{permission:{host_plan_write:"allow"}}},planAllowed).length===0,"coordinator grants accepted");
+assert(hostPlanWriteGrantSweepFailures({"synthetic-agent":{permission:{host_plan_write:"deny"}}, "synthetic-omitted":{permission:{}}},planAllowed).length===0,"deny and undefined non-grants accepted");
 ''')
 
     def test_prompt_clauses_and_removal_controls(self):
@@ -776,6 +793,38 @@ for (const fragment of fragments) {
   assert(hostToolPromptFailures(mutated).some((failure)=>failure.includes(JSON.stringify(fragment))),`removal control: ${fragment}`);
 }
 ''')
+
+
+    def test_plan_write_sweep_production_wiring_and_controls(self):
+        self.assertIn(
+            "for (const failure of hostPlanWriteGrantSweepFailures(deployedAgents,coordinatorAgents)) fail(failure)",
+            self.verifier,
+        )
+        self.assertIn("HOST_PLAN_WRITE_GRANT_SWEEP_POSITIVE_CONTROL_FAILED", self.verifier)
+        self.run_controls(
+            r'''
+const allowed=["gentle-orchestrator","pm-odd","pm-systematic"];
+assert(hostPlanWriteGrantSweepFailures(agents,allowed).length===0,"real config plan-write sweep");
+for (const value of ["ask","allow"]) {
+  const synthetic=`synthetic-${value}-agent`;
+  const detected=hostPlanWriteGrantSweepFailures({[synthetic]:{permission:{host_plan_write:value}}},allowed);
+  assert(detected.includes(`HOST_PLAN_WRITE_GRANTED_OUTSIDE_COORDINATORS: ${synthetic}="${value}"`),`synthetic non-coordinator ${value}`);
+}
+assert(hostPlanWriteGrantSweepFailures({"gentle-orchestrator":{permission:{host_plan_write:"ask"}}, "pm-odd":{permission:{host_plan_write:"ask"}}, "pm-systematic":{permission:{host_plan_write:"allow"}}},allowed).length===0,"synthetic coordinators accepted");
+''')
+
+    def test_missing_bun_skips_cleanly(self):
+        with mock.patch("shutil.which", return_value=None):
+            with self.assertRaises(unittest.SkipTest) as raised:
+                self.run_controls("")
+        self.assertIn("Bun", str(raised.exception))
+
+    def test_unexecutable_bun_skips_cleanly(self):
+        with mock.patch("subprocess.run", side_effect=FileNotFoundError("missing bun")):
+            with self.assertRaises(unittest.SkipTest) as raised:
+                self.run_controls("")
+        self.assertIn("Bun", str(raised.exception))
+        self.assertNotIsInstance(raised.exception, AssertionError)
 
 
 RELAY_REVIEW_AGENTS = [

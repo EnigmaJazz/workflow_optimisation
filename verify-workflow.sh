@@ -2816,6 +2816,16 @@ function hostTestRunGrantSweepFailures(agents) {
   }
   return failures
 }
+function hostPlanWriteGrantSweepFailures(agents,allowedAgents) {
+  const failures=[]
+  const allowed=new Set(allowedAgents??[])
+  for (const [name,agent] of Object.entries(agents??{})) {
+    if (allowed.has(name)) continue
+    const value=cfgPerm(agent,"host_plan_write")
+    if (value!==undefined && value!=="deny") failures.push(`HOST_PLAN_WRITE_GRANTED_OUTSIDE_COORDINATORS: ${name}=${show(value)}`)
+  }
+  return failures
+}
 function hostToolPromptFailures(prompt) {
   const required=[
     "may draft plan documents through the ask-gated `host_plan_write` fixed tool",
@@ -2856,6 +2866,16 @@ function hostReviewDiffReadFailures(name,agent) {
 // Orchestrator-only checks below keep fixed-host, tiny-fix and registration names.
 const pmAgents=["pm-odd","pm-systematic"]
 const coordinatorAgents=["gentle-orchestrator",...pmAgents]
+for (const failure of hostPlanWriteGrantSweepFailures(deployedAgents,coordinatorAgents)) fail(failure)
+for (const value of ["ask","allow"]) {
+  const synthetic=`synthetic-${value}-plan-writer`
+  const probe=hostPlanWriteGrantSweepFailures({[synthetic]:{permission:{host_plan_write:value}}},coordinatorAgents)
+  const expected=`HOST_PLAN_WRITE_GRANTED_OUTSIDE_COORDINATORS: ${synthetic}=${show(value)}`
+  if (!probe.includes(expected)) fail(`HOST_PLAN_WRITE_GRANT_SWEEP_POSITIVE_CONTROL_FAILED: ${value}`)
+  const coordinatorProbe=Object.fromEntries(coordinatorAgents.map((name)=>[name,{permission:{host_plan_write:value}}]))
+  if (hostPlanWriteGrantSweepFailures(coordinatorProbe,coordinatorAgents).length!==0) fail(`HOST_PLAN_WRITE_COORDINATOR_POSITIVE_CONTROL_FAILED: ${value}`)
+}
+console.log("   ok: host_plan_write grants are limited to the coordinator set")
 const relayReviewAgents=["asi-review-risk","asi-review-resilience","asi-review-readability","asi-review-reliability","asi-review-refuter","asi-review-validator"]
 const plainProviderReviewAgents=["review-risk","review-resilience","review-readability","review-reliability","review-refuter","review-validator"]
 for (const name of coordinatorAgents) {
