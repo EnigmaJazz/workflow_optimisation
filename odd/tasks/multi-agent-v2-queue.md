@@ -723,8 +723,10 @@ authorized this one-commit review-size exception.
 ## Next step
 T3.0.1 (`q90-t30-variants-u1`) source is STAGED with the validator unactivated; T3.0.2
 (`q90-t30-core-seats-u1`) follows after the PM/owner activation gate sets the orchestrator to
-`high` and activates the strict validator for all confirmed models. T3.0.3a PM reassignment is
-now `q90-pm-reassign-u1`, prepared from the 2026-10-24 owner direction; Planner
+`high` and activates the strict validator for all confirmed models. T3.0.3a PM reassignment
+`q90-pm-reassign-u1` is COMPLETE (source `455a769219795e57769488210ee89ba8d67ac63f`, 15 paths /
+400 authored lines; owner-supplied review `review-f6f31e924064dec0` approved and acknowledged);
+deployment/restart remains a separate PENDING action. Planner
 setup remains a later separate unit and is not installed by this change. T3.0.3b-
 T3.0.9 follow in order, then T3b, T3c (permission-only), T3d (residual), T4-T6. The owner-directed
 mechanical repair `q90-t30-fallback-repair-u1` sits inside T3.0 and adds no planned unit. Q90
@@ -923,7 +925,7 @@ commit and assessment. This writer does not commit, push, deploy, restart, creat
 anyone, run the full verifier, or enter native review. The deterministic Magic Context mirror is
 UNIMPLEMENTED; its body is not read or written. Q90 remains IN PROGRESS.
 
-### Implementation (prepared; PM commit pending)
+### Implementation (complete; commit `455a769`)
 
 Owner decision: both PMs move from `openai/gpt-6.1-sol` to
 `opencode-go/glm-5.3-flash` `high`; this is the T3.0.3a seat work, not Planner
@@ -955,3 +957,59 @@ exemption), one correction ceiling. The PM owns the fixed commit and
 assessment; this writer does not commit. PM/explorer/verifier IDs and the
 measured receipt belong to the PM envelope if not exposed here; none is
 invented. Magic Context mirror UNIMPLEMENTED/not read. Q90 remains IN PROGRESS.
+
+### Metadata closure (this unit, 2026-10-24)
+
+Metadata-only, class `documentation` under the simple-docs allowlist; exactly three paths: this
+tracker, `docs/TODO.md` (Q90 only) and `ROUTER-LOG.md`. No source, config, test, advice, spec,
+skill, prompt or `WORKFLOW.md` change; no commit, native review dispatch, full verifier, deploy,
+restart, push, PR or branch switch. The PM owns the fixed commit and assessments; this worker does
+not commit. Mirror UNIMPLEMENTED/not read. Correction rounds stay `1/1`; this metadata is not
+another implementation writer or correction.
+
+Unit-start continuation: the anchor matched before implementation was this tracker at 908
+readable lines, last line `PM owns the commit and assessment; no native review evidence is claimed
+here.`, with feature-branch HEAD `040149e203d7f0c0b7d1de52c880343bf971be43`. The longer tracker is
+the same-unit continuation after the implementation writer's tracker update, not a mismatched
+unit-start anchor. Sandbox: root `/work`, synthetic branch `work`, baseline
+`9c53ae4439aa42af89d6244dd6b978fdb20a9dc1` whose parent is `455a769...` and whose tree
+`74689da162b674f0e3f3c649f18d81104988bc25` equals it; the host branch was not switched.
+
+Implementation (broker-observed): commit `455a769219795e57769488210ee89ba8d67ac63f` on
+`chore/multi-agent-v2-phase1`, 15 paths, 382 additions + 18 deletions = 400 authored lines, 73,737
+raw patch bytes independently measured by the broker. Prior EXECUTED evidence, NOT rerun here:
+independent verifier `ses_e9016b1f1ffeuBzEZnVD4LZq1V` ran 149 tests with 0 failures, 0 errors and
+0 skips; correction writer `ses_e901223deffeqiZY7yeVugLvri` ran 48 targeted tests with 0
+failures/errors/skips; both config JSON files valid, `bash -n` passed, verifier/pin
+`89ec3b2b019c578d346119600df006d7690410ad54d21eab508de85c1d177157`. First-pass `aft_inspect` was
+PARTIAL: Bash 0; the unchanged optional `expected.group` diagnostic at
+`tests/test_tiny_fix_route.py:254:74` is inferred pre-existing; Markdown/JSON have no producer and
+the TS root is absent. The targeted correction showed Python 0 and Markdown gaps. No
+all-static-clean claim.
+
+Review: the four-lens APPROVED outcome, acknowledged and authority burned, is OWNER-SUPPLIED for
+lineage `review-f6f31e924064dec0`; the PM independently OBSERVED `host_review_status` status 0,
+schema `gentle-ai.review-integration.status/v9`, action `stop`, replayability `not_replayable`,
+`next_transition {kind: stop, reason_code: target_already_acknowledged}`, initial/current snapshot
+identity both `sha256:e7e3e3a845256694e2f3c2355e424deca77c44d9e40b7cf0d87e0fa9bb176019`,
+review/current tree `74689da162b674f0e3f3c649f18d81104988bc25`. The PM dispatched no lanes, consent
+or acknowledgement. Informational/deferred findings are exactly `R2-001`, `R2-002`,
+`R3-PM-SEAT-MISSING-TEST`, `R4-1` WARNING (seat-gate identifier scope unverified because the FULL
+verifier was not run), `R4-2` WARNING (Qwen fallback `high` variant runtime UNVERIFIED) and
+`R4-3`; no description is invented for an unspecified ID and no correction was reopened.
+
+Source policy: both PMs are canonical SOURCE `opencode-go/glm-5.3-flash` `high`; the PM-specific
+fallback order is `opencode-go/qwen3.8-flash` `high`, then
+`openrouter/~google/gemini-flash-latest` with variant absent, each with `files`/`tools`/`vision`
+and no DeepSeek target; the shared GLM policy is unchanged. The Planner `openai/gpt-6.1-sol`
+remains separate and not installed; workers remain DeepSeek. Deployment/restart is PENDING: the
+owner reports live PMs still on Sol, but this worker and the PM did not independently
+runtime-verify the live seats.
+
+Ceremony and authority: the owner cost directive supplied one independent verifier with no pre/post
+advisors; this metadata continuation ran no advisor, verifier or runtime test. The three-path docs
+exemption is legitimate only for these exact paths. Implementation and metadata native assessment
+are PM-owned: the PM commits this metadata, then assesses with `baseRef=455a769...` and
+`committedOnly=true`. The outcome and the metadata commit SHA are not predicted or invented here
+and belong to the PM envelope. Q90 remains IN PROGRESS; the source unit is COMPLETE and no new
+planned unit is added.

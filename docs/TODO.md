@@ -1530,7 +1530,10 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   `77ef08af7c376386b24a62e26efc6809b9753bdf`; approved lineage `review-bff8f73a89ebffa5`;
   four deferred WARNINGs. T3.0 model/role PLAN COMPLETE in the tracker (planning only; no source);
   the owner-authorized 2026-10-24 one-commit docs review-size exception is recorded there only
-  and changes no source decision; T3.0.1-T3.0.9 PLANNED, then T3b, T3c (permission-only), T3d (residual), T4-T6. Current
+  and changes no source decision; T3.0.3a PM reassignment `q90-pm-reassign-u1` COMPLETE: source
+  `455a769219795e57769488210ee89ba8d67ac63f`, 15 paths / 400 authored lines, owner-supplied review
+  `review-f6f31e924064dec0` approved/acknowledged, deployment PENDING; the remaining
+  T3.0.1-T3.0.9 slices are PLANNED, then T3b, T3c (permission-only), T3d (residual), T4-T6. Current
   native-reviewed source boundary `77ef08a`; PM-observed host branch HEAD `36d461f` on
   `chore/multi-agent-v2-phase1`. Tracker `odd/tasks/multi-agent-v2-queue.md`; handover
   `docs/handoffs/2026-10-19-multi-agent-v2-workflow-config.md`. No deployment is claimed.
@@ -1754,12 +1757,22 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     `baseRef=5697f72...`, `committedOnly=true`; the result is not predicted here). Owner verifier
     must be RE-RUN; deployment and native review remain PENDING/UNVERIFIED. Q90 remains IN
     PROGRESS; no new planned unit is added.
-  - **T3.0 PM reassignment (`q90-pm-reassign-u1`, owner-directed 2026-10-24; implementation
-    pending PM commit/assessment):** both PMs `opencode-go/glm-5.3-flash` `high`; identical
-    Qwen-high then cross-provider Gemini Flash agent chains; shared GLM policy unchanged; exact
-    verifier seat gate plus focused tests. One writer, ONE independent verifier, NO advisors under
-    the THIS-unit owner cost waiver (recorded deviation, not docs exemption). No commit, native
-    approval or deploy claimed. Q90 IN PROGRESS.
+  - **T3.0 PM reassignment (`q90-pm-reassign-u1`, owner-directed 2026-10-24; COMPLETE, source
+    `455a769219795e57769488210ee89ba8d67ac63f`):** both PMs `opencode-go/glm-5.3-flash` `high`;
+    identical Qwen-high then cross-provider Gemini Flash agent chains (variant absent, no DeepSeek);
+    shared GLM policy unchanged; exact verifier seat gate plus focused tests. 15 paths, 382 additions
+    + 18 deletions = 400 authored lines, 73,737 raw patch bytes broker-measured. Prior executed
+    evidence, not rerun by the metadata unit: independent verifier `ses_e9016b1f1ffeuBzEZnVD4LZq1V`
+    ran 149 tests with 0 failures/errors/skips; correction writer `ses_e901223deffeqiZY7yeVugLvri`
+    ran 48 targeted tests with 0; both JSON files valid, `bash -n` passed, verifier/pin `89ec3b2b…`.
+    Owner-supplied lineage `review-f6f31e924064dec0` four lenses APPROVED, acknowledged, authority
+    burned; the PM observed terminal `v9` status action `stop`, `not_replayable`,
+    `target_already_acknowledged` and dispatched no lanes/consent/ack. Deferred informational
+    findings exactly `R2-001`, `R2-002`, `R3-PM-SEAT-MISSING-TEST`, `R4-1` WARNING, `R4-2` WARNING,
+    `R4-3`; no correction reopened. First-pass `aft_inspect` PARTIAL (no all-clean claim).
+    Deployment/restart PENDING: owner reports live PMs still Sol; not independently
+    runtime-verified. Metadata commit and post-commit assessment belong to the PM envelope.
+    Q90 IN PROGRESS; no new planned unit.
   - **T3b — Planner slice (PLANNED, high risk):** after T3.0; advisor, evidence-agent and both
     gate-verdict permissions; same three surfaces plus Planner `WORKFLOW.md` lines.
   - **T3c — PM slice (PLANNED, high risk):** permission-only drop of relay/advisor dispatch after
