@@ -1528,14 +1528,19 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   `b89f5a00d0bc1412f672954aaa7c1810c7a34092`; native review `review-1ca5500bc130a1cf` approved
   and acknowledged, authority burned. T3a2 COMPLETE: four commits from `2173738` to source
   `77ef08af7c376386b24a62e26efc6809b9753bdf`; approved lineage `review-bff8f73a89ebffa5`;
-  four deferred WARNINGs. T3b PLANNED NEXT; T3c-T6 PLANNED. Tracker
-  `odd/tasks/multi-agent-v2-queue.md`; handover
+  four deferred WARNINGs. T3.0 model/role PLAN COMPLETE in the tracker (planning only; no source);
+  the owner-authorized 2026-10-24 one-commit docs review-size exception is recorded there only
+  and changes no source decision; T3.0.1-T3.0.9 PLANNED, then T3b, T3c (permission-only), T3d (residual), T4-T6. Current
+  native-reviewed source boundary `77ef08a`; PM-observed host branch HEAD `36d461f` on
+  `chore/multi-agent-v2-phase1`. Tracker `odd/tasks/multi-agent-v2-queue.md`; handover
   `docs/handoffs/2026-10-19-multi-agent-v2-workflow-config.md`. No deployment is claimed.
 - **Prerequisites:** T1: none (owner authorization 2026-10-23). Q89 phase 1 is a completed, inert
-  prerequisite; its tools are not live. Phases 2-4 remain external to this repository. The
-  external `agent-sandbox-integration` host tools must be built and tested, and the remaining
-  session and seat-independence checks must pass before the relevant T3 slices. These are
-  prerequisites, not owner decisions; T2 decision closure does NOT complete them.
+  prerequisite; its tools are not live. Phases 2-4 remain external to this repository. T3.0 has NO
+  `agent-sandbox-integration` dependency and precedes T3b; the external host tools, session and
+  seat-independence checks remain gates for the slices that need them. The pending medium metadata
+  slice from `77ef08a` must be closed by native review or an explicit owner boundary before the
+  first high-risk T3.0 source unit; `under_budget` alone does not close it. `minimax-m3.1-flash`
+  hang, session and Go-allowance acceptance remain future gates for its promotion to a live seat.
 - **Owner decisions (2026-10-23, corrected; planning direction, not live deployment and not a
   change to current policy):**
   1. Review returns to the orchestrator: it dispatches FOUR lenses and the provider-selected
@@ -1565,15 +1570,25 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
      commit assessment tier, phase-appropriate (Gate 1 does not imply post-code evidence exists).
      PASS technically approves the change and authorises the PM tick, NOT delivery, deployment or
      acceptance. Non-gated routes take advice as evidence only, with no verdict.
+  7. T3.0 model and role assignment comes FIRST, before T3b, with no `agent-sandbox-integration`
+     dependency. Former `minimax-m3` seats move to `opencode-go/minimax-m3.1-flash` (reliability
+     `xhigh`; advisors `high`); this supersedes the earlier no-seat/open R3 planning text but is
+     NOT a hang/session clearance. Owner ruling on planning basis: "Planning basis: canonical
+     `global-config/`; the deployed file is stale because T3a1/T3a2 are not deployed. The
+     implementation unit must re-read the deployed file after the mirror and record any source-vs-live
+     difference; it must not edit the live file directly." Source-to-mirror remains authority. The
+     full source-vs-target table, 12-lens mapping, variant mechanics, fallback fix graph and atomic
+     slices live in the tracker; the still-pending owner mappings there are not settled policy.
 - **Pipeline (exact):** orchestrator drafts plan -> PM reads/suggests -> Planner finalises, calls
   pre-code advisors and Luna evidence agent -> Gate 1 -> writer implements -> PM closes unit ->
   orchestrator dispatches four post-commit lenses, Planner runs post-code advice -> Gate 2 -> PM
   ticks -> orchestrator assesses/acknowledges -> owner approves delivery.
-- **Review terminology:** FOUR lenses — R1 risk `qwen3.8-flash`, R2 readability `kimi-k2.7-code`,
-  R3 reliability NO CONFIRMED SEAT (`minimax-m3` is excluded fail-closed from every seat until
-  the hang is proven absent; `minimax-m3.1-flash` is not promoted without session and hang
-  checks; T3d selects the replacement), R4 resilience `glm-5.3-flash` — PLUS the
-  provider-selected refuter `mimo-v2.6-flash` and validator `claude-haiku-5-5`.
+- **Review terminology:** FOUR lenses — R1 risk `qwen3.8-flash` `high`, R2 readability
+  `kimi-k2.7-code` forced thinking, R3 reliability target `minimax-m3.1-flash` `xhigh` with output
+  ≥ 32768 (owner direction 2026-10-23; `minimax-m3` remains excluded and M3.1 promotion still
+  needs session/hang/Go-allowance acceptance), R4 resilience `glm-5.3-flash` `high` — PLUS the
+  provider-selected refuter `mimo-v2.6-flash` default thinking (output ≥ 32768) and validator
+  `claude-haiku-5-5` `high`. Targets are planned, not live.
 - **Units:**
   - **T1 — queue revision (COMPLETE):** Q90, the Q57-Q60 forward lines, the Q87 planning overlay,
     Q91 and the router row. Source `114366b`; metadata `dfbeb29`; final assessment
@@ -1614,15 +1629,36 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     `host_test_run` qualifier names no registry, authority or allowed-test list, so maintainers
     cannot determine the permitted set from the contract alone. `host_test_run` remains inert
     until the host tool ships. No `minimax-m3.1-flash` promotion is attached to T3a1; that
-    substitution belongs to T3d.
-  - **T3b — Planner slice (PLANNED, high risk):** advisor, evidence-agent and both gate-verdict
-    permissions; same three surfaces plus Planner `WORKFLOW.md` lines.
-  - **T3c — PM slice (PLANNED, high risk):** drop relay/advisor dispatch and set the GLM seat;
-    same three surfaces plus PM `WORKFLOW.md` lines.
-  - **T3d — fallbacks and remaining seats (PLANNED, high risk):** fallback policy and the R3
-    replacement selection. Only `minimax-m3.1-flash` promotion requires the M3 session AND hang
-    checks; unrelated candidate selection must not wait for proving the M3 hang absent.
-    `minimax-m3` stays excluded from EVERY native seat; no seat chosen here. Same three surfaces.
+    substitution belongs to T3.0, not T3d.
+  - **T3.0 — model and role assignment (PLAN COMPLETE; source PLANNED, high risk):** the tracker
+    holds the complete current-source-vs-target seat table, variant mechanics, fallback fix graph,
+    12-lens advisor mapping and per-slice AUTHORED ESTIMATES (not measured). Atomic subunits, each
+    carrying config, matching verifier edits, digest pin and exact tests in one commit, in this
+    order: T3.0.1 `q90-t30-variants-u1`; T3.0.2 `q90-t30-core-seats-u1`; T3.0.3a
+    `q90-t30-pm-u1`; T3.0.3b `q90-t30-judges-u1`; T3.0.4a `q90-t30-fallback-writer-u1`;
+    T3.0.4b `q90-t30-fallback-closure-u1`; T3.0.5a `q90-t30-review-risk-resilience-u1`; T3.0.5b
+    `q90-t30-review-readability-reliability-u1`; T3.0.5c `q90-t30-review-refuter-validator-u1`;
+    T3.0.6a `q90-t30-advisor-design-map-u1`; T3.0.6b `q90-t30-advisor-deps-map-u1`; T3.0.6c
+    `q90-t30-advisor-testing-map-u1`; T3.0.6d `q90-t30-advisor-security-map-u1`; T3.0.6e
+    `q90-t30-advisor-integration-map-u1`; T3.0.7a `q90-t30-advisor-scope-ux-u1`; T3.0.7b
+    `q90-t30-advisor-data-u1`; T3.0.7c `q90-t30-advisor-performance-u1`; T3.0.7d
+    `q90-t30-advisor-concurrency-u1`; T3.0.7e `q90-t30-advisor-resilience-u1`; T3.0.7f
+    `q90-t30-advisor-bug-hunt-u1`; T3.0.8 `q90-t30-escalations-u1`; T3.0.9
+    `q90-t30-integration-audit-u1`. Each ID appears once here; each depends on its predecessor and
+    the tracker holds the exact prerequisites. First prerequisite: close the pending `77ef08a`
+    metadata slice by review or owner boundary. No `agent-sandbox-integration` dependency; the
+    existing current actor owns advice until T3b and NO Planner permission is preinstalled. The
+    owner mappings still listed as pending in the tracker must be settled before the affected
+    source slice.
+  - **T3b — Planner slice (PLANNED, high risk):** after T3.0; advisor, evidence-agent and both
+    gate-verdict permissions; same three surfaces plus Planner `WORKFLOW.md` lines.
+  - **T3c — PM slice (PLANNED, high risk):** permission-only drop of relay/advisor dispatch after
+    the T3.0 model migration; no model/fallback work deferred to T3c; same three surfaces plus PM
+    `WORKFLOW.md` lines.
+  - **T3d — residual audit (PLANNED, high risk):** remaining nonduplicated fallback/routing audit
+    only; no model or fallback seat work already delivered in T3.0. M3.1 session/hang/Go-allowance
+    acceptance is still required before its promotion goes live. `minimax-m3` stays excluded from
+    EVERY native seat. Same three surfaces.
   - **T4 — verifier (PLANNED):** new-agent/model/tool checks and digest re-pin, after ALL T3a-d
     slices.
   - **T5 — mirror and owner restart (PLANNED):** after T4.
@@ -1688,29 +1724,38 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
       no independent search claimed). R3 has NO confirmed seat; `minimax-m3.1-flash` is not
       promoted without session and hang checks. T3d chooses the replacement from
       `claude-sonnet-5-5`, `minimax-m3.1-flash` (after checks), `muse-spark-1.3-contributor` or
-      `step-5-preview`. No seat is chosen here;
-  (f) RESOLVED: actor slices T3a orchestrator, T3b Planner, T3c PM, T3d fallbacks/remaining
-      seats. EACH actor commit changes the same three policy surfaces consistently —
+      `step-5-preview`. No seat is chosen here; SUPERSEDED 2026-10-23 by the owner model
+      direction (item 7): `minimax-m3.1-flash` is the planned reliability/advisor target, subject
+      to session/hang/allowance acceptance. The no-seat text is retained as history;
+  (f) RESOLVED: actor slices T3a orchestrator, T3.0 model/role, T3b Planner, T3c PM, T3d
+      residual. EACH actor commit changes the same three policy surfaces consistently —
       `global-config/opencode.json` task permissions; guard `ROUTE_STAGES`/helper lists; route
-      skills — PLUS that actor's `WORKFLOW.md` lines. No owner size exception; no intermediate
+      skills — PLUS that actor's `WORKFLOW.md` lines. T3.0 atomic subunits also carry their
+      verifier edits and digest pin. No owner size exception; no intermediate
       guard-denies/skill-allows state; any slice unable to remain consistent STOPS AND ASKS.
-- **Genuine open choices:** the R3 reliability replacement in T3d and M3 hang verification before
-  any `minimax-m3.1-flash` promotion. All other listed items are resolved or standing gates.
-  Host-tool built/tested, session and seat-independence checks remain prerequisites, not owner
-  decisions.
-- **Order:** handover Order `:213-218` is retained: host tools built/tested first; owner
-  decisions; then T3a -> T3b -> T3c -> T3d actor slices -> T4 verifier/digest -> T5
-  mirror/owner restart -> T6 behavioral probes/trial metrics. The queue revision was the
-  owner-authorized planning exception and enabled no tool.
+- **Genuine open choices:** the owner mappings still marked pending in the tracker (design pair,
+  maintainability scope, optional v4-pro profile, qwen-max escalation shape, local Kinver opt-in)
+  and M3.1 session/hang/Go-allowance acceptance. SETTLED RECOMMENDATIONS (a contrary policy needs
+  separate owner authorization): judges stay fixed/no-fallback with verifier controls; PM keeps
+  qwen for same-provider model-scope failure and fails closed on provider outage.
+  `frontend-dev-premium` stays the unchanged read-only Sol design coordinator. The R3 replacement
+  itself is no longer open: the owner names `minimax-m3.1-flash` for planning, with no clearance
+  claim. Host-tool, session and seat-independence checks remain prerequisites, not owner decisions.
+- **Order:** T3.0 model/role work FIRST (no `agent-sandbox-integration` dependency), then T3b
+  Planner, T3c PM (permission-only), T3d residual audit, T4 verifier/digest, T5 mirror/owner
+  restart, T6 behavioral probes/trial metrics. Host tools built/tested remain gates for slices
+  that need them; T3a1/T3a2 already landed. The queue revision was the owner-authorized planning
+  exception and enabled no tool.
 - **Scope boundary (historical):** T2 was planning/evidence only; T3a1 and T3a2 have since
-  landed. Phases 2-4 are external; the unmerged planner tier is only the Q91 placeholder. T3b is
-  next, high risk, and owes pre-advice, post-advice, one independent verifier, ONE correction
-  round and native review after commit.
+  landed; T3.0 planning is complete with no source. Phases 2-4 are external; the unmerged planner
+  tier is only the Q91 placeholder. T3.0.1 is next, high risk; T3b follows T3.0 and owes
+  pre-advice, post-advice, one independent verifier, ONE correction round and native review
+  after commit.
 - **Slice closure and boundary:** prior medium slice `22132ad`..`2f196b6` is CLOSED by explicit
   owner decision 2026-10-23; the boundary advanced to `2f196b6` BEFORE T3a1 source. That closure
   is not native review of the prior slice. The current native-reviewed source boundary is
   `77ef08af7c376386b24a62e26efc6809b9753bdf` (T3a2 lineage `review-bff8f73a89ebffa5`
-  approved); T3b is next and remains untouched.
+  approved); T3.0.1 is next, then T3b; both remain untouched.
 
 ### Q91. Planner tier (renumbered from the unmerged Q67 plan on docs/pm-planner-delegation, 9938cd1)
 - **Status:** PLANNED.
