@@ -2,7 +2,7 @@
 Task `q90-multi-agent-v2-queue`; units `q90-queue-revision-u1` (initial),
 `q90-decisions-correction-u1` (correction), `q90-t2-readiness-u1` (T2 closure) and T3a1 metadata
 closure `q90-t3a1-orchestrator-tools-u1`. Class: documentation; route `workflow-odd-secure` delegated cloud `odd-apply`.
-Prior base boundary `22132ad`; current native-reviewed source boundary `b89f5a0` on
+Prior base boundary `22132ad`; current native-reviewed source boundary `77ef08a` on
 `chore/multi-agent-v2-phase1`; earlier candidates: T1 source `114366b`, T1 metadata `dfbeb29`,
 decision-set correction `21ff2a5`, T2 readiness `115fbdd`, T2 metadata `2f196b6`. No push, PR or
 deployment.
@@ -107,13 +107,56 @@ follow-up; not endorsed or implemented here, and no correction was opened:
   allowed-test list, so maintainers cannot determine the permitted set from the contract alone.
 Readability attempt 1 was an incomplete-JSON transport refusal, attempt 2 admitted; rejected artifact `.git/gentle-ai/rejected-results/review-1ca5500bc130a1cf/review-readability-1-42837fe6b897.json` is transport evidence, not a finding.
 
+## T3a2 enforcement unit (complete)
+Unit `q90-t3a2-review-dispatch-u1`; class global-tooling-change; route
+`workflow-odd-secure`, delegated cloud specialist `odd-apply`; baseline `2173738` on
+`chore/multi-agent-v2-phase1`; ENFORCEMENT, not migration: `opencode.json` already granted
+all six `asi-review-*` lanes, denied the six plain lanes, and gave both PMs `"*": "deny"`
+with no review keys; config/guard/skills/`WORKFLOW.md` unchanged.
+
+Four commits in order from `2173738`: `3b96708128dadca83ab59bfa9adfafe2792118c7` enforcement source
+(347/21,247); `3069e3338001f78b1280e1b66165e51fa954959d` owner advice; `cdf9056f7a0e1912e1930847ff31205b2b132861`
+two omitted-control expected-string corrections plus digest (6/2,502);
+`77ef08af7c376386b24a62e26efc6809b9753bdf` post-escalation R4-1/R4-2 fix (coordinator
+`host_plan_write` sweep and `run_controls` Bun-absence handling) plus digest (73/9,052). Range four
+paths / 484 lines: `verify-workflow.sh`, `tests/test_review_pipeline_permissions.py`,
+`global-config/plugins/workflow-health-check.ts`, `odd/advice/q90-t3a2-review-dispatch.md`; no live
+deployment.
+
+Approved lineage `review-bff8f73a89ebffa5`, target `36776914a529bd3645a44d7532f8518cb3a9c7ec50fff49f8570d0cd10b259c2`,
+approved/acknowledged, authority burned per owner; terminal consumption `855454c2…8f3960` binds
+target/lineage; no severity or approval field, so state/severities rest on owner-confirmed admitted
+results plus ack readback. Prior lineage `review-83d13326ee0004a8` escalated on `unknown_causality`
+with historical R4-1/R4-2: terminal, SUPERSEDED, NOT approved; different findings. Metadata slice
+`b89f5a0..2173738` closed by owner decision, not native review.
+
+Deferred WARNINGs, informational/non-blocking, no correction opened: `R3-MISSING_BUN_SKIP`
+reliability `tests/test_review_pipeline_permissions.py:908`
+(`run_script` lacks the Bun-absence skip now in `run_controls`); `R4-1`
+resilience same file `:920-930` (same Bun-absence class); `R4-2` resilience
+`verify-workflow.sh:2819-2828` (`hostPlanWriteGrantSweepFailures` treats boolean false as a
+grant while `reviewDispatchFailures` accepts false as deny; no behaviour change); `R4-3`
+resilience `verify-workflow.sh:3460` (control/producer alignment for
+`<inherit/none>` inferential).
+
+Checks (prior writer/verifier execution reports, not owner-admitted review results):
+permission 20 and PM-prompt 45 passed; Bun 103 controls; V1/I1 jointly 48 PM
+combinations + 50 grant/11 nongrant; post-escalation 23 focused, 0 skips with Bun
+present; `HostFixedToolPermissionTests` 6 OK/4 skips; `bash -n`, pin equality,
+`git diff --check`; verifier digest `e76baeda08b6504602710aec87e321ba77ba8d765a877652d0f46bbf652c2616`.
+Static pass PARTIAL (Bash/Python 0, TS workspace marker absent), no clean claim; full verifier/live
+hooks/deploy UNVERIFIED, not rerun. Source normal `correction_rounds_used=1`; owner exceptions
+retained separately: sentinel+pin correction (2026-10-23) after V1/I1, and scoped
+post-escalation R4-1/R4-2 fix (2026-10-23) with NO new advisor/verifier. Metadata correction
+round 1/1; owner overrides do not reset the normal source counter. Mirror UNIMPLEMENTED; body never read/written.
+
 ## Work units
 | Unit | Scope | Status | Prerequisites |
 |---|---|---|---|
 | T1 | Queue revision: Q90, Q87 overlay, Q91, router | COMPLETE source `114366b`, metadata `dfbeb29`, medium/`under_budget` | owner authorization 2026-10-23 |
 | T2 | Readiness: decisions b/d/e/f, model IDs, M3/hang and seat gates | COMPLETE for decisions/evidence; metadata commit `2f196b6`; owner decision 2026-10-23 closed the retained MEDIUM SLICE (`22132ad`..`2f196b6`), not a native review of it; host-tool, session and independence checks remain future gates | T1; owner decisions 2026-10-23 |
-| T3a | Orchestrator slice: T3a1 plan/test tools + ask-gated `host_plan_write`; T3a2 review dispatch | T3a1 COMPLETE source `b89f5a0`, native review `review-1ca5500bc130a1cf` approved/acknowledged, authority burned; T3a2 PLANNED NEXT | T2; T3a2 owes pre/post advice, one independent verifier, ONE correction round, native review |
-| T3b | Planner slice: advisor + evidence-agent + both verdict permissions | PLANNED, high risk | T2; T3a1/T3a2 landed with consistent surfaces |
+| T3a | Orchestrator slice: T3a1 plan/test tools + ask-gated `host_plan_write`; T3a2 review dispatch | T3a1 COMPLETE source `b89f5a0`, native review `review-1ca5500bc130a1cf` approved/acknowledged, authority burned; T3a2 COMPLETE source `77ef08a`, approved lineage `review-bff8f73a89ebffa5` (target `3677691…`), four deferred WARNINGs | T2; T3b owes its own high-risk gate |
+| T3b | Planner slice: advisor + evidence-agent + both verdict permissions | PLANNED NEXT, high risk | T2; T3a1/T3a2 landed with consistent surfaces |
 | T3c | PM slice: drop relay/advisor dispatch; GLM seat | PLANNED, high risk | T2; T3a1/T3a2/T3b landed with consistent surfaces |
 | T3d | Fallbacks and remaining seats; R3 replacement selection | PLANNED, high risk | T2; T3a1/T3a2-T3c; M3 hang proof and session checks before any `minimax-m3.1-flash` promotion |
 | T4 | Verifier checks + digest re-pin | PLANNED | ALL T3a1/T3a2/T3b-T3d slices landed |
@@ -138,8 +181,9 @@ Readability attempt 1 was an incomplete-JSON transport refusal, attempt 2 admitt
   `review_due=false`; metadata result not claimed.
 - Prior pending medium slice (`22132ad`..`2f196b6`) CLOSED by explicit owner decision 2026-10-23;
   boundary advanced to `2f196b6` BEFORE T3a1 source. That closure is not native review of the prior
-  slice. Current native-reviewed source boundary:
-  `b89f5a00d0bc1412f672954aaa7c1810c7a34092`.
+  slice. Current native-reviewed source boundary is `77ef08af7c376386b24a62e26efc6809b9753bdf`
+  (T3a2 lineage `review-bff8f73a89ebffa5` approved); the metadata slice `b89f5a0..2173738` remains
+  an owner decision closure, not native review.
 - Metadata evidence convention (not workflow policy): self-referential SHA = "commit SHA recorded
   in the PM envelope".
 
@@ -162,9 +206,10 @@ Readability attempt 1 was an incomplete-JSON transport refusal, attempt 2 admitt
   only. Separate F2 inaccurate verifier comment remained low/non-blocking, not fixed here.
 - T3a1 metadata unit `q90-t3a1-orchestrator-tools-u1`: actual dispatch `ses_e951edc16ffegYNPz4Zr0cZWBz`;
   metadata correction rounds 1 (source rounds 0); sandbox `/work`, synthetic branch `work`, baseline HEAD `b5a81a6` (parent `b89f5a0`), not the host branch.
+- T3a2 metadata `q90-t3a2-review-dispatch-u1`: initial writer Task `ses_e93984803ffeKLXteQ7e5axmqj`,
+  result `d50cd7b2e17f1114a0f3e5e7904981c537df5d35`; metadata correction round 1/1 (this Task's
+  session recorded in the PM envelope); source normal `correction_rounds_used=1`, owner overrides
+  retained separately. See the T3a2 section.
 
 ## Next step
-T3a2 (review-dispatch actor migration) is PLANNED NEXT and remains untouched: high-risk config +
-guard + route-skill + `WORKFLOW.md` change owing pre-code advice, post-advice, one independent
-verifier, ONE correction round and native review after commit. T3b-T3d and T4-T6 gates unchanged.
-Q90 remains IN PROGRESS.
+T3b is PLANNED NEXT, high risk; T3c/T3d and T4-T6 gates unchanged. Q90 remains IN PROGRESS.

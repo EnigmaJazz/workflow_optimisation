@@ -1526,7 +1526,9 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   `22132adc686629cceaa7b32e469c5ec10d009e2a`: medium/`under_budget`. T2 COMPLETE for
   decisions/evidence (2026-10-23), metadata closed at `2f196b6`. T3a1 COMPLETE: source
   `b89f5a00d0bc1412f672954aaa7c1810c7a34092`; native review `review-1ca5500bc130a1cf` approved
-  and acknowledged, authority burned. T3a2 PLANNED NEXT; T3b-T6 PLANNED. Tracker
+  and acknowledged, authority burned. T3a2 COMPLETE: four commits from `2173738` to source
+  `77ef08af7c376386b24a62e26efc6809b9753bdf`; approved lineage `review-bff8f73a89ebffa5`;
+  four deferred WARNINGs. T3b PLANNED NEXT; T3c-T6 PLANNED. Tracker
   `odd/tasks/multi-agent-v2-queue.md`; handover
   `docs/handoffs/2026-10-19-multi-agent-v2-workflow-config.md`. No deployment is claimed.
 - **Prerequisites:** T1: none (owner authorization 2026-10-23). Q89 phase 1 is a completed, inert
@@ -1591,14 +1593,15 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     with no owner size exception and no intermediate guard-denies/skill-allows state. Host-tool
     built/tested, session and independence checks remain future implementation gates, NOT
     completed by T2.
-  - **T3a — orchestrator slice (T3a1 COMPLETE, T3a2 PLANNED NEXT, high risk):** T3a1 bounded the
+  - **T3a — orchestrator slice (T3a1 and T3a2 COMPLETE, high risk):** T3a1 bounded the
     plan/test tools and ask-gated `host_plan_write` across the three policy surfaces plus
     orchestrator `WORKFLOW.md`; source `b89f5a0`, 11 paths, 400 authored changed lines / 48,326
     bytes; 77 focused tests plus Bun controls; native review `review-1ca5500bc130a1cf` (target
     sha256:3bb686d938a115b6330bb81f9da519f06bab7c2562e74642e79ab4c5a6e6f271) approved, four
     lenses acknowledged, authority burned; three informational/non-blocking reviewer claims
-    recorded below, no correction opened. T3a2 review-dispatch actor migration remains untouched
-    and owes the full high-risk gate.
+    recorded below, no correction opened. T3a2 added review-dispatch ENFORCEMENT, not actor
+    migration, at source `77ef08a` with approved lineage `review-bff8f73a89ebffa5`; four
+    WARNINGs are deferred (below).
   - **T3a1 reviewer claims (informational/non-blocking; deferred follow-up, not endorsed or
     implemented):** R4-1 resilience WARNING `verify-workflow.sh:2809-2817` (proof `:2836`) —
     `host_test_run` has a grant sweep excluding only orchestrator but `host_plan_write` has no
@@ -1647,6 +1650,26 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   attempt 2 admitted; the rejected artifact
   `.git/gentle-ai/rejected-results/review-1ca5500bc130a1cf/review-readability-1-42837fe6b897.json`
   is transport evidence, not a finding.
+- **T3a2 evidence (2026-10-24):** four commits from `2173738`: `3b96708` enforcement source,
+  `3069e33` owner advice, `cdf9056` two omitted-control expected-string corrections plus digest,
+  and `77ef08a`
+  post-escalation R4-1/R4-2 fix plus digest; final range four paths / 484 lines. Approved
+  lineage `review-bff8f73a89ebffa5`, target
+  `36776914a529bd3645a44d7532f8518cb3a9c7ec50fff49f8570d0cd10b259c2`, approved and
+  acknowledged, authority burned; prior lineage `review-83d13326ee0004a8` escalated and is
+  superseded, NOT approved. This was ENFORCEMENT only: `opencode.json` already granted the six
+  `asi-review-*` lanes to the orchestrator and none to the PMs; no config/guard/skill/
+  `WORKFLOW.md` change, and Q89 coordinator `host_plan_write` asks are preserved. Deferred
+  WARNINGs (informational/non-blocking; no correction opened; owner-confirmed admitted results):
+  `R3-MISSING_BUN_SKIP` reliability `tests/test_review_pipeline_permissions.py:908` — `run_script`
+  lacks the Bun-absence skip present in `run_controls`; `R4-1` resilience same file `:920-930` —
+  same Bun-absence class; `R4-2` resilience `verify-workflow.sh:2819-2828` — boolean false
+  inconsistency (`hostPlanWriteGrantSweepFailures` reads false as grant, `reviewDispatchFailures`
+  as deny); `R4-3` resilience `verify-workflow.sh:3460` — control/producer alignment for
+  `<inherit/none>` is inferential. Source normal `correction_rounds_used=1` plus owner-authorized
+  sentinel+pin fix (2026-10-23) and post-escalation R4-1/R4-2 fix (2026-10-23), neither opening
+  a new advisor/verifier round. Final verifier digest `e76baed…`; full verifier, live plugin
+  hooks and deployment remain UNVERIFIED.
 - **Resolved decisions and standing gates (2026-10-23):**
   (a) RESOLVED: handover item 8 — advice is evidence, the gate verdict is the approval act
       (decision 6);
@@ -1679,14 +1702,15 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   decisions; then T3a -> T3b -> T3c -> T3d actor slices -> T4 verifier/digest -> T5
   mirror/owner restart -> T6 behavioral probes/trial metrics. The queue revision was the
   owner-authorized planning exception and enabled no tool.
-- **Scope boundary (historical):** T2 was planning/evidence only; T3a1 has since landed. Phases
-  2-4 are external; the unmerged planner tier is only the Q91 placeholder. T3a2 is next, high
-  risk, and owes pre-advice, post-advice, one independent verifier, ONE correction round and
-  native review after commit.
+- **Scope boundary (historical):** T2 was planning/evidence only; T3a1 and T3a2 have since
+  landed. Phases 2-4 are external; the unmerged planner tier is only the Q91 placeholder. T3b is
+  next, high risk, and owes pre-advice, post-advice, one independent verifier, ONE correction
+  round and native review after commit.
 - **Slice closure and boundary:** prior medium slice `22132ad`..`2f196b6` is CLOSED by explicit
   owner decision 2026-10-23; the boundary advanced to `2f196b6` BEFORE T3a1 source. That closure
   is not native review of the prior slice. The current native-reviewed source boundary is
-  `b89f5a00d0bc1412f672954aaa7c1810c7a34092`; T3a2 is next and remains untouched.
+  `77ef08af7c376386b24a62e26efc6809b9753bdf` (T3a2 lineage `review-bff8f73a89ebffa5`
+  approved); T3b is next and remains untouched.
 
 ### Q91. Planner tier (renumbered from the unmerged Q67 plan on docs/pm-planner-delegation, 9938cd1)
 - **Status:** PLANNED.
