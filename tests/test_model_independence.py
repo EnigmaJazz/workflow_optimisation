@@ -2,6 +2,8 @@
 
 import json
 import re
+import shutil
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -35,6 +37,7 @@ def model_family(value):
         ("qwen", "qwen"),
         ("kimi", "kimi"),
         ("ling", "ling"),
+        ("claude", "claude"),
         ("mimo", "mimo"),
         ("muse", "muse"),
         ("minimax", "minimax"),
@@ -73,6 +76,20 @@ def configured_writers(config):
         names.extend(re.findall(r'"([a-z0-9-]+)"', match.group(1)))
         return names
     raise AssertionError("ODD_SPECIALIST_WRITERS definition was not found")
+
+
+def extract_function(script, name):
+    start = script.index(f"function {name}(")
+    brace = script.index("{", start)
+    depth = 0
+    for index in range(brace, len(script)):
+        if script[index] == "{":
+            depth += 1
+        elif script[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return script[start:index + 1]
+    raise AssertionError(f"unterminated verifier function: {name}")
 
 
 class ModelIndependence(unittest.TestCase):
@@ -133,6 +150,49 @@ class PositiveControl(unittest.TestCase):
     def test_owner_confirmed_kinver_provider_maps_to_qwen(self):
         self.assertEqual(model_family("kinver/professional"), "qwen")
         self.assertIsNone(model_family("unknown-provider/unrecognized-model"))
+
+    def test_claude_and_ling_are_recognized_and_unknown_fails_closed(self):
+        self.assertEqual(model_family("opencode-go/claude-haiku-5-5"), "claude")
+        self.assertEqual(model_family("opencode-go/ling-3.1-flash"), "ling")
+        self.assertIsNone(model_family("unknown-provider/unrecognized-model"))
+        with self.assertRaisesRegex(AssertionError, "independence is not proven"):
+            assert_independent(
+                self,
+                "opencode-go/claude-haiku-5-5",
+                "unknown-provider/unrecognized-model",
+            )
+
+    def test_verifier_model_family_matches_python_recognition(self):
+        script = (REPO / "verify-workflow.sh").read_text(encoding="utf-8")
+        runtime = shutil.which("bun") or shutil.which("node")
+        if not runtime:
+            self.skipTest("Bun or Node is required to execute the extracted verifier functions")
+        program = (
+            extract_function(script, "normalizeModel")
+            + "\n"
+            + extract_function(script, "modelFamily")
+            + "\nconst input=JSON.parse(require('fs').readFileSync(0,'utf8'));"
+            + "\nprocess.stdout.write(JSON.stringify(input.map(modelFamily)))"
+        )
+        models = [
+            "opencode-go/claude-haiku-5-5",
+            "opencode-go/ling-3.1-flash",
+            "opencode-go/minimax-m3",
+            "opencode-go/minimax-m3.1-flash",
+            "unknown-provider/unrecognized-model",
+        ]
+        proc = subprocess.run(
+            [runtime, "-e", program],
+            input=json.dumps(models),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(
+            json.loads(proc.stdout),
+            ["claude", "ling", "minimax", "minimax", None],
+        )
 
     def test_same_family_pairing_fails_independence_assertion(self):
         with self.assertRaises(AssertionError):

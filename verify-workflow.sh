@@ -1983,6 +1983,8 @@ function modelFamily(value) {
   if (model.includes("minimax")) return "minimax"
   if (model.includes("grok")) return "grok"
   if (model.includes("gemini")) return "gemini"
+  if (model.includes("ling")) return "ling"
+  if (model.includes("claude")) return "claude"
   return undefined
 }
 // supported-variant-validator:begin
@@ -1997,6 +1999,7 @@ const SUPPORTED_VARIANT_TARGETS = Object.freeze({
   "opencode-go/deepseek-v4.1-flash@worker": Object.freeze(["low","high","max"]),
   "opencode-go/deepseek-v4-pro": Object.freeze(["high"]),
   "opencode-go/claude-haiku-5-5": Object.freeze(["high"]),
+  "opencode-go/ling-3.1-flash": Object.freeze([]),
   "opencode-go/minimax-m3.1-flash": Object.freeze(["high","xhigh"]),
   "opencode-go/qwen3.8-flash": Object.freeze([]),
   "opencode-go/qwen3.8-max": Object.freeze([]),

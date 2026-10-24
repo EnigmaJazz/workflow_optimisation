@@ -41,6 +41,7 @@ TARGETS = {
     "opencode-go/deepseek-v4-pro": ("high",),
     "opencode-go/claude-haiku-5-5": ("high",),
     "opencode-go/minimax-m3.1-flash": ("high", "xhigh"),
+    "opencode-go/ling-3.1-flash": (),
     "opencode-go/qwen3.8-flash": (),
     "opencode-go/qwen3.8-max": (),
     "opencode-go/kimi-k2.7-code": (),
@@ -131,6 +132,12 @@ class StagedValidator(unittest.TestCase):
         self.assertEqual(len(results), len(entries))
         for entry, result in zip(entries, results):
             self.assertTrue(result.startswith(UNKNOWN), (entry, result))
+
+    def test_ling_refuses_every_named_variant(self):
+        entries = [{"model": "opencode-go/ling-3.1-flash", "variant": n}
+                   for n in ALL_NAMED]
+        results = run_validator(entries)
+        self.assertTrue(all(result.startswith(UNKNOWN) for result in results), results)
 
     def test_minimax_accepts_only_high_and_xhigh(self):
         model = "opencode-go/minimax-m3.1-flash"

@@ -20,7 +20,9 @@ CONFIG_PATH = REPO / "global-config" / "opencode.json"
 FALLBACK_PATH = REPO / "global-config" / "rate-limit-fallback.json"
 SYSTEMATIC_PATH = REPO / "global-config" / "systematic.jsonc"
 SCRIPT = REPO / "verify-workflow.sh"
+WORKFLOW_PATH = REPO / "WORKFLOW.md"
 KIMI = "kimi-k2.7-code"
+LEGACY_M3 = "opencode-go/minimax-m3"
 WRITER = "opencode-go/deepseek-v4.1-flash"
 SEATS = {
     "review-reliability": ("opencode-go/minimax-m3.1-flash", "xhigh"),
@@ -46,6 +48,11 @@ ADVISOR_SEATS = (
     "advisor-testing-pre", "advisor-testing-post", "advisor-maintainability-pre",
     "advisor-maintainability-post", "advisor-gemini-pre", "advisor-gemini-post",
     "advisor-gemini-evidence")
+NORMAL_ADVISOR_ROWS = (
+    "advisor-design-pre", "advisor-design-post", "advisor-security-pre",
+    "advisor-security-post", "advisor-integration-pre", "advisor-integration-post",
+    "advisor-testing-pre", "advisor-testing-post", "advisor-maintainability-pre",
+    "advisor-maintainability-post")
 
 
 def load(path):
@@ -180,6 +187,38 @@ def configured_review_advisor_seats(agents):
                   if name.startswith(("review-", "asi-review-", "advisor-")))
 
 
+def legacy_m3_seats(agents):
+    """Exact legacy M3 identity only; minmax-m3.1-flash must not match."""
+    return sorted(name for name in configured_review_advisor_seats(agents)
+                  if agents[name].get("model") == LEGACY_M3)
+
+
+def workflow_advisor_rows(text):
+    rows = {}
+    pattern = re.compile(
+        r"^\|\s*`(advisor-[a-z-]+)`\s*\|\s*`([^`]+)`(?:\s*\(`([a-z]+)`\))?\s*\|")
+    for line in text.splitlines():
+        match = pattern.match(line)
+        if match and match.group(1) in NORMAL_ADVISOR_ROWS:
+            rows[match.group(1)] = (match.group(2), match.group(3))
+    return rows
+
+
+def advisor_row_failures(agents, rows):
+    out = []
+    for name in NORMAL_ADVISOR_ROWS:
+        if name not in rows:
+            out.append(f"{name}: missing WORKFLOW row")
+            continue
+        model, variant = rows[name]
+        agent = agents.get(name, {})
+        if agent.get("model") != model:
+            out.append(f"{name}: config model {agent.get('model')!r} != WORKFLOW {model!r}")
+        if agent.get("variant") != variant:
+            out.append(f"{name}: config variant {agent.get('variant')!r} != WORKFLOW {variant!r}")
+    return out
+
+
 def seat_independence_failures(agents, writer_model):
     failures = []
     for name in configured_review_advisor_seats(agents):
@@ -284,8 +323,17 @@ class LiveSources(unittest.TestCase):
         families = {model_family(self.agents[name]["model"]) for name in REVIEW_SEATS[:4]}
         self.assertGreaterEqual(len(families), 3, families)
         for name in ("review-validator", "asi-review-validator"):
-            self.assertEqual(model_family(self.agents[name]["model"]), "minimax")
+            self.assertEqual(model_family(self.agents[name]["model"]), "claude")
         self.assertEqual(model_family(self.agents["review-reliability"]["model"]), "minimax")
+
+    def test_no_legacy_minimax_m3_on_review_or_advisor_seats(self):
+        self.assertEqual(legacy_m3_seats(self.agents), [])
+
+    def test_workflow_normal_advisor_rows_match_config(self):
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        rows = workflow_advisor_rows(workflow)
+        self.assertEqual(set(rows), set(NORMAL_ADVISOR_ROWS))
+        self.assertEqual(advisor_row_failures(self.agents, rows), [])
 
 
 class DetectorControls(unittest.TestCase):
@@ -385,6 +433,33 @@ class DetectorControls(unittest.TestCase):
                 self.assertTrue(any(failure.startswith(f"{name}:") for failure in failures),
                                 (name, value, failures))
 
+    def test_legacy_minimax_m3_injection_and_near_match_control(self):
+        agents = copy.deepcopy(self.config["agent"])
+        agents["review-validator"]["model"] = LEGACY_M3
+        self.assertEqual(legacy_m3_seats(agents), ["review-validator"])
+        agents = copy.deepcopy(self.config["agent"])
+        agents["advisor-testing-pre"]["model"] = "opencode-go/minimax-m3.1-flash"
+        self.assertEqual(legacy_m3_seats(agents), [])
+
+    def test_workflow_advisor_row_and_config_mismatch_controls(self):
+        rows = workflow_advisor_rows(WORKFLOW_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(advisor_row_failures(self.config["agent"], rows), [])
+        for seat, row in (
+                ("advisor-design-pre", ("opencode-go/other-model", None)),
+                ("advisor-testing-pre", ("opencode-go/glm-5.3-flash", "low"))):
+            mutated = dict(rows)
+            mutated[seat] = row
+            failures = advisor_row_failures(self.config["agent"], mutated)
+            self.assertTrue(any(failure.startswith(f"{seat}: config")
+                                for failure in failures), (seat, failures))
+        for seat, field in (("advisor-design-post", "model"),
+                            ("advisor-integration-pre", "variant")):
+            agents = copy.deepcopy(self.config["agent"])
+            agents[seat][field] = "opencode-go/other-model" if field == "model" else "low"
+            failures = advisor_row_failures(agents, rows)
+            self.assertTrue(any(failure.startswith(f"{seat}: config {field}")
+                                for failure in failures), (seat, field, failures))
+
     def test_seat_inventory_rejects_non_independent_and_unknown_seats(self):
         for seat in ("review-risk", "advisor-testing-post"):
             for model in ("other/deepseek-v5", "other/unknown-seat"):
@@ -396,8 +471,8 @@ class DetectorControls(unittest.TestCase):
 
     def test_family_helper_controls(self):
         self.assertEqual(model_family("other/deepseek-v5"), "deepseek")
-        # ling is a test-only family marker; no verifier family rule changed.
         self.assertEqual(model_family("opencode-go/ling-3.1-flash"), "ling")
+        self.assertEqual(model_family("opencode-go/claude-haiku-5-5"), "claude")
         with self.assertRaises(AssertionError):
             assert_independent(self, WRITER, "other/deepseek-v5")
         self.assertIsNone(model_family("other/unknown-seat"))

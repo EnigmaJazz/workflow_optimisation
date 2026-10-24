@@ -296,8 +296,13 @@ it is not an automatic switch.
 | Performance | NEW `advisor-performance-pre` · Go `qwen3.8-flash` medium | NEW `advisor-performance-post` · Go `minimax-m3.1-flash` high |
 | Concurrency | NEW `advisor-concurrency-pre` · Go `qwen3.8-flash` medium | NEW `advisor-concurrency-post` · Go GLMF high |
 | Resilience | NEW `advisor-resilience-pre` · Go `minimax-m3.1-flash` high | NEW `advisor-resilience-post` · Go GLMF high |
-| Dependencies / config | `advisor-maintainability-pre` retained · Go `minimax-m3.1-flash` high | `advisor-maintainability-post` retained · Go `kimi-k2.7-code` forced |
+| Dependencies / config | `advisor-maintainability-pre` retained · Go `minimax-m3.1-flash` high | `advisor-maintainability-post` retained · Go `ling-3.1-flash` default (variant absent) |
 | UX / accessibility | NEW `advisor-ux-pre` · Go `kimi-k2.7-code` forced | `advisor-design-post` retained · Go `qwen3.8-flash` medium |
+
+Owner correction 2026-10-24: the Dependencies/config post target is
+`opencode-go/ling-3.1-flash` default with `variant` absent (not Kimi). Unit
+`q90-t30-advisor-drift-u1` applies the six normal WORKFLOW rows and the validator
+migration; no other mapping changes.
 
 No `arch-post`, `scope-post` or `bug-pre` is invented; scope and architecture are pre-only and bug
 hunt is post-only as the handover states. The retained design names map to Architecture pre and
@@ -469,6 +474,18 @@ The independent literal inventory separately saw only the Kimi catalog entry and
 
 Future flow: canonical workflow places source review before deployment; the owner's plan to request fresh native review after this commit/deploy is recorded as owner plan only. No deploy, native review or restart is authorized or performed by this unit; the existing integration/testing-pre and superseded-lineage records stand without mechanism-equivalence claims.
 
+### T3.0 normal-row drift and validator migration (owner-directed 2026-10-24)
+
+Unit `q90-t30-advisor-drift-u1`; class `global-tooling-change`; route `workflow-odd-secure`; delegated cloud `odd-apply`; multi-file plus secure-preparation trigger. Baseline `d14e83f90a4f044e5b42b268fd47eec8c4ee96d8` on `chore/multi-agent-v2-phase1`; the sandbox uses a synthetic work branch and does not switch the host branch. No commit, deploy, restart, push, PR or native review. Route/trigger evidence: authorized single writer, targeted tests; mirror UNIMPLEMENTED/not read.
+
+Owner cost override (explicit deviation, THIS unit only): `WORKFLOW.md`'s high-risk/global-tooling row normally owes an advisor plus an independent verifier. The owner directed ONE writer, targeted tests, NO advisor and NO independent verifier. Reason: owner cost directive; every mapping owner-decided; static config plus targeted tests; PM self-check plus orchestrator readback. This is not a simple-docs classification and not a standing waiver. Source/runtime verification distinctions are retained.
+
+Intent: align the six normal WORKFLOW advisor rows with canonical config (`advisor-integration-pre`/`advisor-testing-pre`/`advisor-maintainability-pre`, plus the three post rows), migrate both validators to `opencode-go/claude-haiku-5-5` `high`, and teach the verifier the `ling`/`claude` families plus the Ling absent-only variant target. Design/security rows, the post-seat variant omission and all other agents, catalogs and fallback policy stay unchanged. Status PENDING-COMMIT; review assessment PENDING.
+
+Findings/checks (INITIAL candidate): RED before source changes: 75 focused tests, 7 failures, 0 skips/errors (4 q90, 1 model-independence, 1 variants, 0 review-pipeline). GREEN after source: the same 75 tests, 0 failures/errors/skips, plus 103 extracted Bun controls. `python3 -m json.tool global-config/opencode.json` parsed (exit 0); `bash -n verify-workflow.sh` exit 0; `git diff --check` clean; verifier sha256 `41100b1b1896d808ca5b49f0db2edf5470db5f402dfe2d0314724a9a80e07b61` equals the updated health-plugin pin (also enforced by `DigestPin`). The changed verifier functions were EXECUTED, not only parsed: `modelFamily` was extracted and run for Claude/Ling/MiniMax identities (Python/verifier parity test), and the marked `supportedVariantFailure` block ran the Ling absence-only target. Static diagnostics: `aft_inspect` was not run because the host AFT workspace is not the sandbox candidate; no clean static claim. The optional `specialist.group` Pyright diagnostic in `tests/test_model_independence.py` remains pre-existing and unfixed.
+
+Limitations: runtime/live consumer resolution, model availability, MiniMax M3.1 hang/session/Go allowance, full verifier execution, plugin load, deploy and native review remain UNVERIFIED and were not attempted. Source assignments are canonical `global-config/` only; the host branch was not switched and nothing was committed. Design/security rows and post-seat variant absence were checked by `git diff`; `docs/ADVISOR-HANDOFF.md` remains deferred drift outside the authorized scope. Mirror UNIMPLEMENTED/not read.
+
 ### Planned checks per slice (plan only; none run here)
 
 JSON/JSONC parse and schema; consumer agent re-read exact model/variant for plain and `asi` names;
@@ -635,6 +652,18 @@ authorized this one-commit review-size exception.
   Correction `1/1` (fresh pass; baseline snapshot `b79bcd20bff56e38af8c950caac46a46df3abd7e`, parent `544a2630`, snapshot label `ses_e92a38cacffegugfXPCSsJNNj7`): the PM's first post-code `aft_inspect` was PARTIAL with 11 Pyright optional-access errors in `tests/test_model_variants.py:85,86,90-93,180,191,196,201,228`; after that correction the last VERIFIED host diagnostics were 11→1 remaining at `tests/test_model_variants.py:203:33` (`extract_block().replace` on optional `None`); AFT Bash 0, and the TS workspace marker is absent and Markdown has no producer, so no all-static-clean or zero-error claim.
   F-STATIC partially fixed with a typed `required_block` accessor (explicit None guard) and an explicit regex `match` guard; no blanket ignores, and `extract_block` still returns None so the missing-marker negative control is retained, but correction 1/1 left the one optional-`None` diagnostic at line 203. OWNER OVERRIDE (2026-10-24): exactly one fresh correction; reason the residual optional `None.replace` at line 203; scope this one-line `required_block().replace(...)` change plus factual evidence and targeted tests; one new writer; normal correction count remains 1/1; previous task IDs, dispositions, owner quote, the `77ef08a..544a2630` closure-by-DECISION and PM deferral are preserved. The exceptional accessor fix is this round; final host `aft_inspect` confirmation is pending the PM envelope.
   F-PROTOTYPE fixed with an own-key lookup, so `constructor`, `__proto__` and `toString` return named `SUPPORTED_VARIANT_MODEL_UNCLASSIFIED` rather than crashing on `.includes`; a new executable test covers those three plus the ordinary unclassified-model control; observed RED before the source fix and GREEN after.
+- T3.0 normal-row/validator unit `q90-t30-advisor-drift-u1` (2026-10-24): Task/session id not
+  exposed to this writer. Sandbox root `/work`, synthetic branch, baseline parent
+  `d14e83f90a4f044e5b42b268fd47eec8c4ee96d8`; host branch not switched. Delegated cloud
+  `odd-apply`; one writer, targeted tests, NO advisor and NO independent verifier under the
+  recorded THIS-unit owner cost override. Changed paths: `global-config/opencode.json` (four
+  agents), `WORKFLOW.md` (six rows), `verify-workflow.sh` (`modelFamily` + Ling target),
+  `global-config/plugins/workflow-health-check.ts` (pin), three test modules and the
+  tracker/TODO/ROUTER-LOG/advice metadata. Observed: RED 7/75 before source; GREEN 75/75,
+  0 skips/errors, 103 Bun controls; JSON parse, `bash -n`, `git diff --check` clean; pin
+  equality. Static diagnostics were not workspace-correct for AFT, so no clean claim. Commit
+  `PENDING-COMMIT`; review assessment `PENDING`; runtime/full verifier/deploy/native review
+  UNVERIFIED. Receipt measured at PM handoff.
   F-EVIDENCE: the advice record now carries the post-code advisor (`ses_e92aa908bffeq3Wgqt0lx7lxbL`, `opencode-go/kimi-k2.7-code`, no blockers) and independent verifier (`ses_e92aa9096ffeN3ynypfY0hWNyf`, `openai/gpt-6.1-sol`) results; the verifier's INITIAL 50-test execution and first-pass diagnostics are recorded as evidence, not approval.
   V1: the full `opencode-go/deepseek-v4-pro` identity remains an ASSUMPTION (owner names the model; `opencode-go/` follows the plan convention, not a resolved full ID); resolve it before the optional v4-pro profile. No unavailability claim.
   V2: the activation test accepts any matching line rather than independently requiring both the T3.0.2 row and its prerequisite (both are present); recorded as optional/deferred test-strength, not changed.

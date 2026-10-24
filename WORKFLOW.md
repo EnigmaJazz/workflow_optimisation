@@ -538,19 +538,19 @@ The orchestrator routes and aggregates advisor findings mechanically. Because it
 |---|---|
 | `advisor-design-pre` | `openai/gpt-6.1-sol` |
 | `advisor-security-pre` | `openai/gpt-6.1-sol` |
-| `advisor-integration-pre` | `opencode-go/kimi-k2.7-code` |
-| `advisor-testing-pre` | `opencode-go/minimax-m3` |
-| `advisor-maintainability-pre` | `opencode-go/mimo-v2.6-flash` |
+| `advisor-integration-pre` | `opencode-go/minimax-m3.1-flash` (`high`) |
+| `advisor-testing-pre` | `opencode-go/glm-5.3-flash` (`high`) |
+| `advisor-maintainability-pre` | `opencode-go/minimax-m3.1-flash` (`high`) |
 
 **Post-code advisors**
 
 | Advisor | Model |
 |---|---|
 | `advisor-design-post` | `opencode-go/qwen3.7-plus` |
-| `advisor-integration-post` | `opencode-go/kimi-k2.7-code` |
-| `advisor-testing-post` | `opencode-go/kimi-k2.7-code` |
+| `advisor-integration-post` | `opencode-go/qwen3.8-flash` |
+| `advisor-testing-post` | `opencode-go/qwen3.8-flash` |
 | `advisor-security-post` | `opencode-go/qwen3.7-plus` |
-| `advisor-maintainability-post` | `opencode-go/deepseek-v4-flash` (`medium`) |
+| `advisor-maintainability-post` | `opencode-go/ling-3.1-flash` |
 
 **Gemini API advisors (external-lane substitute only)**
 

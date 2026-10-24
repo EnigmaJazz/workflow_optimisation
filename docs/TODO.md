@@ -1690,6 +1690,15 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     `documentation` under the simple-docs allowlist (route `workflow-odd-secure`) and changes
     exactly this tracker, `docs/TODO.md` and `ROUTER-LOG.md`; the PM owns the commit. Q90 remains
     IN PROGRESS.
+  - **T3.0 normal-row drift + validator migration (`q90-t30-advisor-drift-u1`, owner-directed
+    2026-10-24):** six normal WORKFLOW advisor rows aligned to canonical config; both validators
+    `opencode-go/claude-haiku-5-5` `high`; verifier `ling`/`claude` families and Ling
+    absent-only target. One writer, targeted tests, no advisor and no independent verifier under
+    an explicit THIS-unit owner cost override (not simple docs, not a standing waiver). RED 7
+    failures before source → GREEN 75/75 focused tests, 0 skips, 103 Bun controls; JSON parse,
+    `bash -n` and `git diff --check` clean; pin `41100b1b…` equals the plugin. Commit
+    `PENDING-COMMIT`; review assessment `PENDING`; runtime, deploy, full verifier, plugin load
+    and native review UNVERIFIED.
   - **T3b — Planner slice (PLANNED, high risk):** after T3.0; advisor, evidence-agent and both
     gate-verdict permissions; same three surfaces plus Planner `WORKFLOW.md` lines.
   - **T3c — PM slice (PLANNED, high risk):** permission-only drop of relay/advisor dispatch after
