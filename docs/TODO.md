@@ -1691,14 +1691,31 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     exactly this tracker, `docs/TODO.md` and `ROUTER-LOG.md`; the PM owns the commit. Q90 remains
     IN PROGRESS.
   - **T3.0 normal-row drift + validator migration (`q90-t30-advisor-drift-u1`, owner-directed
-    2026-10-24):** six normal WORKFLOW advisor rows aligned to canonical config; both validators
-    `opencode-go/claude-haiku-5-5` `high`; verifier `ling`/`claude` families and Ling
+    2026-10-24; CLOSED):** six normal WORKFLOW advisor rows aligned to canonical config; both
+    validators `opencode-go/claude-haiku-5-5` `high`; verifier `ling`/`claude` families and Ling
     absent-only target. One writer, targeted tests, no advisor and no independent verifier under
-    an explicit THIS-unit owner cost override (not simple docs, not a standing waiver). RED 7
-    failures before source → GREEN 75/75 focused tests, 0 skips, 103 Bun controls; JSON parse,
-    `bash -n` and `git diff --check` clean; pin `41100b1b…` equals the plugin. Commit
-    `PENDING-COMMIT`; review assessment `PENDING`; runtime, deploy, full verifier, plugin load
-    and native review UNVERIFIED.
+    an explicit THIS-unit owner cost override (not simple docs, not a standing waiver). RED is
+    corrected to FIVE q90 + one model-independence + one variants = 7 failures of 75, 0
+    skips/errors (the earlier "four q90" was wrong); GREEN 75/75, 103 Bun controls; JSON validity
+    and `bash -n` exit 0; full pin
+    `41100b1b1896d808ca5b49f0db2edf5470db5f402dfe2d0314724a9a80e07b61`. Implementation commit
+    `6ff16915407c39f2ca980339d30ed6907e2ee536`: 11 paths, 229 authored lines (213 additions / 16
+    deletions), full range 41,948 bytes; the frozen writer receipt is distinct at 225 lines /
+    41,473 bytes, and the committed diff carries the owner-explained Magic Context 0.49.20 / AFT
+    0.62.0 pin substitutions that the frozen delta excludes (owner-attributed auto-update
+    behaviour, not unit scope; not independently proved). Original assessment: base
+    `d14e83f90a4f044e5b42b268fd47eec8c4ee96d8`, `committedOnly=true`, risk `high`, 229 lines / 11
+    paths, `consumed=false`, `review_due=true`. Acknowledged lineage `review-ef3ab1c9aad86044`:
+    four lenses APPROVED, authority burned, target sha256 `7e9e7564…`; lens evidence is
+    owner-supplied 2026-10-24 and the PM observed the stopped `v9` status with
+    `target_already_acknowledged` (the PM did not dispatch lanes, consent or acknowledgement).
+    Deferred nonblocking findings `R3-UNSCOPED-PLUGIN-UPGRADES` WARNING and `R4-001` SUGGESTION;
+    no correction opened. Static PASS PARTIAL (existing optional `specialist.group` diagnostic at
+    `tests/test_model_independence.py:75:58`, Bash 0, six paths without LSP, no TS root; inferred
+    pre-existing, no all-clean claim). Deploy/restart NOT performed: owner-reported live config
+    still uses `minimax-m3` on `review-validator`, `asi-review-validator` and
+    `advisor-testing-pre` until deploy (not PM-observed); runtime, full verifier, plugin load and
+    M3.1 acceptance remain UNVERIFIED. Unit source+review CLOSED; Q90 remains IN PROGRESS.
   - **T3b — Planner slice (PLANNED, high risk):** after T3.0; advisor, evidence-agent and both
     gate-verdict permissions; same three surfaces plus Planner `WORKFLOW.md` lines.
   - **T3c — PM slice (PLANNED, high risk):** permission-only drop of relay/advisor dispatch after
