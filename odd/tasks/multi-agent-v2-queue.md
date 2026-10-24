@@ -699,8 +699,9 @@ T3.0.1 (`q90-t30-variants-u1`) source is STAGED with the validator unactivated; 
 (`q90-t30-core-seats-u1`) follows after the PM/owner activation gate sets the orchestrator to
 `high` and activates the strict validator for all confirmed models. T3.0.3a PM reassignment is
 deferred until Planner setup is complete, superseding the earlier PM-before-T3b ordering. T3.0.3b-
-T3.0.9 follow in order, then T3b, T3c (permission-only), T3d (residual), T4-T6. Q90 remains IN
-PROGRESS.
+T3.0.9 follow in order, then T3b, T3c (permission-only), T3d (residual), T4-T6. The owner-directed
+mechanical repair `q90-t30-fallback-repair-u1` sits inside T3.0 and adds no planned unit. Q90
+remains IN PROGRESS.
 
 Review-size exception (owner-authorized 2026-10-24): this candidate is 561 authored lines / 47,119 bytes, over the ~400-line cap. Reason: a single coherent model-remap unit; splitting would require committing a known-defective detector (V1–V3) or a second full writer cycle. Correction counter remains 1/1; the exception is not a reset.
 
@@ -781,3 +782,61 @@ the bounded V2 test follow-up remain as previously recorded. Correction counters
 historical tracker-order incident, the pre-existing diagnostics and the disagreed A5 conclusion
 remain intact. `q90-t30-kimi-removal-u1` source is COMPLETE; deployment and native review are
 PENDING. Q90 remains IN PROGRESS and no new planned unit is added.
+
+## Fallback exact-policy repair (owner-directed 2026-10-24)
+
+Unit `q90-t30-fallback-repair-u1` (mechanical verifier repair inside T3.0; no new planned unit).
+Route `workflow-odd-secure` delegated cloud `odd-apply`; trigger: secure multi-file preparation —
+the failure spans canonical fallback policy, focused recovery coverage and unit metadata, and the
+reading that prepared the write was delegated with the writer. One writer only. The owner's
+explicit THIS-UNIT ceremony override removes the pre/post advisor and independent verifier that
+the global-tooling-change budget would otherwise owe; this is recorded as a deviation, not a
+simple-docs waiver and not a standing exception. Magic Context mirror UNIMPLEMENTED/not read.
+The PM owns the commit and assessment; no native review evidence is required from this worker.
+
+Owner-supplied verifier failure (OWNER-SUPPLIED, not independently executed as a full verifier):
+- `FALLBACK_EXACT_SOURCE_INACTIVE: opencode-go/mimo-v2.6-flash`
+- `FALLBACK_EXACT_SOURCE_INACTIVE: opencode-go/minimax-m3`
+- `FALLBACK_ACTIVE_MODEL_NO_EXACT_POLICY: opencode-go/claude-haiku-5-5; roles=opencode:review-validator,opencode:asi-review-validator`
+
+Cause under verification in canonical source: the exact source keys for the two legacy models
+remain in `fallbackModels` although neither is an active primary assignment (they survive only as
+target refs and provider-catalog keys), while `review-validator` and `asi-review-validator` use
+`opencode-go/claude-haiku-5-5` with no exact policy. The detector keys on active seat assignments,
+not target refs or catalog matches.
+
+Planned checks: focused regression test RED on the old policy and GREEN after repair; positive
+detector controls with accepted/rejected inputs; `python3 -m json.tool`; the focused fallback
+module plus the seat-shape/independence modules; `git diff --check`. No full verifier, deploy,
+restart, runtime or consumer claim.
+
+Status: COMPLETE for the authorized source repair; commit, native review, deployment and runtime
+remain PENDING/UNVERIFIED.
+
+Cause OBSERVED in canonical source: `review-validator` (`global-config/opencode.json:1033`) and
+`asi-review-validator` (:1394) assign `opencode-go/claude-haiku-5-5` — two agent assignments —
+and that model had no exact policy. `opencode-go/mimo-v2.6-flash` and `opencode-go/minimax-m3`
+had zero agent assignments; they occurred only as provider-catalog keys
+(`global-config/opencode.json:2886`, `:2920`) and, for `mimo-v2.6-flash`, as five fallback target
+refs. The detector keys on active primary assignments, never catalog keys or target refs; the
+target-only identity is proven not to count by the focused control. `minimax-m3.1-flash` is a
+distinct identity with four agent assignments and was not touched.
+
+Repair OBSERVED: the two inactive exact source keys were deleted and
+`opencode-go/claude-haiku-5-5` was added with the exact two-target chain/schema of
+`opencode-go/minimax-m3.1-flash` (`deepseek/deepseek-flash` max; `openrouter/deepseek/deepseek-v4.1-flash`
+default; `files`/`tools`/`vision`). Exclusions and other target chains are unchanged; the config
+diff contains only the key deletions and the new policy.
+
+Checks EXECUTED on this candidate: RED 4/8 failures on the old policy (the three owner
+diagnostics plus the accepted-control failure); GREEN 8/8 after repair;
+`python3 -m unittest tests.test_q90_t30_kimi_removal tests.test_model_independence
+tests.test_model_variants -v` = 52/52 OK; `python3 -m json.tool` exit 0; `git diff --check` clean;
+`python3 -m py_compile tests/test_q90_t30_fallback_repair.py` exit 0. AFT static inspection was
+unavailable after sandbox activation (broker denied unbound host tools), so the PM runs host
+`aft_inspect`. The full verifier was NOT run; no deploy, restart, consumer or runtime clearance is
+claimed.
+
+Ceremony: one writer, no pre/post advisor and no independent verifier under the owner's explicit
+THIS-UNIT cost override; recorded as a deviation, not simple docs and not a standing exception.
+PM owns the commit and assessment; no native review evidence is claimed here.

@@ -556,51 +556,29 @@
         ]
       }
     ],
-    "opencode-go/mimo-v2.6-flash": [
-      {
-        "providerID": "deepseek",
-        "modelID": "deepseek-flash",
-        "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "openrouter",
-        "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "default",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      }
-    ],
-    "opencode-go/minimax-m3": [
-      {
-        "providerID": "deepseek",
-        "modelID": "deepseek-flash",
-        "variant": "max",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "openrouter",
-        "modelID": "deepseek/deepseek-v4.1-flash",
-        "variant": "default",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      }
-    ],
     "opencode-go/minimax-m3.1-flash": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "default",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "opencode-go/claude-haiku-5-5": [
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",

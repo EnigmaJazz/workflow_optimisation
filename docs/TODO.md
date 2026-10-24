@@ -1716,6 +1716,20 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     still uses `minimax-m3` on `review-validator`, `asi-review-validator` and
     `advisor-testing-pre` until deploy (not PM-observed); runtime, full verifier, plugin load and
     M3.1 acceptance remain UNVERIFIED. Unit source+review CLOSED; Q90 remains IN PROGRESS.
+  - **T3.0 fallback exact-policy repair (`q90-t30-fallback-repair-u1`, owner-directed
+    2026-10-24; source PENDING-COMMIT):** mechanical verifier repair inside T3.0, not a new
+    planned unit. Deleted the inactive exact source keys `opencode-go/mimo-v2.6-flash` and
+    `opencode-go/minimax-m3` (their catalog entries, target refs and evaluator exclusions remain)
+    and added `opencode-go/claude-haiku-5-5` with the same two-target deepseek-max /
+    openrouter-default chain and capabilities as `opencode-go/minimax-m3.1-flash`. The two
+    validators are the only agent assignments for Haiku; the removed identities had zero agent
+    assignments. One writer, no pre/post advisor and no independent verifier under an explicit
+    THIS-unit owner ceremony override (a recorded deviation, not simple docs and not a standing
+    waiver). New focused test `tests/test_q90_t30_fallback_repair.py`: RED 4/8 on the old policy
+    (the three owner diagnostics plus the accepted-control failure), GREEN 8/8 after repair; 52/52
+    over the focused module plus Kimi-removal, model-independence and model-variant modules;
+    `python3 -m json.tool` exit 0; `git diff --check` clean. No full verifier, deploy, restart or
+    runtime claim; PM owns commit and assessment. Q90 remains IN PROGRESS.
   - **T3b — Planner slice (PLANNED, high risk):** after T3.0; advisor, evidence-agent and both
     gate-verdict permissions; same three surfaces plus Planner `WORKFLOW.md` lines.
   - **T3c — PM slice (PLANNED, high risk):** permission-only drop of relay/advisor dispatch after
