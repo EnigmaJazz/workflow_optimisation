@@ -2452,9 +2452,32 @@ if (genericRuntimeReady && ggaRuntimeReady && !distinct) {
   fail("GGA_REVIEW_NO_DISTINCT_MODEL_CONTROL: review primaries do not provide a control distinct from general/orchestrator")
 }
 
+// pm-seat-policy:begin
+// Owner direction 2026-10-24: both PM seats are the same exact GLM high seat.
+const PM_SEAT_MODEL="opencode-go/glm-5.3-flash"
+const PM_SEAT_VARIANT="high"
+function pmSeatFailures(agents) {
+  const failures=[]
+  for (const name of ["pm-odd","pm-systematic"]) {
+    const agent=agents?.[name]
+    if (!agent || typeof agent!=="object") { failures.push(`PM_SEAT_MISSING: ${name}`); continue }
+    const model=normalizeModel(agent.model)
+    if (model!==PM_SEAT_MODEL) {
+      const family=modelFamily(agent.model)
+      failures.push(`${family==="gpt"?"PM_SEAT_OPENAI_MODEL":"PM_SEAT_MODEL_MISMATCH"}: ${name}=${show(model)}`)
+    }
+    if (agent.variant!==PM_SEAT_VARIANT) {
+      failures.push(`PM_SEAT_VARIANT_MISMATCH: ${name}=${show(agent.variant)}`)
+    }
+  }
+  return failures
+}
+// pm-seat-policy:end
+for (const failure of pmSeatFailures(deployedAgents)) fail(failure)
+
 // Compare underlying families, not provider prefixes or exact model IDs.
 // A Go Luna fallback for OpenAI Luna does not create an independent reviewer.
-// Q59: the dispatcher-to-writer pairs add the Sol PMs against their DeepSeek
+// Q59: the dispatcher-to-writer pairs add the GLM PMs against their DeepSeek
 // writers; the existing orchestrator/general and worker/verifier pairs remain.
 for (const [writer,reviewer] of [["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"],["pm-odd","odd-apply"],["pm-systematic","gentle-ai-worker"]]) {
   for (const [surface,writerModel,reviewerModel] of [

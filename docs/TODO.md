@@ -1754,6 +1754,12 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     `baseRef=5697f72...`, `committedOnly=true`; the result is not predicted here). Owner verifier
     must be RE-RUN; deployment and native review remain PENDING/UNVERIFIED. Q90 remains IN
     PROGRESS; no new planned unit is added.
+  - **T3.0 PM reassignment (`q90-pm-reassign-u1`, owner-directed 2026-10-24; implementation
+    pending PM commit/assessment):** both PMs `opencode-go/glm-5.3-flash` `high`; identical
+    Qwen-high then cross-provider Gemini Flash agent chains; shared GLM policy unchanged; exact
+    verifier seat gate plus focused tests. One writer, ONE independent verifier, NO advisors under
+    the THIS-unit owner cost waiver (recorded deviation, not docs exemption). No commit, native
+    approval or deploy claimed. Q90 IN PROGRESS.
   - **T3b — Planner slice (PLANNED, high risk):** after T3.0; advisor, evidence-agent and both
     gate-verdict permissions; same three surfaces plus Planner `WORKFLOW.md` lines.
   - **T3c — PM slice (PLANNED, high risk):** permission-only drop of relay/advisor dispatch after

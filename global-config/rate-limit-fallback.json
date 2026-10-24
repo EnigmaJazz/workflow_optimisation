@@ -162,6 +162,48 @@
           "vision"
         ]
       }
+    ],
+    "pm-odd": [
+      {
+        "providerID": "opencode-go",
+        "modelID": "qwen3.8-flash",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "pm-systematic": [
+      {
+        "providerID": "opencode-go",
+        "modelID": "qwen3.8-flash",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
     ]
   },
   "agentRequiredCapabilities": {

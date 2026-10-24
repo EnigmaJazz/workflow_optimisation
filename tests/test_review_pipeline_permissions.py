@@ -116,15 +116,15 @@ const leafAgents=__LEAF_AGENTS__;
 const handoff=__HANDOFF_TEXT__;
 const identityNeedles=__IDENTITY_NEEDLES__;
 const familyPairs=[["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"],["pm-odd","odd-apply"],["pm-systematic","gentle-ai-worker"]];
-const familyModel=(family)=>family==="gpt"?"openai/gpt-6.1-sol":family==="deepseek"?"opencode-go/deepseek-v4.1-flash":"synthetic/no-family";
+const familyModel=(family)=>family==="gpt"?"openai/gpt-6.1-sol":family==="deepseek"?"opencode-go/deepseek-v4.1-flash":family==="glm"?"opencode-go/glm-5.3-flash":"synthetic/no-family";
 const independentRuntime={
   "general":{model:"openai/gpt-6-luna"},
   "gentle-orchestrator":{model:"opencode-go/deepseek-v4.1-flash"},
   "gentle-ai-worker":{model:"opencode-go/deepseek-v4.1-flash"},
   "gentle-ai-verify":{model:"openai/gpt-6-luna"},
-  "pm-odd":{model:"openai/gpt-6-luna"},
+  "pm-odd":{model:"opencode-go/glm-5.3-flash"},
   "odd-apply":{model:"opencode-go/deepseek-v4.1-flash"},
-  "pm-systematic":{model:"openai/gpt-6-luna"},
+  "pm-systematic":{model:"opencode-go/glm-5.3-flash"},
 };
 function runPrimaryReviewFamilyLoop(deployedAgents,readDebug){
   const failures=[];

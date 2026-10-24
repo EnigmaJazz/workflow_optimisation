@@ -718,12 +718,14 @@ authorized this one-commit review-size exception.
   (`correction_rounds_used=0` unchanged). The metadata writer's own session ID was not exposed and
   is not invented; the PM envelope carries it, the metadata commit and the post-commit assessment.
   Mirror UNIMPLEMENTED/not read.
+- Q90 PM reassignment correction 1/1 (this same-candidate refinement of the APPLIED initial result `ses_e902d9eefffe0bn9JfV7kUxQVO` / frozen `21a96f6a6f0a4bd22acb8180829ba1a555b26751`): independent verifier `ses_e9016b1f1ffeuBzEZnVD4LZq1V` executed the required 149-test command with 0 skips/errors/failures; first-pass PM `aft_inspect` over all 15 initial paths was PARTIAL (Bash 0, optional `tests/test_tiny_fix_route.py:254:74`, Markdown/JSON producers absent and TS root absent; the diagnostic line is unchanged and inferred pre-existing); V01 provenance gap RESOLVED by `host_review_materialize` `run44bfb349e13b0488c820eb0b53d0d208` comparing initial `21a96...` against verifier baseline `2c0c8830...` with changedPaths[], 0 slices and 0 bytes; V02 control correction adds a parameterized in-memory regression for BOTH PMs × removed override / reverted shared GLM chain, executes the real production resolver, and asserts the resolved chain equals the shared GLM chain and differs from the expected Qwen/Gemini chain; targeted recheck `python3 -m unittest tests.test_q90_pm_reassign tests.test_tiny_fix_route tests.test_review_pipeline_permissions -v` observed 48 tests, 0 skips/errors/failures. No commit, native review, deploy, restart, push or PR is claimed. Mirror UNIMPLEMENTED/not read.
 
 ## Next step
 T3.0.1 (`q90-t30-variants-u1`) source is STAGED with the validator unactivated; T3.0.2
 (`q90-t30-core-seats-u1`) follows after the PM/owner activation gate sets the orchestrator to
 `high` and activates the strict validator for all confirmed models. T3.0.3a PM reassignment is
-deferred until Planner setup is complete, superseding the earlier PM-before-T3b ordering. T3.0.3b-
+now `q90-pm-reassign-u1`, prepared from the 2026-10-24 owner direction; Planner
+setup remains a later separate unit and is not installed by this change. T3.0.3b-
 T3.0.9 follow in order, then T3b, T3c (permission-only), T3d (residual), T4-T6. The owner-directed
 mechanical repair `q90-t30-fallback-repair-u1` sits inside T3.0 and adds no planned unit. Q90
 remains IN PROGRESS.
@@ -906,3 +908,50 @@ Ceremony: one implementation writer, no pre/post advisor and no independent veri
 owner's explicit THIS-UNIT cost override; recorded as a deviation, not simple docs and not a
 standing exception.
 PM owns the commit and assessment; no native review evidence is claimed here.
+
+## Q90 PM reassignment unit (q90-pm-reassign-u1)
+
+Unit `q90-pm-reassign-u1`; task `q90-multi-agent-v2-queue`; class `global-tooling-change`;
+route `workflow-odd-secure`; delegated cloud writer `odd-apply`; baseline
+`040149e203d7f0c0b7d1de52c880343bf971be43` on `chore/multi-agent-v2-phase1`. Trigger: multi-file
+config/workflow/verifier/test change requiring one bounded sandbox writer; no inline
+implementation. Owner authorization 2026-10-24 (latest direction) overrides the historical
+"PM reassignment is deferred until Planner setup" note for this unit: one initial implementation
+writer, ONE independent `gentle-ai-verify`, NO pre/post advisors (cost directive recorded as a
+THIS-unit deviation, not a docs exemption), and one correction ceiling. The PM owns the fixed
+commit and assessment. This writer does not commit, push, deploy, restart, create a PR, dispatch
+anyone, run the full verifier, or enter native review. The deterministic Magic Context mirror is
+UNIMPLEMENTED; its body is not read or written. Q90 remains IN PROGRESS.
+
+### Implementation (prepared; PM commit pending)
+
+Owner decision: both PMs move from `openai/gpt-6.1-sol` to
+`opencode-go/glm-5.3-flash` `high`; this is the T3.0.3a seat work, not Planner
+installation. Independence is model-family based: GLM PM vs DeepSeek writer;
+the no-`general` PM writer policy remains, but the false same-OpenAI rationale
+is removed. The Planner remains a later separate unit (`openai/gpt-6.1-sol`
+planned, not installed).
+
+Fallback: `agentFallbackModels` gains identical `pm-odd`/`pm-systematic`
+chains: `opencode-go/qwen3.8-flash` `high`, then
+`openrouter/~google/gemini-flash-latest` (variant absent), both
+files/tools/vision. The shared `fallbackModels["opencode-go/glm-5.3-flash"]`
+policy and every other policy are unchanged; no DeepSeek target is in the PM
+chain. Production verifier resolution retains Qwen for model failure and leaves
+the cross-provider Gemini survivor for provider failure.
+
+Code/tests: `verify-workflow.sh` has a marked `pm-seat-policy` block and live
+call; `tests/test_q90_pm_reassign.py` extracts and executes it plus the real
+fallback resolver. Tests: the initial test module RED 15 failures / 3 errors;
+the final compacted module GREEN 149/149 in the required ten-module command,
+0 skips. Checks: both JSON files parse, `bash -n` passes, verifier/pin equal
+`89ec3b2b...`, `git diff --check` clean. AFT post-activation was denied by the
+broker; the PM will run `aft_inspect` on the applied candidate. Full verifier,
+deploy, live model/runtime resolution and native review are NOT run.
+
+Cost/authority: owner authorizes one initial writer, ONE independent
+`gentle-ai-verify`, NO pre/post advisors (THIS-unit cost deviation, not a docs
+exemption), one correction ceiling. The PM owns the fixed commit and
+assessment; this writer does not commit. PM/explorer/verifier IDs and the
+measured receipt belong to the PM envelope if not exposed here; none is
+invented. Magic Context mirror UNIMPLEMENTED/not read. Q90 remains IN PROGRESS.
