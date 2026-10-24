@@ -653,3 +653,79 @@ PROGRESS.
 Review-size exception (owner-authorized 2026-10-24): this candidate is 561 authored lines / 47,119 bytes, over the ~400-line cap. Reason: a single coherent model-remap unit; splitting would require committing a known-defective detector (V1–V3) or a second full writer cycle. Correction counter remains 1/1; the exception is not a reset.
 
 Receipt-byte limitation (prior installed candidate, before this owner-authorized V2 follow-up): an independent count recorded 565 authored lines; its writer reported 48,110 raw patch bytes. Independent byte measurement was refused with the exact error `argv item contains shell metacharacters` and was not retried. On the writer's measurement that prior candidate was far below the 100 KiB / 102,400-byte cap, but its bytes were NOT independently byte-verified. The frozen owner exception above (561 authored lines / 47,119 bytes) and correction round 1/1 are preserved verbatim; the 565/48,110 figures are prior-candidate evidence and do not imply that 565 authored lines remains the final total. The updated current TOTAL for this follow-up candidate is reported separately in the PM handoff envelope. No byte figure here is an independent measurement.
+
+## Kimi-removal metadata closure (2026-10-24)
+
+Unit `q90-t30-kimi-removal-u1` — METADATA-ONLY closure; class `documentation` under the
+simple-docs allowlist; route `workflow-odd-secure` metadata phase; delegated cloud `odd-apply`.
+Exactly three paths change in this unit: this tracker, `docs/TODO.md` and `ROUTER-LOG.md`. No
+test, config, skill, prompt, source, advice or verifier change is made. The PM commits the
+applied result; this worker does not commit or update metadata. The Magic Context mirror remains
+UNIMPLEMENTED/not read. This metadata writer's session ID was not exposed to the worker and is
+not invented; it belongs to the PM envelope. This is the same unit's post-commit metadata, not a
+new implementation or correction round.
+
+IMPLEMENTATION RECEIPT (source, unchanged by this metadata unit): commit
+`ee2dab0f2c24f3daaf34bf50ba4633557fbf1b19` on `chore/multi-agent-v2-phase1`, 8 repository paths,
+independently counted 587 authored lines = 555 additions + 32 deletions. Independent evidence:
+verifier session `ses_e913c44faffeUx5Yfi8UYWMLav`; verifier-reported latest snapshot
+`6661e88c45c9f8f3be1b07e718a3c2bd66cc6286` (direct parent `decd167`; not present in this
+checkout, so not independently readable here); the host commit confirmed
+the 555/32 count. The writer's raw patch receipt is 51,008 bytes and is NOT independently
+verified: a prior independent byte measurement was refused with exactly `argv item contains shell
+metacharacters` and was not retried; that limitation is recorded in the advice record (line 25)
+and in the frozen paragraph above. On the writer's figure the current patch is below the 100 KiB
+/ 102,400-byte cap, but there is no independent byte claim. Historical sizes 561 authored lines /
+47,119 bytes (owner-frozen exception) and 565 authored lines / 48,110 bytes (pre-V2 follow-up)
+are unchanged and must not be read as the final size.
+
+Verification state: V1 fallback controls, V2 actual tool-scope/vision control, V3 variant
+mutations and V4 same-seat independence are CLEARED. The latest independent execution was
+`python3 -B -m unittest tests.test_q90_t30_kimi_removal tests.test_model_independence -v`:
+`Ran 22 tests in 0.101s`, `OK`, 14+8, with zero failures, errors or skips; this metadata unit did
+not rerun it. `aft_inspect` is PARTIAL; the earlier unchanged
+`tests/test_model_independence.py:72:58` optional `specialist.group` diagnostic is
+recorded/inferred pre-existing. The latest scoped follow-up Python result was 0 errors, not an
+overall clean claim. The earlier 88-check result is historical, not the latest 22-test result.
+There is no full runtime approval.
+
+Assessment (EXACT IMPLEMENTATION assessment; not a review, approval or closure): the
+`host_review_assess` call with
+`baseRef=decd167b8b01e0d4fcd41653840f817d607c7859` and `committedOnly=true` returned status 0,
+`gentle-ai.review-assessment/v1`, risk `medium`, reasons
+`[{code: configuration_change, path: global-config/opencode.json}]`, `changed_paths` 8,
+`changed_lines` 587, candidate `{kind: base-diff, base_ref:
+decd167b8b01e0d4fcd41653840f817d607c7859, consumed: false}`, `review_due: false`,
+`review_due_reason: under_budget`. The last reviewed boundary is RETAINED at
+`decd167b8b01e0d4fcd41653840f817d607c7859`. The assessment neither approves, advances nor closes
+the candidate, and no new lineage was started. RDD is enabled/global.
+
+Lineage: `review-642f4745d7f6d6fe` is owner-designated SUPERSEDED, NOT approved and NOT closed.
+Provider blocking was owner-reported twice and was not reproduced here (an integration provider
+error was observed); no new mechanism-equivalence claim is made.
+
+Owner decision (2026-10-24): native review of `ee2dab0` runs AFTER the owner deploy, so the
+reliability lens uses `opencode-go/minimax-m3.1-flash` instead of Kimi. This is an OWNER DECISION
+recorded here; it is not a claim that review or deployment executed and is not a change to
+`WORKFLOW.md` policy. No review start, acknowledgement, consent or state change occurred. Deploy
+and restart are OWNER actions and were NOT performed; every runtime, consumer, model-availability
+and M3.1 gate remains UNVERIFIED.
+
+Model outcome — CANONICAL SOURCE ASSIGNMENTS ONLY, not a live/deployed claim. Five prior Kimi
+seats were remapped: `review-reliability` and `asi-review-reliability` to
+`opencode-go/minimax-m3.1-flash` `xhigh`; `advisor-integration-pre` to the same model `high`;
+`advisor-integration-post` and `advisor-testing-post` to `opencode-go/qwen3.8-flash` default with
+`variant` OMITTED; additionally `advisor-maintainability-post` to
+`opencode-go/ling-3.1-flash` default with `variant` OMITTED. Readability
+(`review-readability`/`asi-review-readability`) stays `opencode-go/muse-spark-1.3-contributor`
+`high` unchanged. Future `advisor-ux-pre` is planned as `opencode-go/minimax-m3.1-flash` `high`
+WHEN created at T3.0.7a and is NOT created now. The inactive Kimi exact fallback entry was
+removed; evaluator exclusions are preserved. The owner called five seats "live", but because
+deployment was not performed these are clearly source assignments only.
+
+Separately recorded owner authorizations: the original size exception, the single recovery and
+the bounded V2 test follow-up remain as previously recorded. Correction counters stay 1/1
+(normal) and this metadata unit is not a new implementation round. Nothing is deleted: the
+historical tracker-order incident, the pre-existing diagnostics and the disagreed A5 conclusion
+remain intact. `q90-t30-kimi-removal-u1` source is COMPLETE; deployment and native review are
+PENDING. Q90 remains IN PROGRESS and no new planned unit is added.

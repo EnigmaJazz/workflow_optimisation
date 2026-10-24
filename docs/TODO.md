@@ -1659,6 +1659,37 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     values (source/target control vacuous), so it is corrected and now also scans
     `systematic.jsonc` read-only; the corrected live scan finds zero executable Kimi references.
     Initial RED 7 / GREEN 84 remains HISTORICAL INITIAL, not strengthened-detector evidence.
+    SOURCE COMPLETE at implementation commit
+    `ee2dab0f2c24f3daaf34bf50ba4633557fbf1b19` (8 paths; independently counted 587 authored
+    lines = 555 additions + 32 deletions; host commit confirmed 555/32; verifier session
+    `ses_e913c44faffeUx5Yfi8UYWMLav`, verifier-reported latest snapshot
+    `6661e88c45c9f8f3be1b07e718a3c2bd66cc6286` (parent `decd167`; not present in this checkout);
+    writer raw patch 51,008 bytes,
+    NOT independently verified after the exact refusal `argv item contains shell metacharacters`
+    was not retried). Exact implementation assessment: status 0,
+    `gentle-ai.review-assessment/v1`, risk medium, reason `configuration_change`
+    (`global-config/opencode.json`), `under_budget`, 8 paths / 587
+    lines, `consumed=false`, `review_due=false`, candidate base
+    `decd167b8b01e0d4fcd41653840f817d607c7859` retained as the last reviewed boundary; it
+    approves, advances and closes nothing and starts no lineage. V1-V4 are CLEARED. Latest
+    independent execution:
+    22 tests (14+8), 0 failures/errors/skips; the earlier 88-check result is historical.
+    `aft_inspect` is PARTIAL; `tests/test_model_independence.py:72:58` optional
+    `specialist.group` is recorded/inferred pre-existing, with no overall clean claim.
+    `review-642f4745d7f6d6fe` is owner-designated SUPERSEDED, not approved or closed. Owner
+    decision 2026-10-24: native review runs AFTER owner deploy, so reliability uses
+    `opencode-go/minimax-m3.1-flash`; deploy/restart were NOT performed, all
+    runtime/consumer/model-availability/M3.1 gates remain UNVERIFIED, and `WORKFLOW.md` policy is
+    unchanged. Source assignments only: reliability + `asi-review-reliability` MiniMax `xhigh`;
+    integration-pre MiniMax `high`; integration-post/testing-post Qwen default with `variant`
+    OMITTED; maintainability-post Ling default with `variant` OMITTED; readability Muse `high`
+    unchanged; future `advisor-ux-pre` MiniMax `high` only when created at T3.0.7a; inactive
+    Kimi exact fallback removed and evaluator exclusions preserved. The five seats the owner
+    called `live` are source assignments only because deployment was not performed. RDD is
+    enabled/global; correction counter remains 1/1. This metadata closure is class
+    `documentation` under the simple-docs allowlist (route `workflow-odd-secure`) and changes
+    exactly this tracker, `docs/TODO.md` and `ROUTER-LOG.md`; the PM owns the commit. Q90 remains
+    IN PROGRESS.
   - **T3b — Planner slice (PLANNED, high risk):** after T3.0; advisor, evidence-agent and both
     gate-verdict permissions; same three surfaces plus Planner `WORKFLOW.md` lines.
   - **T3c — PM slice (PLANNED, high risk):** permission-only drop of relay/advisor dispatch after
