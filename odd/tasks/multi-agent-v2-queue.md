@@ -694,6 +694,31 @@ authorized this one-commit review-size exception.
 
 - T3.0 normal-row/validator METADATA CLOSURE `q90-t30-advisor-drift-u1` (2026-10-24): metadata-only, class `documentation` under the simple-docs allowlist; exactly three paths (this tracker, `docs/TODO.md`, `ROUTER-LOG.md`); no source/config/test/advice/spec/`WORKFLOW.md` edit, no advisor/verifier/runtime test/deploy/restart/push/PR/branch switch and no commit or review lifecycle. Implementation `6ff16915407c39f2ca980339d30ed6907e2ee536`, 11 paths, 229 authored lines (213 additions / 16 deletions), full committed range 41,948 bytes; the frozen writer receipt remains distinct at 225 lines / 41,473 bytes, with the committed range carrying the owner-explained Magic Context 0.49.20 / AFT 0.62.0 pin substitutions and the frozen delta excluding them (owner-attributed auto-update behaviour; not independently proved here). Source checks are prior writer evidence and were NOT rerun for docs: GREEN 75/75, 0 skips/errors, 103 Bun controls, JSON validity and `bash -n` exit 0, pin `41100b1b…`. Original assessment: base `d14e83f9…`, `committedOnly=true`, risk `high`, 229 lines / 11 paths, `consumed=false`, `review_due=true`; acknowledged lineage `review-ef3ab1c9aad86044`, four lenses APPROVED, authority burned, target sha256 `7e9e7564…`. Lens evidence is owner-supplied 2026-10-24; the PM observed `host_review_status` status 0, `gentle-ai.review-integration.status/v9`, action `stop`, replayability `not_replayable`, `next_transition {kind:stop, reason_code:target_already_acknowledged}`, initial/current snapshot identities the same, and did not dispatch lanes, consent or acknowledgement. Deferred nonblocking: `R3-UNSCOPED-PLUGIN-UPGRADES` WARNING and `R4-001` SUGGESTION; no correction opened. Static: PM first host `aft_inspect` over 11 paths PARTIAL (existing optional `tests/test_model_independence.py:75:58` diagnostic, Bash 0, six paths without LSP, no TS root); inferred pre-existing, not all-clean; the writer had not run sandbox AFT. Deploy/restart NOT performed; owner-reported live config still uses `minimax-m3` on `review-validator`, `asi-review-validator`, `advisor-testing-pre` until deploy (NOT PM-observed; external root not inspected); live runtime/model/variant/M3.1 acceptance UNVERIFIED. THIS-unit ceremony deviation retained (owner cost directive; no advisor/verifier); this docs metadata owes none under the allowlist. Actual metadata Task/session identity is not exposed to this writer and is not invented; it belongs to the PM envelope. Magic Context mirror UNIMPLEMENTED/not read. Unit source+review CLOSED; Q90 remains IN PROGRESS; no next unit invented.
 
+- T3.0 fallback exact-policy repair `q90-t30-fallback-repair-u1` (2026-10-24): initial writer
+  session `ses_e905afc9cffe9CU665Q0Q9SyXt` (initial writer plus same-session read-only
+  clarification, not a second implementation writer); sandbox root `/work`, synthetic branch
+  `work`, baseline `39b57a6e3ec415f102a89717b276bdff1d0f1041` whose parent is the implementation
+  `5697f72b671c05dc94fac955bb9450a75aa37995` (this metadata checkout is tree-equal to that
+  commit; host branch not switched). The prior unit-start anchor was read and matched BEFORE
+  implementation: tracker 783 lines, last line "PENDING. Q90 remains IN PROGRESS and no new
+  planned unit is added.", HEAD `81c5ef55087cbf019dba65ae5956f422adc99092`. The 842-line tracker
+  observed after implementation (before this metadata edit) is the same-unit continuation, not a
+  new unit-start anchor.
+  Implementation commit `5697f72...`, 6 paths, 334 additions + 26 deletions = 360 authored lines,
+  26,793 raw patch bytes, immutable readback `run54d52f...` SHA-256
+  `e9d57ecb7383f050ebdb8d04261a9a889b887207cff35349ace43f691177d297`. Checks (delegated, not
+  rerun here): focused RED Ran 8 tests / failures=4; final combined Ran 60 tests in 0.583s, OK, 0
+  skips (focused 8 + related 52); JSON validity, `git diff --check` and `py_compile` reported
+  success with numeric statuses unexposed. PM host `aft_inspect` PARTIAL (Python 0/0; JSON plus
+  four Markdown paths no producer). Implementation assessment status 0, medium, `under_budget`,
+  `consumed=false`, `review_due=false`, boundary RETAINED `6ff1691...`. Metadata lifecycle:
+  exactly one owner-authorized metadata-only writer (this closure), class `documentation` under
+  the simple-docs allowlist, three allowed paths, no advisor/verifier/runtime test/source edit,
+  separate from the implementation's THIS-unit cost override and not a correction
+  (`correction_rounds_used=0` unchanged). The metadata writer's own session ID was not exposed and
+  is not invented; the PM envelope carries it, the metadata commit and the post-commit assessment.
+  Mirror UNIMPLEMENTED/not read.
+
 ## Next step
 T3.0.1 (`q90-t30-variants-u1`) source is STAGED with the validator unactivated; T3.0.2
 (`q90-t30-core-seats-u1`) follows after the PM/owner activation gate sets the orchestrator to
@@ -788,11 +813,22 @@ PENDING. Q90 remains IN PROGRESS and no new planned unit is added.
 Unit `q90-t30-fallback-repair-u1` (mechanical verifier repair inside T3.0; no new planned unit).
 Route `workflow-odd-secure` delegated cloud `odd-apply`; trigger: secure multi-file preparation —
 the failure spans canonical fallback policy, focused recovery coverage and unit metadata, and the
-reading that prepared the write was delegated with the writer. One writer only. The owner's
-explicit THIS-UNIT ceremony override removes the pre/post advisor and independent verifier that
-the global-tooling-change budget would otherwise owe; this is recorded as a deviation, not a
-simple-docs waiver and not a standing exception. Magic Context mirror UNIMPLEMENTED/not read.
-The PM owns the commit and assessment; no native review evidence is required from this worker.
+reading that prepared the write was delegated with the writer. One implementation writer only.
+The owner's explicit THIS-UNIT ceremony override removes the pre/post advisor and independent
+verifier that the global-tooling-change budget would otherwise owe; this is recorded as a
+deviation, not a simple-docs waiver and not a standing exception. Magic Context mirror
+UNIMPLEMENTED/not read.
+
+Metadata closure authorization (owner, 2026-10-24): the owner explicitly authorized exactly ONE
+metadata-only writer for this SAME unit, to resolve the previous one-writer closure blocker. It is
+not another implementation writer and not a correction: it changes no source, config, test,
+advice, spec or policy, and it does not reopen the repair. This metadata delta is class
+`documentation` under the simple-docs allowlist and is confined to this tracker, `docs/TODO.md`
+and `ROUTER-LOG.md`. It is SEPARATE from the original THIS-UNIT cost override, which applied only
+to the implementation's advisor/verifier ceremony; that override is not extended here.
+`correction_rounds_used=0` is unchanged and no correction budget is reset. The metadata writer
+does not commit; the PM owns the fixed host commit and its post-commit assessment. No native
+review evidence is required from either writer.
 
 Owner-supplied verifier failure (OWNER-SUPPLIED, not independently executed as a full verifier):
 - `FALLBACK_EXACT_SOURCE_INACTIVE: opencode-go/mimo-v2.6-flash`
@@ -810,8 +846,11 @@ detector controls with accepted/rejected inputs; `python3 -m json.tool`; the foc
 module plus the seat-shape/independence modules; `git diff --check`. No full verifier, deploy,
 restart, runtime or consumer claim.
 
-Status: COMPLETE for the authorized source repair; commit, native review, deployment and runtime
-remain PENDING/UNVERIFIED.
+Status: implementation COMPLETE and committed at `5697f72b671c05dc94fac955bb9450a75aa37995` on
+`chore/multi-agent-v2-phase1`; implementation assessed medium/`under_budget` (not approval or
+closure). Source and metadata closure are recorded (metadata commit and assessment recorded in the
+PM envelope); deployment, runtime and native review remain PENDING/UNVERIFIED. Q90 remains IN
+PROGRESS and no new planned unit is added.
 
 Cause OBSERVED in canonical source: `review-validator` (`global-config/opencode.json:1033`) and
 `asi-review-validator` (:1394) assign `opencode-go/claude-haiku-5-5` — two agent assignments —
@@ -828,15 +867,42 @@ Repair OBSERVED: the two inactive exact source keys were deleted and
 default; `files`/`tools`/`vision`). Exclusions and other target chains are unchanged; the config
 diff contains only the key deletions and the new policy.
 
-Checks EXECUTED on this candidate: RED 4/8 failures on the old policy (the three owner
-diagnostics plus the accepted-control failure); GREEN 8/8 after repair;
-`python3 -m unittest tests.test_q90_t30_kimi_removal tests.test_model_independence
-tests.test_model_variants -v` = 52/52 OK; `python3 -m json.tool` exit 0; `git diff --check` clean;
-`python3 -m py_compile tests/test_q90_t30_fallback_repair.py` exit 0. AFT static inspection was
-unavailable after sandbox activation (broker denied unbound host tools), so the PM runs host
-`aft_inspect`. The full verifier was NOT run; no deploy, restart, consumer or runtime clearance is
-claimed.
+Checks EXECUTED on this candidate (delegated writer evidence; NOT rerun by the metadata writer):
+focused RED `Ran 8 tests` with `failures=4` on the old policy (the three owner diagnostics plus
+the accepted-control failure); final combined exact command
+`python3 -m unittest tests.test_q90_t30_fallback_repair tests.test_q90_t30_kimi_removal
+tests.test_model_independence tests.test_model_variants` reported `Ran 60 tests in 0.583s`, `OK`,
+0 skips — the 60 is focused 8 plus related 52, so the focused module is NOT part of that 52 (an
+earlier TODO wording that read the 52 as including the focused module is corrected).
+`python3 -m json.tool global-config/rate-limit-fallback.json` printed full normalized valid JSON
+without error; the delegated `git diff --check` and
+`python3 -m py_compile tests/test_q90_t30_fallback_repair.py` outputs were empty/success. Numeric
+exit-0 statuses were NOT exposed by the execution surface and were NOT independently observed by
+the PM; any earlier numeric exit-0 claim in this tracker or the advice record is a DELEGATED
+SUCCESS INFERENCE from output, not a measured status, and no exit code is invented here. The full
+verifier was NOT run; no deploy, restart, consumer or runtime clearance is claimed.
 
-Ceremony: one writer, no pre/post advisor and no independent verifier under the owner's explicit
-THIS-UNIT cost override; recorded as a deviation, not simple docs and not a standing exception.
+Implementation commit (PM-observed): `5697f72b671c05dc94fac955bb9450a75aa37995` on
+`chore/multi-agent-v2-phase1`, 6 repository paths, 334 additions + 26 deletions = 360 authored
+changed lines, 26,793 raw patch bytes. Immutable committed-range readback
+`run54d52f7cb8af387f1cbb44f16c3bfbf7`: base `81c5ef55087cbf019dba65ae5956f422adc99092`, head
+`5697f72b671c05dc94fac955bb9450a75aa37995`, 26,793 bytes, SHA-256
+`e9d57ecb7383f050ebdb8d04261a9a889b887207cff35349ace43f691177d297`.
+
+Static diagnostics (PM-observed, first host pass): `aft_inspect` over all 6 implementation paths
+returned PARTIAL — Python 0 errors / 0 warnings; the JSON and four Markdown paths have no
+producer. This is NOT an all-static-clean claim.
+
+Implementation assessment (PM-observed; NOT approval, closure or native review): status 0,
+schema `gentle-ai.review-assessment/v1`, `baseRef=81c5ef55087cbf019dba65ae5956f422adc99092`,
+`committedOnly=true`, risk `medium`, reason `configuration_change` for
+`global-config/rate-limit-fallback.json`, `changed_paths=6`, `changed_lines=360`,
+`consumed=false`, `review_due=false`, `review_due_reason=under_budget`. The last reviewed boundary
+is RETAINED at `6ff16915407c39f2ca980339d30ed6907e2ee536`. The owner asked for a metadata
+assessment AFTER the PM metadata commit with `baseRef=5697f72b...` and `committedOnly=true`; its
+result is not predicted here.
+
+Ceremony: one implementation writer, no pre/post advisor and no independent verifier under the
+owner's explicit THIS-UNIT cost override; recorded as a deviation, not simple docs and not a
+standing exception.
 PM owns the commit and assessment; no native review evidence is claimed here.

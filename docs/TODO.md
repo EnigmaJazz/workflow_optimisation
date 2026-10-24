@@ -1717,19 +1717,43 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     `advisor-testing-pre` until deploy (not PM-observed); runtime, full verifier, plugin load and
     M3.1 acceptance remain UNVERIFIED. Unit source+review CLOSED; Q90 remains IN PROGRESS.
   - **T3.0 fallback exact-policy repair (`q90-t30-fallback-repair-u1`, owner-directed
-    2026-10-24; source PENDING-COMMIT):** mechanical verifier repair inside T3.0, not a new
-    planned unit. Deleted the inactive exact source keys `opencode-go/mimo-v2.6-flash` and
-    `opencode-go/minimax-m3` (their catalog entries, target refs and evaluator exclusions remain)
-    and added `opencode-go/claude-haiku-5-5` with the same two-target deepseek-max /
-    openrouter-default chain and capabilities as `opencode-go/minimax-m3.1-flash`. The two
-    validators are the only agent assignments for Haiku; the removed identities had zero agent
-    assignments. One writer, no pre/post advisor and no independent verifier under an explicit
-    THIS-unit owner ceremony override (a recorded deviation, not simple docs and not a standing
-    waiver). New focused test `tests/test_q90_t30_fallback_repair.py`: RED 4/8 on the old policy
-    (the three owner diagnostics plus the accepted-control failure), GREEN 8/8 after repair; 52/52
-    over the focused module plus Kimi-removal, model-independence and model-variant modules;
-    `python3 -m json.tool` exit 0; `git diff --check` clean. No full verifier, deploy, restart or
-    runtime claim; PM owns commit and assessment. Q90 remains IN PROGRESS.
+    2026-10-24; implementation committed and assessed):** mechanical verifier repair inside T3.0,
+    not a new planned unit. Deleted the inactive exact source keys
+    `opencode-go/mimo-v2.6-flash` and `opencode-go/minimax-m3` (their catalog entries, target refs
+    and evaluator exclusions remain) and added `opencode-go/claude-haiku-5-5` with the same
+    two-target deepseek-max / openrouter-default chain and capabilities as
+    `opencode-go/minimax-m3.1-flash`. The two validators are the only agent assignments for
+    Haiku; the removed identities had zero agent assignments. One implementation writer, no
+    pre/post advisor and no independent verifier under an explicit THIS-unit owner ceremony
+    override (a recorded deviation, not simple docs and not a standing waiver). New focused test
+    `tests/test_q90_t30_fallback_repair.py`: delegated RED `Ran 8 tests` with `failures=4` on the
+    old policy (the three owner diagnostics plus the accepted-control failure); final combined
+    exact command `python3 -m unittest tests.test_q90_t30_fallback_repair
+    tests.test_q90_t30_kimi_removal tests.test_model_independence tests.test_model_variants`
+    reported `Ran 60 tests in 0.583s`, `OK`, 0 skips — focused 8 plus related 52, so the focused
+    module is NOT part of that 52 (the earlier wording that read 52 as including it is corrected).
+    `python3 -m json.tool` printed full normalized valid JSON without error; `git diff --check`
+    and `py_compile` reported success. Numeric exit-0 statuses were NOT exposed and are delegated
+    success inferences, not independently observed by the PM; no exit code is invented. The full
+    verifier was NOT run; no deploy, restart or runtime claim. Implementation commit
+    `5697f72b671c05dc94fac955bb9450a75aa37995` on `chore/multi-agent-v2-phase1`: 6 paths, 334
+    additions + 26 deletions = 360 authored changed lines, 26,793 raw patch bytes (immutable
+    readback `run54d52f7cb8af387f1cbb44f16c3bfbf7`, base `81c5ef5...`, head `5697f72...`,
+    SHA-256 `e9d57ecb7383f050ebdb8d04261a9a889b887207cff35349ace43f691177d297`). Implementation
+    assessment: status 0, `gentle-ai.review-assessment/v1`, `baseRef=81c5ef5...`,
+    `committedOnly=true`, risk medium, reason `configuration_change`
+    (`global-config/rate-limit-fallback.json`), 6 paths / 360 lines, `consumed=false`,
+    `review_due=false`, `under_budget`; it approves, advances and closes nothing, and the last
+    reviewed boundary is RETAINED at `6ff1691...`. PM first host `aft_inspect` over the 6 paths
+    was PARTIAL: Python 0 errors / 0 warnings; JSON and four Markdown paths have no producer — no
+    all-static-clean claim. Metadata closure: exactly one owner-authorized metadata-only writer
+    for this same unit, class `documentation` under the simple-docs allowlist, confined to the
+    tracker, this file and `ROUTER-LOG.md`; it is separate from the implementation's THIS-unit
+    cost override and is not a correction (`correction_rounds_used=0`, unchanged). The PM owns the
+    metadata commit and the post-commit metadata assessment (owner-requested at
+    `baseRef=5697f72...`, `committedOnly=true`; the result is not predicted here). Owner verifier
+    must be RE-RUN; deployment and native review remain PENDING/UNVERIFIED. Q90 remains IN
+    PROGRESS; no new planned unit is added.
   - **T3b — Planner slice (PLANNED, high risk):** after T3.0; advisor, evidence-agent and both
     gate-verdict permissions; same three surfaces plus Planner `WORKFLOW.md` lines.
   - **T3c — PM slice (PLANNED, high risk):** permission-only drop of relay/advisor dispatch after
