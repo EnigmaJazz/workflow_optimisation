@@ -34,6 +34,7 @@ def model_family(value):
         ("glm-", "glm"),
         ("qwen", "qwen"),
         ("kimi", "kimi"),
+        ("ling", "ling"),
         ("mimo", "mimo"),
         ("muse", "muse"),
         ("minimax", "minimax"),

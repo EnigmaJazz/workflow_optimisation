@@ -1650,6 +1650,15 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     existing current actor owns advice until T3b and NO Planner permission is preinstalled. The
     owner mappings still listed as pending in the tracker must be settled before the affected
     source slice.
+  - **T3.0 Kimi removal (`q90-t30-kimi-removal-u1`, owner-directed 2026-10-24):** five Kimi
+    primaries and the DeepSeek maintainability-post remapped to MiniMax/Qwen/Ling with the exact
+    variants; readability unchanged; inactive Kimi exact policy removed and three dormant
+    completeness policies added. Prerequisite: T3.0.1 staged boundary and pre-advice; consumer
+    variant support, model availability, M3.1 hang/session/Go allowance and runtime remain
+    UNVERIFIED gates. Correction round 1/1: the initial fallback detector did not prove target
+    values (source/target control vacuous), so it is corrected and now also scans
+    `systematic.jsonc` read-only; the corrected live scan finds zero executable Kimi references.
+    Initial RED 7 / GREEN 84 remains HISTORICAL INITIAL, not strengthened-detector evidence.
   - **T3b — Planner slice (PLANNED, high risk):** after T3.0; advisor, evidence-agent and both
     gate-verdict permissions; same three surfaces plus Planner `WORKFLOW.md` lines.
   - **T3c — PM slice (PLANNED, high risk):** permission-only drop of relay/advisor dispatch after

@@ -877,7 +877,8 @@
       "description": "R3 Reliability reviewer — behavior-first tests, coverage value, edge cases, determinism, contracts, and regressions",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/kimi-k2.7-code",
+      "model": "opencode-go/minimax-m3.1-flash",
+      "variant": "xhigh",
       "permission": {
         "bash": "deny",
         "edit": "deny",
@@ -1307,7 +1308,8 @@
       "description": "Relay reviewer (R3 reliability lens). Provider-materialized prompt only.",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/kimi-k2.7-code",
+      "model": "opencode-go/minimax-m3.1-flash",
+      "variant": "xhigh",
       "prompt": "Follow only the provider-materialized review prompt. Do not inspect the live worktree, delegate, or edit anything.",
       "tools": {
         "*": false,
@@ -1551,7 +1553,8 @@
         "sandbox_grep": true,
         "sandbox_diff": true
       },
-      "model": "opencode-go/kimi-k2.7-code",
+      "model": "opencode-go/minimax-m3.1-flash",
+      "variant": "high",
       "permission": {
         "edit": "deny",
         "write": "deny",
@@ -1751,7 +1754,7 @@
         "sandbox_grep": true,
         "sandbox_diff": true
       },
-      "model": "opencode-go/kimi-k2.7-code",
+      "model": "opencode-go/qwen3.8-flash",
       "permission": {
         "edit": "deny",
         "write": "deny",
@@ -1801,7 +1804,7 @@
         "sandbox_grep": true,
         "sandbox_diff": true
       },
-      "model": "opencode-go/kimi-k2.7-code",
+      "model": "opencode-go/qwen3.8-flash",
       "permission": {
         "edit": "deny",
         "write": "deny",
@@ -1901,7 +1904,7 @@
         "sandbox_grep": true,
         "sandbox_diff": true
       },
-      "model": "opencode-go/deepseek-v4.1-flash",
+      "model": "opencode-go/ling-3.1-flash",
       "permission": {
         "edit": "deny",
         "write": "deny",
@@ -1922,8 +1925,7 @@
         "sandbox_list": "allow",
         "sandbox_grep": "allow",
         "sandbox_diff": "allow"
-      },
-      "variant": "medium"
+      }
     },
     "advisor-gemini-pre": {
       "description": "First-pass advisor on Gemini 4 Argon (API credits), Antigravity substitute — pre-code",

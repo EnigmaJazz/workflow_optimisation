@@ -315,11 +315,11 @@
         ]
       }
     ],
-    "opencode-go/kimi-k2.7-code": [
+    "opencode-go/qwen3.8-flash": [
       {
-        "providerID": "opencode-go",
-        "modelID": "mimo-v2.6-flash",
-        "variant": "high",
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
         "capabilities": [
           "files",
           "tools",
@@ -328,27 +328,8 @@
       },
       {
         "providerID": "openrouter",
-        "modelID": "~google/gemini-flash-latest",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "opencode-go",
-        "modelID": "deepseek-v4.1-flash",
+        "modelID": "deepseek/deepseek-v4.1-flash",
         "variant": "default",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "deepseek",
-        "modelID": "deepseek-flash",
-        "variant": "max",
         "capabilities": [
           "files",
           "tools",
@@ -598,6 +579,50 @@
       }
     ],
     "opencode-go/minimax-m3": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "default",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "opencode-go/minimax-m3.1-flash": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "max",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "default",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "opencode-go/ling-3.1-flash": [
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
