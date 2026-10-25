@@ -52,3 +52,10 @@
   so bounded `sed -n` range reads were used for large-file inspection (no shell search or mutation).
   Markdown and the TypeScript pin have no available LSP producer. Full verifier, deploy, restart,
   live consumer, commit, independent verifier, correction decision and assessment remain PENDING.
+
+## Recovery (2026-10-25, owner-authorized; NOT a correction)
+- Verifier `ses_e8f8163b2ffeZzejGDd7pN25jQ`: initial 204 tests OK, zero skips, but V1/V2 FAIL.
+  The one correction is used (1/1); this recovery is not another correction; the formatting-only
+  rewrap was accepted. Intermediate `85f84ca` is transitional and OWNER-CLOSED, not a review
+  candidate. New `VERIFY_SCRIPT_SHA256` `cc88c89e...` re-pinned for the inventory edit. Tracker
+  backfill and Q90-D1 remain deferred; deployment was NOT performed and the mirror body was NOT read.

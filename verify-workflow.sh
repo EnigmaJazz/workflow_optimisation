@@ -3475,7 +3475,7 @@ function plannerHandoffFailures(agents,gp) {
   ]
   const writers=["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","general","frontend-apply","frontend-apply-local","frontend-dev","systematic-implementer"]
   const readTools=["read","codegraph_codegraph_explore","ast_grep_search","aft_outline","aft_zoom","aft_search","aft_callgraph","aft_inspect","sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"]
-  const mutationTools=["bash","edit","write","sandbox_bash","sandbox_edit","sandbox_write","sandbox_apply_patch","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]
+  const mutationTools=["bash","edit","write","sandbox_bash","sandbox_edit","sandbox_write","sandbox_apply_patch","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish","aft_import","aft_safety","ast_grep_replace"]
   const plannerCoordinators=["gentle-orchestrator","pm-odd"]
   plannerCoordinators.push("pm-systematic")
   const sameMap=(value,expected)=>{

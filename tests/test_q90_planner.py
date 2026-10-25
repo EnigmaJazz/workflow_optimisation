@@ -23,7 +23,7 @@ READ_TOOLS = ("read", "codegraph_codegraph_explore", "ast_grep_search", "aft_out
               "sandbox_list", "sandbox_grep", "sandbox_diff")
 MUTATION_TOOLS = ("bash", "edit", "write", "sandbox_bash", "sandbox_edit", "sandbox_write",
                   "sandbox_apply_patch", "sandbox_apply", "sandbox_copy_in", "sandbox_copy_out",
-                  "sandbox_discard", "sandbox_finish")
+                  "sandbox_discard", "sandbox_finish", "aft_import", "aft_safety", "ast_grep_replace")
 
 
 def load_config():
@@ -128,6 +128,13 @@ class RealConfig(unittest.TestCase):
             '"planner","planner-evidence"',
         ):
             self.assertIn(needle, verifier)
+        inventory = next(line for line in verifier.splitlines()
+                         if line.startswith("  const mutationTools=["))
+        config_text = CONFIG_PATH.read_text(encoding="utf-8")
+        for tool_id in ("aft_import", "aft_safety", "ast_grep_replace"):
+            self.assertIn(f'"{tool_id}"', inventory, tool_id)
+            self.assertEqual(config_text.count(f'"{tool_id}": false'), 2, tool_id)
+            self.assertEqual(config_text.count(f'"{tool_id}": "deny"'), 2, tool_id)
         self.assertNotIn('const coordinatorAgents=["gentle-orchestrator",...pmAgents,"planner"]', verifier)
 
 class NegativeControls(unittest.TestCase):
@@ -194,3 +201,14 @@ class NegativeControls(unittest.TestCase):
         self.assertIn("PLANNER_AGENT_MISSING: planner", failures)
         self.assertIn("PLANNER_EVIDENCE_AGENT_MISSING: planner-evidence", failures)
 
+    def test_new_mutator_controls_per_agent_and_surface(self):
+        for name, tools_tag, perm_tag in (
+            (PLANNER, "PLANNER_MUTATION_TOOL_EXPOSED", "PLANNER_MUTATION_EXPOSED"),
+            (EVIDENCE, "PLANNER_EVIDENCE_MUTATION_EXPOSED", "PLANNER_EVIDENCE_MUTATION_EXPOSED"),
+        ):
+            for tool_id in ("aft_import", "aft_safety", "ast_grep_replace"):
+                for key, tag in (("tools", tools_tag), ("permission", perm_tag)):
+                    with self.subTest(agent=name, tool=tool_id, surface=key):
+                        agents, gp = self.mutated()
+                        agents[name][key][tool_id] = True if key == "tools" else "allow"
+                        self.assert_detected(agents, gp, f"{tag}: {tool_id}")

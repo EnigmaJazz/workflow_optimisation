@@ -1802,6 +1802,9 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     `odd/tasks/**` is protected; the owner-supplied 1,015-line whole-file `host_plan_write`
     replacement (revision 0) was NOT invoked or written. Mirror write/readback is UNIMPLEMENTED
     and was not read; commit, independent verifier, correction decision and assessment are PENDING.
+    Recovery (2026-10-25, NOT a correction; counter 1/1): verifier `ses_e8f8163b2ffeZzejGDd7pN25jQ`
+    ran 204 tests OK / zero skips with V1/V2 FAIL; formatting-only rewrap accepted; `85f84ca`
+    transitional OWNER-CLOSED; tracker backfill/Q90-D1 deferred; deployment NOT performed; mirror not read.
     Q90 remains IN PROGRESS.
   - **T3c — PM slice (PLANNED, high risk):** permission-only drop of relay/advisor dispatch after
     the T3.0 model migration; no model/fallback work deferred to T3c; same three surfaces plus PM
