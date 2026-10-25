@@ -10,21 +10,20 @@ Every PM Task brief is exactly one work unit, never a whole feature. It carries 
 
 Keep each PM prompt to approximately 6,000 characters or less. It contains only the one-unit identity/authority contract, route-skill load-first requirement and route validation against `WORKFLOW.md`, stop/resume rules, the rule that a report is not proof, and a pointer to this versioned envelope contract. The route procedure, specialist precedence, review protocol, and route-specific checks remain in the loaded `workflow-*` skill and its references. Do not copy the route procedure into a third prompt-level source.
 
-## Planned Planner handoff (NOT ACTIVE)
+## Planner handoff (installed and live)
 
-This is the planned target, not current runtime behaviour. The `planner` and
-`planner-evidence` agents are source-only in this unit: they are not installed, deployed, or live,
-and no pipeline is activated by this section. The PM retains its current runtime ownership until the
-deferred integration.
+`planner`, `planner-evidence` and the three plan tools are installed and deployed as of 2026-10-25.
 
-Planned sequence:
+Sequence:
 
 1. The orchestrator drafts the plan.
 2. The PM reads the draft and hands it to the Planner with its own suggestions. Suggestions are
    messages, never plan writes.
-3. The Planner finalises the plan, dispatches EVERY applicable `advisor-*-pre` agent itself, and
-   reads each advisor's RAW output. It does not accept a PM or orchestrator summary as the advice.
-   The Planner may use `planner-evidence` for facts-only `path:line` evidence.
+3. The Planner finalises the plan and selects only the pre-code advisors the task class and impact require:
+   none for documentation, metadata, comment-only, tiny or passive; one surface advisor for
+   medium code; at most three for high-risk, normative, config, security or cross-cutting. It reads
+   each selected advisor's RAW output and never accepts a PM or orchestrator summary as the advice.
+   `planner-evidence` runs only when facts cannot be established by the Planner's own reads.
 4. **Gate 1** follows the pre-code advice. The Planner issues `PASS`, `REFINE`, or `ESCALATE` through
    the ask-gated `host_gate_verdict` fixed act.
 5. A writer implements; the Planner runs the required post-code advisory check.

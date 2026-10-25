@@ -161,23 +161,25 @@ The `gentle-orchestrator` is a strictly read-only technical lead.
 - For a true docs/metadata unit whose actual diff is inside the simple-docs allowlist, the PM's factual/structural check plus an independent orchestrator Git/tracker readback replace the code-review independence pair; no docs verifier is dispatched. Any test/verifier reader makes the unit normative and the ordinary code-review rule applies. This exemption never lowers the budget of a code-changing unit.
 
 <!-- workflow:anchor workflow.execution-boundary:end -->
-## Planner handoff (planned; NOT ACTIVE)
+## Planner handoff (installed and live)
 
-This section records the planned target for the Planner tier. It is source-only documentation:
-the Planner and `planner-evidence` agents are not installed, deployed, or live, and the pipeline
-below is not activated by this text. Until the deferred integration is performed, the current PM
-retains its existing runtime ownership and the active interim post-code advisory sequence remains
-authoritative.
+This section records the live contract for the Planner tier as of 2026-10-25: the `planner` and
+`planner-evidence` agents and the `host_plan_write`, `host_gate_verdict` and `host_task_mark` tools
+are installed and deployed.
 
 | Agent | Model | Role |
 |---|---|---|
-| `planner` | `openai/gpt-6.1-sol` (`high`; `xhigh` for Gate 1 on multi-step/high-risk work) | finalises the orchestrator draft plus PM suggestions, calls ALL pre-code advisors itself, reads their raw outputs, and issues both technical gate verdicts |
+| `planner` | `openai/gpt-6.1-sol` (`high`; `xhigh` for Gate 1 on multi-step/high-risk work) | finalises the orchestrator draft plus PM suggestions, selects only the pre-code advisors the task class and impact require, reads their raw outputs, and issues both technical gate verdicts |
 | `planner-evidence` | `openai/gpt-6-luna` (`medium`) | facts-only, read-only evidence at `path:line`; no task dispatch, mutation, execution, or memory write |
 
-The planned handoff is: the orchestrator drafts the plan; the PM reads the draft and hands it to the
-Planner with suggestions as messages, never as plan writes; the Planner finalises the plan, calls
-every applicable `advisor-*-pre` agent itself, and reads each advisor's RAW output rather than a PM
-or orchestrator summary; Gate 1 follows that pre-code advice. A writer then implements. The Planner
+The handoff is: the orchestrator drafts the plan; the PM reads the draft and hands it to the Planner
+with suggestions as messages, never as plan writes; the Planner finalises the plan and selects only
+the pre-code advisors the task class and impact require — none for documentation, metadata,
+comment-only, tiny or passive units; the single advisor whose surface the change touches for medium
+code, with a second only when two independent surfaces are materially affected; at most three for
+high-risk, normative, config, security or cross-cutting changes. The Planner reads each selected
+advisor's RAW output rather than a PM or orchestrator summary; Gate 1 follows that pre-code advice.
+A writer then implements. The Planner
 runs the post-code advisory check; the orchestrator dispatches the four post-commit lenses and
 supplies their raw evidence; Gate 2 follows both the post-code advice and that raw lens evidence and
 occurs BEFORE the PM completes or ticks the unit. The PM ticks the unit after Gate 2; the orchestrator

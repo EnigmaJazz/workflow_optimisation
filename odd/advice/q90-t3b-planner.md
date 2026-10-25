@@ -86,3 +86,47 @@
 - Follow-up drift recorded: `WORKFLOW.md:179` and `docs/specs/pm-handoff.md:25-27` still describe the
   every-applicable-advisors + RAW-output planner behavior; both are outside this unit's authorized
   scope and are queued for a later normative follow-up, not preinstalled here.
+
+## Normative doc reconciliation (q90-t3b-planner-reconcile-u1, PM-dispatched 2026-10-25)
+
+- Owner directive 2026-10-25: reconcile the `WORKFLOW.md` and `docs/specs/pm-handoff.md` Planner
+  rule/status with the live `planner` prompt (select-by-task-class-and-impact, revised in
+  `q90-t3b-advisor-selection-u1`, commit `1a22a939`). The installed/deployed date 2026-10-25 is
+  OWNER-asserted; this unit did not independently verify the mirror or the live restart.
+- Class `global-tooling-change`, route `workflow-odd-secure`. OWNER CEREMONY OVERRIDE for this unit
+  (the advisor-rule reconciliation): zero advisors, zero verifier, one writer, correction budget 1,
+  no tracker (plan-root protected), no mirror.
+- Unit-start anchor: tracker none (plan-root protected); branch `chore/multi-agent-v2-phase1` HEAD
+  `3b341497ccdcab3464c1c9610e81f889e9fc93ee` expected and observed = MATCH.
+- Writer session `ses_e8cf338beffeG0Wjx8EprfXYIB` (`odd-apply`, DeepSeek family).
+- Staged reviewability receipt: 105 authored changed lines (79 added / 26 deleted); authored patch
+  bytes as exported by the sandbox result receipt; generated or binary paths [].
+- Edits: `WORKFLOW.md` Planner heading (`installed and live`), intro status paragraph, `planner` Role
+  cell (select-by-task-class-and-impact), handoff paragraph; `docs/specs/pm-handoff.md` heading,
+  status paragraph, `Sequence:` label, step 3; `tests/test_pm_handoff_spec.py` rename to
+  `planner_handoff_gaps` / `test_planner_handoff_is_live_and_gate_owned` with live required terms and
+  a removed-phrase absence guard; this record; one `ROUTER-LOG.md` row.
+- Q90-D1 deferral retained; Gate-1/Gate-2 ownership prose and the read-only planner grants
+  (`host_plan_write`/`host_gate_verdict` ask, `host_task_mark` deny) unchanged.
+- Residual drift outside this unit's allowed paths: `global-config/skills/workflow-odd-secure/SKILL.md`
+  still describes the handoff as PLANNED/NOT INSTALLED and calls ALL pre-code advisors; queued for a
+  later normative follow-up, not edited here.
+
+### Observed checks
+
+- Check 1 — `python3 -m unittest tests.test_pm_handoff_spec tests.test_q90_planner
+  tests.test_review_cadence -v`: first run `Ran 37 tests in 0.483s` / `FAILED (failures=1)` because
+  step 3 wrapped the required phrase across a line; after the same-unit re-wrap (not a review
+  correction) `Ran 37 tests in 0.438s` / `OK`.
+- Check 2 — `git diff --check`: no output, exit 0.
+- Check 3 — `python3 -m unittest discover -s tests`: `Ran 341 tests in 5.877s` / `OK`; no node-denied
+  errors appeared in this run.
+- Check 4 — host `.git/HEAD` read before worker activation: `ref: refs/heads/chore/multi-agent-v2-phase1`;
+  the branch ref file is `3b341497ccdcab3464c1c9610e81f889e9fc93ee`. The sandbox `.git/HEAD` is the
+  synthetic workspace ref `ref: refs/heads/work`, not the feature branch.
+- Removal search — no other test file pins the removed phrases; only the new absence guard in
+  `tests/test_pm_handoff_spec.py` contains them.
+
+- PENDING: the commit SHA and native risk assessment are recorded in `ROUTER-LOG.md` and the PM
+  envelope; the row's commit cell reads `PENDING-COMMIT` because the row ships in the same work-unit
+  commit.
