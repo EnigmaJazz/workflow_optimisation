@@ -3938,7 +3938,7 @@ if (orchRuntime) {
   for (const t of [
     "aft_inspect","aft_outline","aft_zoom","ast_grep_search",
     "ctx_expand","ctx_search","ctx_memory",
-    "systematic_skill","systematic_workflow_status",
+    "systematic_skill",
     "sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"
   ]) {
     if (tool(orchRuntime,t)!==true) fail(`ORCHESTRATOR_READ_TOOL_MISSING: ${t}`)

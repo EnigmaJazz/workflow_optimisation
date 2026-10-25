@@ -191,6 +191,5 @@
     }
   },
   "bootstrap": {"enabled": true},
-  "workflow_guard": {"mode": "observe", "debug": false},
   "skills_as_commands": true
 }

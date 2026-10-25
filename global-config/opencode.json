@@ -2681,7 +2681,6 @@
     "sandbox_finish": "deny",
     "sandbox_write": "deny",
     "systematic_skill": "allow",
-    "systematic_workflow_status": "allow",
     "vision-bridge_describe_image": "allow",
     "ctx_memory": "deny",
     "host_register_project": "deny",
