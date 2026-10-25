@@ -88,6 +88,61 @@ class CheckPin(Base):
         self.assertFalse(out["complete"])
 
 
+class CheckPinInstalledRoot(Base):
+    """--installed-root: the auto-updater installs into the config dir's node_modules,
+    while OpenCode fills its package cache only at the next start. A pin whose cache
+    dir is absent (never attempted) is preservable when that install declares it."""
+
+    def setUp(self):
+        super().setUp()
+        self.config = self.tmp / "config"
+
+    def install(self, pkg, ver):
+        pkg_dir = self.config / "node_modules" / pkg
+        pkg_dir.mkdir(parents=True)
+        (pkg_dir / "package.json").write_text(json.dumps({"name": pkg, "version": ver}))
+
+    def check(self, spec):
+        return run("check-pin", "--cache-root", str(self.cache),
+                   "--installed-root", str(self.config), "--spec", spec)
+
+    def test_absent_cache_with_matching_install_is_pending(self):
+        self.install("@fro.bot/systematic", "3.26.0")
+        code, out = self.check("@fro.bot/systematic@3.26.0")
+        self.assertEqual(code, 0)
+        self.assertFalse(out["complete"])
+        self.assertTrue(out["preservable"])
+        self.assertEqual(out["state"], "pending-cache")
+
+    def test_absent_cache_with_other_install_version_refused(self):
+        self.install("@fro.bot/systematic", "3.22.4")
+        code, out = self.check("@fro.bot/systematic@3.26.0")
+        self.assertEqual(code, 1)
+        self.assertFalse(out["preservable"])
+        self.assertEqual(out["state"], "absent")
+
+    def test_absent_cache_without_install_refused(self):
+        code, out = self.check("plug@1.0.0")
+        self.assertEqual(code, 1)
+        self.assertFalse(out["preservable"])
+
+    def test_incomplete_cache_still_refused_despite_install(self):
+        # Interrupted OpenCode cache install: the original incident shape stays refused.
+        self.make("plug", "1.2.3", with_manifest=False)
+        self.install("plug", "1.2.3")
+        code, out = self.check("plug@1.2.3")
+        self.assertEqual(code, 1)
+        self.assertFalse(out["preservable"])
+        self.assertEqual(out["state"], "incomplete")
+
+    def test_complete_cache_unchanged(self):
+        self.make("plug", "1.2.3")
+        code, out = self.check("plug@1.2.3")
+        self.assertEqual(code, 0)
+        self.assertTrue(out["complete"])
+        self.assertTrue(out["preservable"])
+
+
 class Scan(Base):
     def test_quarantines_old_incomplete_without_deleting(self):
         root = self.make("@cortexkit/x", "0.1.0", with_manifest=False)

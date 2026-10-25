@@ -475,11 +475,14 @@ def semver_core(ref, identity):
 
 def pin_is_complete(ref):
     # A newer deployed pin is only trustworthy when its package is fully
-    # installed in the OpenCode cache (an interrupted install leaves no package.json).
+    # installed in the OpenCode cache (an interrupted install leaves no package.json),
+    # or when the cache is not yet filled and the auto-updater's install in the
+    # config dir declares that version (OpenCode fills the cache at its next start).
     try:
         proc = subprocess.run(
             [sys.executable, integrity_helper, "check-pin",
-             "--cache-root", packages_cache_root, "--spec", ref],
+             "--cache-root", packages_cache_root,
+             "--installed-root", str(target.parent), "--spec", ref],
             capture_output=True, text=True, timeout=30)
         return proc.returncode == 0
     except Exception:
