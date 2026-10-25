@@ -8,7 +8,10 @@ EMBEDDED prompt strings:
 - each live project-manager prompt (``pm-odd``, ``pm-systematic``) teaches the
   read-based line-count/last-line/branch-HEAD anchor and its working-tree limit;
 - each PM prompt names only the DeepSeek-family ``odd-apply``/``gentle-ai-worker``
-  writers for a mid-unit tiny fix and rejects the stale ``general`` sentence.
+  writers for a mid-unit tiny fix and rejects the stale ``general`` sentence;
+- each PM prompt carries the owner-exact Planner handoff bullet exactly once,
+  immediately after the tiny-fix paragraph and immediately before its embedded
+  search-contract marker.
 
 Every needle is asserted against ONE agent's own prompt, never against a joined
 string, so a needle present in a different agent's prompt cannot satisfy the
@@ -66,6 +69,29 @@ PM_TINY_FIX_INSTRUCTION = (
     "Tiny-fix option: mid-unit, for a genuinely tiny fix dispatch `odd-apply` or "
     "`gentle-ai-worker` (DeepSeek family), never `general`, and only within the "
     "brief's allowed paths."
+)
+
+# Owner-exact Planner handoff bullet (Q90). The bullet is a single prompt line
+# whose placement is part of the contract: after the tiny-fix option paragraph
+# and immediately before the embedded subagent search-contract marker.
+PM_PLANNER_BULLET = (
+    "Hand the plan to the Planner: after the orchestrator drafts the plan, read it, "
+    "add your suggestions as messages (never plan writes), and dispatch `planner` with "
+    "the draft path, revision and your suggestions. The Planner finalises the plan and "
+    "issues Gate 1; you do not finalise the plan yourself and you do not issue gate verdicts."
+)
+PM_TINY_FIX_PARAGRAPH_END = "including its commit and changed-line count."
+PM_SEARCH_CONTRACT_MARKER = "<!-- user:subagent-search-contract -->"
+PM_PLANNER_BLOCK = (
+    PM_TINY_FIX_PARAGRAPH_END
+    + "\n\n- "
+    + PM_PLANNER_BULLET
+    + "\n\n"
+    + PM_SEARCH_CONTRACT_MARKER
+)
+PM_PLANNER_MISPLACED = (
+    "planner bullet is not immediately after the tiny-fix paragraph and before "
+    "the search-contract marker"
 )
 
 
@@ -141,6 +167,30 @@ def tiny_fix_prompt_gaps(data, agents=AGENT_NAMES):
     return gaps
 
 
+def planner_handoff_gaps(data, agents=AGENT_NAMES):
+    """Return (agent, reason) for each PM prompt violating the Planner handoff contract.
+
+    The owner-exact bullet must occur exactly once in the agent's own prompt and
+    the whole block — tiny-fix paragraph end, bullet, search-contract marker —
+    must appear verbatim, so a bullet moved elsewhere or a marker separated from
+    it is reported. A missing or duplicated bullet short-circuits the placement
+    check to keep the reason unambiguous.
+    """
+    gaps = []
+    for name in agents:
+        prompt = prompt_of(data, name)
+        if prompt is None:
+            gaps.append((name, "agent key absent or prompt not a string"))
+            continue
+        occurrences = prompt.count(PM_PLANNER_BULLET)
+        if occurrences != 1:
+            gaps.append((name, f"planner bullet occurs {occurrences} times, not exactly once"))
+            continue
+        if PM_PLANNER_BLOCK not in prompt:
+            gaps.append((name, PM_PLANNER_MISPLACED))
+    return gaps
+
+
 def probe(path=CONFIG_PATH):
     """Presence probe: one (agent, needle, present) triple per checked needle."""
     data = load_config(path)
@@ -165,6 +215,7 @@ class RealConfig(unittest.TestCase):
     def test_orchestrator_prompt_names_brief_contract(self):
         prompt = prompt_of(self.data, ORCHESTRATOR)
         self.assertIsInstance(prompt, str, "orchestrator prompt must be a string")
+        assert prompt is not None, "orchestrator prompt must be a string"
         for needle in ORCHESTRATOR_NEEDLES:
             with self.subTest(agent=ORCHESTRATOR, needle=needle):
                 self.assertIn(
@@ -183,6 +234,7 @@ class RealConfig(unittest.TestCase):
             with self.subTest(agent=name):
                 prompt = prompt_of(self.data, name)
                 self.assertIsInstance(prompt, str, f"agent {name!r} prompt must be a string")
+                assert prompt is not None, f"agent {name!r} prompt must be a string"
                 for needle in (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE):
                     self.assertIn(needle, prompt, f"agent {name!r} prompt is missing {needle!r}")
                 self.assertNotIn(PM_OLD_HASH_WORDING, prompt)
@@ -197,25 +249,34 @@ class RealConfig(unittest.TestCase):
         gaps = tiny_fix_prompt_gaps(self.data)
         self.assertEqual(gaps, [], f"PM tiny-fix prompt gaps: {gaps}")
 
+    def test_each_pm_prompt_hands_the_plan_to_the_planner(self):
+        gaps = planner_handoff_gaps(self.data)
+        self.assertEqual(gaps, [], f"PM Planner handoff gaps: {gaps}")
+
     def test_pm_prompts_remain_under_character_cap(self):
         for name in AGENT_NAMES:
             with self.subTest(agent=name):
                 prompt = prompt_of(self.data, name)
                 self.assertIsInstance(prompt, str, f"agent {name!r} prompt must be a string")
+                assert prompt is not None, f"agent {name!r} prompt must be a string"
                 self.assertLess(len(prompt), 6000, f"agent {name!r} prompt exceeds the 6,000-character cap")
                 print(f"{name} prompt characters: {len(prompt)}, bytes: {len(prompt.encode('utf-8'))}")
 
 class PositiveControl(unittest.TestCase):
     """Prove the validator can fail; without this a green run proves nothing."""
 
-    @staticmethod
-    def _synthetic():
+    def _synthetic(self) -> dict[str, dict[str, dict[str, str | None]]]:
         orchestrator = (
             "orchestrator preamble "
             + " ".join((*ORCHESTRATOR_NEEDLES, *ORCHESTRATOR_FIXED_TOOL_NEEDLES))
         )
-        pm = "pm preamble " + " ".join(
-            (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE, PM_TINY_FIX_INSTRUCTION)
+        pm = (
+            "pm preamble "
+            + " ".join(
+                (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE, PM_TINY_FIX_INSTRUCTION)
+            )
+            + "\n\n"
+            + PM_PLANNER_BLOCK
         )
         return {
             "agent": {
@@ -233,6 +294,7 @@ class PositiveControl(unittest.TestCase):
         for name in AGENT_NAMES:
             data = self._synthetic()
             prompt = data["agent"][name]["prompt"]
+            assert prompt is not None, f"agent {name!r} prompt must be a string"
             data["agent"][name]["prompt"] = prompt.replace(
                 PM_TINY_FIX_INSTRUCTION, PM_TINY_FIX_STALE_SENTENCE
             )
@@ -248,6 +310,7 @@ class PositiveControl(unittest.TestCase):
         data = self._synthetic()
         writer_clause = f"`{PM_TINY_FIX_WRITERS[0]}` or "
         prompt = data["agent"]["pm-systematic"]["prompt"]
+        assert prompt is not None, "pm-systematic prompt must be a string"
         self.assertIn(writer_clause, prompt)
         data["agent"]["pm-systematic"]["prompt"] = prompt.replace(writer_clause, "", 1)
         gaps = tiny_fix_prompt_gaps(data)
@@ -270,6 +333,7 @@ class PositiveControl(unittest.TestCase):
     def test_fixed_tool_needle_removal_is_detected(self):
         data = self._synthetic()
         prompt = data["agent"][ORCHESTRATOR]["prompt"]
+        assert prompt is not None, f"{ORCHESTRATOR} prompt must be a string"
         self.assertEqual(fixed_tool_prompt_gaps(prompt), [])
         for needle in ORCHESTRATOR_FIXED_TOOL_NEEDLES:
             with self.subTest(needle=needle):
@@ -302,6 +366,77 @@ class PositiveControl(unittest.TestCase):
         missing = missing_prompt_needles(data)
         self.assertEqual(len(missing), len(ORCHESTRATOR_NEEDLES) + len(PM_ANCHOR_NEEDLES))
         self.assertEqual({agent for agent, _, _ in missing}, {ORCHESTRATOR, "pm-odd"})
+
+    def test_missing_planner_bullet_is_reported(self):
+        for name in AGENT_NAMES:
+            data = self._synthetic()
+            prompt = data["agent"][name]["prompt"]
+            assert prompt is not None, f"agent {name!r} prompt must be a string"
+            self.assertIn(PM_PLANNER_BULLET, prompt)
+            data["agent"][name]["prompt"] = prompt.replace(PM_PLANNER_BULLET, "", 1)
+            with self.subTest(agent=name):
+                gaps = planner_handoff_gaps(data)
+                self.assertIn(
+                    (name, "planner bullet occurs 0 times, not exactly once"), gaps
+                )
+
+    def test_duplicate_planner_bullet_is_reported(self):
+        for name in AGENT_NAMES:
+            data = self._synthetic()
+            prompt = data["agent"][name]["prompt"]
+            assert prompt is not None, f"agent {name!r} prompt must be a string"
+            data["agent"][name]["prompt"] = prompt + "\n\n- " + PM_PLANNER_BULLET
+            with self.subTest(agent=name):
+                gaps = planner_handoff_gaps(data)
+                self.assertIn(
+                    (name, "planner bullet occurs 2 times, not exactly once"), gaps
+                )
+
+    def test_planner_bullet_in_another_agent_does_not_silence_the_check(self):
+        # Contamination control: pm-odd loses its bullet while pm-systematic keeps
+        # its own. A joined-string check would see the bullet and pass; the
+        # per-agent check must still report pm-odd (and only pm-odd).
+        data = self._synthetic()
+        block = "\n\n- " + PM_PLANNER_BULLET
+        prompt = data["agent"]["pm-odd"]["prompt"]
+        assert prompt is not None, "pm-odd prompt must be a string"
+        self.assertIn(block, prompt)
+        data["agent"]["pm-odd"]["prompt"] = prompt.replace(block, "", 1)
+        systematic_prompt = data["agent"]["pm-systematic"]["prompt"]
+        assert systematic_prompt is not None, "pm-systematic prompt must be a string"
+        self.assertIn(PM_PLANNER_BULLET, systematic_prompt)
+        gaps = planner_handoff_gaps(data)
+        self.assertEqual(
+            [gap for gap in gaps if gap[0] == "pm-odd"],
+            [("pm-odd", "planner bullet occurs 0 times, not exactly once")],
+        )
+        self.assertEqual([gap for gap in gaps if gap[0] == "pm-systematic"], [])
+
+    def test_displaced_planner_bullet_is_reported(self):
+        data = self._synthetic()
+        block = "\n\n- " + PM_PLANNER_BULLET
+        prompt = data["agent"]["pm-systematic"]["prompt"]
+        assert prompt is not None, "pm-systematic prompt must be a string"
+        self.assertIn(block, prompt)
+        remaining = prompt.replace(block, "", 1)
+        # Keep exactly one bullet, but move it ahead of the paragraph it must follow.
+        data["agent"]["pm-systematic"]["prompt"] = (
+            "pm preamble\n\n- " + PM_PLANNER_BULLET + "\n\n" + remaining
+        )
+        gaps = planner_handoff_gaps(data)
+        self.assertIn(("pm-systematic", PM_PLANNER_MISPLACED), gaps)
+
+    def test_planner_bullet_separated_from_marker_is_reported(self):
+        data = self._synthetic()
+        marker = "\n\n" + PM_SEARCH_CONTRACT_MARKER
+        prompt = data["agent"]["pm-odd"]["prompt"]
+        assert prompt is not None, "pm-odd prompt must be a string"
+        self.assertIn(marker, prompt)
+        data["agent"]["pm-odd"]["prompt"] = prompt.replace(
+            marker, "\n\nextra text\n\n" + PM_SEARCH_CONTRACT_MARKER, 1
+        )
+        gaps = planner_handoff_gaps(data)
+        self.assertIn(("pm-odd", PM_PLANNER_MISPLACED), gaps)
 
 
 if __name__ == "__main__":
