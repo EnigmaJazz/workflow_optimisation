@@ -10,6 +10,33 @@ Every PM Task brief is exactly one work unit, never a whole feature. It carries 
 
 Keep each PM prompt to approximately 6,000 characters or less. It contains only the one-unit identity/authority contract, route-skill load-first requirement and route validation against `WORKFLOW.md`, stop/resume rules, the rule that a report is not proof, and a pointer to this versioned envelope contract. The route procedure, specialist precedence, review protocol, and route-specific checks remain in the loaded `workflow-*` skill and its references. Do not copy the route procedure into a third prompt-level source.
 
+## Planned Planner handoff (NOT ACTIVE)
+
+This is the planned target, not current runtime behaviour. The `planner` and
+`planner-evidence` agents are source-only in this unit: they are not installed, deployed, or live,
+and no pipeline is activated by this section. The PM retains its current runtime ownership until the
+deferred integration.
+
+Planned sequence:
+
+1. The orchestrator drafts the plan.
+2. The PM reads the draft and hands it to the Planner with its own suggestions. Suggestions are
+   messages, never plan writes.
+3. The Planner finalises the plan, dispatches EVERY applicable `advisor-*-pre` agent itself, and
+   reads each advisor's RAW output. It does not accept a PM or orchestrator summary as the advice.
+   The Planner may use `planner-evidence` for facts-only `path:line` evidence.
+4. **Gate 1** follows the pre-code advice. The Planner issues `PASS`, `REFINE`, or `ESCALATE` through
+   the ask-gated `host_gate_verdict` fixed act.
+5. A writer implements; the Planner runs the required post-code advisory check.
+6. The orchestrator dispatches the four post-commit lenses and supplies their raw evidence.
+7. **Gate 2** follows both the post-code advice and the raw lens evidence. Gate 2 occurs BEFORE the PM completes or ticks the unit. The PM does not close the unit before Gate 2.
+8. The PM ticks the unit after Gate 2; the orchestrator then assesses and acknowledges; the owner
+   approves delivery.
+
+Both gate verdicts are TECHNICAL only. They never approve delivery, deployment, merge, release, or
+user acceptance. The Planner is read-only except for the ask-gated `host_plan_write` and
+`host_gate_verdict` fixed acts; `host_task_mark` is denied. It dispatches no writer and no review lens. Deferred Q90-D1 prompt reduction/externalization happens only AFTER the PM layer becomes active; it is not an immediate prerequisite to making the PM layer active and is not performed here.
+
 ## Verification and advice budget by task type
 
 The unit's **actual diff** selects a finite budget, not its feature class, file count or risk estimate alone; a native medium/high raise moves a unit up, never down.

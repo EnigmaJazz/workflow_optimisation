@@ -35,6 +35,7 @@ PM_REQUIRED_DISPATCH = {
         "gentle-ai-verify",
         "gentle-ai-verify-astra",
         "explore",
+        "planner",
     ],
     "pm-systematic": [
         "gentle-ai-worker",
@@ -42,6 +43,7 @@ PM_REQUIRED_DISPATCH = {
         "gentle-ai-verify",
         "gentle-ai-verify-astra",
         "explore",
+        "planner",
     ],
 }
 LEAF_DISPATCH_AGENTS = [
@@ -540,7 +542,7 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             declarations,
             "coordinator set must derive from the shared pmAgents declaration",
         )
-        self.assertEqual(sum(len(v) for v in PM_REQUIRED_DISPATCH.values()), 11, "unexpected required dispatch lane inventory")
+        self.assertEqual(sum(len(v) for v in PM_REQUIRED_DISPATCH.values()), 13, "unexpected required dispatch lane inventory")
         identity_needles = json.loads(
             "[" + self.verifier.split("const needles=[", 1)[1].split("]", 1)[0] + "]"
         )
@@ -658,10 +660,10 @@ console.log("extracted verifier assertions and positive controls passed");
         for marker in (
             "coverage-group-1-identity: 27 controls passed",
             "coverage-group-2-handoff: 8 controls passed",
-            "coverage-group-3-taskgraph: 40 controls passed",
+            "coverage-group-3-taskgraph: 42 controls passed",
             "coverage-group-4-family: 18 controls passed",
             "coverage-group-5-pmgeneral: 10 controls passed",
-            "coverage-total: 103 controls passed",
+            "coverage-total: 105 controls passed",
         ):
             self.assertIn(marker, result.stdout)
 
@@ -733,17 +735,28 @@ class HostFixedToolPermissionTests(unittest.TestCase):
             if name != "gentle-orchestrator" and HOST_TEST_RUN in agent.get("permission", {}):
                 with self.subTest(agent=name):
                     self.assertEqual(agent["permission"][HOST_TEST_RUN], "deny")
-        maps = [self.config.get("tools", {})] + [agent.get("tools", {}) for agent in self.agents.values()]
-        for tools in maps:
-            for key in (HOST_TEST_RUN, HOST_PLAN_WRITE):
-                self.assertNotIn(key, tools)
+        maps = [("global", self.config.get("tools", {}))] + [
+            (name, agent.get("tools", {})) for name, agent in self.agents.items()
+        ]
+        for name, tools in maps:
+            self.assertNotIn(HOST_TEST_RUN, tools)
+            if name == "planner":
+                self.assertIs(tools.get(HOST_PLAN_WRITE), True)
+                self.assertIs(tools.get("host_gate_verdict"), True)
+                self.assertIs(tools.get("host_task_mark"), False)
+            elif name == "planner-evidence":
+                self.assertIs(tools.get(HOST_PLAN_WRITE), False)
+                self.assertIs(tools.get("host_gate_verdict"), False)
+                self.assertIs(tools.get("host_task_mark"), False)
+            else:
+                self.assertNotIn(HOST_PLAN_WRITE, tools)
         self.run_controls(
             'assert(hostTestRunGlobalDefaultFailures(gp.host_test_run).length===0,"test-run default");\n'
             'assert(hostPlanWriteGlobalDefaultFailures(gp.host_plan_write).length===0,"plan-write default");\n'
             'assert(hostTestRunOrchestratorFailures(agents["gentle-orchestrator"]).length===0,"test-run grant");\n'
             'assert(hostPlanWriteOrchestratorFailures(agents["gentle-orchestrator"]).length===0,"plan-write grant");\n'
             'assert(hostTestRunGrantSweepFailures(agents).length===0,"test-run sweep");\n'
-            'assert(hostPlanWriteGrantSweepFailures(agents,["gentle-orchestrator","pm-odd","pm-systematic"]).length===0,"plan-write sweep");\n'
+            'assert(hostPlanWriteGrantSweepFailures(agents,["gentle-orchestrator","pm-odd","pm-systematic","planner"]).length===0,"plan-write sweep");\n'
         )
 
     def test_negative_controls_remove_or_flip_grants(self):
@@ -771,7 +784,7 @@ for (const name of ["pm-odd","pm-systematic","general","odd-apply","gentle-ai-wo
 }
 assert(hostTestRunGrantSweepFailures({"gentle-orchestrator":{permission:{host_test_run:"allow"}}}).length===0,"orchestrator allow");
 assert(hostTestRunGrantSweepFailures({"pm-odd":{permission:{host_test_run:"deny"}}}).length===0,"explicit deny");
-const planAllowed=["gentle-orchestrator","pm-odd","pm-systematic"];
+const planAllowed=["gentle-orchestrator","pm-odd","pm-systematic","planner"];
 for (const name of ["general","odd-apply","gentle-ai-worker","review-risk","advisor-security-pre","synthetic-agent"]) {
   for (const value of ["ask","allow"]) {
     const failures=hostPlanWriteGrantSweepFailures({[name]:{permission:{host_plan_write:value}}},planAllowed);
@@ -797,13 +810,13 @@ for (const fragment of fragments) {
 
     def test_plan_write_sweep_production_wiring_and_controls(self):
         self.assertIn(
-            "for (const failure of hostPlanWriteGrantSweepFailures(deployedAgents,coordinatorAgents)) fail(failure)",
+            "for (const failure of hostPlanWriteGrantSweepFailures(deployedAgents,planWriterAgents)) fail(failure)",
             self.verifier,
         )
         self.assertIn("HOST_PLAN_WRITE_GRANT_SWEEP_POSITIVE_CONTROL_FAILED", self.verifier)
         self.run_controls(
             r'''
-const allowed=["gentle-orchestrator","pm-odd","pm-systematic"];
+const allowed=["gentle-orchestrator","pm-odd","pm-systematic","planner"];
 assert(hostPlanWriteGrantSweepFailures(agents,allowed).length===0,"real config plan-write sweep");
 for (const value of ["ask","allow"]) {
   const synthetic=`synthetic-${value}-agent`;

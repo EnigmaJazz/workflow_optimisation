@@ -161,6 +161,36 @@ The `gentle-orchestrator` is a strictly read-only technical lead.
 - For a true docs/metadata unit whose actual diff is inside the simple-docs allowlist, the PM's factual/structural check plus an independent orchestrator Git/tracker readback replace the code-review independence pair; no docs verifier is dispatched. Any test/verifier reader makes the unit normative and the ordinary code-review rule applies. This exemption never lowers the budget of a code-changing unit.
 
 <!-- workflow:anchor workflow.execution-boundary:end -->
+## Planner handoff (planned; NOT ACTIVE)
+
+This section records the planned target for the Planner tier. It is source-only documentation:
+the Planner and `planner-evidence` agents are not installed, deployed, or live, and the pipeline
+below is not activated by this text. Until the deferred integration is performed, the current PM
+retains its existing runtime ownership and the active interim post-code advisory sequence remains
+authoritative.
+
+| Agent | Model | Role |
+|---|---|---|
+| `planner` | `openai/gpt-6.1-sol` (`high`; `xhigh` for Gate 1 on multi-step/high-risk work) | finalises the orchestrator draft plus PM suggestions, calls ALL pre-code advisors itself, reads their raw outputs, and issues both technical gate verdicts |
+| `planner-evidence` | `openai/gpt-6-luna` (`medium`) | facts-only, read-only evidence at `path:line`; no task dispatch, mutation, execution, or memory write |
+
+The planned handoff is: the orchestrator drafts the plan; the PM reads the draft and hands it to the
+Planner with suggestions as messages, never as plan writes; the Planner finalises the plan, calls
+every applicable `advisor-*-pre` agent itself, and reads each advisor's RAW output rather than a PM
+or orchestrator summary; Gate 1 follows that pre-code advice. A writer then implements. The Planner
+runs the post-code advisory check; the orchestrator dispatches the four post-commit lenses and
+supplies their raw evidence; Gate 2 follows both the post-code advice and that raw lens evidence and
+occurs BEFORE the PM completes or ticks the unit. The PM ticks the unit after Gate 2; the orchestrator
+then assesses and acknowledges; the owner approves delivery.
+
+`PASS`, `REFINE`, and `ESCALATE` are TECHNICAL verdicts only. They never approve delivery,
+deployment, merge, release, or user acceptance. The Planner is read-only except for the ask-gated
+`host_plan_write` and `host_gate_verdict` fixed acts; `host_task_mark` is denied. The Planner
+dispatches no writer and no review lens.
+
+The deferred Q90-D1 prompt reduction/externalization work happens only AFTER the PM layer becomes
+active; it is not an immediate prerequisite to making the PM layer active and is not performed here.
+
 <!-- workflow:anchor workflow.context-backend:begin -->
 ## Context and Artifact Backend
 
@@ -528,7 +558,7 @@ Advice follows the finite budget above. It is mandatory for every normative chan
 
 Use the smallest sufficient set of registered pre-code `advisor-*-pre` subagents: one by default. Impact decides when to add a second model family. Add testing or security only for a distinct necessary question; a single integration advisor may cover cross-component behaviour and deployment. These advisors are automated and raise no subscription issue. Pre-code advice dispatches the `-pre` agents.
 
-**Interim post-code advisory review (owner, 2026-10-01; sequencing updated 2026-10-09).** The PM dispatches the registered `advisor-*-post` subagents to review the final implementation candidate before its work-unit commit, but only when the unit's actual-diff budget requires it and its route does not run `ce:review` for that unit: a normative change, including a normative or command-doc change, owes the check exactly as code does, because `ce:review` already provides the advisory multi-persona review when it runs. When `ce:review` runs, make no interim post-code advisor call. Only a true docs/metadata unit inside the simple-docs allowlist or a genuinely passive tiny fix takes no post-code advisor either; its PM factual/structural check and independent orchestrator readback stand in. The advisory review must be independent of the author; the PM owns dispatch before committing so its findings can inform the committed version. The same rules apply as for pre-code advice: the smallest sufficient set, one by default, evidence only, never approval. Record it under the task ID with step `post-code`. Native review remains separately driven and is never run by the PM. Once the external lane is active, `post-code-pair` applies as written below.
+**Interim post-code advisory review (owner, 2026-10-01; sequencing updated 2026-10-09).** The PM dispatches the registered `advisor-*-post` subagents to review the final implementation candidate before its work-unit commit, but only when the unit's actual-diff budget requires it and its route does not run `ce:review` for that unit: a normative change, including a normative or command-doc change, owes the check exactly as code does, because `ce:review` already provides the advisory multi-persona review when it runs. When `ce:review` runs, make no interim post-code advisor call. Only a true docs/metadata unit inside the simple-docs allowlist or a genuinely passive tiny fix takes no post-code advisor either; its PM factual/structural check and independent orchestrator readback stand in. The advisory review must be independent of the author; the PM owns dispatch before committing so its findings can inform the committed version. The same rules apply as for pre-code advice: the smallest sufficient set, one by default, evidence only, never approval. Record it under the task ID with step `post-code`. Native review remains separately driven and is never run by the PM. Once the external lane is active, `post-code-pair` applies as written below. Until the planned Planner integration is active, the PM retains the current runtime post-code advisory ownership described here; the Planner section below is source-only and changes no live dispatch.
 
 The orchestrator routes and aggregates advisor findings mechanically. Because it authored the plan, it must never rank, dismiss, or merge those findings.
 

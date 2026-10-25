@@ -1533,7 +1533,9 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   and changes no source decision; T3.0.3a PM reassignment `q90-pm-reassign-u1` COMPLETE: source
   `455a769219795e57769488210ee89ba8d67ac63f`, 15 paths / 400 authored lines, owner-supplied review
   `review-f6f31e924064dec0` approved/acknowledged, deployment PENDING; the remaining
-  T3.0.1-T3.0.9 slices are PLANNED, then T3b, T3c (permission-only), T3d (residual), T4-T6. Current
+  T3.0.1-T3.0.9 slices are PLANNED; T3b (`q90-t3b-planner-u1`) is SOURCE STAGED, not committed or
+  deployed; owner decision 2026-10-24 closes `455a769..416f289` metadata by OWNER DECISION, NOT
+  native review, with reviewed boundary `416f289`; then T3c (permission-only), T3d (residual), T4-T6. Current
   native-reviewed source boundary `77ef08a`; PM-observed host branch HEAD `36d461f` on
   `chore/multi-agent-v2-phase1`. Tracker `odd/tasks/multi-agent-v2-queue.md`; handover
   `docs/handoffs/2026-10-19-multi-agent-v2-workflow-config.md`. No deployment is claimed.
@@ -1773,8 +1775,34 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     Deployment/restart PENDING: owner reports live PMs still Sol; not independently
     runtime-verified. Metadata commit and post-commit assessment belong to the PM envelope.
     Q90 IN PROGRESS; no new planned unit.
-  - **T3b — Planner slice (PLANNED, high risk):** after T3.0; advisor, evidence-agent and both
-    gate-verdict permissions; same three surfaces plus Planner `WORKFLOW.md` lines.
+  - **T3b — Planner slice (`q90-t3b-planner-u1`, owner-authorized 2026-10-24; SOURCE STAGED, NOT
+    COMMITTED):** adds `planner` (`openai/gpt-6.1-sol` `high`) and `planner-evidence`
+    (`openai/gpt-6-luna` `medium`), and `planner` only to the orchestrator, `pm-odd` and
+    `pm-systematic` task maps. The Planner has the two ask-gated fixed acts `host_plan_write` /
+    `host_gate_verdict`, `host_task_mark` denied, no writer/lens dispatch, and a deny-default task
+    map limited to the defined pre/post advisors (including Gemini), `planner-evidence` and
+    `explore`. `planner-evidence` is facts-only, read-only, task-denied and memory-write-denied.
+    Verifier uses narrow `planWriterAgents`/`advisorDispatchAgents` sets, not `coordinatorAgents`;
+    no guard, `ROUTE_STAGES`, overlay, embedded prompt, ledger, assembler or prompt-SHA change.
+    Docs add the planned Planner handoff and Gate 1/Gate 2 ownership; the pipeline is SOURCE-ONLY
+    and NOT installed, deployed or live, and current PM runtime ownership remains until deferred
+    integration. Gate 2 is after post-code advice and the orchestrator's raw lens evidence and
+    BEFORE the PM completes or ticks the unit. Both verdicts are technical only, never delivery.
+    Deferred Q90-D1 prompt reduction/externalization is AFTER the PM layer becomes active, not an
+    immediate prerequisite, and was not performed. Owner decision 2026-10-24 closes
+    `455a769..416f289` metadata by OWNER DECISION, NOT native review; reviewed boundary `416f289`.
+    Luna/Tiny (`general`, `jd-fix-agent`) sharing is an owner-accepted exception. Prior frozen
+    results `30f00ac7...` and `ac28216d...` were rejected, uninstalled and not reused; the prior
+    writer's TDD ordering deviation (tests executed after source, not pre-source RED) is recorded.
+    This unit ran RED before source (missing agents and verifier block), then 7 focused Planner
+    tests and the 204-test required regression all passed with no skips. ONE writer, one later
+    independent `gentle-ai-verify`, NO pre/post advisors and ONE correction remain the owner's
+    ceremony; THIS-CANDIDATE review-size exception is up to 700 authored lines / 102,400 raw
+    patch bytes / 46,080 per file. Tracker backfill is delegated to the orchestrator later because
+    `odd/tasks/**` is protected; the owner-supplied 1,015-line whole-file `host_plan_write`
+    replacement (revision 0) was NOT invoked or written. Mirror write/readback is UNIMPLEMENTED
+    and was not read; commit, independent verifier, correction decision and assessment are PENDING.
+    Q90 remains IN PROGRESS.
   - **T3c — PM slice (PLANNED, high risk):** permission-only drop of relay/advisor dispatch after
     the T3.0 model migration; no model/fallback work deferred to T3c; same three surfaces plus PM
     `WORKFLOW.md` lines.

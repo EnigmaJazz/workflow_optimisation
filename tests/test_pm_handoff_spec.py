@@ -233,6 +233,26 @@ class PMHandoffSpecTest(unittest.TestCase):
         for term in ("anchor_comparison", "line_count", "last_line_text", "head_commit_sha", "working-tree", "outcome", "BLOCKED"):
             self.assertIn(term, envelope)
 
+    def planned_planner_gaps(self, spec):
+        marker = "## Planned Planner handoff (NOT ACTIVE)"
+        if marker not in spec:
+            return [marker]
+        section = spec.split(marker, 1)[1].split("\n## ", 1)[0]
+        required = ("not installed, deployed, or live", "PM retains its current runtime ownership",
+                    "Gate 1", "Gate 2", "BEFORE the PM completes or ticks the unit",
+                    "TECHNICAL only", "no writer and no review lens", "Deferred Q90-D1",
+                    "only AFTER the PM layer becomes active")
+        gaps = [term for term in required if term not in section]
+        if "PM closes the unit before Gate 2" in section:
+            gaps.append("PM closes before Gate 2")
+        return gaps
+
+    def test_planned_planner_handoff_is_staged_and_gate_owned(self):
+        self.assertEqual(self.planned_planner_gaps(self.spec), [])
+        mutated = self.spec.replace("Gate 2 occurs BEFORE the PM completes or ticks the unit.",
+                                    "Gate 2 occurs after the PM completes the unit.", 1)
+        self.assertTrue(self.planned_planner_gaps(mutated))
+
     def test_old_hash_obligation_wording_is_gone(self):
         brief = self.spec.split("## PM prompt boundary", 1)[0]
         self.assertNotIn("`tracker_sha256` (unit-start", brief)

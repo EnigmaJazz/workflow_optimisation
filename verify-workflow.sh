@@ -2938,14 +2938,19 @@ function hostReviewDiffReadFailures(name,agent) {
 // Orchestrator-only checks below keep fixed-host, tiny-fix and registration names.
 const pmAgents=["pm-odd","pm-systematic"]
 const coordinatorAgents=["gentle-orchestrator",...pmAgents]
-for (const failure of hostPlanWriteGrantSweepFailures(deployedAgents,coordinatorAgents)) fail(failure)
+// The Planner is a plan writer and advisor dispatcher, but not a review coordinator.
+// Keeping it out of coordinatorAgents avoids requiring the PM/review host grants and
+// avoids treating its narrow task map as coordinator deep-dispatch authority.
+const planWriterAgents=[...coordinatorAgents,"planner"]
+const advisorDispatchAgents=[...coordinatorAgents,"planner"]
+for (const failure of hostPlanWriteGrantSweepFailures(deployedAgents,planWriterAgents)) fail(failure)
 for (const value of ["ask","allow"]) {
   const synthetic=`synthetic-${value}-plan-writer`
-  const probe=hostPlanWriteGrantSweepFailures({[synthetic]:{permission:{host_plan_write:value}}},coordinatorAgents)
+  const probe=hostPlanWriteGrantSweepFailures({[synthetic]:{permission:{host_plan_write:value}}},planWriterAgents)
   const expected=`HOST_PLAN_WRITE_GRANTED_OUTSIDE_COORDINATORS: ${synthetic}=${show(value)}`
   if (!probe.includes(expected)) fail(`HOST_PLAN_WRITE_GRANT_SWEEP_POSITIVE_CONTROL_FAILED: ${value}`)
-  const coordinatorProbe=Object.fromEntries(coordinatorAgents.map((name)=>[name,{permission:{host_plan_write:value}}]))
-  if (hostPlanWriteGrantSweepFailures(coordinatorProbe,coordinatorAgents).length!==0) fail(`HOST_PLAN_WRITE_COORDINATOR_POSITIVE_CONTROL_FAILED: ${value}`)
+  const coordinatorProbe=Object.fromEntries(planWriterAgents.map((name)=>[name,{permission:{host_plan_write:value}}]))
+  if (hostPlanWriteGrantSweepFailures(coordinatorProbe,planWriterAgents).length!==0) fail(`HOST_PLAN_WRITE_COORDINATOR_POSITIVE_CONTROL_FAILED: ${value}`)
 }
 console.log("   ok: host_plan_write grants are limited to the coordinator set")
 const relayReviewAgents=["asi-review-risk","asi-review-resilience","asi-review-readability","asi-review-reliability","asi-review-refuter","asi-review-validator"]
@@ -3133,8 +3138,8 @@ function pmIdentityFailures(agents,handoff) {
 function coordinatorTaskGraphFailures(agents) {
   const failures=[]
   const pmRequired={
-    "pm-odd":["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","explore"],
-    "pm-systematic":["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","explore"],
+    "pm-odd":["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","explore","planner"],
+    "pm-systematic":["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","explore","planner"],
   }
   // Strict per-PM MAXIMUM allowlist. A key outside this set is a grant even when
   // its value is "deny"; only the declared named lanes may appear at all.
@@ -3145,6 +3150,7 @@ function coordinatorTaskGraphFailures(agents) {
       "advisor-maintainability-pre","advisor-security-post","advisor-security-pre",
       "advisor-testing-post","advisor-testing-pre","explore","gentle-ai-worker",
       "gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","odd-apply",
+      "planner",
     ]),
     "pm-systematic":new Set([
       "*","advisor-design-post","advisor-design-pre","advisor-gemini-post","advisor-gemini-pre",
@@ -3153,7 +3159,7 @@ function coordinatorTaskGraphFailures(agents) {
       "advisor-testing-post","advisor-testing-pre","bug-reproduction-validator",
       "correctness-reviewer","explore","frontend-apply","frontend-apply-local","frontend-dev",
       "frontend-dev-premium","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify",
-      "gentle-ai-verify-astra","project-standards-reviewer","repo-research-analyst",
+      "gentle-ai-verify-astra","planner","project-standards-reviewer","repo-research-analyst",
       "systematic-implementer","testing-reviewer",
     ]),
   }
@@ -3385,8 +3391,8 @@ else {
 
 // gemini-advisor-route:begin
 // Q76: the Argon advisors may only delegate to the Flash evidence gatherer, which keeps the
-// shared sandbox-only advisor surface. Only the orchestrator and the PMs dispatch the advisors;
-// no other agent may reach the gatherer. None of the three may fall back to another model.
+// shared sandbox-only advisor surface. Only the orchestrator, the PMs, and the Planner dispatch
+// the advisors; no other agent may reach the gatherer. None of them may fall back to another model.
 // The coordinator set is passed in so tests can execute this block in isolation.
 function geminiAdvisorRouteFailures(agents,fallback,coordinatorAgents) {
   const out=[]
@@ -3444,7 +3450,7 @@ function geminiAdvisorRouteFailures(agents,fallback,coordinatorAgents) {
 {
   let geminiFallback
   try { geminiFallback=parseJsonc(fallbackPolicySourcePath) } catch { geminiFallback=undefined }
-  for (const failure of geminiAdvisorRouteFailures(deployedAgents,geminiFallback,coordinatorAgents)) fail(failure)
+  for (const failure of geminiAdvisorRouteFailures(deployedAgents,geminiFallback,advisorDispatchAgents)) fail(failure)
   const controlFailures=geminiAdvisorRouteFailures({},{},coordinatorAgents)
   if (!controlFailures.includes("GEMINI_ADVISOR_MISSING: advisor-gemini-pre") || !controlFailures.includes("GEMINI_EVIDENCE_MISSING: advisor-gemini-evidence")) {
     fail(`GEMINI_ADVISOR_ROUTE_POSITIVE_CONTROL_FAILED: ${JSON.stringify(controlFailures)}`)
@@ -3453,6 +3459,100 @@ function geminiAdvisorRouteFailures(agents,fallback,coordinatorAgents) {
   }
 }
 
+// planner-handoff:begin
+function plannerHandoffFailures(agents,gp) {
+  const failures=[]
+  const planner=agents?.["planner"]
+  const evidence=agents?.["planner-evidence"]
+  const advisors=[
+    "advisor-design-pre","advisor-integration-pre","advisor-testing-pre","advisor-security-pre",
+    "advisor-maintainability-pre","advisor-design-post","advisor-integration-post",
+    "advisor-testing-post","advisor-security-post","advisor-maintainability-post",
+    "advisor-gemini-pre","advisor-gemini-post",
+  ]
+  const writers=["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","general","frontend-apply","frontend-apply-local","frontend-dev","systematic-implementer"]
+  const readTools=["read","codegraph_codegraph_explore","ast_grep_search","aft_outline","aft_zoom","aft_search","aft_callgraph","aft_inspect","sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"]
+  const mutationTools=["bash","edit","write","sandbox_bash","sandbox_edit","sandbox_write","sandbox_apply_patch","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]
+  const plannerCoordinators=["gentle-orchestrator","pm-odd"]
+  plannerCoordinators.push("pm-systematic")
+  const sameMap=(value,expected)=>{
+    const actual=value && typeof value==="object" && !Array.isArray(value) ? value : {}
+    return Object.keys(actual).length===Object.keys(expected).length && Object.entries(expected).every(([key,val])=>actual[key]===val)
+  }
+  const readSurface=(name,agent)=>{
+    for (const tool of readTools) {
+      if (cfgTool(agent,tool)!==true) failures.push(`PLANNER_READ_TOOL_MISSING: ${name}.${tool}`)
+      if (cfgPerm(agent,tool)!=="allow") failures.push(`PLANNER_READ_PERMISSION_MISSING: ${name}.${tool}`)
+    }
+  }
+  if (!planner || typeof planner!=="object" || Array.isArray(planner)) failures.push("PLANNER_AGENT_MISSING: planner")
+  else {
+    if (planner.mode!=="subagent") failures.push(`PLANNER_MODE_MISMATCH: ${show(planner.mode)}`)
+    if (planner.hidden!==true) failures.push("PLANNER_NOT_HIDDEN")
+    if (planner.model!=="openai/gpt-6.1-sol") failures.push(`PLANNER_MODEL_MISMATCH: ${show(planner.model)}`)
+    if (planner.variant!=="high") failures.push(`PLANNER_VARIANT_MISMATCH: ${show(planner.variant)}`)
+    readSurface("planner",planner)
+    if (cfgTool(planner,"task")!==true) failures.push("PLANNER_TASK_TOOL_NOT_ENABLED")
+    const task=planner?.permission?.task
+    if (!task || typeof task!=="object" || Array.isArray(task)) failures.push("PLANNER_TASK_MAP_MISSING")
+    else {
+      if (task["*"]!=="deny") failures.push(`PLANNER_TASK_WILDCARD_NOT_DENIED: ${show(task["*"])}`)
+      for (const name of advisors) if (task[name]!=="allow") failures.push(`PLANNER_ADVISOR_LANE_MISSING: ${name}`)
+      for (const name of ["planner-evidence","explore"]) if (task[name]!=="allow") failures.push(`PLANNER_EVIDENCE_LANE_MISSING: ${name}`)
+      for (const name of writers) if (task[name]==="allow") failures.push(`PLANNER_WRITER_DISPATCH_GRANTED: ${name}`)
+      for (const [name,value] of Object.entries(task)) {
+        if (name==="*" || advisors.includes(name) || name==="planner-evidence" || name==="explore") continue
+        failures.push(`PLANNER_TASK_GRANT_UNDECLARED: ${name}=${show(value)}`)
+      }
+    }
+    for (const tool of mutationTools) {
+      if (cfgTool(planner,tool)===true) failures.push(`PLANNER_MUTATION_TOOL_EXPOSED: ${tool}`)
+      if (cfgPerm(planner,tool)!=="deny") failures.push(`PLANNER_MUTATION_EXPOSED: ${tool}`)
+    }
+    if (cfgTool(planner,"grep")!==false || cfgPerm(planner,"grep")!=="deny") failures.push("PLANNER_GREP_EXPOSED")
+    if (cfgTool(planner,"ctx_memory")!==false || cfgPerm(planner,"ctx_memory")!=="deny") failures.push("PLANNER_MEMORY_EXPOSED")
+    if (cfgTool(planner,"host_plan_write")!==true || cfgPerm(planner,"host_plan_write")!=="ask") failures.push(`PLANNER_HOST_PLAN_WRITE_NOT_ASK: ${show(cfgPerm(planner,"host_plan_write"))}`)
+    if (cfgTool(planner,"host_gate_verdict")!==true || cfgPerm(planner,"host_gate_verdict")!=="ask") failures.push(`PLANNER_HOST_GATE_VERDICT_NOT_ASK: ${show(cfgPerm(planner,"host_gate_verdict"))}`)
+    if (cfgTool(planner,"host_task_mark")===true || cfgPerm(planner,"host_task_mark")!=="deny") failures.push(`PLANNER_HOST_TASK_MARK_NOT_DENY: ${show(cfgPerm(planner,"host_task_mark"))}`)
+  }
+  if (!evidence || typeof evidence!=="object" || Array.isArray(evidence)) failures.push("PLANNER_EVIDENCE_AGENT_MISSING: planner-evidence")
+  else {
+    if (evidence.mode!=="subagent") failures.push(`PLANNER_EVIDENCE_MODE_MISMATCH: ${show(evidence.mode)}`)
+    if (evidence.hidden!==true) failures.push("PLANNER_EVIDENCE_NOT_HIDDEN")
+    if (evidence.model!=="openai/gpt-6-luna") failures.push(`PLANNER_EVIDENCE_MODEL_MISMATCH: ${show(evidence.model)}`)
+    if (evidence.variant!=="medium") failures.push(`PLANNER_EVIDENCE_VARIANT_MISMATCH: ${show(evidence.variant)}`)
+    readSurface("planner-evidence",evidence)
+    if (cfgTool(evidence,"task")!==false || !sameMap(evidence?.permission?.task,{"*":"deny"})) failures.push("PLANNER_EVIDENCE_TASK_EXPOSED")
+    for (const tool of mutationTools) {
+      if (cfgTool(evidence,tool)===true) failures.push(`PLANNER_EVIDENCE_MUTATION_EXPOSED: ${tool}`)
+      if (cfgPerm(evidence,tool)!=="deny") failures.push(`PLANNER_EVIDENCE_MUTATION_EXPOSED: ${tool}`)
+    }
+    if (cfgTool(evidence,"grep")!==false || cfgPerm(evidence,"grep")!=="deny") failures.push("PLANNER_EVIDENCE_GREP_EXPOSED")
+    if (cfgTool(evidence,"ctx_memory")!==false || cfgPerm(evidence,"ctx_memory")!=="deny") failures.push("PLANNER_EVIDENCE_MEMORY_EXPOSED")
+    for (const host of ["host_plan_write","host_gate_verdict","host_task_mark"]) {
+      if (cfgPerm(evidence,host)!=="deny") failures.push(`PLANNER_EVIDENCE_HOST_EXPOSED: ${host}`)
+    }
+  }
+  for (const name of plannerCoordinators) {
+    if (agents?.[name]?.permission?.task?.planner!=="allow") failures.push(`PLANNER_NOT_DISPATCHABLE: ${name}`)
+  }
+  for (const [name,agent] of Object.entries(agents??{})) {
+    if (plannerCoordinators.includes(name)) continue
+    if (agent?.permission?.task?.planner==="allow") failures.push(`PLANNER_DISPATCH_GRANT_OUTSIDE_COORDINATORS: ${name}`)
+  }
+  if (gp?.host_plan_write!=="deny" || gp?.host_gate_verdict!=="deny" || gp?.host_task_mark!=="deny") failures.push("PLANNER_GLOBAL_HOST_DENY_CHANGED")
+  return failures
+}
+// planner-handoff:end
+{
+  for (const failure of plannerHandoffFailures(deployedAgents,gp)) fail(failure)
+  const control=plannerHandoffFailures({}, {})
+  if (!control.includes("PLANNER_AGENT_MISSING: planner") || !control.includes("PLANNER_EVIDENCE_AGENT_MISSING: planner-evidence")) {
+    fail(`PLANNER_HANDOFF_POSITIVE_CONTROL_FAILED: ${JSON.stringify(control)}`)
+  } else {
+    console.log("   ok: Planner handoff models, read-only surface, task lanes and gate host acts")
+  }
+}
 const ordinaryMemoryAgents=new Set([
   "explore","frontend-apply","frontend-apply-local","frontend-dev","frontend-dev-premium","general",
   "gentle-ai-explore","gentle-ai-verify","gentle-ai-worker","gentle-ai-worker-local",
@@ -3467,6 +3567,7 @@ const isolatedMemoryAgents=new Set([
   "advisor-design-post","advisor-integration-post","advisor-testing-post",
   "advisor-security-post","advisor-maintainability-post",
   "advisor-gemini-pre","advisor-gemini-post","advisor-gemini-evidence",
+  "planner","planner-evidence",
   "asi-review-risk","asi-review-resilience","asi-review-readability",
   "asi-review-reliability","asi-review-refuter","asi-review-validator",
 ])
