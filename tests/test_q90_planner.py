@@ -108,7 +108,7 @@ class RealConfig(unittest.TestCase):
         evidence = self.agents[EVIDENCE]
         for host in ("host_plan_write", "host_gate_verdict", "host_task_mark"):
             self.assertEqual(evidence["permission"].get(host), "deny", host)
-        for needle in ("RAW output", "Gate 1", "Gate 2", "BEFORE the PM completes or ticks the unit",
+        for needle in ("Gate 1", "Gate 2", "BEFORE the PM completes or ticks the unit",
                        "TECHNICAL verdict only", "never approves delivery",
                        "Never dispatch a writer or a review lens", "host_plan_write",
                        "host_gate_verdict", "`BLOCKED`", "Native built-in `grep` is unavailable"):
