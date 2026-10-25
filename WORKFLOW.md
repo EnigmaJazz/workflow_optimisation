@@ -179,11 +179,16 @@ comment-only, tiny or passive units; the single advisor whose surface the change
 code, with a second only when two independent surfaces are materially affected; at most three for
 high-risk, normative, config, security or cross-cutting changes. The Planner reads each selected
 advisor's RAW output rather than a PM or orchestrator summary; Gate 1 follows that pre-code advice.
-A writer then implements. The Planner
-runs the post-code advisory check; the orchestrator dispatches the four post-commit lenses and
-supplies their raw evidence; Gate 2 follows both the post-code advice and that raw lens evidence and
-occurs BEFORE the PM completes or ticks the unit. The PM ticks the unit after Gate 2; the orchestrator
-then assesses and acknowledges; the owner approves delivery.
+A writer then implements. The Planner runs the post-code advisory check. Gate 2 follows the
+post-code advice, the writer and verifier evidence, and the pre-commit assessment of the installed
+candidate, and occurs BEFORE the work-unit commit and BEFORE the PM completes or ticks the unit, so a
+REFINE resolves in the single revision cycle before the final commit. After the commit the PM ticks
+the unit with that commit as `evidenceCommit`; the orchestrator dispatches the four post-commit
+lenses only after the commit, and native review is post-commit and is not Gate 2 input. The
+orchestrator then assesses, reviews where due, and acknowledges; the owner approves delivery. Gate 2
+runs again after any revision. A second Gate 2 fails only on a true blocker; non-blocking follow-ups
+are recorded as later work. A second REFINE or ESCALATE stops the unit for human direction.
+Gate 2 occurs BEFORE the PM completes or ticks the unit.
 
 `PASS`, `REFINE`, and `ESCALATE` are TECHNICAL verdicts only. They never approve delivery,
 deployment, merge, release, or user acceptance. The Planner is read-only except for the ask-gated
@@ -529,7 +534,7 @@ Verification and advice are finite. The unit's **actual diff** selects the budge
 
 | Route class | Pre-code advice | Post-code check | Independent verifier |
 |---|---|---|---|
-| Tiny fix | zero pre-advice (passive tiny) | zero post-advice | zero `gentle-ai-verify` |
+| Tiny fix | zero pre-advice (passive tiny) | zero post-advice | zero `gentle-ai-verify`. A Tiny fix is never automatically native-reviewed; any review is the outcome of its own risk assessment. |
 | Small feature | one pre-advice phase | one post-code check | none unless an explicit exception applies |
 | Substantial feature | one pre-advice phase | one post-code check; `ce:review` substitutes for the post advisor | none unless an explicit exception applies |
 | Bug investigation | one pre-advice phase | one post-code check | none unless an explicit exception applies |

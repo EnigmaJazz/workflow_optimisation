@@ -27,10 +27,20 @@ Sequence:
 4. **Gate 1** follows the pre-code advice. The Planner issues `PASS`, `REFINE`, or `ESCALATE` through
    the ask-gated `host_gate_verdict` fixed act.
 5. A writer implements; the Planner runs the required post-code advisory check.
-6. The orchestrator dispatches the four post-commit lenses and supplies their raw evidence.
-7. **Gate 2** follows both the post-code advice and the raw lens evidence. Gate 2 occurs BEFORE the PM completes or ticks the unit. The PM does not close the unit before Gate 2.
-8. The PM ticks the unit after Gate 2; the orchestrator then assesses and acknowledges; the owner
-   approves delivery.
+6. **Gate 2** follows the post-code advice, the writer and verifier evidence, and the pre-commit
+   assessment of the installed candidate. Gate 2 occurs BEFORE the work-unit commit and
+   BEFORE the PM completes or ticks the unit, so a REFINE resolves in the single revision cycle
+   before the final commit. The PM does not close the unit before Gate 2.
+   Gate 2 occurs BEFORE the PM completes or ticks the unit.
+7. The PM commits the reviewed result as the work-unit commit; that same commit is the unit's
+   `evidenceCommit`. The orchestrator dispatches the four post-commit lenses only after the commit.
+   Native review is post-commit and is not Gate 2 input.
+8. After the commit the PM ticks the unit; the orchestrator then assesses, reviews where due, and
+   acknowledges; the owner approves delivery.
+
+Gate 2 runs again after any revision; the second Gate 2 decides the unit. A second Gate 2 fails only
+on a true blocker; non-blocking follow-ups are recorded as later work. A second REFINE or ESCALATE
+stops the unit for human direction.
 
 Both gate verdicts are TECHNICAL only. They never approve delivery, deployment, merge, release, or
 user acceptance. The Planner is read-only except for the ask-gated `host_plan_write` and

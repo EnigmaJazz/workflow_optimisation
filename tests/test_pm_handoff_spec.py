@@ -242,6 +242,7 @@ class PMHandoffSpecTest(unittest.TestCase):
                     "selects only the pre-code advisors the task class and impact require",
                     "RAW output", "never accepts a PM or orchestrator summary",
                     "Gate 1", "Gate 2", "BEFORE the PM completes or ticks the unit",
+                    "BEFORE the work-unit commit", "after any revision",
                     "TECHNICAL only", "no writer and no review lens", "Deferred Q90-D1",
                     "only AFTER the PM layer becomes active")
         gaps = [term for term in required if term not in section]
@@ -255,9 +256,17 @@ class PMHandoffSpecTest(unittest.TestCase):
 
     def test_planner_handoff_is_live_and_gate_owned(self):
         self.assertEqual(self.planner_handoff_gaps(self.spec), [])
-        mutated = self.spec.replace("Gate 2 occurs BEFORE the PM completes or ticks the unit.",
-                                    "Gate 2 occurs after the PM completes the unit.", 1)
+        mutated = self.spec.replace("BEFORE the PM completes or ticks the unit",
+                                    "after the PM completes the unit")
+        self.assertNotEqual(mutated, self.spec, "the pre-commit needle must be present to mutate")
         self.assertTrue(self.planner_handoff_gaps(mutated))
+
+    def test_positive_control_detects_post_commit_gate2(self):
+        mutated = self.spec.replace("BEFORE the work-unit commit",
+                                    "after the work-unit commit", 1)
+        self.assertNotEqual(mutated, self.spec, "the pre-commit needle must be present to mutate")
+        self.assertTrue(self.planner_handoff_gaps(mutated),
+                        "a post-commit Gate 2 must fail the pre-commit control")
 
     def test_old_hash_obligation_wording_is_gone(self):
         brief = self.spec.split("## PM prompt boundary", 1)[0]
