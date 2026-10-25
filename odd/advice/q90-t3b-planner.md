@@ -67,9 +67,7 @@
   Documentation-only config text change; class `global tooling change` with OWNER CEREMONY OVERRIDE:
   zero advisors (this unit is the advisor-selection fix), ONE writer, ONE independent verifier,
   correction counter untouched at 0.
-- Owner ruling on the RAW-output clause: irrelevant because only the planner delegates to advisors;
-  repealed everywhere that is in scope (planner prompt + test needle). It is VERBATIM replacement,
-  not preserved.
+- Owner ruling on the RAW-output clause: The selection rule was revised; the raw-output requirement is retained.
 - Route `workflow-odd-secure`; unit-start: tracker none (plan-root protected); branch
   `chore/multi-agent-v2-phase1` HEAD at dispatch `707ee925...` expected and observed = MATCH.
 - Implementation writer `ses_e8d2ea23dffeh1fJWkufUnXjTR` (`gentle-ai-worker`, DeepSeek); frozen
