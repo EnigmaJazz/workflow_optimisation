@@ -1805,6 +1805,19 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
     Recovery (2026-10-25, NOT a correction; counter 1/1): verifier `ses_e8f8163b2ffeZzejGDd7pN25jQ`
     ran 204 tests OK / zero skips with V1/V2 FAIL; formatting-only rewrap accepted; `85f84ca`
     transitional OWNER-CLOSED; tracker backfill/Q90-D1 deferred; deployment NOT performed; mirror not read.
+    Advisor-selection revision (2026-10-25, owner directive; PM unit `q90-t3b-advisor-selection-u1`):
+    the planner prompt first bullet is replaced with task-class/impact selection — docs/metadata and
+    tiny/passive units take no advisor; medium code takes the single surface advisor; high/normative
+    takes one per affected surface, at most three, from different model families where consequential;
+    Gemini advisors only when the external lane is active (currently PLANNED, so none);
+    `planner-evidence` only when the planner cannot establish needed facts through its own reads; the
+    plan records why each advisor was selected or skipped; a missing required advisor stops with
+    `BLOCKED`. The RAW-output/no-summary clause is repealed everywhere by owner ruling and the
+    `RAW output` test needle is removed with it. Implementation commit `1a22a93` on
+    `chore/multi-agent-v2-phase1`; assessment medium/`under_budget` at boundary `707ee925`,
+    `review_due=false`, boundary retained. Residual for a later normative follow-up: `WORKFLOW.md:179`
+    and `docs/specs/pm-handoff.md:25-27` still describe the every-advisors + RAW-output planner
+    behavior.
     Q90 remains IN PROGRESS.
   - **T3c — PM slice (PLANNED, high risk):** permission-only drop of relay/advisor dispatch after
     the T3.0 model migration; no model/fallback work deferred to T3c; same three surfaces plus PM

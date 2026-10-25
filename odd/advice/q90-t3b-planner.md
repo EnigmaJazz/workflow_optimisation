@@ -59,3 +59,32 @@
   rewrap was accepted. Intermediate `85f84ca` is transitional and OWNER-CLOSED, not a review
   candidate. New `VERIFY_SCRIPT_SHA256` `cc88c89e...` re-pinned for the inventory edit. Tracker
   backfill and Q90-D1 remain deferred; deployment was NOT performed and the mirror body was NOT read.
+
+## Advisor-selection revision (q90-t3b-advisor-selection-u1, PM-dispatched 2026-10-25)
+
+- Owner directive 2026-10-25: the live Planner prompt ordered ALL applicable pre-code advisors every
+  run, contradicting the verification/advice budget; the prompt must select by task class and impact.
+  Documentation-only config text change; class `global tooling change` with OWNER CEREMONY OVERRIDE:
+  zero advisors (this unit is the advisor-selection fix), ONE writer, ONE independent verifier,
+  correction counter untouched at 0.
+- Owner ruling on the RAW-output clause: irrelevant because only the planner delegates to advisors;
+  repealed everywhere that is in scope (planner prompt + test needle). It is VERBATIM replacement,
+  not preserved.
+- Route `workflow-odd-secure`; unit-start: tracker none (plan-root protected); branch
+  `chore/multi-agent-v2-phase1` HEAD at dispatch `707ee925...` expected and observed = MATCH.
+- Implementation writer `ses_e8d2ea23dffeh1fJWkufUnXjTR` (`gentle-ai-worker`, DeepSeek); frozen
+  result `227d2be...`; receipt 4 lines / 6,560 bytes / generated [].
+- Observed checks: baseline focused 8/8 OK; natural RED `FAILED (failures=1)` `'RAW output' not
+  found` between edit 1 and edit 2; final focused `Ran 8 tests in 0.423s` OK; `python3 -m json.tool`
+  exit 0; `git diff --check` clean; verifier `ses_e8d2b21d6fferrhUqjJ71WCPl7`: diff exactly 2 files /
+  2+2-, focused 8/8 OK, JSON valid, absence checks with positive control (new phrase matches the same
+  prompt field; removed phrases zero matches), other planner surfaces unchanged vs parent; FULL
+  regression not run by the verifier (no-write constraint) — this unit's STEP 0 run: `Ran 341 tests
+  in 6.141s` / `OK`. AFT note: `aft_inspect` on the JSON scope was PARTIAL pre-work (no JSON LSP
+  producer), no all-clean claim.
+- Native assessment at boundary `707ee925...` committedOnly: risk `medium` (`configuration_change`),
+  2 paths / 4 lines, `consumed=false`, `review_due=false` (`under_budget`); boundary RETAINED; no
+  native review; no approval; this is a technical assessment, not delivery approval.
+- Follow-up drift recorded: `WORKFLOW.md:179` and `docs/specs/pm-handoff.md:25-27` still describe the
+  every-applicable-advisors + RAW-output planner behavior; both are outside this unit's authorized
+  scope and are queued for a later normative follow-up, not preinstalled here.
