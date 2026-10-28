@@ -11,7 +11,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -52,7 +52,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -84,7 +84,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -115,7 +115,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -146,7 +146,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -236,7 +236,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -268,7 +268,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -320,7 +320,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -361,7 +361,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -402,7 +402,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -434,7 +434,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -466,7 +466,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -497,7 +497,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -538,7 +538,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -560,7 +560,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -602,7 +602,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -624,7 +624,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -646,7 +646,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -678,7 +678,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -744,7 +744,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -775,7 +775,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -797,7 +797,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -851,7 +851,7 @@
     {
       "providerID": "deepseek",
       "modelID": "deepseek-flash",
-      "variant": "max",
+      "variant": "high",
       "capabilities": [
         "files",
         "tools",

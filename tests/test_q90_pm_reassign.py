@@ -29,7 +29,7 @@ QWEN_KEY, GEMINI_KEY = "opencode-go/qwen3.8-flash", "openrouter/~google/gemini-f
 SHARED = [
     ("opencode-go/glm-5.3", "high"),
     ("opencode-go/deepseek-v4.1-flash", "default"),
-    ("deepseek/deepseek-flash", "max"),
+    ("deepseek/deepseek-flash", "high"),
     (GEMINI_KEY, None),
     ("openrouter/deepseek/deepseek-v4.1-flash", "default"),
     ("opencode-go/mimo-v2.6-flash", "high"),

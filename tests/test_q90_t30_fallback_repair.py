@@ -29,7 +29,7 @@ SHARED_CHAIN = [
     {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": ["files", "tools", "vision"],
     },
     {
