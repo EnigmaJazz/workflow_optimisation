@@ -11,7 +11,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -52,7 +52,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -84,7 +84,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -115,7 +115,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -146,7 +146,49 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "pm-odd": [
+      {
+        "providerID": "opencode-go",
+        "modelID": "qwen3.8-flash",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "~google/gemini-flash-latest",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "pm-systematic": [
+      {
+        "providerID": "opencode-go",
+        "modelID": "qwen3.8-flash",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -194,7 +236,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -226,7 +268,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -278,7 +320,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -315,10 +357,10 @@
         ]
       }
     ],
-    "opencode-go/kimi-k2.7-code": [
+    "opencode-go/qwen3.8-flash": [
       {
-        "providerID": "opencode-go",
-        "modelID": "mimo-v2.6-flash",
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
         "variant": "high",
         "capabilities": [
           "files",
@@ -328,27 +370,8 @@
       },
       {
         "providerID": "openrouter",
-        "modelID": "~google/gemini-flash-latest",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "opencode-go",
-        "modelID": "deepseek-v4.1-flash",
+        "modelID": "deepseek/deepseek-v4.1-flash",
         "variant": "default",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "deepseek",
-        "modelID": "deepseek-flash",
-        "variant": "max",
         "capabilities": [
           "files",
           "tools",
@@ -379,7 +402,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -411,7 +434,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -443,7 +466,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -474,7 +497,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -515,7 +538,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -537,7 +560,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -579,7 +602,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -597,11 +620,33 @@
         ]
       }
     ],
-    "opencode-go/minimax-m3": [
+    "opencode-go/claude-haiku-5-5": [
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "default",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
+    ],
+    "opencode-go/ling-3.1-flash": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -633,7 +678,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -692,6 +737,28 @@
           "vision"
         ]
       }
+    ],
+    "opencode-go/minimax-m3.1-flash": [
+      {
+        "providerID": "deepseek",
+        "modelID": "deepseek-flash",
+        "variant": "high",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      },
+      {
+        "providerID": "openrouter",
+        "modelID": "deepseek/deepseek-v4.1-flash",
+        "variant": "default",
+        "capabilities": [
+          "files",
+          "tools",
+          "vision"
+        ]
+      }
     ]
   },
   "providerFallbacks": {
@@ -699,7 +766,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -730,7 +797,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -752,7 +819,7 @@
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
-        "variant": "max",
+        "variant": "high",
         "capabilities": [
           "files",
           "tools",
@@ -806,7 +873,7 @@
     {
       "providerID": "deepseek",
       "modelID": "deepseek-flash",
-      "variant": "max",
+      "variant": "high",
       "capabilities": [
         "files",
         "tools",

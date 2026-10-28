@@ -17,12 +17,14 @@ import unittest
 from pathlib import Path
 
 try:
+    from test_model_independence import model_family
     from test_pm_layer_prompts import (
         PM_TINY_FIX_INSTRUCTION,
         PM_TINY_FIX_STALE_SENTENCE,
         PM_TINY_FIX_WRITERS,
     )
 except ImportError:  # package-style `python3 -m unittest tests.test_tiny_fix_route`
+    from tests.test_model_independence import model_family
     from tests.test_pm_layer_prompts import (
         PM_TINY_FIX_INSTRUCTION,
         PM_TINY_FIX_STALE_SENTENCE,
@@ -99,9 +101,11 @@ def tiny_fix_writer_contract_gaps(workflow, config):
         if not dispatcher_model or not writer_model:
             gaps.append((dispatcher, "configured model missing"))
             continue
-        dispatcher_family = dispatcher_model.split("/", 1)[0]
-        writer_family = writer_model.split("/", 1)[0]
-        if dispatcher_family == writer_family:
+        dispatcher_family = model_family(dispatcher_model)
+        writer_family = model_family(writer_model)
+        if not dispatcher_family or not writer_family:
+            gaps.append((dispatcher, "model family not proven"))
+        elif dispatcher_family == writer_family:
             gaps.append((dispatcher, f"same model family: {dispatcher_model}"))
     if "ROUTER-LOG.md" not in workflow or "authorized paths" not in workflow:
         gaps.append(("ROUTER-LOG", "writer path requirement missing"))

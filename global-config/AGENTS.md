@@ -155,6 +155,14 @@ for a known allowed path; use approved `sandbox_list`/`sandbox_read`/
 Check availability and scope in the current session: CodeGraph may lack an
 index, and structural matching does not replace a needed literal text search.
 
+Search-order hardening for orchestrator absence claims: use applicable, available
+tools in this order: `read` → `aft_outline`/`aft_zoom` → `codegraph_explore` →
+`ast_grep_search` → built-in `grep` last, retaining query-type tool selection.
+Built-in `grep` is case-sensitive by default; a zero match is evidence about the
+pattern, not the file. State the exact pattern and a positive control proving it
+would match the real spelling (e.g. capitalisation). `grep` remains `ask`-gated
+and unavailable to subagents; shell search never bypasses these boundaries.
+
 For the orchestrator, built-in `grep` remains `ask`-gated. Use it only when
 these tools cannot answer a necessary, bounded content query; follow the
 normal approval flow.

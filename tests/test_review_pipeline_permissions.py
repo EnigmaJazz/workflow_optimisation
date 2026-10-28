@@ -1,10 +1,12 @@
 import json
+import os
 import re
 import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,15 +33,19 @@ PM_REQUIRED_DISPATCH = {
         "gentle-ai-worker",
         "gentle-ai-worker-local",
         "gentle-ai-verify",
+        "gentle-ai-verify-routine",
         "gentle-ai-verify-astra",
         "explore",
+        "planner",
     ],
     "pm-systematic": [
         "gentle-ai-worker",
         "gentle-ai-worker-local",
         "gentle-ai-verify",
+        "gentle-ai-verify-routine",
         "gentle-ai-verify-astra",
         "explore",
+        "planner",
     ],
 }
 LEAF_DISPATCH_AGENTS = [
@@ -47,8 +53,28 @@ LEAF_DISPATCH_AGENTS = [
     "gentle-ai-worker",
     "gentle-ai-worker-local",
     "gentle-ai-verify",
+    "gentle-ai-verify-routine",
     "explore",
 ]
+HOST_TEST_RUN = "host_test_run"
+HOST_PLAN_WRITE = "host_plan_write"
+HOST_TOOL_PROMPT_FRAGMENTS = (
+    "may draft plan documents through the ask-gated `host_plan_write` fixed tool",
+    "plan documents only, never code or configuration",
+    "narrowly defined, pre-registered tests through the allow-gated `host_test_run` fixed tool",
+    "never arbitrary caller argv, pipes, redirects, or shell",
+    "a failed or unavailable test run is evidence, never permission to widen authority",
+    "`host_test_run` is not implemented in the current surface and remains inert until the host tool ships",
+)
+HOST_TOOL_FUNCTION_NAMES = (
+    "hostTestRunGlobalDefaultFailures",
+    "hostPlanWriteGlobalDefaultFailures",
+    "hostTestRunOrchestratorFailures",
+    "hostPlanWriteOrchestratorFailures",
+    "hostTestRunGrantSweepFailures",
+    "hostPlanWriteGrantSweepFailures",
+    "hostToolPromptFailures",
+)
 
 
 def hardcoded_coordinator_triple_lines(text):
@@ -95,15 +121,15 @@ const leafAgents=__LEAF_AGENTS__;
 const handoff=__HANDOFF_TEXT__;
 const identityNeedles=__IDENTITY_NEEDLES__;
 const familyPairs=[["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"],["pm-odd","odd-apply"],["pm-systematic","gentle-ai-worker"]];
-const familyModel=(family)=>family==="gpt"?"openai/gpt-6.1-sol":family==="deepseek"?"opencode-go/deepseek-v4.1-flash":"synthetic/no-family";
+const familyModel=(family)=>family==="gpt"?"openai/gpt-6.1-sol":family==="deepseek"?"opencode-go/deepseek-v4.1-flash":family==="glm"?"opencode-go/glm-5.3-flash":family==="muse"?"opencode-go/muse-spark-1.3-contributor":"synthetic/no-family";
 const independentRuntime={
   "general":{model:"openai/gpt-6-luna"},
   "gentle-orchestrator":{model:"opencode-go/deepseek-v4.1-flash"},
   "gentle-ai-worker":{model:"opencode-go/deepseek-v4.1-flash"},
   "gentle-ai-verify":{model:"openai/gpt-6-luna"},
-  "pm-odd":{model:"openai/gpt-6-luna"},
+  "pm-odd":{model:"opencode-go/muse-spark-1.3-contributor"},
   "odd-apply":{model:"opencode-go/deepseek-v4.1-flash"},
-  "pm-systematic":{model:"openai/gpt-6-luna"},
+  "pm-systematic":{model:"opencode-go/muse-spark-1.3-contributor"},
 };
 function runPrimaryReviewFamilyLoop(deployedAgents,readDebug){
   const failures=[];
@@ -519,7 +545,7 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             declarations,
             "coordinator set must derive from the shared pmAgents declaration",
         )
-        self.assertEqual(sum(len(v) for v in PM_REQUIRED_DISPATCH.values()), 11, "unexpected required dispatch lane inventory")
+        self.assertEqual(sum(len(v) for v in PM_REQUIRED_DISPATCH.values()), 15, "unexpected required dispatch lane inventory")
         identity_needles = json.loads(
             "[" + self.verifier.split("const needles=[", 1)[1].split("]", 1)[0] + "]"
         )
@@ -637,12 +663,452 @@ console.log("extracted verifier assertions and positive controls passed");
         for marker in (
             "coverage-group-1-identity: 27 controls passed",
             "coverage-group-2-handoff: 8 controls passed",
-            "coverage-group-3-taskgraph: 40 controls passed",
+            "coverage-group-3-taskgraph: 45 controls passed",
             "coverage-group-4-family: 18 controls passed",
             "coverage-group-5-pmgeneral: 10 controls passed",
-            "coverage-total: 103 controls passed",
+            "coverage-total: 108 controls passed",
         ):
             self.assertIn(marker, result.stdout)
+
+
+class HostFixedToolPermissionTests(unittest.TestCase):
+    """Q90 T3a1: the orchestrator-only plan-write and test-run fixed tools."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        cls.agents = cls.config["agent"]
+        cls.verifier = VERIFIER_PATH.read_text(encoding="utf-8")
+        cls.prompt = cls.agents["gentle-orchestrator"]["prompt"]
+
+    def run_controls(self, body, fragments=None):
+        bun = shutil.which("bun")
+        if bun is None:
+            self.skipTest("Bun runtime not found on PATH; extracted verifier harness requires Bun")
+        functions = "\n".join(
+            extract_braced_block(self.verifier, f"function {name}(")
+            for name in HOST_TOOL_FUNCTION_NAMES
+        )
+        script = (
+            'import { readFileSync } from "node:fs";\n'
+            "const show=(value)=>JSON.stringify(value);\n"
+            "const cfgPerm=(agent,tool)=>agent?.permission?.[tool];\n"
+            "const assert=(condition,message)=>{if(!condition)throw new Error(message)};\n"
+            + functions
+            + "\nconst config=JSON.parse(readFileSync(process.env.HOST_TOOL_CONFIG_PATH,\"utf8\"));\n"
+            "const agents=config.agent;\nconst gp=config.permission;\n"
+            "const prompt=readFileSync(process.env.HOST_TOOL_PROMPT_PATH,\"utf8\");\n"
+            "const fragments=JSON.parse(readFileSync(process.env.HOST_TOOL_FRAGMENTS_PATH,\"utf8\"));\n"
+            + body
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            paths = {
+                "HOST_TOOL_CONFIG_PATH": tmp_path / "config.json",
+                "HOST_TOOL_PROMPT_PATH": tmp_path / "prompt.txt",
+                "HOST_TOOL_FRAGMENTS_PATH": tmp_path / "fragments.json",
+            }
+            paths["HOST_TOOL_CONFIG_PATH"].write_text(json.dumps(self.config), encoding="utf-8")
+            paths["HOST_TOOL_PROMPT_PATH"].write_text(self.prompt, encoding="utf-8")
+            paths["HOST_TOOL_FRAGMENTS_PATH"].write_text(
+                json.dumps(list(fragments or HOST_TOOL_PROMPT_FRAGMENTS)), encoding="utf-8"
+            )
+            script_path = tmp_path / "controls.ts"
+            script_path.write_text(script, encoding="utf-8")
+            environment = dict(os.environ)
+            environment.update({key: str(value) for key, value in paths.items()})
+            try:
+                result = subprocess.run(
+                    [bun, str(script_path)],
+                    cwd=ROOT, capture_output=True, text=True, env=environment, check=False,
+                )
+            except PermissionError:
+                self.skipTest("sandbox policy denies child Bun processes")
+            except (FileNotFoundError, OSError):
+                self.skipTest("Bun runtime could not be executed; run the extracted verifier harness directly")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_actual_config_and_tool_maps(self):
+        self.assertEqual(self.config["permission"][HOST_TEST_RUN], "deny")
+        self.assertEqual(self.config["permission"][HOST_PLAN_WRITE], "deny")
+        permission = self.agents["gentle-orchestrator"]["permission"]
+        self.assertEqual(permission[HOST_TEST_RUN], "allow")
+        self.assertEqual(permission[HOST_PLAN_WRITE], "ask")
+        for name, agent in self.agents.items():
+            if name != "gentle-orchestrator" and HOST_TEST_RUN in agent.get("permission", {}):
+                with self.subTest(agent=name):
+                    self.assertEqual(agent["permission"][HOST_TEST_RUN], "deny")
+        maps = [("global", self.config.get("tools", {}))] + [
+            (name, agent.get("tools", {})) for name, agent in self.agents.items()
+        ]
+        for name, tools in maps:
+            self.assertNotIn(HOST_TEST_RUN, tools)
+            if name == "planner":
+                self.assertIs(tools.get(HOST_PLAN_WRITE), True)
+                self.assertIs(tools.get("host_gate_verdict"), True)
+                self.assertIs(tools.get("host_task_mark"), False)
+            elif name == "planner-evidence":
+                self.assertIs(tools.get(HOST_PLAN_WRITE), False)
+                self.assertIs(tools.get("host_gate_verdict"), False)
+                self.assertIs(tools.get("host_task_mark"), False)
+            else:
+                self.assertNotIn(HOST_PLAN_WRITE, tools)
+        self.run_controls(
+            'assert(hostTestRunGlobalDefaultFailures(gp.host_test_run).length===0,"test-run default");\n'
+            'assert(hostPlanWriteGlobalDefaultFailures(gp.host_plan_write).length===0,"plan-write default");\n'
+            'assert(hostTestRunOrchestratorFailures(agents["gentle-orchestrator"]).length===0,"test-run grant");\n'
+            'assert(hostPlanWriteOrchestratorFailures(agents["gentle-orchestrator"]).length===0,"plan-write grant");\n'
+            'assert(hostTestRunGrantSweepFailures(agents).length===0,"test-run sweep");\n'
+            'assert(hostPlanWriteGrantSweepFailures(agents,["gentle-orchestrator","pm-odd","pm-systematic","planner"]).length===0,"plan-write sweep");\n'
+        )
+
+    def test_negative_controls_remove_or_flip_grants(self):
+        self.run_controls(
+            r'''
+const removed=JSON.parse(JSON.stringify(agents));
+delete removed["gentle-orchestrator"].permission.host_test_run;
+delete removed["gentle-orchestrator"].permission.host_plan_write;
+assert(hostTestRunOrchestratorFailures(removed["gentle-orchestrator"]).includes('ORCHESTRATOR_HOST_TEST_RUN_NOT_ALLOW: undefined'),"missing test-run");
+assert(hostPlanWriteOrchestratorFailures(removed["gentle-orchestrator"]).includes('ORCHESTRATOR_HOST_PLAN_WRITE_NOT_ASK: undefined'),"missing plan-write");
+const wrong=JSON.parse(JSON.stringify(agents));
+wrong["gentle-orchestrator"].permission.host_test_run="ask";
+wrong["gentle-orchestrator"].permission.host_plan_write="allow";
+assert(hostTestRunOrchestratorFailures(wrong["gentle-orchestrator"]).includes('ORCHESTRATOR_HOST_TEST_RUN_NOT_ALLOW: "ask"'),"test-run ask");
+assert(hostPlanWriteOrchestratorFailures(wrong["gentle-orchestrator"]).includes('ORCHESTRATOR_HOST_PLAN_WRITE_NOT_ASK: "allow"'),"plan-write allow");
+assert(hostTestRunGlobalDefaultFailures("allow").includes('HOST_TEST_RUN_GLOBAL_DEFAULT_NOT_DENY: "allow"'),"global test-run");
+assert(hostTestRunGlobalDefaultFailures("ask").includes('HOST_TEST_RUN_GLOBAL_DEFAULT_NOT_DENY: "ask"'),"global test-run ask");
+assert(hostPlanWriteGlobalDefaultFailures("allow").includes('HOST_PLAN_WRITE_GLOBAL_DEFAULT_NOT_DENY: "allow"'),"global plan-write");
+assert(hostPlanWriteGlobalDefaultFailures("ask").includes('HOST_PLAN_WRITE_GLOBAL_DEFAULT_NOT_DENY: "ask"'),"global plan-write ask");
+for (const name of ["pm-odd","pm-systematic","general","odd-apply","gentle-ai-worker","review-risk","advisor-security-pre","synthetic-agent"]) {
+  for (const value of ["ask","allow"]) {
+    const failures=hostTestRunGrantSweepFailures({[name]:{permission:{host_test_run:value}}});
+    assert(failures.some((failure)=>failure.includes(`HOST_TEST_RUN_GRANTED_OUTSIDE_ORCHESTRATOR: ${name}="${value}"`)),`sweep ${name}=${value}`);
+  }
+}
+assert(hostTestRunGrantSweepFailures({"gentle-orchestrator":{permission:{host_test_run:"allow"}}}).length===0,"orchestrator allow");
+assert(hostTestRunGrantSweepFailures({"pm-odd":{permission:{host_test_run:"deny"}}}).length===0,"explicit deny");
+const planAllowed=["gentle-orchestrator","pm-odd","pm-systematic","planner"];
+for (const name of ["general","odd-apply","gentle-ai-worker","review-risk","advisor-security-pre","synthetic-agent"]) {
+  for (const value of ["ask","allow"]) {
+    const failures=hostPlanWriteGrantSweepFailures({[name]:{permission:{host_plan_write:value}}},planAllowed);
+    assert(failures.some((failure)=>failure.includes(`HOST_PLAN_WRITE_GRANTED_OUTSIDE_COORDINATORS: ${name}="${value}"`)),`plan-write sweep ${name}=${value}`);
+  }
+}
+assert(hostPlanWriteGrantSweepFailures({"gentle-orchestrator":{permission:{host_plan_write:"ask"}}, "pm-odd":{permission:{host_plan_write:"ask"}}, "pm-systematic":{permission:{host_plan_write:"allow"}}},planAllowed).length===0,"coordinator grants accepted");
+assert(hostPlanWriteGrantSweepFailures({"synthetic-agent":{permission:{host_plan_write:"deny"}}, "synthetic-omitted":{permission:{}}},planAllowed).length===0,"deny and undefined non-grants accepted");
+''')
+
+    def test_prompt_clauses_and_removal_controls(self):
+        self.run_controls(
+            r'''
+assert(hostToolPromptFailures(prompt).length===0,"real prompt rejected");
+assert(hostToolPromptFailures("").length===fragments.length,"empty prompt");
+for (const fragment of fragments) {
+  const mutated=prompt.replace(fragment,"removed");
+  assert(mutated!==prompt,`fragment absent: ${fragment}`);
+  assert(hostToolPromptFailures(mutated).some((failure)=>failure.includes(JSON.stringify(fragment))),`removal control: ${fragment}`);
+}
+''')
+
+
+    def test_plan_write_sweep_production_wiring_and_controls(self):
+        self.assertIn(
+            "for (const failure of hostPlanWriteGrantSweepFailures(deployedAgents,planWriterAgents)) fail(failure)",
+            self.verifier,
+        )
+        self.assertIn("HOST_PLAN_WRITE_GRANT_SWEEP_POSITIVE_CONTROL_FAILED", self.verifier)
+        self.run_controls(
+            r'''
+const allowed=["gentle-orchestrator","pm-odd","pm-systematic","planner"];
+assert(hostPlanWriteGrantSweepFailures(agents,allowed).length===0,"real config plan-write sweep");
+for (const value of ["ask","allow"]) {
+  const synthetic=`synthetic-${value}-agent`;
+  const detected=hostPlanWriteGrantSweepFailures({[synthetic]:{permission:{host_plan_write:value}}},allowed);
+  assert(detected.includes(`HOST_PLAN_WRITE_GRANTED_OUTSIDE_COORDINATORS: ${synthetic}="${value}"`),`synthetic non-coordinator ${value}`);
+}
+assert(hostPlanWriteGrantSweepFailures({"gentle-orchestrator":{permission:{host_plan_write:"ask"}}, "pm-odd":{permission:{host_plan_write:"ask"}}, "pm-systematic":{permission:{host_plan_write:"allow"}}},allowed).length===0,"synthetic coordinators accepted");
+''')
+
+    def test_missing_bun_skips_cleanly(self):
+        with mock.patch("shutil.which", return_value=None):
+            with self.assertRaises(unittest.SkipTest) as raised:
+                self.run_controls("")
+        self.assertIn("Bun", str(raised.exception))
+
+    def test_unexecutable_bun_skips_cleanly(self):
+        with mock.patch("subprocess.run", side_effect=FileNotFoundError("missing bun")):
+            with self.assertRaises(unittest.SkipTest) as raised:
+                self.run_controls("")
+        self.assertIn("Bun", str(raised.exception))
+        self.assertNotIsInstance(raised.exception, AssertionError)
+
+
+RELAY_REVIEW_AGENTS = [
+    "asi-review-risk",
+    "asi-review-resilience",
+    "asi-review-readability",
+    "asi-review-reliability",
+    "asi-review-refuter",
+    "asi-review-validator",
+]
+PLAIN_PROVIDER_REVIEW_AGENTS = [
+    "review-risk",
+    "review-resilience",
+    "review-readability",
+    "review-reliability",
+    "review-refuter",
+    "review-validator",
+]
+
+
+class ReviewDispatchPermissionTests(unittest.TestCase):
+    """Q90 T3a2: raw task-map review-dispatch enforcement."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        cls.agents = cls.config["agent"]
+        cls.verifier = VERIFIER_PATH.read_text(encoding="utf-8")
+
+    def predicate_source(self):
+        self.assertIn(
+            "function reviewDispatchFailures(",
+            self.verifier,
+            "missing production reviewDispatchFailures predicate",
+        )
+        return extract_braced_block(self.verifier, "function reviewDispatchFailures(")
+
+    def declarations(self):
+        return "\n".join(
+            extract_declaration(self.verifier, name)
+            for name in ("relayReviewAgents", "plainProviderReviewAgents")
+        )
+
+    def call_site(self):
+        lines = [
+            line.strip()
+            for line in self.verifier.splitlines()
+            if line.strip().startswith("for (const failure of reviewDispatchFailures(")
+        ]
+        self.assertEqual(len(lines), 1, "production reviewDispatchFailures call site must be unique")
+        return lines[0]
+
+    def run_script(self, body, predicate=None):
+        prelude = (
+            'import { readFileSync } from "node:fs";\n'
+            'const agents=JSON.parse(readFileSync(process.env.REVIEW_DISPATCH_AGENTS_PATH,"utf8"));\n'
+            'const expectedRelay=JSON.parse(readFileSync(process.env.REVIEW_DISPATCH_RELAY_PATH,"utf8"));\n'
+            'const expectedPlain=JSON.parse(readFileSync(process.env.REVIEW_DISPATCH_PLAIN_PATH,"utf8"));\n'
+            "const assert=(condition,message)=>{if(!condition)throw new Error(message)};\n"
+            "const clone=()=>JSON.parse(JSON.stringify(agents));\n"
+        )
+        lane_guard = (
+            'assert(JSON.stringify(relayReviewAgents)===JSON.stringify(expectedRelay),"production relay lane list drift");\n'
+            'assert(JSON.stringify(plainProviderReviewAgents)===JSON.stringify(expectedPlain),"production plain lane list drift");\n'
+        )
+        script = (
+            prelude
+            + (predicate or self.predicate_source())
+            + "\n"
+            + self.declarations()
+            + "\n"
+            + lane_guard
+            + body
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            agents_path = tmp_path / "agents.json"
+            relay_path = tmp_path / "relay.json"
+            plain_path = tmp_path / "plain.json"
+            script_path = tmp_path / "review-dispatch-controls.ts"
+            agents_path.write_text(json.dumps(self.agents), encoding="utf-8")
+            relay_path.write_text(json.dumps(RELAY_REVIEW_AGENTS), encoding="utf-8")
+            plain_path.write_text(json.dumps(PLAIN_PROVIDER_REVIEW_AGENTS), encoding="utf-8")
+            script_path.write_text(script, encoding="utf-8")
+            environment = dict(os.environ)
+            environment.update(
+                {
+                    "REVIEW_DISPATCH_AGENTS_PATH": str(agents_path),
+                    "REVIEW_DISPATCH_RELAY_PATH": str(relay_path),
+                    "REVIEW_DISPATCH_PLAIN_PATH": str(plain_path),
+                }
+            )
+            try:
+                return subprocess.run(
+                    [shutil.which("bun") or "bun", str(script_path)],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    env=environment,
+                    check=False,
+                )
+            except PermissionError:
+                self.skipTest("sandbox policy denies child Bun processes")
+
+    def assert_script(self, body):
+        result = self.run_script(body)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result
+
+    def test_production_predicate_and_call_site_exist(self):
+        self.predicate_source()
+        call = self.call_site()
+        self.assertIn("deployedAgents", call)
+        self.assertIn("relayReviewAgents", call)
+        self.assertIn("plainProviderReviewAgents", call)
+
+    def test_real_config_accepted_and_every_orchestrator_lane_required(self):
+        self.assert_script(
+            r'''
+assert(reviewDispatchFailures(agents,relayReviewAgents,plainProviderReviewAgents).length===0,"real config rejected");
+for (const name of relayReviewAgents) {
+  const mutated=clone();
+  delete mutated["gentle-orchestrator"].permission.task[name];
+  const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+  const expected=`RELAY_TASK_NOT_ALLOWED: ${name}`;
+  assert(failures.length===1&&failures[0]===expected,`relay omission not isolated: ${name} => ${JSON.stringify(failures)}`);
+}
+for (const name of plainProviderReviewAgents) {
+  for (const value of ["allow","ask"]) {
+    const mutated=clone();
+    mutated["gentle-orchestrator"].permission.task[name]=value;
+    const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+    const expected=`PLAIN_PROVIDER_REVIEW_TASK_NOT_DENIED: ${name}`;
+    assert(failures.length===1&&failures[0]===expected,`plain ${value} not isolated: ${name} => ${JSON.stringify(failures)}`);
+  }
+}
+console.log("orchestrator lanes: 6 relay + 12 plain controls passed");
+'''
+        )
+
+    def test_pm_review_grants_are_rejected_for_allow_and_ask(self):
+        result = self.assert_script(
+            r'''
+for (const pm of ["pm-odd","pm-systematic"]) {
+  for (const lane of [...relayReviewAgents,...plainProviderReviewAgents]) {
+    for (const value of ["allow","ask"]) {
+      const mutated=clone();
+      assert(!(lane in mutated[pm].permission.task),`lane already present before mutation: ${pm}.${lane}`);
+      mutated[pm].permission.task[lane]=value;
+      const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+      const expected=`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${pm}.${lane}="${value}"`;
+      assert(failures.length===1&&failures[0]===expected,`${pm}.${lane}=${value} not isolated => ${JSON.stringify(failures)}`);
+    }
+  }
+}
+console.log("PM review grants: 48 controls passed");
+'''
+        )
+        self.assertIn("PM review grants: 48 controls passed", result.stdout)
+
+    def test_partial_glob_review_grants_fail_closed(self):
+        result = self.assert_script(
+            r'''
+const partialGlobs=["asi-*","rev*","*risk","*-risk","*review*"];
+const patternAgents=["pm-odd","pm-systematic","advisor-security-pre","odd-apply","gentle-ai-worker"];
+for (const agentName of patternAgents) {
+  for (const pattern of partialGlobs) {
+    for (const value of ["allow","ask"]) {
+      const mutated=clone();
+      if (!mutated[agentName].permission) mutated[agentName].permission={};
+      if (!mutated[agentName].permission.task||typeof mutated[agentName].permission.task!=="object"||Array.isArray(mutated[agentName].permission.task)) mutated[agentName].permission.task={"*":"deny"};
+      mutated[agentName].permission.task[pattern]=value;
+      const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+      const expected=`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.${pattern}="${value}"`;
+      assert(failures.length===1&&failures[0]===expected,`${agentName}.${pattern}=${value} not isolated => ${JSON.stringify(failures)}`);
+    }
+  }
+}
+for (const pattern of partialGlobs) {
+  for (const value of ["deny",false]) {
+    const mutated=clone();
+    mutated["pm-odd"].permission.task[pattern]=value;
+    const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+    assert(failures.length===0,`protective ${pattern}=${JSON.stringify(value)} rejected => ${JSON.stringify(failures)}`);
+  }
+}
+const unrelated=clone();
+unrelated["pm-odd"].permission.task["frontend-*"]="ask";
+assert(reviewDispatchFailures(unrelated,relayReviewAgents,plainProviderReviewAgents).length===0,"non-review partial glob was flagged");
+console.log(`partial-glob review grants: ${partialGlobs.length*patternAgents.length*2} grants + ${partialGlobs.length*2+1} non-grants passed`);
+'''
+        )
+        self.assertIn(
+            "partial-glob review grants: 50 grants + 11 non-grants passed",
+            result.stdout,
+        )
+
+    def test_advisor_writer_and_wildcard_scalar_shapes_fail_closed(self):
+        self.assert_script(
+            r'''
+for (const agentName of ["advisor-security-pre","odd-apply","gentle-ai-worker","general"]) {
+  for (const lane of relayReviewAgents) {
+    const mutated=clone();
+    if (!mutated[agentName].permission) mutated[agentName].permission={};
+    if (!mutated[agentName].permission.task||typeof mutated[agentName].permission.task!=="object"||Array.isArray(mutated[agentName].permission.task)) mutated[agentName].permission.task={"*":"deny"};
+    mutated[agentName].permission.task[lane]="allow";
+    const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+    const expected=`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.${lane}="allow"`;
+    assert(failures.length===1&&failures[0]===expected,`${agentName}.${lane} not isolated => ${JSON.stringify(failures)}`);
+  }
+}
+for (const agentName of ["pm-odd","pm-systematic","advisor-security-pre","odd-apply"]) {
+  for (const value of ["allow","ask"]) {
+    let mutated=clone();
+    mutated[agentName].permission.task={"*":value};
+    let failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+    let expected=`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.*="${value}"`;
+    assert(failures.length===1&&failures[0]===expected,`wildcard ${agentName}=${value} not isolated => ${JSON.stringify(failures)}`);
+    mutated=clone();
+    mutated[agentName].permission.task=value;
+    failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+    expected=`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}="${value}"`;
+    assert(failures.length===1&&failures[0]===expected,`scalar ${agentName}=${value} not isolated => ${JSON.stringify(failures)}`);
+  }
+}
+for (const malformed of [[],null,42,true]) {
+  const mutated=clone();
+  mutated["pm-odd"].permission.task=malformed;
+  const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+  assert(failures.length===1&&failures[0]==="REVIEW_TASK_MAP_INVALID: pm-odd",`malformed ${JSON.stringify(malformed)} not isolated => ${JSON.stringify(failures)}`);
+}
+const denied=clone();
+denied["pm-odd"].permission.task["asi-review-risk"]="deny";
+assert(reviewDispatchFailures(denied,relayReviewAgents,plainProviderReviewAgents).length===0,"named deny review key treated as a grant");
+console.log("advisor/writer/wildcard/scalar/malformed controls passed");
+'''
+        )
+
+    def test_production_call_site_propagates_failures(self):
+        call = self.call_site()
+        self.assert_script(
+            "const runCallSite=(deployedAgents,fail)=>{" + call + "};\n"
+            'const bad=clone();\n'
+            'bad["pm-odd"].permission.task["asi-review-risk"]="allow";\n'
+            "const badFailures=[];\n"
+            "runCallSite(bad,(message)=>badFailures.push(message));\n"
+            'assert(badFailures.length===1&&badFailures[0]===\'REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: pm-odd.asi-review-risk="allow"\',`call site did not propagate: ${JSON.stringify(badFailures)}`);\n'
+            "const goodFailures=[];\n"
+            "runCallSite(clone(),(message)=>goodFailures.push(message));\n"
+            'assert(goodFailures.length===0,`valid call site rejected: ${JSON.stringify(goodFailures)}`);\n'
+            'console.log("production call site propagation controls passed");\n'
+        )
+
+    def test_always_pass_predicate_mutation_is_rejected(self):
+        predicate = self.predicate_source()
+        mutated = re.sub(r"return failures\s*\n\}", "return []\n}", predicate, count=1)
+        self.assertNotEqual(mutated, predicate, "always-pass predicate mutation did not apply")
+        result = self.run_script(
+            r'''
+const mutated=clone();
+mutated["pm-odd"].permission.task["asi-review-risk"]="allow";
+const failures=reviewDispatchFailures(mutated,relayReviewAgents,plainProviderReviewAgents);
+assert(failures.length===1&&failures[0]==='REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: pm-odd.asi-review-risk="allow"',`always-pass predicate was not rejected: ${JSON.stringify(failures)}`);
+''',
+            predicate=mutated,
+        )
+        self.assertNotEqual(result.returncode, 0, "always-pass predicate satisfied the negative control")
+        self.assertIn("always-pass predicate was not rejected", result.stderr + result.stdout)
 
 
 if __name__ == "__main__":

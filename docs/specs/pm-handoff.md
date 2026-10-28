@@ -10,6 +10,42 @@ Every PM Task brief is exactly one work unit, never a whole feature. It carries 
 
 Keep each PM prompt to approximately 6,000 characters or less. It contains only the one-unit identity/authority contract, route-skill load-first requirement and route validation against `WORKFLOW.md`, stop/resume rules, the rule that a report is not proof, and a pointer to this versioned envelope contract. The route procedure, specialist precedence, review protocol, and route-specific checks remain in the loaded `workflow-*` skill and its references. Do not copy the route procedure into a third prompt-level source.
 
+## Planner handoff (installed and live)
+
+`planner`, `planner-evidence` and the three plan tools are installed and deployed as of 2026-10-25.
+
+Sequence:
+
+1. The orchestrator drafts the plan.
+2. The PM reads the draft and hands it to the Planner with its own suggestions. Suggestions are
+   messages, never plan writes.
+3. The Planner finalises the plan and selects only the pre-code advisors the task class and impact require:
+   none for documentation, metadata, comment-only, tiny or passive; one surface advisor for
+   medium code; at most three for high-risk, normative, config, security or cross-cutting. It reads
+   each selected advisor's RAW output and never accepts a PM or orchestrator summary as the advice.
+   `planner-evidence` runs only when facts cannot be established by the Planner's own reads.
+4. **Gate 1** follows the pre-code advice. The Planner issues `PASS`, `REFINE`, or `ESCALATE` through
+   the ask-gated `host_gate_verdict` fixed act.
+5. A writer implements; the Planner runs the required post-code advisory check.
+6. **Gate 2** follows the post-code advice, the writer and verifier evidence, and the pre-commit
+   assessment of the installed candidate. Gate 2 occurs BEFORE the work-unit commit and
+   BEFORE the PM completes or ticks the unit, so a REFINE resolves in the single revision cycle
+   before the final commit. The PM does not close the unit before Gate 2.
+   Gate 2 occurs BEFORE the PM completes or ticks the unit.
+7. The PM commits the reviewed result as the work-unit commit; that same commit is the unit's
+   `evidenceCommit`. The orchestrator dispatches the four post-commit lenses only after the commit.
+   Native review is post-commit and is not Gate 2 input.
+8. After the commit the PM ticks the unit; the orchestrator then assesses, reviews where due, and
+   acknowledges; the owner approves delivery.
+
+Gate 2 runs again after any revision; the second Gate 2 decides the unit. A second Gate 2 fails only
+on a true blocker; non-blocking follow-ups are recorded as later work. A second REFINE or ESCALATE
+stops the unit for human direction.
+
+Both gate verdicts are TECHNICAL only. They never approve delivery, deployment, merge, release, or
+user acceptance. The Planner is read-only except for the ask-gated `host_plan_write` and
+`host_gate_verdict` fixed acts; `host_task_mark` is denied. It dispatches no writer and no review lens. Deferred Q90-D1 prompt reduction/externalization happens only AFTER the PM layer becomes active; it is not an immediate prerequisite to making the PM layer active and is not performed here.
+
 ## Verification and advice budget by task type
 
 The unit's **actual diff** selects a finite budget, not its feature class, file count or risk estimate alone; a native medium/high raise moves a unit up, never down.

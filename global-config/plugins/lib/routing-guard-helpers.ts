@@ -54,7 +54,7 @@ export const pmRequiredRouteSkill = (agent: string): string | null => {
 
 // Anchored on purpose: under deny-by-default a loose match would let a writer through.
 export const READ_ONLY_SPECIALIST_PATTERNS: readonly RegExp[] = [
-  /^(?:explore|gentle-ai-explore|gentle-ai-verify|vision|architecture-strategist|spec-flow-analyzer|git-history-analyzer|issue-intelligence-analyst|pattern-recognition-specialist|deployment-verification-agent|repo-research-analyst|best-practices-researcher|framework-docs-researcher|learnings-researcher)$/,
+  /^(?:explore|gentle-ai-explore|gentle-ai-verify|gentle-ai-verify-routine|vision|architecture-strategist|spec-flow-analyzer|git-history-analyzer|issue-intelligence-analyst|pattern-recognition-specialist|deployment-verification-agent|repo-research-analyst|best-practices-researcher|framework-docs-researcher|learnings-researcher)$/,
   /^review-/,
   /^asi-review-/,
   /^advisor-/,

@@ -46,6 +46,10 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   Then Q57-Q60 and Q61. Q62 (retired-model list and seat-assignment reconciliation) is independently
   planned.
 - **Advisor capacity (owner, 2026-10-17; independent of the phases):** Q76.
+- **Multi-agent v2 (owner-authorized, 2026-10-23):** Q89 phase 1 only — permissions first, inert.
+  Phases 2-4 (tool implementation with dormant protection, the workflow/tracker change, and
+  verification) belong to agent-sandbox-integration and are explicitly excluded here until
+  separately authorized.
 
 Every source change needs the deploy step: verifier mirror, then restart. Q27 waits on an owner
 decision.
@@ -607,6 +611,11 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 - **Counted unit 2/10 (2026-10-22):** Q85a PM unit-start deterministic anchor — verified through pm-odd; route workflow-odd-secure; no route escape; source already complete; metadata commit 1ab7647be851e2930c23023c87daa42564086066; assessment passive (4 paths / 29 lines, review_due=false).
 - Counted unit 3/10 (2026-10-22): Q79 D/E mirror-write ownership — verified through pm-odd; route workflow-odd-secure; no route escape; source verified; metadata commit PENDING-COMMIT.
 - Counted unit 4/10 (2026-10-23): Q86 ce:review 16-parameter contract revision — SOURCE COMPLETE; route workflow-odd-secure; PM-dispatched `odd-apply`; source commit `83bdeeab3d9f3bf430c54d4ffbb00e097e1856cd`; PM accepted PM01–PM05; correction_rounds_used 1; source assessment medium / `under_budget` / `review_due=false` with boundary `77b4df8` retained; metadata closure PENDING-PM-COMMIT/assessment. Reviewer delivery and helper byte custody BOTH UNRESOLVED; ASTRA caller aliases OPEN. Process exceptions: orchestrator-run pre-advice `ses_e98032642ffeiI5jf9yzRYlKki` and post-code `ses_e97ed133effeHLcEpI7U9gAhhl` are not PM checks; no PM pre-advice compliance or clean/no-process-defect claim. No route escape claimed.
+- **Counted unit 5/10 (2026-10-23):** Q89 multi-agent v2 phase 1 planning — route
+  workflow-odd-secure; PM-dispatched `odd-apply`; planning artifact committed as
+  `28d4a43` and assessed medium/`under_budget`; count
+  explicitly authorized by the dispatch brief even though earlier planning units were not counted;
+  no implementation, deployment, or native review claimed.
 
 ### Q57. PM layer: slim the orchestrator
 - **Status:** PLANNED.
@@ -614,9 +623,12 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 - **Cap status (owner 2026-10-19):** the numeric orchestrator cap is DEFERRED to this item; the
   "about 8,000 characters" below is a planning target, not an enforced threshold. No threshold is
   invented here and `docs/PLAN.md` is unchanged.
-- **Description:** new prompt (about 8,000 characters); `permission.task` deny by default with
-  `explore` and `pm-*` allowed; host mutations removed except `host_register_project`; split
-  `global-config/AGENTS.md`; update `WORKFLOW.md`, `workflow-route` and the adapters.
+- **Description:** forward contract (Q90 decision, 2026-10-23): `permission.task` routes to PM
+  and Tiny only; the six `asi-review-*` lanes and `advisor-*` run on the PM; the orchestrator does
+  assessment/consent/acknowledgement only and is not a lens. Host mutations are removed except
+  `host_register_project`. Split `global-config/AGENTS.md`; update `WORKFLOW.md`,
+  `workflow-route` and the adapters. The earlier "deny by default with `explore` and `pm-*`
+  allowed" draft is SUPERSEDED by Q90; the numeric cap remains DEFERRED per Status above.
 
 ### Q58. PM layer: guard ordering
 - **Status:** SLICES COMPLETE AND SHIPPED; the `pm-odd` bootstrap run executed 2026-10-19 as `q58-bootstrap-advisory-clearance-u1` (task `q58-bootstrap`) and addressed the five advisory findings. Slice 1: `7a427d7`; direct-writer-dispatch warning: `d25228b`; advice-before-writer stage: `4b63481`; supporting routing-gate and breadcrumb fixes: `9c215b1`. Implementation commit `b3fba8dd6666af98cf6ba00d61eac425747b9f20` on `chore/q72-t1b-tiny-fix-contract` (six allowed paths, 66 insertions / 8 deletions; owner-supplied readback, not this writer's execution). The exact PM host assessment after that commit returned status 0 with empty stderr: `{"schema":"gentle-ai.review-assessment/v1","risk":"medium","reasons":[{"code":"executable_change","path":"tests/test_pm_handoff_spec.py"}],"changed_paths":6,"changed_lines":74,"candidate":{"kind":"base-diff","base_ref":"deab3b5b07c84c9adbd1ffe4f5b7ed02b8dd1422","consumed":false},"review_due":false,"review_due_reason":"under_budget"}`. No native review is DUE; the reviewed boundary remains `deab3b5b07c84c9adbd1ffe4f5b7ed02b8dd1422`, and the medium slice remains accumulated/pending — NOT passive, approved, or consumed; the external orchestrator drives any future native review. Independent relay-delivery proof remains UNVERIFIED and the bootstrap unit does not count toward the ten-unit pilot. Observed historical closure, scoped to metadata commit `905e347bd2dc25d814e576737bd9a53e1b948c1a` only and not a final result for any later correction commit: the final committed-candidate assessment was `medium` / `under_budget` / `review_due=false` with `changed_paths=6`, `changed_lines=94`, and `consumed=false`; the reviewed boundary was retained at `deab3b5b07c84c9adbd1ffe4f5b7ed02b8dd1422`; the medium slice remains accumulated/pending with no native review due; independent advisor Task `ses_eaa48d2e6ffeXfsGxfQXo4HFLk` inspected the METADATA candidate and returned no blockers before that metadata commit; the metadata receipt was 34 authored changed lines / 28470 bytes with no generated or binary paths; no approval claimed.
@@ -639,6 +651,11 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   tools, so a PM can start a review it cannot complete without relay lanes. Options:
   (a) the PM keeps `host_review_start` and another actor drives the lens; or
   (b) review start also leaves the PM session. Do not resolve this in Q58.
+- **Supersession (2026-10-23, Q90 decision 1):** the enforced-independence requirement and the
+  open `host_review_start` question are RESOLVED for the forward contract: the PM runs the six
+  native `asi-review-*` lanes and keeps the review lifecycle, while the lenses are independently
+  driven outside the implementing writer, not outside the PM. The historical text above is
+  retained unchanged as the record at its date.
 - **Open external/upstream item — review relay deadline:** two review lenses expired with `reviewer_relay_deadline_expired: review relay deadline of 600000 ms expired` despite taking 16–19 minutes. The deadline is `RELAY_DEADLINE_MS = 600_000` at `~/.config/opencode/plugins/lib/reviewer-relay-core.ts:112`, overridable through `config.deadlineMs` at `:778` and `:1294`. That file is not tracked here (this repository tracks only `global-config/plugins/lib/routing-guard-helpers.ts`), and nothing in this repository sets the deadline. The fix belongs to the external plugin owner, not local Q58 work; details are in `odd/tasks/pm-layer.md`. New data point (2026-10-14): a resilience review lens needed 26m18s against the 600000 ms deadline; the owner permanently increased the relay timeout, and because that file is not tracked here the fix lives with the external plugin owner.
 
 ### Q59. PM layer: verifier
@@ -687,13 +704,34 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   high-risk candidates. Config/prompt runtime is still not attested; full verifier, deploy and
   live probes are HOST-ONLY and were NOT RUN. Q54's identity on a permitted broker call is inferred
   because the broker echoes no identity.
+- **Forward check (Q90 decision 1, 2026-10-23):** verify the PM runs the six `asi-review-*` lanes
+  and the review lifecycle; do not require a "lack of relays" check. Verify the PM model/prompt
+  is `glm-5.3-flash`; keep the `<6000`-character prompt cap, the digest re-pin and the historical
+  evidence/status above.
 
 ### Q60. PM layer: model assignment
-- **Status:** PLANNED. Waits on the external model-assignment advice.
+- **Status:** PLANNED — seats selected by Q90 (2026-10-23); remaining implementation OPEN. Model-ID existence and seat/independence readiness remain open.
 - **Prerequisites:** Q56.
 - **Description:** PMs on `openai/gpt-6.1-sol`; writers on DeepSeek; move `advisor-design-pre`
   and `advisor-security-pre` off Sol; fallback chains keep a PM off its writer's family; exclude
   PMs from the Astra aliases. Owner decision: a cheaper PM for tiny-fix and documentation units.
+- **Supersession (2026-10-23, Q90 decision 3):** the old PM-on-Sol assignment is SUPERSEDED:
+  PM `glm-5.3-flash` high with `qwen3.8-flash` high fallback, Planner `openai/gpt-6.1-sol` high
+  (xhigh for gate 1 on multi-step/high-risk). Writers remain DeepSeek; `advisor-design-pre` and
+  `advisor-security-pre` move off Sol; PM/writer fallback family independence and the Astra
+  exclusion remain requirements. That implementation is still OPEN; the cheaper PM for
+  docs/tiny-fix is satisfied by the selected GLM seat, but deployment is UNVERIFIED.
+- **Model-assignment update (2026-10-28, commit `3e2264d`, native review acknowledged with
+  non-blocking findings only):** reliability lens `claude-haiku-5-5` `high`; both validators
+  `openai/gpt-6.1-sol` `high` (native review actors excluded from Astra aliases in the plugin
+  and verifier); `advisor-integration-pre` `mimo-v2.6-flash`; `advisor-integration-post` and
+  `advisor-maintainability-pre` `glm-5.3-flash` `high`, so each advisory's pre and post differ.
+  `minimax-m3.1-flash` has no seat. DONE for these seats. The PM seat is NOT done: `pm-odd` and
+  `pm-systematic` now run `muse-spark-1.3-contributor` with no variant (owner, 2026-10-28, after a
+  two-model trial against `mimo-v2.6-flash`; PM fallback stays the per-agent `qwen3.8-flash` then Gemini
+  override, the verifier PM seat policy and tests updated). PM seat DONE; Q60's "cheaper PM" is met. Refuter, `gentle-ai-verify` versus the Planner and the DeepSeek `high`
+  fallback review remain open. Refuter stays `grok-4.7` `high` (owner, 2026-10-28): rare (about 5 calls a week, about $0.25 each), separate family, routes to Command Code while Go is exhausted. Verifier tiers (commit `4507394`, four-lens native review approved, non-blocking findings only): `gentle-ai-verify-routine` (Haiku `high`) is the default verifier; `gentle-ai-verify` (Sol) when the Risk line names a high-risk item. DONE. M3.1 session/hang/Go-allowance acceptance is CLEARED (owner, 2026-10-28: `minimax-m3.1-flash` has run in other lenses without a hang); the open-gate wording further down in Q90 is historical. `minimax-m3.1-flash` returns on four recall-oriented `ce:review` personas (`performance`, `pattern-recognition`, `maintainability`, `agent-native`) for a family independent of every other seat; `project-standards` is on `mimo-v2.6-flash`; six Luna personas moved to `glm-5.3-flash` `high`. Deferred review findings: validator on Sol has no failover (by
+  design, excluded from fallback); Astra tests skip without `bun` and assert by substring.
 
 ### Q61. PM layer: remaining routes and close
 - **Status:** PLANNED.
@@ -1459,6 +1497,476 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   `advisor-gemini-post` sequencing drift, and the post-code static-diagnostic-order clause in
   `WORKFLOW.md`/`docs/specs/pm-handoff.md` plus overlay wording), folding Q88 and the Q84
   sequencing fold with no new queue ID. Deployment/live activation remain separate.
+- **Planning overlay (2026-10-23, Q90 decision 2):** on planned/gated routes the post-code
+  advisory actor is the PLANNER, replacing the PM `advisor-*-post` closure; the finite matrix is
+  unchanged and the docs exemption stays intact. No advice is added for true docs units. This
+  overlay is planning-only: not implemented, deployed or live.
+
+### Q89. Multi-agent v2 phase 1 — inert plan-task permissions
+- **Status:** DONE for phase 1 (inert permissions; source and metadata complete). Planning
+  `q90-phase1-plan-u1` committed as `28d4a4368e0e3925069208ce7775b73c84c4922a`; T2 source
+  `473c9cd85db1c70122ed5ea007241fce10be9f59` (7 additions, 0 removals; config blob
+  `854e5c4...`). Owner decision (2026-10-23) closed the T2 medium slice and advanced the reviewed
+  boundary from `b154ef3a33ce692bba5218c0547def92755dc371` to
+  `22132adc686629cceaa7b32e469c5ec10d009e2a` (metadata). The prior owner-supplied assessment is
+  medium/`under_budget`, 5 paths / 287 changed lines. This is owner closure, NOT native review or
+  approval. Deployment/restart and consumer loading are the owner's separate host action and
+  remain UNVERIFIED; the tools are inert and not live. Tracker
+  `odd/tasks/multi-agent-v2-phase1.md`; advice `odd/advice/multi-agent-v2-phase1.md`. One metadata
+  factual correction round (round 1 of 1) is historical; source bytes unchanged. Metadata identity
+  and assessment are PM-supplied; no independent verification is claimed here.
+- **Prerequisites:** committed input `docs/contracts/multi-agent-v2-workflow-prompt.md` (commit
+  `92a2a38`, base `41c293de5365c861242ed78999a3fbc1d565e5fb`); RDD enabled (global); current
+  `global-config/opencode.json` permission blocks. Phases 2-4 are OUT OF SCOPE: they belong to
+  agent-sandbox-integration and require separate authorization.
+- **Source:** owner-supplied multi-agent v2 contract and dispatch brief, 2026-10-23.
+- **Description:** phase 1 only — add inert permission entries for `host_plan_write`,
+  `host_gate_verdict` and `host_task_mark`: global deny after `host_plan_append`; `pm-odd` and
+  `pm-systematic` `host_plan_write`/`host_task_mark` ask after `host_sandbox_result_install`.
+  No tool implementation, no tools-map key, no orchestrator grant, no `host_gate_verdict` PM
+  grant, and no `WORKFLOW.md`/tracker-rule/plan-root-protection change. The prompt is committed
+  input, not output. The tracker records the exact line positions, author split, tool contracts
+  and T2/T3 acceptance.
+- **Count:** Q56 counted unit 5/10, explicitly authorized by the dispatch brief even though
+  earlier planning units were not counted.
+
+### Q90. Multi-agent v2 workflow config (handover 2026-10-19)
+- **Status:** IN PROGRESS — T1 COMPLETE: source
+  `114366b35651316e00c972f71f723b7804fcae4c`; metadata
+  `dfbeb296af708f02151d7444d8d76431606abff6`. Final PM assessment completed at retained boundary
+  `22132adc686629cceaa7b32e469c5ec10d009e2a`: medium/`under_budget`. T2 COMPLETE for
+  decisions/evidence (2026-10-23), metadata closed at `2f196b6`. T3a1 COMPLETE: source
+  `b89f5a00d0bc1412f672954aaa7c1810c7a34092`; native review `review-1ca5500bc130a1cf` approved
+  and acknowledged, authority burned. T3a2 COMPLETE: four commits from `2173738` to source
+  `77ef08af7c376386b24a62e26efc6809b9753bdf`; approved lineage `review-bff8f73a89ebffa5`;
+  four deferred WARNINGs. T3.0 model/role PLAN COMPLETE in the tracker (planning only; no source);
+  the owner-authorized 2026-10-24 one-commit docs review-size exception is recorded there only
+  and changes no source decision; T3.0.3a PM reassignment `q90-pm-reassign-u1` COMPLETE: source
+  `455a769219795e57769488210ee89ba8d67ac63f`, 15 paths / 400 authored lines, owner-supplied review
+  `review-f6f31e924064dec0` approved/acknowledged, deployment PENDING; the remaining
+  T3.0.1-T3.0.9 slices are PLANNED; T3b (`q90-t3b-planner-u1`) is SOURCE STAGED, not committed or
+  deployed; owner decision 2026-10-24 closes `455a769..416f289` metadata by OWNER DECISION, NOT
+  native review, with reviewed boundary `416f289`; then T3c (permission-only), T3d (residual), T4-T6. Current
+  native-reviewed source boundary `77ef08a`; PM-observed host branch HEAD `36d461f` on
+  `chore/multi-agent-v2-phase1`. Tracker `odd/tasks/multi-agent-v2-queue.md`; handover
+  `docs/handoffs/2026-10-19-multi-agent-v2-workflow-config.md`. No deployment is claimed.
+- **Prerequisites:** T1: none (owner authorization 2026-10-23). Q89 phase 1 is a completed, inert
+  prerequisite; its tools are not live. Phases 2-4 remain external to this repository. T3.0 has NO
+  `agent-sandbox-integration` dependency and precedes T3b; the external host tools, session and
+  seat-independence checks remain gates for the slices that need them. The pending medium metadata
+  slice from `77ef08a` must be closed by native review or an explicit owner boundary before the
+  first high-risk T3.0 source unit; `under_budget` alone does not close it. `minimax-m3.1-flash`
+  hang, session and Go-allowance acceptance remain future gates for its promotion to a live seat.
+- **Owner decisions (2026-10-23, corrected; planning direction, not live deployment and not a
+  change to current policy):**
+  1. Review returns to the orchestrator: it dispatches FOUR lenses and the provider-selected
+     refuter/validator, and keeps assessment, consent and acknowledgement. The PM dispatches no
+     review lanes. The earlier 2026-10-23 "PM runs the lenses" decision is SUPERSEDED the same
+     day; Q58's restriction is restored. The same-day Q57/Q58 forward statements that the PM runs
+     the lanes are superseded; their historical sections are untouched.
+  2. The orchestrator first drafts the plan; the PM reads the draft and hands it to the Planner
+     with its own suggestions, passing NO advice; the Planner finalises it, calls ALL pre-code
+     advisors itself plus its own read-only Luna evidence agent, runs post-code advisory, and
+     issues BOTH gate verdicts. No additional advice for true docs; Q87's forward post-code actor
+     is the Planner.
+  3. PM `glm-5.3-flash` high, fallback `qwen3.8-flash` high; Planner `openai/gpt-6.1-sol` high,
+     xhigh for Gate 1 on multi-step/high-risk. Independence across orchestrator, PM, Planner,
+     apply and review models. The new planner-evidence agent uses `openai/gpt-6-luna`; sharing
+     Luna with the Tiny writer `general` and `jd-fix-agent` is an explicit agreed exception,
+     accepted because Tiny is passive/ungated.
+  4. The orchestrator does plan drafting + review dispatch, plus assessment/consent/acknowledgement.
+     `host_plan_write` is ask-gated for BOTH the orchestrator and the Planner, with NO no-ask
+     exception (T2 decision (b), RESOLVED); PM suggestions are messages, never plan writes. The PM
+     loses relay AND advisor dispatch.
+  5. Q89 phase 1 is a completed prerequisite; phases 2-4 remain external to this repository,
+     unchanged.
+  6. Item 8 is RESOLVED: advice is evidence; the gate verdict is the approval act. On gated
+     routes the Planner issues PASS/REFINE/ESCALATE after reading the plan revision, the pre-code
+     advice it called, the post-code advice it ran, the raw lens findings, and the evidence
+     commit assessment tier, phase-appropriate (Gate 1 does not imply post-code evidence exists).
+     PASS technically approves the change and authorises the PM tick, NOT delivery, deployment or
+     acceptance. Non-gated routes take advice as evidence only, with no verdict.
+  7. T3.0 model and role assignment comes FIRST, before T3b, with no `agent-sandbox-integration`
+     dependency. Former `minimax-m3` seats move to `opencode-go/minimax-m3.1-flash` (reliability
+     `xhigh`; advisors `high`); this supersedes the earlier no-seat/open R3 planning text but is
+     NOT a hang/session clearance. Owner ruling on planning basis: "Planning basis: canonical
+     `global-config/`; the deployed file is stale because T3a1/T3a2 are not deployed. The
+     implementation unit must re-read the deployed file after the mirror and record any source-vs-live
+     difference; it must not edit the live file directly." Source-to-mirror remains authority. The
+     full source-vs-target table, 12-lens mapping, variant mechanics, fallback fix graph and atomic
+     slices live in the tracker; the still-pending owner mappings there are not settled policy.
+- **Pipeline (exact):** orchestrator drafts plan -> PM reads/suggests -> Planner finalises, calls
+  pre-code advisors and Luna evidence agent -> Gate 1 -> writer implements -> PM closes unit ->
+  orchestrator dispatches four post-commit lenses, Planner runs post-code advice -> Gate 2 -> PM
+  ticks -> orchestrator assesses/acknowledges -> owner approves delivery.
+- **Review terminology:** FOUR lenses — R1 risk `qwen3.8-flash` `high`, R2 readability
+  `kimi-k2.7-code` forced thinking, R3 reliability target `minimax-m3.1-flash` `xhigh` with output
+  ≥ 32768 (owner direction 2026-10-23; `minimax-m3` remains excluded; the M3.1 hang/session/Go-allowance
+  acceptance gate was cleared by the owner on 2026-10-28), R4 resilience `glm-5.3-flash` `high` — PLUS the
+  provider-selected refuter `mimo-v2.6-flash` default thinking (output ≥ 32768) and validator
+  `claude-haiku-5-5` `high`. Targets are planned, not live. **Superseded 2026-10-28 for the
+  reliability lens, validators and advisors** by the model-assignment update under Q60.
+- **Units:**
+  - **T1 — queue revision (COMPLETE):** Q90, the Q57-Q60 forward lines, the Q87 planning overlay,
+    Q91 and the router row. Source `114366b`; metadata `dfbeb29`; final assessment
+    medium/`under_budget` at retained boundary `22132ad`.
+  - **T2 — readiness (COMPLETE for decisions/evidence, 2026-10-23):** decisions (b), (d), (e) and
+    (f) closed. (b) `host_plan_write` ask-gated for BOTH orchestrator and Planner, no no-ask
+    exception; PM suggestions are messages, never plan writes. (d) all named model IDs resolve,
+    evidenced by THREE owner-reported host `opencode models` runs: Go pool plus
+    `openai/gpt-6.1-sol` (+ -fast, -ultrafast), `openai/gpt-6-luna` (+ -fast), and the Google
+    models `google/gemini-flash-latest`, `google/gemini-4-argon`, `google/gemini-3.8-flash`;
+    shared-pool variants exist but are not the named providers. (e) `minimax-m3` is excluded
+    fail-closed from EVERY native review seat until the hang is proven absent; R3 has no
+    confirmed seat, `minimax-m3.1-flash` is not promoted without session/hang checks, and T3d
+    chooses from `claude-sonnet-5-5`, `minimax-m3.1-flash`, `muse-spark-1.3-contributor` or
+    `step-5-preview`. (f) actor slices T3a-d, each atomic across `opencode.json` task
+    permissions, guard `ROUTE_STAGES`/helper lists, route skills and its own `WORKFLOW.md` lines,
+    with no owner size exception and no intermediate guard-denies/skill-allows state. Host-tool
+    built/tested, session and independence checks remain future implementation gates, NOT
+    completed by T2.
+  - **T3a — orchestrator slice (T3a1 and T3a2 COMPLETE, high risk):** T3a1 bounded the
+    plan/test tools and ask-gated `host_plan_write` across the three policy surfaces plus
+    orchestrator `WORKFLOW.md`; source `b89f5a0`, 11 paths, 400 authored changed lines / 48,326
+    bytes; 77 focused tests plus Bun controls; native review `review-1ca5500bc130a1cf` (target
+    sha256:3bb686d938a115b6330bb81f9da519f06bab7c2562e74642e79ab4c5a6e6f271) approved, four
+    lenses acknowledged, authority burned; three informational/non-blocking reviewer claims
+    recorded below, no correction opened. T3a2 added review-dispatch ENFORCEMENT, not actor
+    migration, at source `77ef08a` with approved lineage `review-bff8f73a89ebffa5`; four
+    WARNINGs are deferred (below).
+  - **T3a1 reviewer claims (informational/non-blocking; deferred follow-up, not endorsed or
+    implemented):** R4-1 resilience WARNING `verify-workflow.sh:2809-2817` (proof `:2836`) —
+    `host_test_run` has a grant sweep excluding only orchestrator but `host_plan_write` has no
+    equivalent verifier/Python/Bun sweep, so future non-orchestrator not-deny plan grants would
+    pass gates; existing PM plan-write asks are intentionally preserved by source scope. R4-2
+    resilience SUGGESTION `tests/test_review_pipeline_permissions.py:709-715` — `run_controls`
+    skips only `PermissionError`, and missing Bun falls back to `'bun'` and raises unhandled
+    `FileNotFoundError` instead of skipping. R2-001 readability SUGGESTION
+    `global-config/prompts/gentle-orchestrator/overlay.md:57` — "narrowly defined, pre-registered"
+    `host_test_run` qualifier names no registry, authority or allowed-test list, so maintainers
+    cannot determine the permitted set from the contract alone. `host_test_run` remains inert
+    until the host tool ships. No `minimax-m3.1-flash` promotion is attached to T3a1; that
+    substitution belongs to T3.0, not T3d.
+  - **T3.0 — model and role assignment (PLAN COMPLETE; source PLANNED, high risk):** the tracker
+    holds the complete current-source-vs-target seat table, variant mechanics, fallback fix graph,
+    12-lens advisor mapping and per-slice AUTHORED ESTIMATES (not measured). Atomic subunits, each
+    carrying config, matching verifier edits, digest pin and exact tests in one commit, in this
+    order: T3.0.1 `q90-t30-variants-u1`; T3.0.2 `q90-t30-core-seats-u1`; T3.0.3a
+    `q90-t30-pm-u1`; T3.0.3b `q90-t30-judges-u1`; T3.0.4a `q90-t30-fallback-writer-u1`;
+    T3.0.4b `q90-t30-fallback-closure-u1`; T3.0.5a `q90-t30-review-risk-resilience-u1`; T3.0.5b
+    `q90-t30-review-readability-reliability-u1`; T3.0.5c `q90-t30-review-refuter-validator-u1`;
+    T3.0.6a `q90-t30-advisor-design-map-u1`; T3.0.6b `q90-t30-advisor-deps-map-u1`; T3.0.6c
+    `q90-t30-advisor-testing-map-u1`; T3.0.6d `q90-t30-advisor-security-map-u1`; T3.0.6e
+    `q90-t30-advisor-integration-map-u1`; T3.0.7a `q90-t30-advisor-scope-ux-u1`; T3.0.7b
+    `q90-t30-advisor-data-u1`; T3.0.7c `q90-t30-advisor-performance-u1`; T3.0.7d
+    `q90-t30-advisor-concurrency-u1`; T3.0.7e `q90-t30-advisor-resilience-u1`; T3.0.7f
+    `q90-t30-advisor-bug-hunt-u1`; T3.0.8 `q90-t30-escalations-u1`; T3.0.9
+    `q90-t30-integration-audit-u1`. Each ID appears once here; each depends on its predecessor and
+    the tracker holds the exact prerequisites. First prerequisite: close the pending `77ef08a`
+    metadata slice by review or owner boundary. No `agent-sandbox-integration` dependency; the
+    existing current actor owns advice until T3b and NO Planner permission is preinstalled. The
+    owner mappings still listed as pending in the tracker must be settled before the affected
+    source slice.
+  - **T3.0 Kimi removal (`q90-t30-kimi-removal-u1`, owner-directed 2026-10-24):** five Kimi
+    primaries and the DeepSeek maintainability-post remapped to MiniMax/Qwen/Ling with the exact
+    variants; readability unchanged; inactive Kimi exact policy removed and three dormant
+    completeness policies added. Prerequisite: T3.0.1 staged boundary and pre-advice; consumer
+    variant support, model availability, M3.1 hang/session/Go allowance and runtime remain
+    UNVERIFIED gates. Correction round 1/1: the initial fallback detector did not prove target
+    values (source/target control vacuous), so it is corrected and now also scans
+    `systematic.jsonc` read-only; the corrected live scan finds zero executable Kimi references.
+    Initial RED 7 / GREEN 84 remains HISTORICAL INITIAL, not strengthened-detector evidence.
+    SOURCE COMPLETE at implementation commit
+    `ee2dab0f2c24f3daaf34bf50ba4633557fbf1b19` (8 paths; independently counted 587 authored
+    lines = 555 additions + 32 deletions; host commit confirmed 555/32; verifier session
+    `ses_e913c44faffeUx5Yfi8UYWMLav`, verifier-reported latest snapshot
+    `6661e88c45c9f8f3be1b07e718a3c2bd66cc6286` (parent `decd167`; not present in this checkout);
+    writer raw patch 51,008 bytes,
+    NOT independently verified after the exact refusal `argv item contains shell metacharacters`
+    was not retried). Exact implementation assessment: status 0,
+    `gentle-ai.review-assessment/v1`, risk medium, reason `configuration_change`
+    (`global-config/opencode.json`), `under_budget`, 8 paths / 587
+    lines, `consumed=false`, `review_due=false`, candidate base
+    `decd167b8b01e0d4fcd41653840f817d607c7859` retained as the last reviewed boundary; it
+    approves, advances and closes nothing and starts no lineage. V1-V4 are CLEARED. Latest
+    independent execution:
+    22 tests (14+8), 0 failures/errors/skips; the earlier 88-check result is historical.
+    `aft_inspect` is PARTIAL; `tests/test_model_independence.py:72:58` optional
+    `specialist.group` is recorded/inferred pre-existing, with no overall clean claim.
+    `review-642f4745d7f6d6fe` is owner-designated SUPERSEDED, not approved or closed. Owner
+    decision 2026-10-24: native review runs AFTER owner deploy, so reliability uses
+    `opencode-go/minimax-m3.1-flash`; deploy/restart were NOT performed, all
+    runtime/consumer/model-availability/M3.1 gates remain UNVERIFIED, and `WORKFLOW.md` policy is
+    unchanged. Source assignments only: reliability + `asi-review-reliability` MiniMax `xhigh`;
+    integration-pre MiniMax `high`; integration-post/testing-post Qwen default with `variant`
+    OMITTED; maintainability-post Ling default with `variant` OMITTED; readability Muse `high`
+    unchanged; future `advisor-ux-pre` MiniMax `high` only when created at T3.0.7a; inactive
+    Kimi exact fallback removed and evaluator exclusions preserved. The five seats the owner
+    called `live` are source assignments only because deployment was not performed. RDD is
+    enabled/global; correction counter remains 1/1. This metadata closure is class
+    `documentation` under the simple-docs allowlist (route `workflow-odd-secure`) and changes
+    exactly this tracker, `docs/TODO.md` and `ROUTER-LOG.md`; the PM owns the commit. Q90 remains
+    IN PROGRESS.
+  - **T3.0 normal-row drift + validator migration (`q90-t30-advisor-drift-u1`, owner-directed
+    2026-10-24; CLOSED):** six normal WORKFLOW advisor rows aligned to canonical config; both
+    validators `opencode-go/claude-haiku-5-5` `high`; verifier `ling`/`claude` families and Ling
+    absent-only target. One writer, targeted tests, no advisor and no independent verifier under
+    an explicit THIS-unit owner cost override (not simple docs, not a standing waiver). RED is
+    corrected to FIVE q90 + one model-independence + one variants = 7 failures of 75, 0
+    skips/errors (the earlier "four q90" was wrong); GREEN 75/75, 103 Bun controls; JSON validity
+    and `bash -n` exit 0; full pin
+    `41100b1b1896d808ca5b49f0db2edf5470db5f402dfe2d0314724a9a80e07b61`. Implementation commit
+    `6ff16915407c39f2ca980339d30ed6907e2ee536`: 11 paths, 229 authored lines (213 additions / 16
+    deletions), full range 41,948 bytes; the frozen writer receipt is distinct at 225 lines /
+    41,473 bytes, and the committed diff carries the owner-explained Magic Context 0.49.20 / AFT
+    0.62.0 pin substitutions that the frozen delta excludes (owner-attributed auto-update
+    behaviour, not unit scope; not independently proved). Original assessment: base
+    `d14e83f90a4f044e5b42b268fd47eec8c4ee96d8`, `committedOnly=true`, risk `high`, 229 lines / 11
+    paths, `consumed=false`, `review_due=true`. Acknowledged lineage `review-ef3ab1c9aad86044`:
+    four lenses APPROVED, authority burned, target sha256 `7e9e7564…`; lens evidence is
+    owner-supplied 2026-10-24 and the PM observed the stopped `v9` status with
+    `target_already_acknowledged` (the PM did not dispatch lanes, consent or acknowledgement).
+    Deferred nonblocking findings `R3-UNSCOPED-PLUGIN-UPGRADES` WARNING and `R4-001` SUGGESTION;
+    no correction opened. Static PASS PARTIAL (existing optional `specialist.group` diagnostic at
+    `tests/test_model_independence.py:75:58`, Bash 0, six paths without LSP, no TS root; inferred
+    pre-existing, no all-clean claim). Deploy/restart NOT performed: owner-reported live config
+    still uses `minimax-m3` on `review-validator`, `asi-review-validator` and
+    `advisor-testing-pre` until deploy (not PM-observed); runtime, full verifier, plugin load and
+    M3.1 acceptance remain UNVERIFIED. Unit source+review CLOSED; Q90 remains IN PROGRESS.
+  - **T3.0 fallback exact-policy repair (`q90-t30-fallback-repair-u1`, owner-directed
+    2026-10-24; implementation committed and assessed):** mechanical verifier repair inside T3.0,
+    not a new planned unit. Deleted the inactive exact source keys
+    `opencode-go/mimo-v2.6-flash` and `opencode-go/minimax-m3` (their catalog entries, target refs
+    and evaluator exclusions remain) and added `opencode-go/claude-haiku-5-5` with the same
+    two-target deepseek-max / openrouter-default chain and capabilities as
+    `opencode-go/minimax-m3.1-flash`. The two validators are the only agent assignments for
+    Haiku; the removed identities had zero agent assignments. One implementation writer, no
+    pre/post advisor and no independent verifier under an explicit THIS-unit owner ceremony
+    override (a recorded deviation, not simple docs and not a standing waiver). New focused test
+    `tests/test_q90_t30_fallback_repair.py`: delegated RED `Ran 8 tests` with `failures=4` on the
+    old policy (the three owner diagnostics plus the accepted-control failure); final combined
+    exact command `python3 -m unittest tests.test_q90_t30_fallback_repair
+    tests.test_q90_t30_kimi_removal tests.test_model_independence tests.test_model_variants`
+    reported `Ran 60 tests in 0.583s`, `OK`, 0 skips — focused 8 plus related 52, so the focused
+    module is NOT part of that 52 (the earlier wording that read 52 as including it is corrected).
+    `python3 -m json.tool` printed full normalized valid JSON without error; `git diff --check`
+    and `py_compile` reported success. Numeric exit-0 statuses were NOT exposed and are delegated
+    success inferences, not independently observed by the PM; no exit code is invented. The full
+    verifier was NOT run; no deploy, restart or runtime claim. Implementation commit
+    `5697f72b671c05dc94fac955bb9450a75aa37995` on `chore/multi-agent-v2-phase1`: 6 paths, 334
+    additions + 26 deletions = 360 authored changed lines, 26,793 raw patch bytes (immutable
+    readback `run54d52f7cb8af387f1cbb44f16c3bfbf7`, base `81c5ef5...`, head `5697f72...`,
+    SHA-256 `e9d57ecb7383f050ebdb8d04261a9a889b887207cff35349ace43f691177d297`). Implementation
+    assessment: status 0, `gentle-ai.review-assessment/v1`, `baseRef=81c5ef5...`,
+    `committedOnly=true`, risk medium, reason `configuration_change`
+    (`global-config/rate-limit-fallback.json`), 6 paths / 360 lines, `consumed=false`,
+    `review_due=false`, `under_budget`; it approves, advances and closes nothing, and the last
+    reviewed boundary is RETAINED at `6ff1691...`. PM first host `aft_inspect` over the 6 paths
+    was PARTIAL: Python 0 errors / 0 warnings; JSON and four Markdown paths have no producer — no
+    all-static-clean claim. Metadata closure: exactly one owner-authorized metadata-only writer
+    for this same unit, class `documentation` under the simple-docs allowlist, confined to the
+    tracker, this file and `ROUTER-LOG.md`; it is separate from the implementation's THIS-unit
+    cost override and is not a correction (`correction_rounds_used=0`, unchanged). The PM owns the
+    metadata commit and the post-commit metadata assessment (owner-requested at
+    `baseRef=5697f72...`, `committedOnly=true`; the result is not predicted here). Owner verifier
+    must be RE-RUN; deployment and native review remain PENDING/UNVERIFIED. Q90 remains IN
+    PROGRESS; no new planned unit is added.
+  - **T3.0 PM reassignment (`q90-pm-reassign-u1`, owner-directed 2026-10-24; COMPLETE, source
+    `455a769219795e57769488210ee89ba8d67ac63f`):** both PMs `opencode-go/glm-5.3-flash` `high`;
+    identical Qwen-high then cross-provider Gemini Flash agent chains (variant absent, no DeepSeek);
+    shared GLM policy unchanged; exact verifier seat gate plus focused tests. 15 paths, 382 additions
+    + 18 deletions = 400 authored lines, 73,737 raw patch bytes broker-measured. Prior executed
+    evidence, not rerun by the metadata unit: independent verifier `ses_e9016b1f1ffeuBzEZnVD4LZq1V`
+    ran 149 tests with 0 failures/errors/skips; correction writer `ses_e901223deffeqiZY7yeVugLvri`
+    ran 48 targeted tests with 0; both JSON files valid, `bash -n` passed, verifier/pin `89ec3b2b…`.
+    Owner-supplied lineage `review-f6f31e924064dec0` four lenses APPROVED, acknowledged, authority
+    burned; the PM observed terminal `v9` status action `stop`, `not_replayable`,
+    `target_already_acknowledged` and dispatched no lanes/consent/ack. Deferred informational
+    findings exactly `R2-001`, `R2-002`, `R3-PM-SEAT-MISSING-TEST`, `R4-1` WARNING, `R4-2` WARNING,
+    `R4-3`; no correction reopened. First-pass `aft_inspect` PARTIAL (no all-clean claim).
+    Deployment/restart PENDING: owner reports live PMs still Sol; not independently
+    runtime-verified. Metadata commit and post-commit assessment belong to the PM envelope.
+    Q90 IN PROGRESS; no new planned unit.
+  - **T3b — Planner slice (`q90-t3b-planner-u1`, owner-authorized 2026-10-24; SOURCE STAGED, NOT
+    COMMITTED):** adds `planner` (`openai/gpt-6.1-sol` `high`) and `planner-evidence`
+    (`openai/gpt-6-luna` `medium`), and `planner` only to the orchestrator, `pm-odd` and
+    `pm-systematic` task maps. The Planner has the two ask-gated fixed acts `host_plan_write` /
+    `host_gate_verdict`, `host_task_mark` denied, no writer/lens dispatch, and a deny-default task
+    map limited to the defined pre/post advisors (including Gemini), `planner-evidence` and
+    `explore`. `planner-evidence` is facts-only, read-only, task-denied and memory-write-denied.
+    Verifier uses narrow `planWriterAgents`/`advisorDispatchAgents` sets, not `coordinatorAgents`;
+    no guard, `ROUTE_STAGES`, overlay, embedded prompt, ledger, assembler or prompt-SHA change.
+    Docs add the planned Planner handoff and Gate 1/Gate 2 ownership; the pipeline is SOURCE-ONLY
+    and NOT installed, deployed or live, and current PM runtime ownership remains until deferred
+    integration. Gate 2 is after post-code advice and the orchestrator's raw lens evidence and
+    BEFORE the PM completes or ticks the unit. Both verdicts are technical only, never delivery.
+    Deferred Q90-D1 prompt reduction/externalization is AFTER the PM layer becomes active, not an
+    immediate prerequisite, and was not performed. Owner decision 2026-10-24 closes
+    `455a769..416f289` metadata by OWNER DECISION, NOT native review; reviewed boundary `416f289`.
+    Luna/Tiny (`general`, `jd-fix-agent`) sharing is an owner-accepted exception. Prior frozen
+    results `30f00ac7...` and `ac28216d...` were rejected, uninstalled and not reused; the prior
+    writer's TDD ordering deviation (tests executed after source, not pre-source RED) is recorded.
+    This unit ran RED before source (missing agents and verifier block), then 7 focused Planner
+    tests and the 204-test required regression all passed with no skips. ONE writer, one later
+    independent `gentle-ai-verify`, NO pre/post advisors and ONE correction remain the owner's
+    ceremony; THIS-CANDIDATE review-size exception is up to 700 authored lines / 102,400 raw
+    patch bytes / 46,080 per file. Tracker backfill is delegated to the orchestrator later because
+    `odd/tasks/**` is protected; the owner-supplied 1,015-line whole-file `host_plan_write`
+    replacement (revision 0) was NOT invoked or written. Mirror write/readback is UNIMPLEMENTED
+    and was not read; commit, independent verifier, correction decision and assessment are PENDING.
+    Recovery (2026-10-25, NOT a correction; counter 1/1): verifier `ses_e8f8163b2ffeZzejGDd7pN25jQ`
+    ran 204 tests OK / zero skips with V1/V2 FAIL; formatting-only rewrap accepted; `85f84ca`
+    transitional OWNER-CLOSED; tracker backfill/Q90-D1 deferred; deployment NOT performed; mirror not read.
+    Advisor-selection revision (2026-10-25, owner directive; PM unit `q90-t3b-advisor-selection-u1`):
+    the planner prompt first bullet is replaced with task-class/impact selection — docs/metadata and
+    tiny/passive units take no advisor; medium code takes the single surface advisor; high/normative
+    takes one per affected surface, at most three, from different model families where consequential;
+    Gemini advisors only when the external lane is active (currently PLANNED, so none);
+    `planner-evidence` only when the planner cannot establish needed facts through its own reads; the
+    plan records why each advisor was selected or skipped; a missing required advisor stops with
+    `BLOCKED`. The RAW-output/no-summary clause is repealed everywhere by owner ruling and the
+    `RAW output` test needle is removed with it. Implementation commit `1a22a93` on
+    `chore/multi-agent-v2-phase1`; assessment medium/`under_budget` at boundary `707ee925`,
+    `review_due=false`, boundary retained. Residual for a later normative follow-up: `WORKFLOW.md:179`
+    and `docs/specs/pm-handoff.md:25-27` still describe the every-advisors + RAW-output planner
+    behavior.
+    Q90 remains IN PROGRESS.
+  - **T3c — PM slice (PLANNED, high risk):** permission-only drop of relay/advisor dispatch after
+    the T3.0 model migration; no model/fallback work deferred to T3c; same three surfaces plus PM
+    `WORKFLOW.md` lines.
+  - **T3d — residual audit (PLANNED, high risk):** remaining nonduplicated fallback/routing audit
+    only; no model or fallback seat work already delivered in T3.0. M3.1 session/hang/Go-allowance
+    acceptance is still required before its promotion goes live. `minimax-m3` stays excluded from
+    EVERY native seat. Same three surfaces.
+  - **T4 — verifier (PLANNED):** new-agent/model/tool checks and digest re-pin, after ALL T3a-d
+    slices.
+  - **T5 — mirror and owner restart (PLANNED):** after T4.
+  - **T6 — release (PLANNED):** behavioral probes and trial metrics, after T5 and the owner
+    restart.
+- **T1 evidence (2026-10-23):** source `114366b35651316e00c972f71f723b7804fcae4c`; metadata
+  `dfbeb296af708f02151d7444d8d76431606abff6`; source receipt 206 authored lines / 25,263 bytes /
+  generated-binary [], PM factual readback accepted, correction 1/1. The SOURCE assessment at
+  boundary `22132adc686629cceaa7b32e469c5ec10d009e2a` was medium/`under_budget`,
+  `consumed=false`, `review_due=false`, 6 cumulative paths / 563 lines — cumulative source slice,
+  NOT this unit's 206 lines and NOT the final metadata statistics. Final PM assessment completed
+  medium/`under_budget`; boundary `22132ad` retained. This is not native review or approval.
+- **T3a1 evidence (2026-10-23):** source writer `ses_e9572b051ffexBxZRVrDekeEtA`; pre advisors
+  security `ses_e957e891bffeVQZBnoMD7HKtyq` (Sol) and integration
+  `ses_e957e890effeymwKzrfR3yBr7m` (Kimi); independent verifier
+  `ses_e9562bcafffeOQNeIGCxxCnel4` (Sol) executed 77 tests plus Bun controls and prompt/digest
+  checks; post advisors `ses_e9562bccdffeexMrjlOz20JrPa` (security) and
+  `ses_e9562bcc4ffeZ3GFFnyZBf71BD` (integration) before source commit; correction rounds 0.
+  Assembled orchestrator prompt 419 lines / 61,050 bytes SHA-256
+  `0cf8da259010ca402320756ef19aaa148b9706d8c93f31a535cd97684b767838`; verifier SHA-256
+  `9b10a8bee1873fd7adc2e23ecd68fb9f0bd2edf5a41eb2cffdbe6dd9cc865c29`. First-pass static
+  `aft_inspect` PARTIAL: seven diagnostics at unchanged Python sites (pre-existing, inferred), no
+  static-clean claim. Full verifier, runtime load, live consumer and tool enforcement are
+  host-only NOT run; no deploy. Readability attempt 1 was an incomplete-JSON transport refusal,
+  attempt 2 admitted; the rejected artifact
+  `.git/gentle-ai/rejected-results/review-1ca5500bc130a1cf/review-readability-1-42837fe6b897.json`
+  is transport evidence, not a finding.
+- **T3a2 evidence (2026-10-24):** four commits from `2173738`: `3b96708` enforcement source,
+  `3069e33` owner advice, `cdf9056` two omitted-control expected-string corrections plus digest,
+  and `77ef08a`
+  post-escalation R4-1/R4-2 fix plus digest; final range four paths / 484 lines. Approved
+  lineage `review-bff8f73a89ebffa5`, target
+  `36776914a529bd3645a44d7532f8518cb3a9c7ec50fff49f8570d0cd10b259c2`, approved and
+  acknowledged, authority burned; prior lineage `review-83d13326ee0004a8` escalated and is
+  superseded, NOT approved. This was ENFORCEMENT only: `opencode.json` already granted the six
+  `asi-review-*` lanes to the orchestrator and none to the PMs; no config/guard/skill/
+  `WORKFLOW.md` change, and Q89 coordinator `host_plan_write` asks are preserved. Deferred
+  WARNINGs (informational/non-blocking; no correction opened; owner-confirmed admitted results):
+  `R3-MISSING_BUN_SKIP` reliability `tests/test_review_pipeline_permissions.py:908` — `run_script`
+  lacks the Bun-absence skip present in `run_controls`; `R4-1` resilience same file `:920-930` —
+  same Bun-absence class; `R4-2` resilience `verify-workflow.sh:2819-2828` — boolean false
+  inconsistency (`hostPlanWriteGrantSweepFailures` reads false as grant, `reviewDispatchFailures`
+  as deny); `R4-3` resilience `verify-workflow.sh:3460` — control/producer alignment for
+  `<inherit/none>` is inferential. Source normal `correction_rounds_used=1` plus owner-authorized
+  sentinel+pin fix (2026-10-23) and post-escalation R4-1/R4-2 fix (2026-10-23), neither opening
+  a new advisor/verifier round. Final verifier digest `e76baed…`; full verifier, live plugin
+  hooks and deployment remain UNVERIFIED.
+- **Resolved decisions and standing gates (2026-10-23):**
+  (a) RESOLVED: handover item 8 — advice is evidence, the gate verdict is the approval act
+      (decision 6);
+  (b) RESOLVED: `host_plan_write` is ask-gated for BOTH the orchestrator and the Planner, with NO
+      no-ask exception; PM suggestions are messages, never plan writes. The companion design ask
+      for no `ctx.ask` is rejected; the repository safety model stands;
+  (c) RESOLVED: the PM dispatches no review lanes, so the `review-resilience` GLM and
+      `review-risk` `qwen3.8-flash` seat collision is gone;
+  (d) RESOLVED: all named model IDs resolve, per THREE owner-reported host `opencode models` runs
+      on 2026-10-23. Go pool, OpenAI `openai/gpt-6.1-sol` and `openai/gpt-6-luna`, and Google
+      `google/gemini-flash-latest`, `google/gemini-4-argon`, `google/gemini-3.8-flash`; the
+      shared-pool `opencode-go/*` variants are not the named providers. Model-ID resolution does
+      NOT prove seat independence;
+  (e) FAIL CLOSED: `minimax-m3` is excluded from EVERY native review seat until the hang is
+      proven absent. The owner states the repo holds no hang record (owner-attributed absence,
+      no independent search claimed). R3 has NO confirmed seat; `minimax-m3.1-flash` is not
+      promoted without session and hang checks. T3d chooses the replacement from
+      `claude-sonnet-5-5`, `minimax-m3.1-flash` (after checks), `muse-spark-1.3-contributor` or
+      `step-5-preview`. No seat is chosen here; SUPERSEDED 2026-10-23 by the owner model
+      direction (item 7): `minimax-m3.1-flash` is the planned reliability/advisor target, subject
+      to session/hang/allowance acceptance. The no-seat text is retained as history;
+  (f) RESOLVED: actor slices T3a orchestrator, T3.0 model/role, T3b Planner, T3c PM, T3d
+      residual. EACH actor commit changes the same three policy surfaces consistently —
+      `global-config/opencode.json` task permissions; guard `ROUTE_STAGES`/helper lists; route
+      skills — PLUS that actor's `WORKFLOW.md` lines. T3.0 atomic subunits also carry their
+      verifier edits and digest pin. No owner size exception; no intermediate
+      guard-denies/skill-allows state; any slice unable to remain consistent STOPS AND ASKS.
+- **Genuine open choices:** the owner mappings still marked pending in the tracker (design pair,
+  maintainability scope, optional v4-pro profile, qwen-max escalation shape, local Kinver opt-in)
+  and M3.1 session/hang/Go-allowance acceptance. SETTLED RECOMMENDATIONS (a contrary policy needs
+  separate owner authorization): judges stay fixed/no-fallback with verifier controls; PM keeps
+  qwen for same-provider model-scope failure and fails closed on provider outage.
+  `frontend-dev-premium` stays the unchanged read-only Sol design coordinator. The R3 replacement
+  itself is no longer open: the owner names `minimax-m3.1-flash` for planning, with no clearance
+  claim. Host-tool, session and seat-independence checks remain prerequisites, not owner decisions.
+- **Order:** T3.0 model/role work FIRST (no `agent-sandbox-integration` dependency), then T3b
+  Planner, T3c PM (permission-only), T3d residual audit, T4 verifier/digest, T5 mirror/owner
+  restart, T6 behavioral probes/trial metrics. Host tools built/tested remain gates for slices
+  that need them; T3a1/T3a2 already landed. The queue revision was the owner-authorized planning
+  exception and enabled no tool.
+- **Scope boundary (historical):** T2 was planning/evidence only; T3a1 and T3a2 have since
+  landed; T3.0 planning is complete with no source. Phases 2-4 are external; the unmerged planner
+  tier is only the Q91 placeholder. T3.0.1 is next, high risk; T3b follows T3.0 and owes
+  pre-advice, post-advice, one independent verifier, ONE correction round and native review
+  after commit.
+- **Slice closure and boundary:** prior medium slice `22132ad`..`2f196b6` is CLOSED by explicit
+  owner decision 2026-10-23; the boundary advanced to `2f196b6` BEFORE T3a1 source. That closure
+  is not native review of the prior slice. The current native-reviewed source boundary is
+  `77ef08af7c376386b24a62e26efc6809b9753bdf` (T3a2 lineage `review-bff8f73a89ebffa5`
+  approved); T3.0.1 is next, then T3b; both remain untouched.
+
+### Q91. Planner tier (renumbered from the unmerged Q67 plan on docs/pm-planner-delegation, 9938cd1)
+- **Status:** PLANNED.
+- **Prerequisites:** Q90.
+- **Description:** Placeholder for the unmerged planner tier; Q90 owns the forward decisions.
+
+### Q92. Cache prune: orphaned AFT download temp files and approval-triggered runs
+- **Status:** IMPLEMENTED (Claude Code, owner-authorized exception to advisory-only, 2026-10-28);
+  uncommitted, pending owner review and commit.
+- **Prerequisites:** none.
+- **Description:** `/home` filled on 2026-10-28; about 31 GiB was interrupted AFT binary
+  downloads (`~/.cache/aft/bin/v*/aft.<pid>.<epoch-ms>.<hex>.tmp`) that nothing cleaned, and the
+  weekly `opencode-cache-prune.timer` had skipped every run since 2026-10-23 because plugin
+  auto-updates invalidate the config-bound approval before the timer fires.
+  - `prune-opencode-plugin-cache.py` gains an AFT temp pass (`--aft-bin-dir`,
+    `--aft-temp-min-age-hours`, default 24): exact name shape, direct child of a `v<semver>`
+    directory, regular file owned by the user, writer pid not running, older than the minimum
+    age, revalidated before unlink. It runs before and independently of the auto-update lock
+    and health approval, which still gate plugin-cache pruning unchanged.
+  - `systemd/opencode-cache-prune.path` (new; `.service` and `.timer` copied verbatim from
+    `~/.config/systemd/user/`) starts the prune service whenever `verify-workflow.sh` writes a
+    fresh approval (atomic rename; `PathChanged=` verified to fire on it). The weekly timer
+    stays as a fallback. `verify-workflow.sh` is unchanged, so its digest pin is unaffected.
+  - The service drops `ConditionPathExists=` on the approval: the AFT pass needs none and the
+    plugin pass already skips with exit 0 when it is missing.
+  - Unreadable or vanished version dirs and out-of-range pids are skipped (file kept) instead of
+    aborting the run (independent verifier advisories, fixed with tests).
+- **Checks:** `python3 -m unittest tests.test_prune_aft_temp` (12 tests, RED observed before each
+  change); full `python3 -m unittest discover -s tests` green (370); `systemd-analyze --user
+  verify` on the units; dry run against the live cache selected only one orphan. Independent
+  verifier: S1-S8 pass, no blockers. Path and service units installed in
+  `~/.config/systemd/user/` and the path unit enabled.
 
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).

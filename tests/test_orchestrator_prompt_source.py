@@ -27,7 +27,7 @@ SECTIONS = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstrea
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
 CONFIG = ROOT / "global-config" / "opencode.json"
 
-CURRENT_PROMPT_SHA256 = "521796dfbfc71a125e49b8bbd8127de7197a491b12a0ea8bd942c29de64a046b"
+CURRENT_PROMPT_SHA256 = "0cf8da259010ca402320756ef19aaa148b9706d8c93f31a535cd97684b767838"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
@@ -97,6 +97,14 @@ ADVISORY_BUDGET_TERMS = (
     "aft_inspect",
     "ONE correction batch",
     "process defect",
+)
+HOST_TOOL_PROMPT_FRAGMENTS = (
+    "may draft plan documents through the ask-gated `host_plan_write` fixed tool",
+    "plan documents only, never code or configuration",
+    "narrowly defined, pre-registered tests through the allow-gated `host_test_run` fixed tool",
+    "never arbitrary caller argv, pipes, redirects, or shell",
+    "a failed or unavailable test run is evidence, never permission to widen authority",
+    "`host_test_run` is not implemented in the current surface and remains inert until the host tool ships",
 )
 
 HEADING_RE = re.compile(r"^#{1,6} ")
@@ -268,6 +276,14 @@ def advisory_budget_errors(text):
     if STATIC_DIAGNOSTIC_SENTENCE not in text:
         errors.append("missing first-pass static-diagnostic sentence")
     return errors
+
+
+def host_tool_prompt_errors(text):
+    return [
+        "missing fixed-host-tool clause: " + fragment
+        for fragment in HOST_TOOL_PROMPT_FRAGMENTS
+        if fragment not in text
+    ]
 
 
 class OrchestratorPromptSourceTests(unittest.TestCase):
@@ -673,6 +689,20 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
             advisory_budget_errors(mutated),
             "moving diagnostics off the initial candidate must fail the first-pass control",
         )
+
+    def test_assembled_prompt_carries_narrow_fixed_host_tool_clauses(self):
+        assembled = run_assembler()
+        self.assertEqual(assembled.returncode, 0, assembled.stderr)
+        self.assertEqual(host_tool_prompt_errors(assembled.stdout), [])
+        for fragment in HOST_TOOL_PROMPT_FRAGMENTS:
+            with self.subTest(fragment=fragment):
+                mutated = assembled.stdout.replace(fragment, "removed", 1)
+                self.assertNotEqual(mutated, assembled.stdout)
+                self.assertIn(
+                    "missing fixed-host-tool clause: " + fragment,
+                    host_tool_prompt_errors(mutated),
+                    "removing one fixed-host-tool clause must fail the prompt control",
+                )
 
     def test_embedded_prompt_matches_assembler_and_sha_constant(self):
         assembled = run_assembler()

@@ -31,7 +31,9 @@ TASK_ALLOW_KEYS = (
     "gentle-ai-worker",
     "gentle-ai-worker-local",
     "gentle-ai-verify",
+    "gentle-ai-verify-routine",
     "gentle-ai-verify-astra",
+    "planner",
 )
 
 PM_REQUIRED_TASK_ALLOW = {

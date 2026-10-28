@@ -49,6 +49,11 @@ function isImplementationRoute(name: string): boolean {
   )
 }
 
+// Native review actors are read-only relay lanes; an Astra upgrade of one is never wanted.
+function isReviewActor(name: string): boolean {
+  return /^(asi-)?review-(risk|resilience|readability|reliability|refuter|validator)$/.test(name)
+}
+
 function taskPermission(agent: AgentConfig): Record<string, unknown> {
   const permission = agent.permission
   const task = permission?.task
@@ -76,7 +81,8 @@ export const AstraSolUpgradePlugin: Plugin = async () => ({
         !name.endsWith(ASTRA_SUFFIX) &&
         agent.mode !== "primary" &&
         normalizeModel(agent.model) === SOL_MODEL &&
-        !isImplementationRoute(name),
+        !isImplementationRoute(name) &&
+        !isReviewActor(name),
     )
 
     for (const [name, agent] of solAgents) {

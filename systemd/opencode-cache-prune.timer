@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly health-approved OpenCode plugin cache cleanup
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+RandomizedDelaySec=2h
+Unit=opencode-cache-prune.service
+
+[Install]
+WantedBy=timers.target

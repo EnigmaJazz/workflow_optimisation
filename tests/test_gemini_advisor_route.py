@@ -35,7 +35,7 @@ ADVISORS = ("advisor-gemini-pre", "advisor-gemini-post")
 EVIDENCE = "advisor-gemini-evidence"
 ARGON = "google/gemini-4-argon"
 FLASH = "google/gemini-3.8-flash"
-DISPATCHERS = ("gentle-orchestrator", "pm-odd", "pm-systematic")
+DISPATCHERS = ("gentle-orchestrator", "pm-odd", "pm-systematic", "planner")
 GEMINI_POST_SEQUENCING = (
     "post-code advisory review of the final implementation candidate before the work-unit commit",
     "what should change before the work-unit commit",
@@ -198,7 +198,7 @@ def extract_block(text):
 def production_declarations(text):
     """Return the verifier's shared pmAgents/coordinatorAgents declaration lines."""
     lines = []
-    for name in ("pmAgents", "coordinatorAgents"):
+    for name in ("pmAgents", "coordinatorAgents", "advisorDispatchAgents"):
         start = text.index(f"const {name}=")
         end = text.index("\n", start)
         lines.append(text[start:end])
@@ -218,7 +218,7 @@ def run_verifier_block(agents, fallback):
         block
         + "\n" + declarations
         + "\nconst input=JSON.parse(require('fs').readFileSync(0,'utf8'))"
-        + "\nprocess.stdout.write(JSON.stringify(geminiAdvisorRouteFailures(input.agents,input.fallback,coordinatorAgents)))\n"
+        + "\nprocess.stdout.write(JSON.stringify(geminiAdvisorRouteFailures(input.agents,input.fallback,advisorDispatchAgents)))\n"
     )
     runtime = shutil.which("bun") or shutil.which("node") or "node"
     proc = subprocess.run(

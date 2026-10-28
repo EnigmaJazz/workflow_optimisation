@@ -115,7 +115,7 @@ For upstream source evidence in **public GitHub repositories**, the read-only `g
 
 | Class | Signal | Route after explicit change intent |
 |---|---|---|
-| **Tiny fix** | Genuinely tiny/trivial, mechanical and understood; clearly bounded few-line change with no contract/security effect | `workflow-route` → one delegated writer selected by dispatcher: an orchestrator dispatch uses `general` (`openai/gpt-6-luna`); a PM dispatch uses a DeepSeek-family writer such as `odd-apply` or `gentle-ai-worker`, never `general` (`openai/gpt-6-luna`). The configured PMs are `openai/gpt-6.1-sol` (`global-config/opencode.json:2065,2198`), while `odd-apply` and `gentle-ai-worker` are `opencode-go/deepseek-v4.1-flash` (`:2340,:369`); provider changes within a family do not establish independence. Structural readback; no tracker/advice record/mirror is created by the orchestrator route. Passive-only: any medium/high risk assessment automatically escalates out. Escalation-only tripwire may disqualify but never select this route; code constants in `global-config/plugins/systematic-routing-guard.ts` are its source of truth. Two PM shapes are supported: (a) a mid-unit quick fix within an existing change uses that active tracker and its full unit-start anchor, with the required `## Log` entry in the sanctioned tracker update; (b) a standalone tiny fix has no tracker, uses `tracker_path: none` and `none` for tracker-derived anchor components, but still requires and compares the feature-branch HEAD SHA at unit start. The standalone trace is its `ROUTER-LOG.md` row; closure is the PM's normal metadata closure. A PM verifies the in-project traces: the `ROUTER-LOG.md` row carrying commit and changed lines, written by that same writer within its authorized paths (which MUST include `ROUTER-LOG.md`), and, for a mid-unit fix, the tracker `## Log` entry as part of the sanctioned tracker update. The permit-consumption log line is the guard's own diagnostic record, observed by whoever audits the guard log; it is not a PM obligation, and its absence MUST NOT block a unit. |
+| **Tiny fix** | Genuinely tiny/trivial, mechanical and understood; clearly bounded few-line change with no contract/security effect | `workflow-route` → one delegated writer selected by dispatcher: an orchestrator dispatch uses `general` (`openai/gpt-6-luna`); a PM dispatch uses a DeepSeek-family writer such as `odd-apply` or `gentle-ai-worker`, never `general` (`openai/gpt-6-luna`). The configured PMs are `opencode-go/muse-spark-1.3-contributor` with no variant (`global-config/opencode.json:2300,2439`), while `odd-apply` and `gentle-ai-worker` are `opencode-go/deepseek-v4.1-flash` (`:2587,:418`). The Muse PM family and the DeepSeek writer family are independent; provider changes within a family do not establish independence. Structural readback; no tracker/advice record/mirror is created by the orchestrator route. Passive-only: any medium/high risk assessment automatically escalates out. Escalation-only tripwire may disqualify but never select this route; code constants in `global-config/plugins/systematic-routing-guard.ts` are its source of truth. Two PM shapes are supported: (a) a mid-unit quick fix within an existing change uses that active tracker and its full unit-start anchor, with the required `## Log` entry in the sanctioned tracker update; (b) a standalone tiny fix has no tracker, uses `tracker_path: none` and `none` for tracker-derived anchor components, but still requires and compares the feature-branch HEAD SHA at unit start. The standalone trace is its `ROUTER-LOG.md` row; closure is the PM's normal metadata closure. A PM verifies the in-project traces: the `ROUTER-LOG.md` row carrying commit and changed lines, written by that same writer within its authorized paths (which MUST include `ROUTER-LOG.md`), and, for a mid-unit fix, the tracker `## Log` entry as part of the sanctioned tracker update. The permit-consumption log line is the guard's own diagnostic record, observed by whoever audits the guard log; it is not a PM obligation, and its absence MUST NOT block a unit. |
 | **Small feature** | Clear behavior; bounded design | `ce:plan` → `ce:work` delegated execution → `ce:review` advisory → native RDD review checkpoint when enabled |
 | **Substantial feature** | Material product/design ambiguity | `ce:brainstorm` → `ce:plan` → pre-code advice → delegated `ce:work` → post-code advisory (only when `ce:review` is not run) → `ce:review` → native review when due → `ce:compound` |
 | **Bug investigation** | Bug/failing behavior with authorized fix | reproduce/root cause → test-first `ce:work` → `ce:review` → native review |
@@ -151,15 +151,53 @@ The `gentle-orchestrator` is a strictly read-only technical lead.
 - It may classify, ask questions, perform bounded read-only inspection, route/delegate, call reviewed fixed control-plane tools, and synthesize.
 - It has no native host Bash, native edit/write/apply-patch, sandbox shell, or sandbox mutation/lifecycle authority.
 - There is **no direct-inline implementation route**. Upstream's one-file direct-inline mutation case maps to one delegated sandbox writer here.
-- Tests, builds, installs, formatters, Git mutation, router-log writes, and project commands are executor work.
+- Tests, builds, installs, formatters, Git mutation, router-log writes, and project commands are executor work, except the narrowly defined fixed-tool exception below.
+- The orchestrator may draft plan documents through the ask-gated `host_plan_write` fixed tool (plan documents only, never code or configuration) and run narrowly defined, pre-registered tests through the allow-gated `host_test_run` fixed tool (never arbitrary caller argv, pipes, redirects, or shell). These fixed control-plane exceptions grant no generic Bash, edit/write, sandbox mutation, Git, `gh`, or `systemctl` authority, and a failed or unavailable test run is evidence, never permission to widen authority. `host_test_run` is not implemented in the current surface and remains inert until the host tool ships.
 - Provider-issued CLI-shaped lifecycle commands do not grant shell authority. Run them only through an available reviewed fixed/native integration or correctly authorized delegated executor; otherwise stop as blocked.
 - Named Systematic/frontend/review specialists take precedence over generic `explore`/`general`.
 - When no named specialist owns the work, use `explore` as the read-only researcher fallback and `general` as the sandbox worker fallback.
-- Keep primary code review independent of the writer's model family: the DeepSeek `gentle-orchestrator` reviews ordinary `general` (GPT-6 Luna) work, and `gentle-ai-verify` (GPT-6 Sol) reviews `gentle-ai-worker` (DeepSeek) work. Provider changes within one family do not count as independence. If a live fallback makes the writer and reviewer share a family, dispatch an authorized independent review specialist before accepting the review; preserve the native review lifecycle rules.
-- The orchestrator must not dispatch a writer that shares its own model family. A tiny-fix writer must also be independent of its dispatcher, and selection is per dispatcher: a direct orchestrator dispatch uses `general` (`openai/gpt-6-luna`), distinct from the configured DeepSeek orchestrator (`global-config/opencode.json:243,:466`); a PM dispatch uses a DeepSeek-family writer (`odd-apply` or `gentle-ai-worker`), distinct from the configured Sol PMs (`pm-odd` and `pm-systematic`: `global-config/opencode.json:2065,:2198`). The configured `odd-apply` and `gentle-ai-worker` models are `opencode-go/deepseek-v4.1-flash` (`global-config/opencode.json:2340,:369`). Never use `general` for a PM dispatch: GPT-6 Luna and GPT-6.1 Sol are both OpenAI-family models. Provider changes within one family do not count as independence. The historical CLOUD or LOCAL tier formulation is valid only if the selected writer is independent, provided its model family differs from the orchestrator's; it never overrides the per-dispatcher mapping above. An unrecognized model family is NOT proven independent and must fail closed; do not silently treat an unknown family as independent.
+- Keep primary code review independent of the writer's model family: the DeepSeek `gentle-orchestrator` reviews ordinary `general` (GPT-6 Luna) work, and `gentle-ai-verify-routine` (Claude Haiku 5.5, the default tier) or `gentle-ai-verify` (GPT-6 Sol, the high-risk tier) reviews `gentle-ai-worker` (DeepSeek) work. Provider changes within one family do not count as independence. If a live fallback makes the writer and reviewer share a family, dispatch an authorized independent review specialist before accepting the review; preserve the native review lifecycle rules.
+- The orchestrator must not dispatch a writer that shares its own model family. A tiny-fix writer must also be independent of its dispatcher, and selection is per dispatcher: a direct orchestrator dispatch uses `general` (`openai/gpt-6-luna`), distinct from the configured DeepSeek orchestrator (`global-config/opencode.json:689`); a PM dispatch uses a DeepSeek-family writer (`odd-apply` or `gentle-ai-worker`), independent of the configured Muse PMs (`pm-odd` and `pm-systematic`: `global-config/opencode.json:2300,:2439`). The configured `odd-apply` and `gentle-ai-worker` models are `opencode-go/deepseek-v4.1-flash` (`global-config/opencode.json:2587,:418`). Never use `general` for a PM dispatch: the configured Muse PMs keep the named DeepSeek-writer policy, and independence is compared by model family, not provider prefix. Provider changes within one family do not count as independence. The historical CLOUD or LOCAL tier formulation is valid only if the selected writer is independent, provided its model family differs from the orchestrator's; it never overrides the per-dispatcher mapping above. An unrecognized model family is NOT proven independent and must fail closed; do not silently treat an unknown family as independent.
 - For a true docs/metadata unit whose actual diff is inside the simple-docs allowlist, the PM's factual/structural check plus an independent orchestrator Git/tracker readback replace the code-review independence pair; no docs verifier is dispatched. Any test/verifier reader makes the unit normative and the ordinary code-review rule applies. This exemption never lowers the budget of a code-changing unit.
 
 <!-- workflow:anchor workflow.execution-boundary:end -->
+## Planner handoff (installed and live)
+
+This section records the live contract for the Planner tier as of 2026-10-25: the `planner` and
+`planner-evidence` agents and the `host_plan_write`, `host_gate_verdict` and `host_task_mark` tools
+are installed and deployed.
+
+| Agent | Model | Role |
+|---|---|---|
+| `planner` | `openai/gpt-6.1-sol` (`high`; `xhigh` for Gate 1 on multi-step/high-risk work) | finalises the orchestrator draft plus PM suggestions, selects only the pre-code advisors the task class and impact require, reads their raw outputs, and issues both technical gate verdicts |
+| `planner-evidence` | `openai/gpt-6-luna` (`medium`) | facts-only, read-only evidence at `path:line`; no task dispatch, mutation, execution, or memory write |
+
+The handoff is: the orchestrator drafts the plan; the PM reads the draft and hands it to the Planner
+with suggestions as messages, never as plan writes; the Planner finalises the plan and selects only
+the pre-code advisors the task class and impact require — none for documentation, metadata,
+comment-only, tiny or passive units; the single advisor whose surface the change touches for medium
+code, with a second only when two independent surfaces are materially affected; at most three for
+high-risk, normative, config, security or cross-cutting changes. The Planner reads each selected
+advisor's RAW output rather than a PM or orchestrator summary; Gate 1 follows that pre-code advice.
+A writer then implements. The Planner runs the post-code advisory check. Gate 2 follows the
+post-code advice, the writer and verifier evidence, and the pre-commit assessment of the installed
+candidate, and occurs BEFORE the work-unit commit and BEFORE the PM completes or ticks the unit, so a
+REFINE resolves in the single revision cycle before the final commit. After the commit the PM ticks
+the unit with that commit as `evidenceCommit`; the orchestrator dispatches the four post-commit
+lenses only after the commit, and native review is post-commit and is not Gate 2 input. The
+orchestrator then assesses, reviews where due, and acknowledges; the owner approves delivery. Gate 2
+runs again after any revision. A second Gate 2 fails only on a true blocker; non-blocking follow-ups
+are recorded as later work. A second REFINE or ESCALATE stops the unit for human direction.
+Gate 2 occurs BEFORE the PM completes or ticks the unit.
+
+`PASS`, `REFINE`, and `ESCALATE` are TECHNICAL verdicts only. They never approve delivery,
+deployment, merge, release, or user acceptance. The Planner is read-only except for the ask-gated
+`host_plan_write` and `host_gate_verdict` fixed acts; `host_task_mark` is denied. The Planner
+dispatches no writer and no review lens.
+
+The deferred Q90-D1 prompt reduction/externalization work happens only AFTER the PM layer becomes
+active; it is not an immediate prerequisite to making the PM layer active and is not performed here.
+
 <!-- workflow:anchor workflow.context-backend:begin -->
 ## Context and Artifact Backend
 
@@ -353,6 +391,7 @@ The current derived mapping is:
 - For normal work, the configured Sol agent runs without another prompt. For extremely critical decisions, the orchestrator gives one evidence-based sentence and asks exactly **Use Astra upgrade (Recommended)** or **Keep Sol**. An explicit user request can also select Astra.
 - The choice is cached only for the current project/session and applies to eligible Sol roles by selecting `<base-agent>-astra`. It is reconsidered only if the scope materially crosses the criticality threshold.
 - Astra is forbidden for `general`, every apply or implementation route, `jd-fix-agent`, `systematic-implementer`, `pr-comment-resolver`, `design-iterator`, and `bug-reproduction-validator`. It never writes implementation code.
+- Astra is also never derived for the native review actors (`review-` and `asi-review-` risk, resilience, readability, reliability, refuter and validator), even when one runs on Sol; the plugin and the verifier apply the same exclusion.
 - Astra is not a Systematic profile and selection never edits global config or requires an OpenCode restart. Only initial installation or repair of the local plugin requires a restart.
 - Before dispatch, the orchestrator confirms that the alias exists and its base still resolves to Sol. If the alias or provider is unavailable, it uses the base Sol agent when safe and reports the limitation.
 
@@ -496,14 +535,16 @@ Verification and advice are finite. The unit's **actual diff** selects the budge
 
 | Route class | Pre-code advice | Post-code check | Independent verifier |
 |---|---|---|---|
-| Tiny fix | zero pre-advice (passive tiny) | zero post-advice | zero `gentle-ai-verify` |
+| Tiny fix | zero pre-advice (passive tiny) | zero post-advice | zero `gentle-ai-verify`. A Tiny fix is never automatically native-reviewed; any review is the outcome of its own risk assessment. |
 | Small feature | one pre-advice phase | one post-code check | none unless an explicit exception applies |
 | Substantial feature | one pre-advice phase | one post-code check; `ce:review` substitutes for the post advisor | none unless an explicit exception applies |
 | Bug investigation | one pre-advice phase | one post-code check | none unless an explicit exception applies |
 | Documentation | zero pre-advice for simple docs; otherwise one pre-advice phase | zero post-advice for simple docs; otherwise one post-code check | zero `gentle-ai-verify` for simple docs; otherwise an explicit exception only |
 | Global tooling change | one pre-advice phase | one post-code check | one independent verifier |
 
-A medium ordinary behaviour, test-only or command-changing-docs unit takes one pre-advice phase and one post-code check; `ce:review` substitutes for the post advisor when it runs, and the verifier is the explicit exception only for a security boundary, uncertainty, live fallback/independence, or an explicitly reduced small-model profile. A high normative contract/config/security/enforcement-test/dependency or plugin-pin change takes one pre-advice phase, one post-code check and one independent verifier. Generated inherits source. Counts are check phases, not numbers of baseline reviewers; the named `ce:review` baseline reviewers stay intact. The configured `opencode-go/deepseek-v4.1-flash` writer is NOT treated as a small/reduced profile merely because of the "flash" name (owner decision, 2026-10-21). The medium verifier exception must name the reduced profile and reason. The PM Sol self-check and the independent orchestrator readback remain required.
+**Verifier tiers (owner, 2026-10-28).** The independent verifier has two seats on one read-only surface, dispatched only by the orchestrator and the PMs. `gentle-ai-verify-routine` (`opencode-go/claude-haiku-5-5`, `high`) is the default whenever the budget owes a verifier or the medium exception applies. When the unit's Risk line names a high-risk item (Task Size items 1-6) or a security boundary, use `gentle-ai-verify` (`openai/gpt-6.1-sol`, `high`) instead. The routine tier is a different family from the Planner, the DeepSeek writers and the orchestrator; Sol shares the Planner's family, so the Planner reads its raw output as evidence and never as a verdict.
+
+A medium ordinary behaviour, test-only or command-changing-docs unit takes one pre-advice phase and one post-code check; `ce:review` substitutes for the post advisor when it runs, and the verifier is the explicit exception only for a security boundary, uncertainty, live fallback/independence, or an explicitly reduced small-model profile. A high normative contract/config/security/enforcement-test/dependency or plugin-pin change takes one pre-advice phase, one post-code check and one independent verifier. Generated inherits source. Counts are check phases, not numbers of baseline reviewers; the named `ce:review` baseline reviewers stay intact. The configured `opencode-go/deepseek-v4.1-flash` writer is NOT treated as a small/reduced profile merely because of the "flash" name (owner decision, 2026-10-21). The medium verifier exception must name the reduced profile and reason. The PM self-check and the independent orchestrator readback remain required.
 
 **One-correction ceiling.** A unit gets one initial writer plus ONE fresh correction writer across all pre-commit post-code gates, including `ce:review` and external advice. Batch all applicable checks on the SAME candidate before correction, name findings with finding IDs, issue one consolidated fix brief, install first, then refine on the installed base; a targeted recheck of those IDs and affected regression controls is not a full new advice cycle. The same unresolved blocker, or a new blocker during recheck, does not buy another round: record it as advisory/follow-up for non-blockers, return `NEEDS_INPUT` for explicit human authorization, or `BLOCKED` for missing authority/environment/evidence. A human may authorize a bounded exception with reason, scope and a new limit; record any override separately; metadata or a new task ID never silently resets the counter. Record `correction_rounds_used` as `0|1` in `pm-unit-result/v1`. Native review is a separate authority: a native correction gets one scoped fix plus a targeted native validator and is then closed; no PM advisor or verifier cycle runs on it, and native review state stays untouched. A tiny fix escalated after commit owes the applicable post-code check on the committed candidate; any correction is a new commit, never rewriting history.
 
@@ -519,7 +560,7 @@ Advice follows the finite budget above. It is mandatory for every normative chan
 - Resolve consequential findings before coding; record the chosen approach and required checks briefly.
 - First-pass advisors must not see one another's answers; use parallel calls for distinct questions against frozen evidence, sequential only when a later question depends on a finding.
 - Consensus requires different model families; several sessions of one model are valid specialist advice but never multi-model consensus. Never decide by majority vote.
-- Model fallback: prefer Go routes; Luna for moderate work when Go is unsuitable; Sol only for unresolved consequential questions. Do not place GLM 5.3 Flash in an advisor's initial fallback chain.
+- Model fallback: prefer Go routes; Luna for moderate work when Go is unsuitable; Sol only for unresolved consequential questions. Do not place Muse Spark Contributor in an advisor's initial fallback chain.
 - A failed or exhausted advisor is a missing opinion, never an approval; report a blocked mandatory gate rather than proceeding.
 - This layer runs BEFORE planning and implementation; ODD remains the execution spine beneath it.
 
@@ -527,7 +568,7 @@ Advice follows the finite budget above. It is mandatory for every normative chan
 
 Use the smallest sufficient set of registered pre-code `advisor-*-pre` subagents: one by default. Impact decides when to add a second model family. Add testing or security only for a distinct necessary question; a single integration advisor may cover cross-component behaviour and deployment. These advisors are automated and raise no subscription issue. Pre-code advice dispatches the `-pre` agents.
 
-**Interim post-code advisory review (owner, 2026-10-01; sequencing updated 2026-10-09).** The PM dispatches the registered `advisor-*-post` subagents to review the final implementation candidate before its work-unit commit, but only when the unit's actual-diff budget requires it and its route does not run `ce:review` for that unit: a normative change, including a normative or command-doc change, owes the check exactly as code does, because `ce:review` already provides the advisory multi-persona review when it runs. When `ce:review` runs, make no interim post-code advisor call. Only a true docs/metadata unit inside the simple-docs allowlist or a genuinely passive tiny fix takes no post-code advisor either; its PM factual/structural check and independent orchestrator readback stand in. The advisory review must be independent of the author; the PM owns dispatch before committing so its findings can inform the committed version. The same rules apply as for pre-code advice: the smallest sufficient set, one by default, evidence only, never approval. Record it under the task ID with step `post-code`. Native review remains separately driven and is never run by the PM. Once the external lane is active, `post-code-pair` applies as written below.
+**Interim post-code advisory review (owner, 2026-10-01; sequencing updated 2026-10-09).** The PM dispatches the registered `advisor-*-post` subagents to review the final implementation candidate before its work-unit commit, but only when the unit's actual-diff budget requires it and its route does not run `ce:review` for that unit: a normative change, including a normative or command-doc change, owes the check exactly as code does, because `ce:review` already provides the advisory multi-persona review when it runs. When `ce:review` runs, make no interim post-code advisor call. Only a true docs/metadata unit inside the simple-docs allowlist or a genuinely passive tiny fix takes no post-code advisor either; its PM factual/structural check and independent orchestrator readback stand in. The advisory review must be independent of the author; the PM owns dispatch before committing so its findings can inform the committed version. The same rules apply as for pre-code advice: the smallest sufficient set, one by default, evidence only, never approval. Record it under the task ID with step `post-code`. Native review remains separately driven and is never run by the PM. Once the external lane is active, `post-code-pair` applies as written below. Until the planned Planner integration is active, the PM retains the current runtime post-code advisory ownership described here; the Planner section below is source-only and changes no live dispatch.
 
 The orchestrator routes and aggregates advisor findings mechanically. Because it authored the plan, it must never rank, dismiss, or merge those findings.
 
@@ -537,19 +578,19 @@ The orchestrator routes and aggregates advisor findings mechanically. Because it
 |---|---|
 | `advisor-design-pre` | `openai/gpt-6.1-sol` |
 | `advisor-security-pre` | `openai/gpt-6.1-sol` |
-| `advisor-integration-pre` | `opencode-go/kimi-k2.7-code` |
-| `advisor-testing-pre` | `opencode-go/minimax-m3` |
-| `advisor-maintainability-pre` | `opencode-go/mimo-v2.6-flash` |
+| `advisor-integration-pre` | `opencode-go/mimo-v2.6-flash` |
+| `advisor-testing-pre` | `opencode-go/glm-5.3-flash` (`high`) |
+| `advisor-maintainability-pre` | `opencode-go/glm-5.3-flash` (`high`) |
 
 **Post-code advisors**
 
 | Advisor | Model |
 |---|---|
 | `advisor-design-post` | `opencode-go/qwen3.7-plus` |
-| `advisor-integration-post` | `opencode-go/kimi-k2.7-code` |
-| `advisor-testing-post` | `opencode-go/kimi-k2.7-code` |
+| `advisor-integration-post` | `opencode-go/glm-5.3-flash` (`high`) |
+| `advisor-testing-post` | `opencode-go/qwen3.8-flash` |
 | `advisor-security-post` | `opencode-go/qwen3.7-plus` |
-| `advisor-maintainability-post` | `opencode-go/deepseek-v4-flash` (`medium`) |
+| `advisor-maintainability-post` | `opencode-go/ling-3.1-flash` |
 
 **Gemini API advisors (external-lane substitute only)**
 

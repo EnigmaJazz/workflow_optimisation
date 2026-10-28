@@ -2,7 +2,11 @@
 """Plugin package cache integrity helper (stdlib only, JSON output).
 
 check-pin: succeed only when <cache-root>/<pkg>@<ver>/node_modules/<pkg>/package.json
-           exists and declares the pinned version.
+           exists and declares the pinned version. With --installed-root, also
+           succeed (state pending-cache) when the cache dir is absent and
+           <installed-root>/node_modules/<pkg>/package.json declares the pinned
+           version: the auto-updater installed it and OpenCode fills its cache at
+           the next start. An incomplete cache dir is never preservable.
 scan:      report configured specs whose cache dir exists but is incomplete and,
            with --apply, MOVE (never delete) safely idle ones into quarantine.
 """
@@ -61,11 +65,29 @@ def newest_mtime(root):
     return newest
 
 
+def installed_version(installed_root, pkg):
+    manifest = Path(installed_root) / "node_modules" / pkg / "package.json"
+    try:
+        return json.loads(manifest.read_text(encoding="utf-8")).get("version")
+    except Exception:
+        return None
+
+
 def cmd_check_pin(args):
     state, reason = inspect(args.cache_root, args.spec)
     complete = state == "complete"
-    print(json.dumps({"spec": args.spec, "complete": complete, "state": state, "reason": reason}))
-    return 0 if complete else 1
+    preservable = complete
+    if state == "absent" and args.installed_root:
+        pkg, ver = split_spec(args.spec)
+        found = installed_version(args.installed_root, pkg)
+        if found == ver:
+            state, preservable = "pending-cache", True
+            reason = f"cache not yet filled; {args.installed_root} node_modules declares {ver}"
+        else:
+            reason += f"; installed version is {found} (pinned {ver})"
+    print(json.dumps({"spec": args.spec, "complete": complete, "preservable": preservable,
+                      "state": state, "reason": reason}))
+    return 0 if preservable else 1
 
 
 def cmd_scan(args):
@@ -104,6 +126,7 @@ def main(argv=None):
     c = sub.add_parser("check-pin")
     c.add_argument("--cache-root", required=True)
     c.add_argument("--spec", required=True)
+    c.add_argument("--installed-root")
     c.set_defaults(fn=cmd_check_pin)
     s = sub.add_parser("scan")
     s.add_argument("--cache-root", required=True)

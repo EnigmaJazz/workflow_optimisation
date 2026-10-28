@@ -17,7 +17,64 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "verify-workflow.sh"
+SKILL = REPO / "global-config" / "skills" / "workflow-odd-secure" / "SKILL.md"
 SEP = "~"
+
+# Q90: the tiny-fix anchor interior must carry the installed Planner handoff
+# clause and must no longer carry the deferred/uninstalled marker. The prefix
+# tokens are spot checks across the existing bullet, ending at the mid-unit
+# PENDING-COMMIT sentence the clause follows.
+TINY_FIX_ANCHOR = "workflow.tiny-fix-odd-route"
+PLANNER_CLAUSE = (
+    "Planner handoff (installed and live since 2026-10-25): the PM reads the "
+    "orchestrator draft and hands it to `planner` with its own suggestions as "
+    "messages; the Planner selects the pre-code advisors the task class and impact "
+    "require (none for docs/metadata/tiny; one surface advisor for medium; at most "
+    "three for high/normative/config/security), reads their RAW outputs, issues "
+    "Gate 1, and issues Gate 2 pre-commit; Gate 2 re-runs after any revision and a "
+    "second REFINE/ESCALATE returns the unit to the human."
+)
+PLANNER_UNINSTALLED_MARKER = "PLANNED, NOT INSTALLED OR LIVE"
+TINY_FIX_PREFIX_TOKENS = (
+    "Tiny-fix route: select the writer by dispatcher.",
+    "An orchestrator's direct dispatch uses `general` (`openai/gpt-6-luna`)",
+    "a PM dispatch uses `odd-apply` or `gentle-ai-worker` (DeepSeek family), never `general`",
+    "No writer may share its dispatcher's model family.",
+    "`PENDING-COMMIT` is expected mid-unit.",
+)
+
+
+def anchor_interior(text, anchor_id=TINY_FIX_ANCHOR):
+    """Return the text between ANCHOR_ID's begin and end markers (markers excluded)."""
+    begin = f"<!-- workflow:anchor {anchor_id}:begin -->"
+    end = f"<!-- workflow:anchor {anchor_id}:end -->"
+    start = text.index(begin) + len(begin)
+    return text[start:text.index(end, start)]
+
+
+def tiny_fix_anchor_gaps(interior):
+    """Return error strings for a tiny-fix anchor interior violating the Q90 contract."""
+    gaps = []
+    occurrences = interior.count(PLANNER_CLAUSE)
+    if occurrences != 1:
+        gaps.append(f"planner handoff clause occurs {occurrences} times, not exactly once")
+    if PLANNER_UNINSTALLED_MARKER in interior:
+        gaps.append("interior still carries the uninstalled Planner marker")
+    for token in TINY_FIX_PREFIX_TOKENS:
+        token_count = interior.count(token)
+        if token_count != 1:
+            gaps.append(f"prefix token {token!r} occurs {token_count} times, not exactly once")
+    return gaps
+
+
+def synthetic_tiny_fix_interior():
+    """A passing interior used only by the mutation controls."""
+    return (
+        "Tiny-fix bullet "
+        + " ".join(TINY_FIX_PREFIX_TOKENS)
+        + " "
+        + PLANNER_CLAUSE
+    )
 
 
 def table_body(text, name):
@@ -115,9 +172,11 @@ class RealTables(unittest.TestCase):
 
         token_body = table_body(self.text, "ANCHOR_TOKENS")
         self.assertIsNotNone(token_body, "ANCHOR_TOKENS table not found")
+        assert token_body is not None, "ANCHOR_TOKENS table not found"
+        token_text = token_body
         row = next(
             line.strip()
-            for line in token_body.splitlines()
+            for line in token_text.splitlines()
             if "mirror_sha256" in line
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -205,6 +264,75 @@ printf 'TOKEN_LOOP_RESULT rows=%s failures=%s\\n' "${{#ANCHOR_TOKENS[@]}}" "${{#
         self.assertIn(f"ANCHOR_LOOP_RESULT rows={len(rows(manifest))} failures=0", result.stdout)
         self.assertIn(f"TOKEN_LOOP_RESULT rows={len(rows(token_table))} failures=0", result.stdout)
         self.assertEqual(result.stdout.count("PASS "), len(rows(manifest)), result.stdout)
+
+
+class RealTinyFixAnchor(unittest.TestCase):
+    """Q90: the extracted tiny-fix anchor carries the installed Planner handoff."""
+
+    def setUp(self):
+        self.assertTrue(SKILL.is_file(), f"{SKILL} missing")
+        self.text = SKILL.read_text(encoding="utf-8")
+        self.interior = anchor_interior(self.text)
+
+    def test_anchor_interior_is_extracted_and_substantive(self):
+        self.assertGreater(len(self.interior.strip()), 500, "tiny-fix anchor interior is suspiciously small")
+
+    def test_planner_handoff_clause_appears_exactly_once(self):
+        self.assertEqual(
+            self.interior.count(PLANNER_CLAUSE),
+            1,
+            "the owner-exact Planner handoff clause must appear exactly once inside the anchor",
+        )
+
+    def test_uninstalled_planner_marker_is_absent_from_the_anchor(self):
+        self.assertNotIn(
+            PLANNER_UNINSTALLED_MARKER,
+            self.interior,
+            "the tiny-fix anchor must not still mark the Planner handoff uninstalled",
+        )
+
+    def test_tiny_fix_prefix_tokens_and_anchor_contract_pass(self):
+        self.assertEqual(tiny_fix_anchor_gaps(self.interior), [])
+
+
+class AnchorPositiveControl(unittest.TestCase):
+    """Prove the anchor validator can fail; a green real-file run proves nothing alone."""
+
+    def test_synthetic_interior_passes(self):
+        self.assertEqual(tiny_fix_anchor_gaps(synthetic_tiny_fix_interior()), [])
+
+    def test_removed_planner_clause_is_reported(self):
+        damaged = synthetic_tiny_fix_interior().replace(PLANNER_CLAUSE, "", 1)
+        gaps = tiny_fix_anchor_gaps(damaged)
+        self.assertIn("planner handoff clause occurs 0 times, not exactly once", gaps)
+
+    def test_duplicate_planner_clause_is_reported(self):
+        damaged = synthetic_tiny_fix_interior() + " " + PLANNER_CLAUSE
+        gaps = tiny_fix_anchor_gaps(damaged)
+        self.assertIn("planner handoff clause occurs 2 times, not exactly once", gaps)
+
+    def test_restored_uninstalled_marker_is_reported(self):
+        damaged = synthetic_tiny_fix_interior().replace(
+            PLANNER_CLAUSE, PLANNER_UNINSTALLED_MARKER, 1
+        )
+        gaps = tiny_fix_anchor_gaps(damaged)
+        self.assertIn("interior still carries the uninstalled Planner marker", gaps)
+        self.assertIn("planner handoff clause occurs 0 times, not exactly once", gaps)
+
+    def test_damaged_prefix_token_is_reported(self):
+        for token in TINY_FIX_PREFIX_TOKENS:
+            with self.subTest(token=token):
+                damaged = synthetic_tiny_fix_interior().replace(token, "DAMAGED", 1)
+                self.assertNotEqual(damaged, synthetic_tiny_fix_interior())
+                gaps = tiny_fix_anchor_gaps(damaged)
+                self.assertTrue(
+                    any(gap.startswith("prefix token") for gap in gaps),
+                    f"damaging {token!r} was not reported: {gaps}",
+                )
+
+    def test_anchor_interior_requires_markers(self):
+        with self.assertRaises(ValueError):
+            anchor_interior("no markers here")
 
 
 class PositiveControl(unittest.TestCase):

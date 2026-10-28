@@ -419,7 +419,7 @@ if not local_auto_update_path.is_file():
 required_agents = {
     "gentle-orchestrator", "general", "explore",
     "gentle-ai-explore", "gentle-ai-worker", "gentle-ai-worker-local", "gentle-ai-verify",
-    "pm-odd", "pm-systematic", "odd-apply",
+    "gentle-ai-verify-routine", "pm-odd", "pm-systematic", "odd-apply",
     "frontend-dev", "frontend-dev-premium",
     "asi-review-risk", "asi-review-resilience", "asi-review-readability",
     "asi-review-reliability", "asi-review-refuter", "asi-review-validator",
@@ -475,11 +475,14 @@ def semver_core(ref, identity):
 
 def pin_is_complete(ref):
     # A newer deployed pin is only trustworthy when its package is fully
-    # installed in the OpenCode cache (an interrupted install leaves no package.json).
+    # installed in the OpenCode cache (an interrupted install leaves no package.json),
+    # or when the cache is not yet filled and the auto-updater's install in the
+    # config dir declares that version (OpenCode fills the cache at its next start).
     try:
         proc = subprocess.run(
             [sys.executable, integrity_helper, "check-pin",
-             "--cache-root", packages_cache_root, "--spec", ref],
+             "--cache-root", packages_cache_root,
+             "--installed-root", str(target.parent), "--spec", ref],
             capture_output=True, text=True, timeout=30)
         return proc.returncode == 0
     except Exception:
@@ -1983,8 +1986,57 @@ function modelFamily(value) {
   if (model.includes("minimax")) return "minimax"
   if (model.includes("grok")) return "grok"
   if (model.includes("gemini")) return "gemini"
+  if (model.includes("ling")) return "ling"
+  if (model.includes("claude")) return "claude"
   return undefined
 }
+// supported-variant-validator:begin
+// Staged by q90-t30-variants-u1 for the T3.0.2 activation gate; not called against live seats yet.
+// Self-contained and marked for extraction. Full model IDs only; no root or plural provider shape.
+// The allowed names are the owner/tracker target subset, not the full provider catalog.
+const SUPPORTED_VARIANT_TARGETS = Object.freeze({
+  "openai/gpt-6-luna": Object.freeze(["none","low","medium","high","xhigh","max"]),
+  "opencode-go/glm-5.3-flash": Object.freeze(["low","high","max"]),
+  "opencode-go/glm-5.3": Object.freeze(["low","high","max"]),
+  "opencode-go/deepseek-v4.1-flash": Object.freeze(["low","high"]),
+  "opencode-go/deepseek-v4.1-flash@worker": Object.freeze(["low","high","max"]),
+  "opencode-go/deepseek-v4-pro": Object.freeze(["high"]),
+  "opencode-go/claude-haiku-5-5": Object.freeze(["high"]),
+  "opencode-go/ling-3.1-flash": Object.freeze([]),
+  "opencode-go/minimax-m3.1-flash": Object.freeze(["high","xhigh"]),
+  "opencode-go/qwen3.8-flash": Object.freeze([]),
+  "opencode-go/qwen3.8-max": Object.freeze([]),
+  "opencode-go/kimi-k2.7-code": Object.freeze([]),
+  "opencode-go/mimo-v2.6-flash": Object.freeze([]),
+  "google/gemini-flash-latest": Object.freeze([]),
+  "google/gemini-4-argon": Object.freeze([]),
+})
+function variantValueType(value) {
+  if (value === null) return "null"
+  if (Array.isArray(value)) return "array"
+  return typeof value
+}
+function supportedVariantFailure(model, variant) {
+  if (typeof model !== "string" || model.length === 0) {
+    return `SUPPORTED_VARIANT_MODEL_INVALID: model=${JSON.stringify(model)} variant=${JSON.stringify(variant)}`
+  }
+  if (variant === undefined) return undefined
+  if (typeof variant === "string" && variant === "") {
+    return `SUPPORTED_VARIANT_EMPTY_REFUSED: model=${model} variant=""`
+  }
+  if (typeof variant !== "string") {
+    return `SUPPORTED_VARIANT_TYPE_REFUSED: model=${model} variantType=${variantValueType(variant)} variant=${JSON.stringify(variant)}`
+  }
+  const names = Object.prototype.hasOwnProperty.call(SUPPORTED_VARIANT_TARGETS, model) ? SUPPORTED_VARIANT_TARGETS[model] : undefined
+  if (names === undefined) {
+    return `SUPPORTED_VARIANT_MODEL_UNCLASSIFIED: model=${model} variant=${JSON.stringify(variant)}`
+  }
+  if (!names.includes(variant)) {
+    return `SUPPORTED_VARIANT_UNKNOWN_REFUSED: model=${model} variant=${JSON.stringify(variant)}`
+  }
+  return undefined
+}
+// supported-variant-validator:end
 function promptBudgetFailures(agents) {
   const failures=[]
   for (const [name,agent] of Object.entries(agents??{})) {
@@ -2273,6 +2325,10 @@ function isImplementationRoute(name) {
     /(^|-)apply($|-)/.test(name) ||
     /(^|-)implement(er|ation)?($|-)/.test(name)
 }
+// Native review actors never receive an Astra alias (matches astra-sol-upgrade.ts).
+function isReviewActor(name) {
+  return /^(asi-)?review-(risk|resilience|readability|reliability|refuter|validator)$/.test(name)
+}
 function sameResolvedSurface(base, alias, baseName, aliasName, field) {
   if (JSON.stringify(base?.[field])!==JSON.stringify(alias?.[field])) {
     fail(`ASTRA_ALIAS_SURFACE_MISMATCH: ${aliasName}.${field} differs from ${baseName}`)
@@ -2329,11 +2385,11 @@ function assertEquivalentPermissions(base, alias, baseName, aliasName) {
 const eligibleSolBases=new Set()
 for (const [name,agent] of Object.entries(deployedAgents)) {
   if (agent && typeof agent==="object" && agent.disable!==true && agent.mode!=="primary" &&
-      normalizeModel(agent.model)===SOL_MODEL && !isImplementationRoute(name)) eligibleSolBases.add(name)
+      normalizeModel(agent.model)===SOL_MODEL && !isImplementationRoute(name) && !isReviewActor(name)) eligibleSolBases.add(name)
 }
 for (const agent of inventory) {
   const expected=expectedFor(systematic,agent)
-  if (!expected.disable && expected.model===SOL_MODEL && !isImplementationRoute(agent.name)) eligibleSolBases.add(agent.name)
+  if (!expected.disable && expected.model===SOL_MODEL && !isImplementationRoute(agent.name) && !isReviewActor(agent.name)) eligibleSolBases.add(agent.name)
 }
 
 const runtimeAstraAliases=[...runtimeNames].filter((name)=>name.endsWith(ASTRA_SUFFIX)).sort()
@@ -2403,11 +2459,35 @@ if (genericRuntimeReady && ggaRuntimeReady && !distinct) {
   fail("GGA_REVIEW_NO_DISTINCT_MODEL_CONTROL: review primaries do not provide a control distinct from general/orchestrator")
 }
 
+// pm-seat-policy:begin
+// Owner direction 2026-10-28: both PM seats are the same exact Muse Spark Contributor seat
+// with no variant (the model defines none); this supersedes the 2026-10-24 GLM high seat.
+const PM_SEAT_MODEL="opencode-go/muse-spark-1.3-contributor"
+const PM_SEAT_VARIANT=undefined
+function pmSeatFailures(agents) {
+  const failures=[]
+  for (const name of ["pm-odd","pm-systematic"]) {
+    const agent=agents?.[name]
+    if (!agent || typeof agent!=="object") { failures.push(`PM_SEAT_MISSING: ${name}`); continue }
+    const model=normalizeModel(agent.model)
+    if (model!==PM_SEAT_MODEL) {
+      const family=modelFamily(agent.model)
+      failures.push(`${family==="gpt"?"PM_SEAT_OPENAI_MODEL":"PM_SEAT_MODEL_MISMATCH"}: ${name}=${show(model)}`)
+    }
+    if (agent.variant!==PM_SEAT_VARIANT) {
+      failures.push(`PM_SEAT_VARIANT_MISMATCH: ${name}=${show(agent.variant)}`)
+    }
+  }
+  return failures
+}
+// pm-seat-policy:end
+for (const failure of pmSeatFailures(deployedAgents)) fail(failure)
+
 // Compare underlying families, not provider prefixes or exact model IDs.
 // A Go Luna fallback for OpenAI Luna does not create an independent reviewer.
-// Q59: the dispatcher-to-writer pairs add the Sol PMs against their DeepSeek
+// Q59: the dispatcher-to-writer pairs add the GLM PMs against their DeepSeek
 // writers; the existing orchestrator/general and worker/verifier pairs remain.
-for (const [writer,reviewer] of [["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"],["pm-odd","odd-apply"],["pm-systematic","gentle-ai-worker"]]) {
+for (const [writer,reviewer] of [["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"],["gentle-ai-worker","gentle-ai-verify-routine"],["pm-odd","odd-apply"],["pm-systematic","gentle-ai-worker"]]) {
   for (const [surface,writerModel,reviewerModel] of [
     ["configured",deployedAgents[writer]?.model,deployedAgents[reviewer]?.model],
     ["runtime",readDebug(writer)?.model,readDebug(reviewer)?.model],
@@ -2792,6 +2872,66 @@ for (const name of ["host_system","host_service_status","host_service_logs","hos
 
 function cfgTool(agent,t) { return agent?.tools && typeof agent.tools==="object" ? agent.tools[t] : undefined }
 function cfgPerm(agent,t) { return agent?.permission && typeof agent.permission==="object" ? agent.permission[t] : undefined }
+// Q90 T3a1: the orchestrator-only fixed-tool surface. Plan drafting is ask-gated;
+// the narrowly defined pre-registered test runner is allow-gated. Neither is a
+// generic shell/edit authority, and no other agent may receive either grant.
+function hostTestRunGlobalDefaultFailures(value) {
+  return value==="deny" ? [] : [`HOST_TEST_RUN_GLOBAL_DEFAULT_NOT_DENY: ${show(value)}`]
+}
+function hostPlanWriteGlobalDefaultFailures(value) {
+  return value==="deny" ? [] : [`HOST_PLAN_WRITE_GLOBAL_DEFAULT_NOT_DENY: ${show(value)}`]
+}
+function hostTestRunOrchestratorFailures(agent) {
+  return cfgPerm(agent,"host_test_run")==="allow" ? [] : [`ORCHESTRATOR_HOST_TEST_RUN_NOT_ALLOW: ${show(cfgPerm(agent,"host_test_run"))}`]
+}
+function hostPlanWriteOrchestratorFailures(agent) {
+  return cfgPerm(agent,"host_plan_write")==="ask" ? [] : [`ORCHESTRATOR_HOST_PLAN_WRITE_NOT_ASK: ${show(cfgPerm(agent,"host_plan_write"))}`]
+}
+function hostTestRunGrantSweepFailures(agents) {
+  const failures=[]
+  for (const [name,agent] of Object.entries(agents??{})) {
+    if (name==="gentle-orchestrator") continue
+    const value=cfgPerm(agent,"host_test_run")
+    if (value!==undefined && value!=="deny") failures.push(`HOST_TEST_RUN_GRANTED_OUTSIDE_ORCHESTRATOR: ${name}=${show(value)}`)
+  }
+  return failures
+}
+function hostPlanWriteGrantSweepFailures(agents,allowedAgents) {
+  const failures=[]
+  const allowed=new Set(allowedAgents??[])
+  for (const [name,agent] of Object.entries(agents??{})) {
+    if (allowed.has(name)) continue
+    const value=cfgPerm(agent,"host_plan_write")
+    if (value!==undefined && value!=="deny") failures.push(`HOST_PLAN_WRITE_GRANTED_OUTSIDE_COORDINATORS: ${name}=${show(value)}`)
+  }
+  return failures
+}
+function hostToolPromptFailures(prompt) {
+  const required=[
+    "may draft plan documents through the ask-gated `host_plan_write` fixed tool",
+    "plan documents only, never code or configuration",
+    "narrowly defined, pre-registered tests through the allow-gated `host_test_run` fixed tool",
+    "never arbitrary caller argv, pipes, redirects, or shell",
+    "a failed or unavailable test run is evidence, never permission to widen authority",
+    "`host_test_run` is not implemented in the current surface and remains inert until the host tool ships",
+  ]
+  return required.filter((fragment)=>!prompt.includes(fragment)).map((fragment)=>`HOST_TOOL_PROMPT_CLAUSE_MISSING: ${JSON.stringify(fragment)}`)
+}
+for (const failure of hostTestRunGlobalDefaultFailures(gp.host_test_run)) fail(failure)
+const hostTestRunGlobalProbe=hostTestRunGlobalDefaultFailures("allow")
+if (!hostTestRunGlobalProbe.includes('HOST_TEST_RUN_GLOBAL_DEFAULT_NOT_DENY: "allow"')) fail("HOST_TEST_RUN_GLOBAL_DEFAULT_POSITIVE_CONTROL_FAILED")
+else console.log("   ok: host_test_run global-default positive control detected allow")
+for (const failure of hostPlanWriteGlobalDefaultFailures(gp.host_plan_write)) fail(failure)
+const hostPlanWriteGlobalProbe=hostPlanWriteGlobalDefaultFailures("ask")
+if (!hostPlanWriteGlobalProbe.includes('HOST_PLAN_WRITE_GLOBAL_DEFAULT_NOT_DENY: "ask"')) fail("HOST_PLAN_WRITE_GLOBAL_DEFAULT_POSITIVE_CONTROL_FAILED")
+else console.log("   ok: host_plan_write global-default positive control detected ask")
+for (const failure of hostTestRunGrantSweepFailures(deployedAgents)) fail(failure)
+for (const value of ["ask","allow"]) {
+  const probe=hostTestRunGrantSweepFailures({[`synthetic-${value}-agent`]:{permission:{host_test_run:value}}})
+  const expected=`HOST_TEST_RUN_GRANTED_OUTSIDE_ORCHESTRATOR: synthetic-${value}-agent=${show(value)}`
+  if (!probe.includes(expected)) fail(`HOST_TEST_RUN_GRANT_SWEEP_POSITIVE_CONTROL_FAILED: ${value}`)
+}
+console.log("   ok: host_test_run is denied globally and granted only to the orchestrator")
 function hostReviewAssessFailures(name,agent) {
   const failures=[]
   if (!agent?.permission || typeof agent.permission!=="object" || Array.isArray(agent.permission) || !Object.prototype.hasOwnProperty.call(agent.permission,"host_review_assess") || agent.permission.host_review_assess!=="allow") failures.push(`HOST_REVIEW_ASSESS_NOT_ALLOW: ${name}`)
@@ -2806,6 +2946,23 @@ function hostReviewDiffReadFailures(name,agent) {
 // Orchestrator-only checks below keep fixed-host, tiny-fix and registration names.
 const pmAgents=["pm-odd","pm-systematic"]
 const coordinatorAgents=["gentle-orchestrator",...pmAgents]
+// The Planner is a plan writer and advisor dispatcher, but not a review coordinator.
+// Keeping it out of coordinatorAgents avoids requiring the PM/review host grants and
+// avoids treating its narrow task map as coordinator deep-dispatch authority.
+const planWriterAgents=[...coordinatorAgents,"planner"]
+const advisorDispatchAgents=[...coordinatorAgents,"planner"]
+for (const failure of hostPlanWriteGrantSweepFailures(deployedAgents,planWriterAgents)) fail(failure)
+for (const value of ["ask","allow"]) {
+  const synthetic=`synthetic-${value}-plan-writer`
+  const probe=hostPlanWriteGrantSweepFailures({[synthetic]:{permission:{host_plan_write:value}}},planWriterAgents)
+  const expected=`HOST_PLAN_WRITE_GRANTED_OUTSIDE_COORDINATORS: ${synthetic}=${show(value)}`
+  if (!probe.includes(expected)) fail(`HOST_PLAN_WRITE_GRANT_SWEEP_POSITIVE_CONTROL_FAILED: ${value}`)
+  const coordinatorProbe=Object.fromEntries(planWriterAgents.map((name)=>[name,{permission:{host_plan_write:value}}]))
+  if (hostPlanWriteGrantSweepFailures(coordinatorProbe,planWriterAgents).length!==0) fail(`HOST_PLAN_WRITE_COORDINATOR_POSITIVE_CONTROL_FAILED: ${value}`)
+}
+console.log("   ok: host_plan_write grants are limited to the coordinator set")
+const relayReviewAgents=["asi-review-risk","asi-review-resilience","asi-review-readability","asi-review-reliability","asi-review-refuter","asi-review-validator"]
+const plainProviderReviewAgents=["review-risk","review-resilience","review-readability","review-reliability","review-refuter","review-validator"]
 for (const name of coordinatorAgents) {
   const agent=deployedAgents[name]
   if (!agent) { fail(`HOST_REVIEW_AGENT_MISSING: ${name}`); continue }
@@ -2989,8 +3146,8 @@ function pmIdentityFailures(agents,handoff) {
 function coordinatorTaskGraphFailures(agents) {
   const failures=[]
   const pmRequired={
-    "pm-odd":["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","explore"],
-    "pm-systematic":["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","explore"],
+    "pm-odd":["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine","gentle-ai-verify-astra","explore","planner"],
+    "pm-systematic":["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine","gentle-ai-verify-astra","explore","planner"],
   }
   // Strict per-PM MAXIMUM allowlist. A key outside this set is a grant even when
   // its value is "deny"; only the declared named lanes may appear at all.
@@ -3000,7 +3157,8 @@ function coordinatorTaskGraphFailures(agents) {
       "advisor-integration-post","advisor-integration-pre","advisor-maintainability-post",
       "advisor-maintainability-pre","advisor-security-post","advisor-security-pre",
       "advisor-testing-post","advisor-testing-pre","explore","gentle-ai-worker",
-      "gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","odd-apply",
+      "gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine","gentle-ai-verify-astra","odd-apply",
+      "planner",
     ]),
     "pm-systematic":new Set([
       "*","advisor-design-post","advisor-design-pre","advisor-gemini-post","advisor-gemini-pre",
@@ -3009,7 +3167,7 @@ function coordinatorTaskGraphFailures(agents) {
       "advisor-testing-post","advisor-testing-pre","bug-reproduction-validator",
       "correctness-reviewer","explore","frontend-apply","frontend-apply-local","frontend-dev",
       "frontend-dev-premium","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify",
-      "gentle-ai-verify-astra","project-standards-reviewer","repo-research-analyst",
+      "gentle-ai-verify-routine","gentle-ai-verify-astra","planner","project-standards-reviewer","repo-research-analyst",
       "systematic-implementer","testing-reviewer",
     ]),
   }
@@ -3034,9 +3192,59 @@ function coordinatorTaskGraphFailures(agents) {
     for (const key of Object.keys(task??{})) if (!allowed.has(key)) failures.push(`PM_TASK_GRANT_UNDECLARED: ${pm}.${key}`)
     for (const required of pmRequired[pm]) if (task?.[required]!=="allow") failures.push(`PM_REQUIRED_DISPATCH_MISSING: ${pm}.${required}`)
   }
-  for (const name of ["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","explore"]) {
+  for (const name of ["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine","explore"]) {
     const task=taskOf(name)
     if (task && typeof task==="object" && Object.values(task).some((value)=>value==="allow")) failures.push(`NON_COORDINATOR_TASK_DISPATCH: ${name}`)
+  }
+  return failures
+}
+// Q90 T3a2: one canonical raw task-map predicate for review dispatch. The
+// orchestrator owns the six relay lanes and denies the six plain lanes. Every
+// other agent must not grant a named relay/plain review lane, a partial glob
+// that overlaps one of those lanes, an allow wildcard, or a scalar allow. A
+// wildcard/scalar ask is also a grant except for the canonical frontend
+// coordinator, whose existing wildcard ask is preserved. This is a conservative
+// raw-map check, not a runtime permission resolver: cfgPerm does not model
+// inherited defaults or glob expansion.
+function reviewDispatchFailures(agents, relayReviewAgents, plainProviderReviewAgents) {
+  const failures=[]
+  const wildcardAskAllowed=(name)=>name==="frontend-dev-premium"
+  const protectedReviewLanes=[...relayReviewAgents,...plainProviderReviewAgents]
+  const globOverlapsReviewLane=(pattern,lane)=>{
+    let source="^"
+    for (const char of pattern) {
+      if (char==="*") source+=".*"
+      else if (char==="?") source+="."
+      else source+=char.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")
+    }
+    return new RegExp(source+"$").test(lane)
+  }
+  const orchestratorTask=agents?.["gentle-orchestrator"]?.permission?.task
+  if (!orchestratorTask || typeof orchestratorTask!=="object" || Array.isArray(orchestratorTask)) {
+    failures.push("ORCHESTRATOR_TASK_MAP_MISSING")
+  } else {
+    for (const name of relayReviewAgents) if (orchestratorTask[name]!=="allow") failures.push(`RELAY_TASK_NOT_ALLOWED: ${name}`)
+    for (const name of plainProviderReviewAgents) if (orchestratorTask[name]!=="deny") failures.push(`PLAIN_PROVIDER_REVIEW_TASK_NOT_DENIED: ${name}`)
+  }
+  for (const [agentName,agent] of Object.entries(agents??{})) {
+    if (agentName==="gentle-orchestrator") continue
+    const delegated=agent?.permission?.task
+    if (delegated===undefined) continue
+    if (delegated===null || typeof delegated!=="object" || Array.isArray(delegated)) {
+      if (delegated==="allow" || (delegated==="ask" && !wildcardAskAllowed(agentName))) failures.push(`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}="${delegated}"`)
+      else if (delegated!=="ask" && delegated!==false && delegated!=="deny") failures.push(`REVIEW_TASK_MAP_INVALID: ${agentName}`)
+      continue
+    }
+    for (const [target,value] of Object.entries(delegated)) {
+      if (target==="*") {
+        if (value==="allow" || (value==="ask" && !wildcardAskAllowed(agentName))) failures.push(`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.*="${value}"`)
+        else if (value!=="ask" && value!==false && value!=="deny") failures.push(`REVIEW_TASK_MAP_INVALID: ${agentName}.*`)
+        continue
+      }
+      const namedReviewLane=target.startsWith("asi-review-")||target.startsWith("review-")
+      if (!namedReviewLane && !protectedReviewLanes.some((lane)=>globOverlapsReviewLane(target,lane))) continue
+      if (value!=="deny" && value!==false) failures.push(`REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.${target}="${value}"`)
+    }
   }
   return failures
 }
@@ -3103,20 +3311,24 @@ for (const name of ["frontend-apply","frontend-apply-local","general","jd-fix-ag
 // fully covered by assertCfgWriter above; the read-only explorer and the
 // read-only verifier that may only run sandbox_bash must expose exactly those
 // tools and no mutation surface.
-const v4GenericAgents=["gentle-ai-explore","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify"]
+const v4GenericAgents=["gentle-ai-explore","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine"]
 for (const name of v4GenericAgents) if (!deployedAgents[name]) fail(`V4_GENERIC_AGENT_TOOL_MISSING: ${name} is not registered`)
 const v4ReadTools=["sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"]
 const v4MutationTools=["sandbox_edit","sandbox_write","sandbox_apply_patch","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]
 for (const name of v4ReadTools) {
   if (cfgTool(deployedAgents["gentle-ai-explore"],name)!==true) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-explore.${name}`)
-  if (cfgTool(deployedAgents["gentle-ai-verify"],name)!==true) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-verify.${name}`)
+  for (const verifier of ["gentle-ai-verify","gentle-ai-verify-routine"]) {
+    if (cfgTool(deployedAgents[verifier],name)!==true) fail(`V4_GENERIC_AGENT_TOOL_MISSING: ${verifier}.${name}`)
+  }
 }
 for (const name of ["sandbox_bash",...v4MutationTools]) {
   if (cfgTool(deployedAgents["gentle-ai-explore"],name)!==false) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-explore.${name} must be false`)
 }
-if (cfgTool(deployedAgents["gentle-ai-verify"],"sandbox_bash")!==true) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-verify.sandbox_bash`)
-for (const name of v4MutationTools) {
-  if (cfgTool(deployedAgents["gentle-ai-verify"],name)!==false) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-verify.${name} must be false`)
+for (const verifier of ["gentle-ai-verify","gentle-ai-verify-routine"]) {
+  if (cfgTool(deployedAgents[verifier],"sandbox_bash")!==true) fail(`V4_GENERIC_AGENT_TOOL_MISSING: ${verifier}.sandbox_bash`)
+  for (const name of v4MutationTools) {
+    if (cfgTool(deployedAgents[verifier],name)!==false) fail(`V4_GENERIC_AGENT_TOOL_MISSING: ${verifier}.${name} must be false`)
+  }
 }
 
 const pmAndAgents=[...pmAgents]
@@ -3179,7 +3391,7 @@ else {
   }
   for (const pm of ["pm-odd","pm-systematic"]) {
     const task=cfgPerm(deployedAgents[pm],"task")
-    for (const key of ["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra"]) {
+    for (const key of ["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine","gentle-ai-verify-astra"]) {
       if (task?.[key]!=="allow") fail(`TINY_FIX_AGENT_NOT_ALLOWED_TO_PM: ${pm}.${key}=${show(task?.[key])}`)
     }
     for (const failure of pmGeneralDispatchFailures(pm,task)) fail(failure)
@@ -3191,8 +3403,8 @@ else {
 
 // gemini-advisor-route:begin
 // Q76: the Argon advisors may only delegate to the Flash evidence gatherer, which keeps the
-// shared sandbox-only advisor surface. Only the orchestrator and the PMs dispatch the advisors;
-// no other agent may reach the gatherer. None of the three may fall back to another model.
+// shared sandbox-only advisor surface. Only the orchestrator, the PMs, and the Planner dispatch
+// the advisors; no other agent may reach the gatherer. None of them may fall back to another model.
 // The coordinator set is passed in so tests can execute this block in isolation.
 function geminiAdvisorRouteFailures(agents,fallback,coordinatorAgents) {
   const out=[]
@@ -3250,7 +3462,7 @@ function geminiAdvisorRouteFailures(agents,fallback,coordinatorAgents) {
 {
   let geminiFallback
   try { geminiFallback=parseJsonc(fallbackPolicySourcePath) } catch { geminiFallback=undefined }
-  for (const failure of geminiAdvisorRouteFailures(deployedAgents,geminiFallback,coordinatorAgents)) fail(failure)
+  for (const failure of geminiAdvisorRouteFailures(deployedAgents,geminiFallback,advisorDispatchAgents)) fail(failure)
   const controlFailures=geminiAdvisorRouteFailures({},{},coordinatorAgents)
   if (!controlFailures.includes("GEMINI_ADVISOR_MISSING: advisor-gemini-pre") || !controlFailures.includes("GEMINI_EVIDENCE_MISSING: advisor-gemini-evidence")) {
     fail(`GEMINI_ADVISOR_ROUTE_POSITIVE_CONTROL_FAILED: ${JSON.stringify(controlFailures)}`)
@@ -3259,9 +3471,103 @@ function geminiAdvisorRouteFailures(agents,fallback,coordinatorAgents) {
   }
 }
 
+// planner-handoff:begin
+function plannerHandoffFailures(agents,gp) {
+  const failures=[]
+  const planner=agents?.["planner"]
+  const evidence=agents?.["planner-evidence"]
+  const advisors=[
+    "advisor-design-pre","advisor-integration-pre","advisor-testing-pre","advisor-security-pre",
+    "advisor-maintainability-pre","advisor-design-post","advisor-integration-post",
+    "advisor-testing-post","advisor-security-post","advisor-maintainability-post",
+    "advisor-gemini-pre","advisor-gemini-post",
+  ]
+  const writers=["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine","general","frontend-apply","frontend-apply-local","frontend-dev","systematic-implementer"]
+  const readTools=["read","codegraph_codegraph_explore","ast_grep_search","aft_outline","aft_zoom","aft_search","aft_callgraph","aft_inspect","sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"]
+  const mutationTools=["bash","edit","write","sandbox_bash","sandbox_edit","sandbox_write","sandbox_apply_patch","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish","aft_import","aft_safety","ast_grep_replace"]
+  const plannerCoordinators=["gentle-orchestrator","pm-odd"]
+  plannerCoordinators.push("pm-systematic")
+  const sameMap=(value,expected)=>{
+    const actual=value && typeof value==="object" && !Array.isArray(value) ? value : {}
+    return Object.keys(actual).length===Object.keys(expected).length && Object.entries(expected).every(([key,val])=>actual[key]===val)
+  }
+  const readSurface=(name,agent)=>{
+    for (const tool of readTools) {
+      if (cfgTool(agent,tool)!==true) failures.push(`PLANNER_READ_TOOL_MISSING: ${name}.${tool}`)
+      if (cfgPerm(agent,tool)!=="allow") failures.push(`PLANNER_READ_PERMISSION_MISSING: ${name}.${tool}`)
+    }
+  }
+  if (!planner || typeof planner!=="object" || Array.isArray(planner)) failures.push("PLANNER_AGENT_MISSING: planner")
+  else {
+    if (planner.mode!=="subagent") failures.push(`PLANNER_MODE_MISMATCH: ${show(planner.mode)}`)
+    if (planner.hidden!==true) failures.push("PLANNER_NOT_HIDDEN")
+    if (planner.model!=="openai/gpt-6.1-sol") failures.push(`PLANNER_MODEL_MISMATCH: ${show(planner.model)}`)
+    if (planner.variant!=="high") failures.push(`PLANNER_VARIANT_MISMATCH: ${show(planner.variant)}`)
+    readSurface("planner",planner)
+    if (cfgTool(planner,"task")!==true) failures.push("PLANNER_TASK_TOOL_NOT_ENABLED")
+    const task=planner?.permission?.task
+    if (!task || typeof task!=="object" || Array.isArray(task)) failures.push("PLANNER_TASK_MAP_MISSING")
+    else {
+      if (task["*"]!=="deny") failures.push(`PLANNER_TASK_WILDCARD_NOT_DENIED: ${show(task["*"])}`)
+      for (const name of advisors) if (task[name]!=="allow") failures.push(`PLANNER_ADVISOR_LANE_MISSING: ${name}`)
+      for (const name of ["planner-evidence","explore"]) if (task[name]!=="allow") failures.push(`PLANNER_EVIDENCE_LANE_MISSING: ${name}`)
+      for (const name of writers) if (task[name]==="allow") failures.push(`PLANNER_WRITER_DISPATCH_GRANTED: ${name}`)
+      for (const [name,value] of Object.entries(task)) {
+        if (name==="*" || advisors.includes(name) || name==="planner-evidence" || name==="explore") continue
+        failures.push(`PLANNER_TASK_GRANT_UNDECLARED: ${name}=${show(value)}`)
+      }
+    }
+    for (const tool of mutationTools) {
+      if (cfgTool(planner,tool)===true) failures.push(`PLANNER_MUTATION_TOOL_EXPOSED: ${tool}`)
+      if (cfgPerm(planner,tool)!=="deny") failures.push(`PLANNER_MUTATION_EXPOSED: ${tool}`)
+    }
+    if (cfgTool(planner,"grep")!==false || cfgPerm(planner,"grep")!=="deny") failures.push("PLANNER_GREP_EXPOSED")
+    if (cfgTool(planner,"ctx_memory")!==false || cfgPerm(planner,"ctx_memory")!=="deny") failures.push("PLANNER_MEMORY_EXPOSED")
+    if (cfgTool(planner,"host_plan_write")!==true || cfgPerm(planner,"host_plan_write")!=="ask") failures.push(`PLANNER_HOST_PLAN_WRITE_NOT_ASK: ${show(cfgPerm(planner,"host_plan_write"))}`)
+    if (cfgTool(planner,"host_gate_verdict")!==true || cfgPerm(planner,"host_gate_verdict")!=="ask") failures.push(`PLANNER_HOST_GATE_VERDICT_NOT_ASK: ${show(cfgPerm(planner,"host_gate_verdict"))}`)
+    if (cfgTool(planner,"host_task_mark")===true || cfgPerm(planner,"host_task_mark")!=="deny") failures.push(`PLANNER_HOST_TASK_MARK_NOT_DENY: ${show(cfgPerm(planner,"host_task_mark"))}`)
+  }
+  if (!evidence || typeof evidence!=="object" || Array.isArray(evidence)) failures.push("PLANNER_EVIDENCE_AGENT_MISSING: planner-evidence")
+  else {
+    if (evidence.mode!=="subagent") failures.push(`PLANNER_EVIDENCE_MODE_MISMATCH: ${show(evidence.mode)}`)
+    if (evidence.hidden!==true) failures.push("PLANNER_EVIDENCE_NOT_HIDDEN")
+    if (evidence.model!=="openai/gpt-6-luna") failures.push(`PLANNER_EVIDENCE_MODEL_MISMATCH: ${show(evidence.model)}`)
+    if (evidence.variant!=="medium") failures.push(`PLANNER_EVIDENCE_VARIANT_MISMATCH: ${show(evidence.variant)}`)
+    readSurface("planner-evidence",evidence)
+    if (cfgTool(evidence,"task")!==false || !sameMap(evidence?.permission?.task,{"*":"deny"})) failures.push("PLANNER_EVIDENCE_TASK_EXPOSED")
+    for (const tool of mutationTools) {
+      if (cfgTool(evidence,tool)===true) failures.push(`PLANNER_EVIDENCE_MUTATION_EXPOSED: ${tool}`)
+      if (cfgPerm(evidence,tool)!=="deny") failures.push(`PLANNER_EVIDENCE_MUTATION_EXPOSED: ${tool}`)
+    }
+    if (cfgTool(evidence,"grep")!==false || cfgPerm(evidence,"grep")!=="deny") failures.push("PLANNER_EVIDENCE_GREP_EXPOSED")
+    if (cfgTool(evidence,"ctx_memory")!==false || cfgPerm(evidence,"ctx_memory")!=="deny") failures.push("PLANNER_EVIDENCE_MEMORY_EXPOSED")
+    for (const host of ["host_plan_write","host_gate_verdict","host_task_mark"]) {
+      if (cfgPerm(evidence,host)!=="deny") failures.push(`PLANNER_EVIDENCE_HOST_EXPOSED: ${host}`)
+    }
+  }
+  for (const name of plannerCoordinators) {
+    if (agents?.[name]?.permission?.task?.planner!=="allow") failures.push(`PLANNER_NOT_DISPATCHABLE: ${name}`)
+  }
+  for (const [name,agent] of Object.entries(agents??{})) {
+    if (plannerCoordinators.includes(name)) continue
+    if (agent?.permission?.task?.planner==="allow") failures.push(`PLANNER_DISPATCH_GRANT_OUTSIDE_COORDINATORS: ${name}`)
+  }
+  if (gp?.host_plan_write!=="deny" || gp?.host_gate_verdict!=="deny" || gp?.host_task_mark!=="deny") failures.push("PLANNER_GLOBAL_HOST_DENY_CHANGED")
+  return failures
+}
+// planner-handoff:end
+{
+  for (const failure of plannerHandoffFailures(deployedAgents,gp)) fail(failure)
+  const control=plannerHandoffFailures({}, {})
+  if (!control.includes("PLANNER_AGENT_MISSING: planner") || !control.includes("PLANNER_EVIDENCE_AGENT_MISSING: planner-evidence")) {
+    fail(`PLANNER_HANDOFF_POSITIVE_CONTROL_FAILED: ${JSON.stringify(control)}`)
+  } else {
+    console.log("   ok: Planner handoff models, read-only surface, task lanes and gate host acts")
+  }
+}
 const ordinaryMemoryAgents=new Set([
   "explore","frontend-apply","frontend-apply-local","frontend-dev","frontend-dev-premium","general",
-  "gentle-ai-explore","gentle-ai-verify","gentle-ai-worker","gentle-ai-worker-local",
+  "gentle-ai-explore","gentle-ai-verify","gentle-ai-verify-routine","gentle-ai-worker","gentle-ai-worker-local",
   "gentle-orchestrator","jd-fix-agent","vision","pm-odd","pm-systematic","odd-apply",
 ])
 const isolatedMemoryAgents=new Set([
@@ -3273,6 +3579,7 @@ const isolatedMemoryAgents=new Set([
   "advisor-design-post","advisor-integration-post","advisor-testing-post",
   "advisor-security-post","advisor-maintainability-post",
   "advisor-gemini-pre","advisor-gemini-post","advisor-gemini-evidence",
+  "planner","planner-evidence",
   "asi-review-risk","asi-review-resilience","asi-review-readability",
   "asi-review-reliability","asi-review-refuter","asi-review-validator",
 ])
@@ -3332,6 +3639,16 @@ else {
   for (const failure of hostReviewPipelineRunExceptionFailures(gatedHostMutations,orch)) fail(failure)
   for (const name of retiredHostOperations) if (cfgPerm(orch,name)!=="deny") fail(`ORCHESTRATOR_RETIRED_HOST_TOOL_EXPOSED: ${name}`)
   if (cfgPerm(orch,"host_register_project")!=="ask") fail(`ORCHESTRATOR_HOST_REGISTER_PROJECT_NOT_ASK: ${show(cfgPerm(orch,"host_register_project"))}`)
+  for (const failure of hostTestRunOrchestratorFailures(orch)) fail(failure)
+  for (const failure of hostPlanWriteOrchestratorFailures(orch)) fail(failure)
+  const testRunOmitted=hostTestRunOrchestratorFailures({permission:{}})
+  if (!testRunOmitted.includes("ORCHESTRATOR_HOST_TEST_RUN_NOT_ALLOW: <inherit/none>")) fail("ORCHESTRATOR_HOST_TEST_RUN_OMITTED_POSITIVE_CONTROL_FAILED")
+  const testRunWrong=hostTestRunOrchestratorFailures({permission:{host_test_run:"ask"}})
+  if (!testRunWrong.includes('ORCHESTRATOR_HOST_TEST_RUN_NOT_ALLOW: "ask"')) fail("ORCHESTRATOR_HOST_TEST_RUN_VALUE_POSITIVE_CONTROL_FAILED")
+  const planWriteOmitted=hostPlanWriteOrchestratorFailures({permission:{}})
+  if (!planWriteOmitted.includes("ORCHESTRATOR_HOST_PLAN_WRITE_NOT_ASK: <inherit/none>")) fail("ORCHESTRATOR_HOST_PLAN_WRITE_OMITTED_POSITIVE_CONTROL_FAILED")
+  const planWriteWrong=hostPlanWriteOrchestratorFailures({permission:{host_plan_write:"allow"}})
+  if (!planWriteWrong.includes('ORCHESTRATOR_HOST_PLAN_WRITE_NOT_ASK: "allow"')) fail("ORCHESTRATOR_HOST_PLAN_WRITE_VALUE_POSITIVE_CONTROL_FAILED")
   if (cfgTool(orch,"bash")===true || cfgTool(orch,"edit")===true || cfgTool(orch,"write")===true) fail("ORCHESTRATOR_LEGACY_HOST_TOOL_EXPOSED")
   for (const t of ["sandbox_bash","sandbox_edit","sandbox_write","sandbox_apply_patch","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]) {
     if (cfgPerm(orch,t)!=="deny" || cfgTool(orch,t)===true) fail(`ORCHESTRATOR_MUTATION_EXPOSED: ${t}`)
@@ -3342,19 +3659,23 @@ else {
   for (const name of ["frontend-dev","frontend-dev-premium"]) {
     if (task?.[name]!=="allow") fail(`FRONTEND_LANE_NOT_ALLOWED: ${name}`)
   }
-  const relayReviewAgents=["asi-review-risk","asi-review-resilience","asi-review-readability","asi-review-reliability","asi-review-refuter","asi-review-validator"]
-  const plainProviderReviewAgents=["review-risk","review-resilience","review-readability","review-reliability","review-refuter","review-validator"]
-  for (const name of relayReviewAgents) if (task?.[name]!=="allow") fail(`RELAY_TASK_NOT_ALLOWED: ${name}`)
-  for (const name of plainProviderReviewAgents) if (task?.[name]!=="deny") fail(`PLAIN_PROVIDER_REVIEW_TASK_NOT_DENIED: ${name}`)
-  for (const [agentName,agentConfig] of Object.entries(deployedAgents)) {
-    if (agentName==="gentle-orchestrator") continue
-    const delegated=cfgPerm(agentConfig,"task")
-    if (!delegated || typeof delegated!=="object") continue
-    if (delegated["*"]==="allow") fail(`RELAY_TASK_WILDCARD_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}`)
-    for (const relayName of relayReviewAgents) if (delegated[relayName]==="allow" && !agentName.startsWith("pm-")) fail(`RELAY_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: ${agentName}.${relayName}`)
-  }
+  for (const failure of reviewDispatchFailures(deployedAgents,relayReviewAgents,plainProviderReviewAgents)) fail(failure)
+  const reviewDispatchOrchestratorTask={"*":"ask"}
+  for (const name of relayReviewAgents) reviewDispatchOrchestratorTask[name]="allow"
+  for (const name of plainProviderReviewAgents) reviewDispatchOrchestratorTask[name]="deny"
+  const reviewDispatchGrantProbe=reviewDispatchFailures({
+    "gentle-orchestrator":{permission:{task:reviewDispatchOrchestratorTask}},
+    "pm-odd":{permission:{task:{"*":"deny","asi-review-risk":"allow"}}},
+  },relayReviewAgents,plainProviderReviewAgents)
+  if (!reviewDispatchGrantProbe.includes('REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: pm-odd.asi-review-risk="allow"')) fail("REVIEW_DISPATCH_GRANT_POSITIVE_CONTROL_FAILED")
+  const reviewDispatchScalarProbe=reviewDispatchFailures({
+    "gentle-orchestrator":{permission:{task:reviewDispatchOrchestratorTask}},
+    "pm-odd":{permission:{task:"ask"}},
+  },relayReviewAgents,plainProviderReviewAgents)
+  if (!reviewDispatchScalarProbe.includes('REVIEW_TASK_GRANTED_OUTSIDE_ORCHESTRATOR: pm-odd="ask"')) fail("REVIEW_DISPATCH_SCALAR_POSITIVE_CONTROL_FAILED")
 
   const orchPrompt=typeof orch.prompt==="string" ? orch.prompt : ""
+  for (const failure of hostToolPromptFailures(orchPrompt)) fail(failure)
   const orchestratorAssemblerRel="global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py"
   if (!workspaceRootAvailable) {
     // WORKSPACE_ROOT_UNAVAILABLE was already reported above; repo-relative
@@ -3378,6 +3699,15 @@ else {
           fail(`ORCHESTRATOR_PROMPT_ASSEMBLER_DRIFT: embedded=${embeddedDigest} assembled=${assembledDigest}; command: python3 ${orchestratorAssemblerRel}`)
         } else {
           console.log(`   ok: embedded orchestrator prompt equals assembler output (sha256 ${embeddedDigest}; command: python3 ${orchestratorAssemblerRel})`)
+        }
+        const promptTestSource=fs.readFileSync(path.join(workspaceRoot,"tests/test_orchestrator_prompt_source.py"),"utf8")
+        const constantMatch=promptTestSource.match(/CURRENT_PROMPT_SHA256 = "([0-9a-f]{64})"/)
+        if (!constantMatch) {
+          fail("ORCHESTRATOR_PROMPT_TEST_SHA_CONSTANT_MISSING")
+        } else if (constantMatch[1]!==assembledDigest) {
+          fail(`ORCHESTRATOR_PROMPT_TEST_SHA_DRIFT: constant=${constantMatch[1]} assembled=${assembledDigest}`)
+        } else {
+          console.log(`   ok: prompt test constant matches assembled sha256 ${assembledDigest}`)
         }
       }
     }
@@ -3460,7 +3790,13 @@ else {
     "### Secure Fixed Host Tools and Review Relay",
     "### Secure Always-Delegate Rules (MANDATORY)",
     "the orchestrator coordinates; specialist agents execute",
-    "PR creation, push, and merge require separate user intent"
+    "PR creation, push, and merge require separate user intent",
+    "may draft plan documents through the ask-gated `host_plan_write` fixed tool",
+    "plan documents only, never code or configuration",
+    "narrowly defined, pre-registered tests through the allow-gated `host_test_run` fixed tool",
+    "never arbitrary caller argv, pipes, redirects, or shell",
+    "a failed or unavailable test run is evidence, never permission to widen authority",
+    "`host_test_run` is not implemented in the current surface and remains inert until the host tool ships"
   ]
   for (const fragment of v3Required) if (!orchPrompt.includes(fragment)) fail(`GENTLE_AI_V3_ORCHESTRATOR_CONTRACT_MISSING: ${JSON.stringify(fragment)}`)
   for (const retired of ["### Gentle AI v2.7 workflow compatibility", "### Research and Pre-Proposal Gate — Gentle AI v2.7", "### Native Runtime Attempt Authority", "confirmed preproposal + explore", "400-line budget risk: High"]) if (orchPrompt.includes(retired)) fail(`GENTLE_AI_V3_RETIRED_ORCHESTRATOR_GATE: ${JSON.stringify(retired)}`)
@@ -3551,7 +3887,7 @@ function assertDirectAgentModelMatchesConfig(name) {
     }
   }
 }
-for (const name of ["frontend-dev","frontend-dev-premium","jd-judge-b","general","gentle-ai-explore","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify"]) {
+for (const name of ["frontend-dev","frontend-dev-premium","jd-judge-b","general","gentle-ai-explore","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine"]) {
   assertDirectAgentModelMatchesConfig(name)
 }
 
@@ -3611,7 +3947,7 @@ if (orchRuntime) {
   for (const t of [
     "aft_inspect","aft_outline","aft_zoom","ast_grep_search",
     "ctx_expand","ctx_search","ctx_memory",
-    "systematic_skill","systematic_workflow_status",
+    "systematic_skill",
     "sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"
   ]) {
     if (tool(orchRuntime,t)!==true) fail(`ORCHESTRATOR_READ_TOOL_MISSING: ${t}`)

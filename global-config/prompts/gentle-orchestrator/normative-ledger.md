@@ -2,10 +2,15 @@
 
 Scope: every sentence in the CURRENT prompt (`global-config/opencode.json` →
 `agent["gentle-orchestrator"].prompt`, sha256
-`521796dfbfc71a125e49b8bbd8127de7197a491b12a0ea8bd942c29de64a046b`, 417 lines)
+`0cf8da259010ca402320756ef19aaa148b9706d8c93f31a535cd97684b767838`, 419 lines)
 containing MUST, NEVER, ALWAYS (case-insensitive, word boundary) or "hard rule".
-72 candidate sentences: **46 kept, 1 split, 10 superseded-by-base, 15
+76 candidate sentences: **50 kept, 1 split, 10 superseded-by-base, 15
 removed-by-design; zero unclassified.**
+
+Rows 1-72 were extracted from the pre-T3a1 prompt (sha256
+`521796dfbfc71a125e49b8bbd8127de7197a491b12a0ea8bd942c29de64a046b`, 417 lines);
+their source line numbers are extraction-time references. Rows 73-76 classify
+the T3a1 fixed-host-tool clauses and cite `T3a1` as their source.
 
 Classification meanings:
 
@@ -15,9 +20,9 @@ Classification meanings:
 - `superseded-by-base` — the rendered v4 base states the same rule; our copy is dropped (destination = base heading).
 - `removed-by-design` — the rule is deliberately gone (destination = `removed: reason`).
 
-Source line numbers refer to the current prompt. The assembled prompt and its
-wiring are produced by `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py` from `base.md`
-+ `overlay.md` (unwired until S5b).
+Rows 1-72 cite the pre-T3a1 prompt; rows 73-76 cite `T3a1`. The assembled
+prompt and its wiring are produced by `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py` from `base.md`
++ `overlay.md`.
 
 | # | Source | Sentence (short) | Classification | Destination |
 |---|--------|------------------|----------------|-------------|
@@ -93,6 +98,10 @@ wiring are produced by `global-config/prompts/gentle-orchestrator/assemble-orche
 | 70 | L75 | "Until the deterministic host tool lands, mirror readback and tracker/mirror hash duties are suspended; the PM anchor uses only readable line count, last-line text, and feature-branch HEAD SHA, without claiming committed tracker-content equality." | kept | overlay:user:secure-odd-protocol + docs/specs/pm-handoff.md |
 | 71 | L197 | "`ce:review` substitutes for the post-code check and is never an extra cycle." | kept | overlay:user:advisory-lifecycle |
 | 72 | L197 | "Any human override is recorded separately; metadata or a new task ID never silently resets the counter." | kept | overlay:user:advisory-lifecycle |
+| 73 | T3a1 | "The orchestrator may draft plan documents through the ask-gated `host_plan_write` fixed tool; plan documents only, never code or configuration." | kept | overlay:user:host-tools-relay |
+| 74 | T3a1 | "It may run narrowly defined, pre-registered tests through the allow-gated `host_test_run` fixed tool; never arbitrary caller argv, pipes, redirects, or shell." | kept | overlay:user:host-tools-relay |
+| 75 | T3a1 | "These are fixed control-plane exceptions, not generic shell, edit/write, or sandbox mutation authority, and a failed or unavailable test run is evidence, never permission to widen authority." | kept | overlay:user:host-tools-relay |
+| 76 | T3a1 | "`host_test_run` is not implemented in the current surface and remains inert until the host tool ships; it never grants authority today." | kept | overlay:user:host-tools-relay |
 
 ## Structural coupling note
 
