@@ -730,7 +730,7 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   `pm-systematic` now run `muse-spark-1.3-contributor` with no variant (owner, 2026-10-28, after a
   two-model trial against `mimo-v2.6-flash`; PM fallback stays the per-agent `qwen3.8-flash` then Gemini
   override, the verifier PM seat policy and tests updated). PM seat DONE; Q60's "cheaper PM" is met. Refuter, `gentle-ai-verify` versus the Planner and the DeepSeek `high`
-  fallback review remain open. Refuter stays `grok-4.7` `high` (owner, 2026-10-28): rare (about 5 calls a week, about $0.25 each), separate family, routes to Command Code while Go is exhausted. Verifier tiers (commit `4507394`, four-lens native review approved, non-blocking findings only): `gentle-ai-verify-routine` (Haiku `high`) is the default verifier; `gentle-ai-verify` (Sol) when the Risk line names a high-risk item. DONE. Deferred review findings: validator on Sol has no failover (by
+  fallback review remain open. Refuter stays `grok-4.7` `high` (owner, 2026-10-28): rare (about 5 calls a week, about $0.25 each), separate family, routes to Command Code while Go is exhausted. Verifier tiers (commit `4507394`, four-lens native review approved, non-blocking findings only): `gentle-ai-verify-routine` (Haiku `high`) is the default verifier; `gentle-ai-verify` (Sol) when the Risk line names a high-risk item. DONE. M3.1 session/hang/Go-allowance acceptance is CLEARED (owner, 2026-10-28: `minimax-m3.1-flash` has run in other lenses without a hang); the open-gate wording further down in Q90 is historical. `minimax-m3.1-flash` returns on four recall-oriented `ce:review` personas (`performance`, `pattern-recognition`, `maintainability`, `agent-native`) for a family independent of every other seat; `project-standards` is on `mimo-v2.6-flash`; six Luna personas moved to `glm-5.3-flash` `high`. Deferred review findings: validator on Sol has no failover (by
   design, excluded from fallback); Astra tests skip without `bun` and assert by substring.
 
 ### Q61. PM layer: remaining routes and close
@@ -1601,8 +1601,8 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   ticks -> orchestrator assesses/acknowledges -> owner approves delivery.
 - **Review terminology:** FOUR lenses — R1 risk `qwen3.8-flash` `high`, R2 readability
   `kimi-k2.7-code` forced thinking, R3 reliability target `minimax-m3.1-flash` `xhigh` with output
-  ≥ 32768 (owner direction 2026-10-23; `minimax-m3` remains excluded and M3.1 promotion still
-  needs session/hang/Go-allowance acceptance), R4 resilience `glm-5.3-flash` `high` — PLUS the
+  ≥ 32768 (owner direction 2026-10-23; `minimax-m3` remains excluded; the M3.1 hang/session/Go-allowance
+  acceptance gate was cleared by the owner on 2026-10-28), R4 resilience `glm-5.3-flash` `high` — PLUS the
   provider-selected refuter `mimo-v2.6-flash` default thinking (output ≥ 32768) and validator
   `claude-haiku-5-5` `high`. Targets are planned, not live. **Superseded 2026-10-28 for the
   reliability lens, validators and advisors** by the model-assignment update under Q60.

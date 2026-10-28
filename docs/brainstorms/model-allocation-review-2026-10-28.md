@@ -143,6 +143,36 @@ Relative picture, from AA's leaderboard page (one consistent snapshot): GPT-6.1 
 - **Qwen3.8 Flash / Flash-Next:** vendor DeepSWE 58.7% (Flash-Next); independent small test put it below GLM flash (70% vs 79%). Unstable on very long chains per community reports.
 - **Muse Spark 1.3:** vendor claims DeepSWE 75%, index 62 for the max variant. The "Contributor" variant is cheap and VH on allowance, but no independent score for it exists.
 
+## 5a. Outcome (final assignments, 2026-10-28)
+
+Decisions taken after this mapping, with commits. The observations in section 5 below are the original reasoning and are kept as written; where they differ from this section, this section wins.
+
+| Seat | Before | Now | Commit |
+|---|---|---|---|
+| Fallback targets (direct DeepSeek) | `max` | `high` | `63a0b83` |
+| PM prompts (route marker, identifiers, commits) | none | discipline paragraph; tiny-fix marker only for a side fix | `86eae9a`, `b322c68` |
+| Reliability lens (both copies) | minimax-m3.1-flash xhigh | claude-haiku-5-5 high | `3e2264d` |
+| Validators (both copies) | claude-haiku-5-5 high | openai/gpt-6.1-sol high (review actors excluded from Astra aliases) | `3e2264d` |
+| `advisor-integration-pre` | minimax-m3.1-flash | mimo-v2.6-flash | `3e2264d` |
+| `advisor-integration-post`, `advisor-maintainability-pre` | qwen3.8-flash, minimax-m3.1-flash | glm-5.3-flash high | `3e2264d` |
+| Verifier | gentle-ai-verify (Sol) only | `gentle-ai-verify-routine` (Haiku high) default, Sol for high-risk Risk lines | `4507394`, `2283c20` |
+| PM seats | glm-5.3-flash high | muse-spark-1.3-contributor, no variant (after trial vs mimo-v2.6-flash) | `a129733`, `8f8bf48` |
+| Refuter | grok-4.7 high | unchanged (owner) | `ac16dd4` |
+| Six Luna `ce:review` personas | gpt-6-luna medium | glm-5.3-flash high | `b684fb7` |
+| `performance`, `pattern-recognition`, `maintainability`, `agent-native` personas | deepseek-v4.1-flash | minimax-m3.1-flash high (independent family, recall-oriented, rare) | `46d3093` |
+| `project-standards` persona | deepseek-v4.1-flash | mimo-v2.6-flash | `46d3093` |
+
+Corrections made during the work:
+
+- **Shared pools:** each provider is one shared pool, not a pool per model. Per-model limits and credits are relative weights, not separate allowances.
+- **Registry:** Qwen 3.7 Plus, Grok 4.7, Muse Spark Contributor and MiniMax M3 are all on Command Code; the proxy registry gap was fixed in the proxy repo (`b179e97`).
+- **Haiku validator:** the 137 failed Haiku calls came from another client, not the validator.
+- **Refuter cost:** about $0.25 a call at about 5 calls a week, so a small cost, not a problem. It stays on Grok.
+- **MiniMax M3.1 Flash:** it is a poor fit for high-volume seats (its Go limit is $20 and it emits about 5 times the tokens), and a good fit for rare, recall-oriented seats. The hang/session acceptance gate is cleared by the owner.
+- **Argon:** stays the external advisor route.
+
+Still open: the owner restart of `secure-opencode.service`; `general` and `planner-evidence` stay on Luna (the ChatGPT plan load is unmeasured); the three checklist `ce:review` personas stay on DeepSeek.
+
 ## 5. Observations on potential changes
 
 Ordered by urgency, then by how much allowance or quality they affect. None is applied.
