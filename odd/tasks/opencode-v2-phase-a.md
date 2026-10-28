@@ -27,3 +27,7 @@ role (2026-10-28).
 - L2: advice record: the OpenCode `advisor-*` dispatch is not reachable from Claude Code; the
   Claude Code `advisor` tool was consulted for the plan (2026-10-28). Mandate gap recorded, not
   closed.
+- L3 (2026-10-28): T1 committed as `eb4a633`. Native review assessment: risk medium
+  (`configuration_change`), `review_due: false`, reason `under_budget` (108 changed lines, base
+  `11d7aeb`). Outcome: under budget; stays pending in the slice until a later commit reaches the
+  review budget. Review lanes stay the in-OpenCode `asi-review-*` lanes.
