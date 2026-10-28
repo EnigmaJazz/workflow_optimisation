@@ -24,7 +24,7 @@ MIMO = "opencode-go/mimo-v2.6-flash"
 MINIMAX_M31 = "opencode-go/minimax-m3.1-flash"
 SOL = "openai/gpt-6.1-sol"
 ASTRA = "openai/gpt-6-astra"
-REMOVED_SOURCES = ("opencode-go/minimax-m3", MINIMAX_M31)
+REMOVED_SOURCES = ("opencode-go/minimax-m3",)
 VALIDATOR_SEATS = ("review-validator", "asi-review-validator")
 SHARED_CHAIN = [
     {
@@ -114,7 +114,7 @@ class LiveSources(unittest.TestCase):
         self.assertEqual(remaining, [])
         self.assertEqual(exact.get(HAIKU), SHARED_CHAIN)
         self.assertEqual(exact.get(MIMO), SHARED_CHAIN)
-        self.assertNotIn(MINIMAX_M31, exact)
+        self.assertEqual(exact.get(MINIMAX_M31), SHARED_CHAIN)
 
         deepseek_chain = exact["opencode-go/deepseek-v4.1-flash"]
         targets = [f"{entry['providerID']}/{entry['modelID']}" for entry in deepseek_chain]
