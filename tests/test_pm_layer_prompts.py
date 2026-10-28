@@ -253,6 +253,19 @@ class RealConfig(unittest.TestCase):
         gaps = planner_handoff_gaps(self.data)
         self.assertEqual(gaps, [], f"PM Planner handoff gaps: {gaps}")
 
+    def test_each_pm_prompt_pins_route_marker_and_envelope_discipline(self):
+        needles = (
+            "only when the brief's route is Tiny fix",
+            "never choose a route, writer or label the brief did not give you",
+            "or `unavailable` if it is not exposed",
+            "including those made by fixed plan and gate tools",
+        )
+        for name in AGENT_NAMES:
+            prompt = prompt_of(self.data, name)
+            for needle in needles:
+                with self.subTest(agent=name, needle=needle):
+                    self.assertIn(needle, prompt)
+
     def test_pm_prompts_remain_under_character_cap(self):
         for name in AGENT_NAMES:
             with self.subTest(agent=name):
