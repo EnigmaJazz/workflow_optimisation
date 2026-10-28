@@ -419,7 +419,7 @@ if not local_auto_update_path.is_file():
 required_agents = {
     "gentle-orchestrator", "general", "explore",
     "gentle-ai-explore", "gentle-ai-worker", "gentle-ai-worker-local", "gentle-ai-verify",
-    "pm-odd", "pm-systematic", "odd-apply",
+    "gentle-ai-verify-routine", "pm-odd", "pm-systematic", "odd-apply",
     "frontend-dev", "frontend-dev-premium",
     "asi-review-risk", "asi-review-resilience", "asi-review-readability",
     "asi-review-reliability", "asi-review-refuter", "asi-review-validator",
@@ -2486,7 +2486,7 @@ for (const failure of pmSeatFailures(deployedAgents)) fail(failure)
 // A Go Luna fallback for OpenAI Luna does not create an independent reviewer.
 // Q59: the dispatcher-to-writer pairs add the GLM PMs against their DeepSeek
 // writers; the existing orchestrator/general and worker/verifier pairs remain.
-for (const [writer,reviewer] of [["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"],["pm-odd","odd-apply"],["pm-systematic","gentle-ai-worker"]]) {
+for (const [writer,reviewer] of [["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"],["gentle-ai-worker","gentle-ai-verify-routine"],["pm-odd","odd-apply"],["pm-systematic","gentle-ai-worker"]]) {
   for (const [surface,writerModel,reviewerModel] of [
     ["configured",deployedAgents[writer]?.model,deployedAgents[reviewer]?.model],
     ["runtime",readDebug(writer)?.model,readDebug(reviewer)?.model],
@@ -3145,8 +3145,8 @@ function pmIdentityFailures(agents,handoff) {
 function coordinatorTaskGraphFailures(agents) {
   const failures=[]
   const pmRequired={
-    "pm-odd":["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","explore","planner"],
-    "pm-systematic":["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","explore","planner"],
+    "pm-odd":["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine","gentle-ai-verify-astra","explore","planner"],
+    "pm-systematic":["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine","gentle-ai-verify-astra","explore","planner"],
   }
   // Strict per-PM MAXIMUM allowlist. A key outside this set is a grant even when
   // its value is "deny"; only the declared named lanes may appear at all.
@@ -3156,7 +3156,7 @@ function coordinatorTaskGraphFailures(agents) {
       "advisor-integration-post","advisor-integration-pre","advisor-maintainability-post",
       "advisor-maintainability-pre","advisor-security-post","advisor-security-pre",
       "advisor-testing-post","advisor-testing-pre","explore","gentle-ai-worker",
-      "gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra","odd-apply",
+      "gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine","gentle-ai-verify-astra","odd-apply",
       "planner",
     ]),
     "pm-systematic":new Set([
@@ -3166,7 +3166,7 @@ function coordinatorTaskGraphFailures(agents) {
       "advisor-testing-post","advisor-testing-pre","bug-reproduction-validator",
       "correctness-reviewer","explore","frontend-apply","frontend-apply-local","frontend-dev",
       "frontend-dev-premium","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify",
-      "gentle-ai-verify-astra","planner","project-standards-reviewer","repo-research-analyst",
+      "gentle-ai-verify-routine","gentle-ai-verify-astra","planner","project-standards-reviewer","repo-research-analyst",
       "systematic-implementer","testing-reviewer",
     ]),
   }
@@ -3191,7 +3191,7 @@ function coordinatorTaskGraphFailures(agents) {
     for (const key of Object.keys(task??{})) if (!allowed.has(key)) failures.push(`PM_TASK_GRANT_UNDECLARED: ${pm}.${key}`)
     for (const required of pmRequired[pm]) if (task?.[required]!=="allow") failures.push(`PM_REQUIRED_DISPATCH_MISSING: ${pm}.${required}`)
   }
-  for (const name of ["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","explore"]) {
+  for (const name of ["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine","explore"]) {
     const task=taskOf(name)
     if (task && typeof task==="object" && Object.values(task).some((value)=>value==="allow")) failures.push(`NON_COORDINATOR_TASK_DISPATCH: ${name}`)
   }
@@ -3310,20 +3310,24 @@ for (const name of ["frontend-apply","frontend-apply-local","general","jd-fix-ag
 // fully covered by assertCfgWriter above; the read-only explorer and the
 // read-only verifier that may only run sandbox_bash must expose exactly those
 // tools and no mutation surface.
-const v4GenericAgents=["gentle-ai-explore","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify"]
+const v4GenericAgents=["gentle-ai-explore","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine"]
 for (const name of v4GenericAgents) if (!deployedAgents[name]) fail(`V4_GENERIC_AGENT_TOOL_MISSING: ${name} is not registered`)
 const v4ReadTools=["sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"]
 const v4MutationTools=["sandbox_edit","sandbox_write","sandbox_apply_patch","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]
 for (const name of v4ReadTools) {
   if (cfgTool(deployedAgents["gentle-ai-explore"],name)!==true) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-explore.${name}`)
-  if (cfgTool(deployedAgents["gentle-ai-verify"],name)!==true) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-verify.${name}`)
+  for (const verifier of ["gentle-ai-verify","gentle-ai-verify-routine"]) {
+    if (cfgTool(deployedAgents[verifier],name)!==true) fail(`V4_GENERIC_AGENT_TOOL_MISSING: ${verifier}.${name}`)
+  }
 }
 for (const name of ["sandbox_bash",...v4MutationTools]) {
   if (cfgTool(deployedAgents["gentle-ai-explore"],name)!==false) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-explore.${name} must be false`)
 }
-if (cfgTool(deployedAgents["gentle-ai-verify"],"sandbox_bash")!==true) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-verify.sandbox_bash`)
-for (const name of v4MutationTools) {
-  if (cfgTool(deployedAgents["gentle-ai-verify"],name)!==false) fail(`V4_GENERIC_AGENT_TOOL_MISSING: gentle-ai-verify.${name} must be false`)
+for (const verifier of ["gentle-ai-verify","gentle-ai-verify-routine"]) {
+  if (cfgTool(deployedAgents[verifier],"sandbox_bash")!==true) fail(`V4_GENERIC_AGENT_TOOL_MISSING: ${verifier}.sandbox_bash`)
+  for (const name of v4MutationTools) {
+    if (cfgTool(deployedAgents[verifier],name)!==false) fail(`V4_GENERIC_AGENT_TOOL_MISSING: ${verifier}.${name} must be false`)
+  }
 }
 
 const pmAndAgents=[...pmAgents]
@@ -3386,7 +3390,7 @@ else {
   }
   for (const pm of ["pm-odd","pm-systematic"]) {
     const task=cfgPerm(deployedAgents[pm],"task")
-    for (const key of ["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-astra"]) {
+    for (const key of ["gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine","gentle-ai-verify-astra"]) {
       if (task?.[key]!=="allow") fail(`TINY_FIX_AGENT_NOT_ALLOWED_TO_PM: ${pm}.${key}=${show(task?.[key])}`)
     }
     for (const failure of pmGeneralDispatchFailures(pm,task)) fail(failure)
@@ -3477,7 +3481,7 @@ function plannerHandoffFailures(agents,gp) {
     "advisor-testing-post","advisor-security-post","advisor-maintainability-post",
     "advisor-gemini-pre","advisor-gemini-post",
   ]
-  const writers=["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","general","frontend-apply","frontend-apply-local","frontend-dev","systematic-implementer"]
+  const writers=["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine","general","frontend-apply","frontend-apply-local","frontend-dev","systematic-implementer"]
   const readTools=["read","codegraph_codegraph_explore","ast_grep_search","aft_outline","aft_zoom","aft_search","aft_callgraph","aft_inspect","sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"]
   const mutationTools=["bash","edit","write","sandbox_bash","sandbox_edit","sandbox_write","sandbox_apply_patch","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish","aft_import","aft_safety","ast_grep_replace"]
   const plannerCoordinators=["gentle-orchestrator","pm-odd"]
@@ -3562,7 +3566,7 @@ function plannerHandoffFailures(agents,gp) {
 }
 const ordinaryMemoryAgents=new Set([
   "explore","frontend-apply","frontend-apply-local","frontend-dev","frontend-dev-premium","general",
-  "gentle-ai-explore","gentle-ai-verify","gentle-ai-worker","gentle-ai-worker-local",
+  "gentle-ai-explore","gentle-ai-verify","gentle-ai-verify-routine","gentle-ai-worker","gentle-ai-worker-local",
   "gentle-orchestrator","jd-fix-agent","vision","pm-odd","pm-systematic","odd-apply",
 ])
 const isolatedMemoryAgents=new Set([
@@ -3882,7 +3886,7 @@ function assertDirectAgentModelMatchesConfig(name) {
     }
   }
 }
-for (const name of ["frontend-dev","frontend-dev-premium","jd-judge-b","general","gentle-ai-explore","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify"]) {
+for (const name of ["frontend-dev","frontend-dev-premium","jd-judge-b","general","gentle-ai-explore","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine"]) {
   assertDirectAgentModelMatchesConfig(name)
 }
 

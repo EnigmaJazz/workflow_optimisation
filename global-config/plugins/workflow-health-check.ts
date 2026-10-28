@@ -90,7 +90,7 @@ const VERIFY_TIMEOUT_MS = 300_000
 // Pinned sha256 digest of the reviewed verify-workflow.sh. Keep this assignment
 // on one line: verify-workflow.sh deliberately parses this source line to confirm
 // that the reviewed plugin and verifier are bound to one another.
-const VERIFY_SCRIPT_SHA256 = "4fd4c7e6b07ada4d841bc23510e6dc3d2f7ee2e203d9f97d01f40249b40575db";
+const VERIFY_SCRIPT_SHA256 = "5ef4ec69934a1cc204091157a84114abb6e284d32ce8ef13658bcf5a2116b28e";
 
 type HealthState = "clean" | "repaired" | "failed"
 

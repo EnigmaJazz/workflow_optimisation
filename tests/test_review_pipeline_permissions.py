@@ -33,6 +33,7 @@ PM_REQUIRED_DISPATCH = {
         "gentle-ai-worker",
         "gentle-ai-worker-local",
         "gentle-ai-verify",
+        "gentle-ai-verify-routine",
         "gentle-ai-verify-astra",
         "explore",
         "planner",
@@ -41,6 +42,7 @@ PM_REQUIRED_DISPATCH = {
         "gentle-ai-worker",
         "gentle-ai-worker-local",
         "gentle-ai-verify",
+        "gentle-ai-verify-routine",
         "gentle-ai-verify-astra",
         "explore",
         "planner",
@@ -51,6 +53,7 @@ LEAF_DISPATCH_AGENTS = [
     "gentle-ai-worker",
     "gentle-ai-worker-local",
     "gentle-ai-verify",
+    "gentle-ai-verify-routine",
     "explore",
 ]
 HOST_TEST_RUN = "host_test_run"
@@ -542,7 +545,7 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             declarations,
             "coordinator set must derive from the shared pmAgents declaration",
         )
-        self.assertEqual(sum(len(v) for v in PM_REQUIRED_DISPATCH.values()), 13, "unexpected required dispatch lane inventory")
+        self.assertEqual(sum(len(v) for v in PM_REQUIRED_DISPATCH.values()), 15, "unexpected required dispatch lane inventory")
         identity_needles = json.loads(
             "[" + self.verifier.split("const needles=[", 1)[1].split("]", 1)[0] + "]"
         )
@@ -660,10 +663,10 @@ console.log("extracted verifier assertions and positive controls passed");
         for marker in (
             "coverage-group-1-identity: 27 controls passed",
             "coverage-group-2-handoff: 8 controls passed",
-            "coverage-group-3-taskgraph: 42 controls passed",
+            "coverage-group-3-taskgraph: 45 controls passed",
             "coverage-group-4-family: 18 controls passed",
             "coverage-group-5-pmgeneral: 10 controls passed",
-            "coverage-total: 105 controls passed",
+            "coverage-total: 108 controls passed",
         ):
             self.assertIn(marker, result.stdout)
 

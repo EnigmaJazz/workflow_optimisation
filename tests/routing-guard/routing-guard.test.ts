@@ -309,7 +309,7 @@ describe("1. specialist rule: deny by default", () => {
 
   test("read-only specialists are exempt", async () => {
     seedKey("ses_s6", ODD)
-    for (const name of ["explore", "gentle-ai-explore", "gentle-ai-verify", "vision", "architecture-strategist", "spec-flow-analyzer", "git-history-analyzer",
+    for (const name of ["explore", "gentle-ai-explore", "gentle-ai-verify", "gentle-ai-verify-routine", "vision", "architecture-strategist", "spec-flow-analyzer", "git-history-analyzer",
       "issue-intelligence-analyst", "pattern-recognition-specialist", "deployment-verification-agent",
       "repo-research-analyst", "best-practices-researcher", "framework-docs-researcher",
       "learnings-researcher", "correctness-reviewer", "review-refuter", "review-risk",

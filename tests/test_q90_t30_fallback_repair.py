@@ -123,11 +123,12 @@ class LiveSources(unittest.TestCase):
         for seat in VALIDATOR_SEATS:
             self.assertIn(seat, self.fallback["excludeAgents"])
 
-    def test_haiku_assignments_are_the_two_reliability_lens_seats(self):
+    def test_haiku_assignments_are_the_routine_verifier_and_reliability_lens_seats(self):
         roles = active_assignments(self.config, self.systematic)
         self.assertEqual(
             [role for role in roles[HAIKU] if role.startswith("opencode:")],
-            ["opencode:review-reliability", "opencode:asi-review-reliability"])
+            ["opencode:gentle-ai-verify-routine", "opencode:review-reliability",
+             "opencode:asi-review-reliability"])
 
     def test_extracted_fallback_helpers_accept_haiku(self):
         self.assertEqual(fallback_helper_results(self.fallback, [HAIKU]), ["OK"])
@@ -152,7 +153,8 @@ class DetectorControls(unittest.TestCase):
         self.assertIn(
             "FALLBACK_ACTIVE_MODEL_NO_EXACT_POLICY: "
             "opencode-go/claude-haiku-5-5; "
-            "roles=opencode:review-reliability,opencode:asi-review-reliability",
+            "roles=opencode:gentle-ai-verify-routine,opencode:review-reliability,"
+            "opencode:asi-review-reliability",
             self.failures(fallback=fallback))
 
     def test_injected_active_model_rejected_then_accepted_with_policy(self):
