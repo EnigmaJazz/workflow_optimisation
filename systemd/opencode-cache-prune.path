@@ -1,0 +1,19 @@
+# Run the cache prune as soon as verify-workflow.sh issues a fresh health
+# approval (written by atomic rename; PathChanged= fires on that rename, checked
+# 2026-10-28), instead of waiting for the weekly timer, by which time a plugin
+# auto-update has usually invalidated the approval again.
+#
+# Install (user units are not mirrored by the verifier):
+#   cp systemd/opencode-cache-prune.{service,timer,path} ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now opencode-cache-prune.path
+
+[Unit]
+Description=Prune OpenCode/AFT caches when a workflow health approval is issued
+
+[Path]
+PathChanged=%h/ai-workspace/workflow_optimisation/.atl/opencode-cache-prune-approval.json
+Unit=opencode-cache-prune.service
+
+[Install]
+WantedBy=default.target

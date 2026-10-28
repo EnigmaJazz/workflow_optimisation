@@ -1929,6 +1929,33 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
 - **Prerequisites:** Q90.
 - **Description:** Placeholder for the unmerged planner tier; Q90 owns the forward decisions.
 
+### Q92. Cache prune: orphaned AFT download temp files and approval-triggered runs
+- **Status:** IMPLEMENTED (Claude Code, owner-authorized exception to advisory-only, 2026-10-28);
+  uncommitted, pending owner review and commit.
+- **Prerequisites:** none.
+- **Description:** `/home` filled on 2026-10-28; about 31 GiB was interrupted AFT binary
+  downloads (`~/.cache/aft/bin/v*/aft.<pid>.<epoch-ms>.<hex>.tmp`) that nothing cleaned, and the
+  weekly `opencode-cache-prune.timer` had skipped every run since 2026-10-23 because plugin
+  auto-updates invalidate the config-bound approval before the timer fires.
+  - `prune-opencode-plugin-cache.py` gains an AFT temp pass (`--aft-bin-dir`,
+    `--aft-temp-min-age-hours`, default 24): exact name shape, direct child of a `v<semver>`
+    directory, regular file owned by the user, writer pid not running, older than the minimum
+    age, revalidated before unlink. It runs before and independently of the auto-update lock
+    and health approval, which still gate plugin-cache pruning unchanged.
+  - `systemd/opencode-cache-prune.path` (new; `.service` and `.timer` copied verbatim from
+    `~/.config/systemd/user/`) starts the prune service whenever `verify-workflow.sh` writes a
+    fresh approval (atomic rename; `PathChanged=` verified to fire on it). The weekly timer
+    stays as a fallback. `verify-workflow.sh` is unchanged, so its digest pin is unaffected.
+  - The service drops `ConditionPathExists=` on the approval: the AFT pass needs none and the
+    plugin pass already skips with exit 0 when it is missing.
+  - Unreadable or vanished version dirs and out-of-range pids are skipped (file kept) instead of
+    aborting the run (independent verifier advisories, fixed with tests).
+- **Checks:** `python3 -m unittest tests.test_prune_aft_temp` (12 tests, RED observed before each
+  change); full `python3 -m unittest discover -s tests` green (370); `systemd-analyze --user
+  verify` on the units; dry run against the live cache selected only one orphan. Independent
+  verifier: S1-S8 pass, no blockers. Path and service units installed in
+  `~/.config/systemd/user/` and the path unit enabled.
+
 ## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
 Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).

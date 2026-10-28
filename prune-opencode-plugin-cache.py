@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Safely prune health-approved, obsolete OpenCode plugin package caches.
 
+Also prunes orphaned AFT binary download temp files (writer process gone, older
+than --aft-temp-min-age-hours); that pass does not need the health approval.
+
 Dry-run is the default. Use --apply to delete candidates. This utility is
-designed for a timer, not as an OpenCode service start/stop hook.
+designed for a timer or path unit, not as an OpenCode service start/stop hook.
 """
 
 from __future__ import annotations
@@ -14,6 +17,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import sys
 import time
 from dataclasses import dataclass
@@ -87,6 +91,18 @@ def parse_args() -> argparse.Namespace:
         help="refuse cleanup when the last successful health approval is older",
     )
     parser.add_argument(
+        "--aft-bin-dir",
+        type=Path,
+        default=home / ".cache" / "aft" / "bin",
+        help="AFT binary cache whose orphaned download temp files are pruned",
+    )
+    parser.add_argument(
+        "--aft-temp-min-age-hours",
+        type=float,
+        default=24,
+        help="never delete an AFT download temp file modified more recently than this",
+    )
+    parser.add_argument(
         "--apply",
         action="store_true",
         help="delete validated candidates; otherwise perform a dry-run",
@@ -96,6 +112,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("--keep-rollback must be zero or greater")
     if args.minimum_age_days < 0:
         parser.error("--minimum-age-days must be zero or greater")
+    if args.aft_temp_min_age_hours < 0:
+        parser.error("--aft-temp-min-age-hours must be zero or greater")
     if args.approval_max_age_days <= 0:
         parser.error("--approval-max-age-days must be greater than zero")
     return args
@@ -526,6 +544,96 @@ def select_candidates(
     return candidates, preserved
 
 
+# Interrupted AFT binary downloads leave "aft.<pid>.<epoch-ms>.<hex>.tmp" next to
+# the binary in "<aft-bin-dir>/v<version>/". Only that exact shape is eligible.
+AFT_VERSION_DIR = re.compile(r"^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
+AFT_TEMP_FILE = re.compile(r"^aft\.(?P<pid>[1-9]\d*)\.\d+\.[0-9a-f]+\.tmp$")
+
+
+def pid_is_running(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except (PermissionError, OverflowError, OSError):
+        # Exists but not ours, out of range, or unknowable: keep the file.
+        return True
+    return True
+
+
+def aft_temp_identity(path: Path) -> tuple[int, int, int, float] | None:
+    """Return (device, inode, size, mtime) when path is an orphaned AFT temp file."""
+    match = AFT_TEMP_FILE.fullmatch(path.name)
+    if not match:
+        return None
+    try:
+        info = path.lstat()
+    except OSError:
+        return None
+    # Regular file only (never a symlink or directory), owned by this user.
+    if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid():
+        return None
+    if pid_is_running(int(match.group("pid"))):
+        return None
+    return info.st_dev, info.st_ino, info.st_size, info.st_mtime
+
+
+def discover_aft_temp_files(
+    bin_dir: Path, minimum_age_hours: float
+) -> list[tuple[Path, tuple[int, int, int, float]]]:
+    candidates = []
+    cutoff = time.time() - minimum_age_hours * 3600
+    try:
+        version_dirs = [entry for entry in bin_dir.iterdir() if AFT_VERSION_DIR.fullmatch(entry.name)]
+    except OSError:
+        return []
+    for version_dir in sorted(version_dirs):
+        if version_dir.is_symlink() or not version_dir.is_dir():
+            continue
+        try:
+            children = sorted(version_dir.iterdir())  # direct children only
+        except OSError as exc:
+            # Unreadable or removed mid-scan: skip it, never abort the plugin prune.
+            print(f"refuse: cannot scan {version_dir}: {exc}", file=sys.stderr)
+            continue
+        for path in children:
+            identity = aft_temp_identity(path)
+            if identity and identity[3] <= cutoff:
+                candidates.append((path, identity))
+    return candidates
+
+
+def prune_aft_temp_files(bin_dir: Path, minimum_age_hours: float, apply: bool) -> None:
+    """Independent of the OpenCode health approval: these files are provably orphaned."""
+    candidates = discover_aft_temp_files(bin_dir, minimum_age_hours)
+    if not candidates:
+        print(f"ok: no aft temp files eligible below {bin_dir}")
+        return
+    action = "delete" if apply else "would delete"
+    for path, identity in candidates:
+        age_hours = (time.time() - identity[3]) / 3600
+        print(f"{action}: {path} (aft temp, {format_bytes(identity[2])}, {age_hours:.1f} hours old)")
+    total = sum(identity[2] for _, identity in candidates)
+    if not apply:
+        print(f"aft temp: {len(candidates)} file(s), {format_bytes(total)} reclaimable; rerun with --apply")
+        return
+    deleted = 0
+    reclaimed = 0
+    for path, identity in candidates:
+        # Revalidate immediately before each irreversible operation.
+        if aft_temp_identity(path) != identity:
+            print(f"refuse: aft temp file changed during scan: {path}", file=sys.stderr)
+            continue
+        try:
+            path.unlink()
+        except OSError as exc:
+            print(f"refuse: cannot delete {path}: {exc}", file=sys.stderr)
+            continue
+        deleted += 1
+        reclaimed += identity[2]
+    print(f"pruned aft temp: {deleted} file(s), approximately {format_bytes(reclaimed)} reclaimed")
+
+
 def format_bytes(value: int) -> str:
     amount = float(value)
     for unit in ("B", "KiB", "MiB", "GiB", "TiB"):
@@ -537,6 +645,10 @@ def format_bytes(value: int) -> str:
 
 def main() -> int:
     args = parse_args()
+    # Runs first, and regardless of the auto-update lock or health approval below.
+    prune_aft_temp_files(
+        args.aft_bin_dir.expanduser(), args.aft_temp_min_age_hours, args.apply
+    )
     config_dir = args.config_dir.expanduser().resolve()
     cache_dir = args.cache_dir.expanduser().resolve()
     packages_root = cache_dir / "packages"

@@ -1,0 +1,13 @@
+[Unit]
+Description=Prune health-approved stale OpenCode plugin caches and orphaned AFT temp files
+Documentation=https://github.com/anomalyco/opencode/issues/30526
+# No ConditionPathExists on the approval: the AFT temp pass needs none, and the
+# plugin-cache pass itself skips cleanly (exit 0) when the approval is missing.
+
+[Service]
+Type=oneshot
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 /home/james/ai-workspace/workflow_optimisation/prune-opencode-plugin-cache.py --apply --minimum-age-days 14 --keep-rollback 1 --approval-max-age-days 30
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=10min
