@@ -20,10 +20,11 @@ FALLBACK_PATH = REPO / "global-config" / "rate-limit-fallback.json"
 SYSTEMATIC_PATH = REPO / "global-config" / "systematic.jsonc"
 
 HAIKU = "opencode-go/claude-haiku-5-5"
+MIMO = "opencode-go/mimo-v2.6-flash"
 MINIMAX_M31 = "opencode-go/minimax-m3.1-flash"
 SOL = "openai/gpt-6.1-sol"
 ASTRA = "openai/gpt-6-astra"
-REMOVED_SOURCES = ("opencode-go/mimo-v2.6-flash", "opencode-go/minimax-m3")
+REMOVED_SOURCES = ("opencode-go/minimax-m3", MINIMAX_M31)
 VALIDATOR_SEATS = ("review-validator", "asi-review-validator")
 SHARED_CHAIN = [
     {
@@ -112,7 +113,8 @@ class LiveSources(unittest.TestCase):
         remaining = [stale for stale in REMOVED_SOURCES if stale in exact]
         self.assertEqual(remaining, [])
         self.assertEqual(exact.get(HAIKU), SHARED_CHAIN)
-        self.assertEqual(exact.get(HAIKU), exact.get(MINIMAX_M31))
+        self.assertEqual(exact.get(MIMO), SHARED_CHAIN)
+        self.assertNotIn(MINIMAX_M31, exact)
 
         deepseek_chain = exact["opencode-go/deepseek-v4.1-flash"]
         targets = [f"{entry['providerID']}/{entry['modelID']}" for entry in deepseek_chain]
@@ -121,11 +123,11 @@ class LiveSources(unittest.TestCase):
         for seat in VALIDATOR_SEATS:
             self.assertIn(seat, self.fallback["excludeAgents"])
 
-    def test_haiku_assignments_are_the_two_validator_seats(self):
+    def test_haiku_assignments_are_the_two_reliability_lens_seats(self):
         roles = active_assignments(self.config, self.systematic)
         self.assertEqual(
             [role for role in roles[HAIKU] if role.startswith("opencode:")],
-            ["opencode:review-validator", "opencode:asi-review-validator"])
+            ["opencode:review-reliability", "opencode:asi-review-reliability"])
 
     def test_extracted_fallback_helpers_accept_haiku(self):
         self.assertEqual(fallback_helper_results(self.fallback, [HAIKU]), ["OK"])
@@ -150,7 +152,7 @@ class DetectorControls(unittest.TestCase):
         self.assertIn(
             "FALLBACK_ACTIVE_MODEL_NO_EXACT_POLICY: "
             "opencode-go/claude-haiku-5-5; "
-            "roles=opencode:review-validator,opencode:asi-review-validator",
+            "roles=opencode:review-reliability,opencode:asi-review-reliability",
             self.failures(fallback=fallback))
 
     def test_injected_active_model_rejected_then_accepted_with_policy(self):
@@ -176,12 +178,12 @@ class DetectorControls(unittest.TestCase):
 
     def test_target_reference_is_not_an_active_source(self):
         roles = active_assignments(self.config, self.systematic)
-        self.assertNotIn("opencode-go/mimo-v2.6-flash", roles)
+        self.assertNotIn("opencode-go/deepseek-v4-pro", roles)
 
         fallback = copy.deepcopy(self.fallback)
-        fallback["fallbackModels"]["opencode-go/mimo-v2.6-flash"] = copy.deepcopy(
+        fallback["fallbackModels"]["opencode-go/deepseek-v4-pro"] = copy.deepcopy(
             SHARED_CHAIN)
-        self.assertIn("FALLBACK_EXACT_SOURCE_INACTIVE: opencode-go/mimo-v2.6-flash",
+        self.assertIn("FALLBACK_EXACT_SOURCE_INACTIVE: opencode-go/deepseek-v4-pro",
                       self.failures(fallback=fallback))
 
 

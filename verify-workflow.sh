@@ -2325,6 +2325,10 @@ function isImplementationRoute(name) {
     /(^|-)apply($|-)/.test(name) ||
     /(^|-)implement(er|ation)?($|-)/.test(name)
 }
+// Native review actors never receive an Astra alias (matches astra-sol-upgrade.ts).
+function isReviewActor(name) {
+  return /^(asi-)?review-(risk|resilience|readability|reliability|refuter|validator)$/.test(name)
+}
 function sameResolvedSurface(base, alias, baseName, aliasName, field) {
   if (JSON.stringify(base?.[field])!==JSON.stringify(alias?.[field])) {
     fail(`ASTRA_ALIAS_SURFACE_MISMATCH: ${aliasName}.${field} differs from ${baseName}`)
@@ -2381,11 +2385,11 @@ function assertEquivalentPermissions(base, alias, baseName, aliasName) {
 const eligibleSolBases=new Set()
 for (const [name,agent] of Object.entries(deployedAgents)) {
   if (agent && typeof agent==="object" && agent.disable!==true && agent.mode!=="primary" &&
-      normalizeModel(agent.model)===SOL_MODEL && !isImplementationRoute(name)) eligibleSolBases.add(name)
+      normalizeModel(agent.model)===SOL_MODEL && !isImplementationRoute(name) && !isReviewActor(name)) eligibleSolBases.add(name)
 }
 for (const agent of inventory) {
   const expected=expectedFor(systematic,agent)
-  if (!expected.disable && expected.model===SOL_MODEL && !isImplementationRoute(agent.name)) eligibleSolBases.add(agent.name)
+  if (!expected.disable && expected.model===SOL_MODEL && !isImplementationRoute(agent.name) && !isReviewActor(agent.name)) eligibleSolBases.add(agent.name)
 }
 
 const runtimeAstraAliases=[...runtimeNames].filter((name)=>name.endsWith(ASTRA_SUFFIX)).sort()

@@ -25,17 +25,20 @@ KIMI = "kimi-k2.7-code"
 LEGACY_M3 = "opencode-go/minimax-m3"
 WRITER = "opencode-go/deepseek-v4.1-flash"
 SEATS = {
-    "review-reliability": ("opencode-go/minimax-m3.1-flash", "xhigh"),
-    "asi-review-reliability": ("opencode-go/minimax-m3.1-flash", "xhigh"),
-    "advisor-integration-pre": ("opencode-go/minimax-m3.1-flash", "high"),
-    "advisor-integration-post": ("opencode-go/qwen3.8-flash", None),
+    "review-reliability": ("opencode-go/claude-haiku-5-5", "high"),
+    "asi-review-reliability": ("opencode-go/claude-haiku-5-5", "high"),
+    "review-validator": ("openai/gpt-6.1-sol", "high"),
+    "asi-review-validator": ("openai/gpt-6.1-sol", "high"),
+    "advisor-integration-pre": ("opencode-go/mimo-v2.6-flash", None),
+    "advisor-integration-post": ("opencode-go/glm-5.3-flash", "high"),
+    "advisor-maintainability-pre": ("opencode-go/glm-5.3-flash", "high"),
     "advisor-testing-post": ("opencode-go/qwen3.8-flash", None),
     "advisor-maintainability-post": ("opencode-go/ling-3.1-flash", None),
 }
 ABSENT = tuple(name for name, (_, variant) in SEATS.items() if variant is None)
 READABILITY = ("review-readability", "asi-review-readability")
 MUSE = ("opencode-go/muse-spark-1.3-contributor", "high")
-REPLACEMENTS = ("opencode-go/minimax-m3.1-flash", "opencode-go/qwen3.8-flash",
+REPLACEMENTS = ("opencode-go/mimo-v2.6-flash", "opencode-go/qwen3.8-flash",
                 "opencode-go/ling-3.1-flash")
 REVIEW_SEATS = (
     "review-risk", "review-resilience", "review-readability", "review-reliability",
@@ -323,8 +326,8 @@ class LiveSources(unittest.TestCase):
         families = {model_family(self.agents[name]["model"]) for name in REVIEW_SEATS[:4]}
         self.assertGreaterEqual(len(families), 3, families)
         for name in ("review-validator", "asi-review-validator"):
-            self.assertEqual(model_family(self.agents[name]["model"]), "claude")
-        self.assertEqual(model_family(self.agents["review-reliability"]["model"]), "minimax")
+            self.assertEqual(model_family(self.agents[name]["model"]), "gpt")
+        self.assertEqual(model_family(self.agents["review-reliability"]["model"]), "claude")
 
     def test_no_legacy_minimax_m3_on_review_or_advisor_seats(self):
         self.assertEqual(legacy_m3_seats(self.agents), [])

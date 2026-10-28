@@ -1052,8 +1052,8 @@
       "description": "R3 Reliability reviewer — behavior-first tests, coverage value, edge cases, determinism, contracts, and regressions",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/minimax-m3.1-flash",
-      "variant": "xhigh",
+      "model": "opencode-go/claude-haiku-5-5",
+      "variant": "high",
       "permission": {
         "bash": "deny",
         "edit": "deny",
@@ -1205,7 +1205,7 @@
       "description": "Targeted read-only validator for provider-issued review checks",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/claude-haiku-5-5",
+      "model": "openai/gpt-6.1-sol",
       "variant": "high",
       "prompt": "You are a targeted validation subagent. Execute only the provider-issued targeted validation in the Go-issued task prompt. Do NOT edit files. Do NOT delegate. That prompt embeds the frozen patch for every corrected path and names the one read-only command you may run to read the immutable trees yourself, `gentle-ai review inspect-candidate --purpose targeted-validation`, with every argument it needs. Use it when you need more than the embedded patches; run nothing else against the repository and never read the live worktree, index, or HEAD. Reporting that the candidate could not be inspected is a last resort, not a first response, and an inconclusive inspection is never a failed check. Return the exact requested JSON and nothing else.\n\n<!-- gentle-ai:codegraph-guidance -->\n## CodeGraph\n\nWhen answering structural or codebase questions, use CodeGraph before broad filesystem searches. This is a hard ordering rule for repo maps, architecture, call flow, dependencies, symbol references, impact analysis, and “how does X work” questions.\n\nCodeGraph-aware worktree placement:\n\n- Create Git worktrees that may need CodeGraph under the user's home directory, preferably as a sibling such as `<repo-parent>/<repo-name>-worktrees/<worktree-name>`. Never place a CodeGraph-dependent worktree under `/tmp`, `/var/tmp`, or `/tmp/opencode`; generic temporary-work guidance does not override this rule.\n- Every worktree needs its own `.codegraph/` index. Never copy, symlink, or reuse another checkout's index because its root and checked-out bytes may differ.\n\nCodeGraph intelligence surface:\n\n- Prefer the `codegraph_explore` MCP tool when it is available; it returns relevant source, call paths, and blast-radius context in one call.\n- If the MCP tool is unavailable, invoke the upstream CLI directly. Agents may use its read-only intelligence commands: `codegraph status`, `codegraph query`, `codegraph explore`, `codegraph node`, `codegraph files`, `codegraph callers`, `codegraph callees`, `codegraph impact`, and `codegraph affected`.\n- Do not use `gentle-ai codegraph` as a general proxy. Its `init` command exists only to validate the project root before initialization; intelligence queries belong to the upstream CLI.\n- Never run or recommend destructive or administrative lifecycle commands: `codegraph uninit`, `codegraph install`, `codegraph uninstall`, or `codegraph upgrade`. Reserve `codegraph index` for explicit index-corruption recovery, never routine use.\n\nRequired order for structural/codebase questions:\n\n1. Resolve the project root with `git rev-parse --show-toplevel || pwd`.\n2. Confirm the root is a real project/workspace. Do not ask the user before initializing CodeGraph in a real project. Do not initialize CodeGraph in `$HOME`, temporary directories, or non-project folders.\n3. Check for `<project-root>/.codegraph/` before any broad Read/Glob/Grep filesystem exploration.\n4. If `.codegraph/` is missing and CodeGraph is enabled/available, immediately run `gentle-ai codegraph init --cwd <project-root>` once.\n5. Missing .codegraph/ is the trigger to initialize, not a reason to skip CodeGraph. Do not fall back just because `.codegraph/` is missing; a missing index is the trigger to lazy-initialize, not a reason to skip CodeGraph.\n6. Use `codegraph_explore` after initialization, or the read-only upstream CLI commands when MCP tools are absent.\n7. After edits, rely on watcher auto-sync by default. Run `codegraph sync` only when the watcher is disabled or CodeGraph reports stale files that do not refresh normally.\n8. Only fall back to normal filesystem tools after CodeGraph initialization or use fails, and briefly explain the fallback.\n\nBroad Read/Glob/Grep exploration before this CodeGraph check is explicitly discouraged for structural/codebase questions.\n<!-- /gentle-ai:codegraph-guidance -->\n\n<!-- gentle-ai:agent-language-contract -->\n## Artifact Language Contract\n\nGenerated artifacts (code, comments, UI copy, docs, specs, tests, commit messages, memory entries) default to English. If an artifact is explicitly requested in Spanish, use neutral/professional Spanish. Never use regional slang or dialect-specific grammar in any artifact, regardless of the conversation language in your prompt context.\n\nBefore any Write/Edit whose content is an artifact, re-verify these artifact language rules.\n<!-- /gentle-ai:agent-language-contract -->\n\n<!-- user:subagent-search-contract -->\n## Repository search and external-context contract\n\nFor repository inspection, choose by query type: `aft_outline`/`aft_zoom` for known-file or symbol navigation; `codegraph_codegraph_explore` for indexed relationships and impact; `ast_grep_search` for structural patterns; and `sandbox_grep` only as the bounded exact-literal, configuration, or prose fallback. Native built-in `grep` is unavailable to subagents. Never use shell search as a bypass. If required evidence is outside the registered project, stop dependent work and return exactly `EXTERNAL_CONTEXT_REQUIRED` followed by `Purpose`, `Expected location`, and `Required evidence`; do not search the host or request broader filesystem access.\n<!-- /user:subagent-search-contract -->\n",
       "tools": {
@@ -1484,8 +1484,8 @@
       "description": "Relay reviewer (R3 reliability lens). Provider-materialized prompt only.",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/minimax-m3.1-flash",
-      "variant": "xhigh",
+      "model": "opencode-go/claude-haiku-5-5",
+      "variant": "high",
       "prompt": "Follow only the provider-materialized review prompt. Do not inspect the live worktree, delegate, or edit anything.",
       "tools": {
         "*": false,
@@ -1566,7 +1566,7 @@
       "description": "Relay targeted validator. Provider-materialized prompt only.",
       "hidden": true,
       "mode": "subagent",
-      "model": "opencode-go/claude-haiku-5-5",
+      "model": "openai/gpt-6.1-sol",
       "variant": "high",
       "prompt": "Follow only the provider-materialized validation prompt. Do not edit files or delegate.",
       "tools": {
@@ -1730,8 +1730,7 @@
         "sandbox_grep": true,
         "sandbox_diff": true
       },
-      "model": "opencode-go/minimax-m3.1-flash",
-      "variant": "high",
+      "model": "opencode-go/mimo-v2.6-flash",
       "permission": {
         "edit": "deny",
         "write": "deny",
@@ -1832,7 +1831,7 @@
         "sandbox_grep": true,
         "sandbox_diff": true
       },
-      "model": "opencode-go/minimax-m3.1-flash",
+      "model": "opencode-go/glm-5.3-flash",
       "variant": "high",
       "permission": {
         "edit": "deny",
@@ -1933,7 +1932,8 @@
         "sandbox_grep": true,
         "sandbox_diff": true
       },
-      "model": "opencode-go/qwen3.8-flash",
+      "model": "opencode-go/glm-5.3-flash",
+      "variant": "high",
       "permission": {
         "edit": "deny",
         "write": "deny",

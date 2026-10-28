@@ -391,6 +391,7 @@ The current derived mapping is:
 - For normal work, the configured Sol agent runs without another prompt. For extremely critical decisions, the orchestrator gives one evidence-based sentence and asks exactly **Use Astra upgrade (Recommended)** or **Keep Sol**. An explicit user request can also select Astra.
 - The choice is cached only for the current project/session and applies to eligible Sol roles by selecting `<base-agent>-astra`. It is reconsidered only if the scope materially crosses the criticality threshold.
 - Astra is forbidden for `general`, every apply or implementation route, `jd-fix-agent`, `systematic-implementer`, `pr-comment-resolver`, `design-iterator`, and `bug-reproduction-validator`. It never writes implementation code.
+- Astra is also never derived for the native review actors (`review-` and `asi-review-` risk, resilience, readability, reliability, refuter and validator), even when one runs on Sol; the plugin and the verifier apply the same exclusion.
 - Astra is not a Systematic profile and selection never edits global config or requires an OpenCode restart. Only initial installation or repair of the local plugin requires a restart.
 - Before dispatch, the orchestrator confirms that the alias exists and its base still resolves to Sol. If the alias or provider is unavailable, it uses the base Sol agent when safe and reports the limitation.
 
@@ -575,16 +576,16 @@ The orchestrator routes and aggregates advisor findings mechanically. Because it
 |---|---|
 | `advisor-design-pre` | `openai/gpt-6.1-sol` |
 | `advisor-security-pre` | `openai/gpt-6.1-sol` |
-| `advisor-integration-pre` | `opencode-go/minimax-m3.1-flash` (`high`) |
+| `advisor-integration-pre` | `opencode-go/mimo-v2.6-flash` |
 | `advisor-testing-pre` | `opencode-go/glm-5.3-flash` (`high`) |
-| `advisor-maintainability-pre` | `opencode-go/minimax-m3.1-flash` (`high`) |
+| `advisor-maintainability-pre` | `opencode-go/glm-5.3-flash` (`high`) |
 
 **Post-code advisors**
 
 | Advisor | Model |
 |---|---|
 | `advisor-design-post` | `opencode-go/qwen3.7-plus` |
-| `advisor-integration-post` | `opencode-go/qwen3.8-flash` |
+| `advisor-integration-post` | `opencode-go/glm-5.3-flash` (`high`) |
 | `advisor-testing-post` | `opencode-go/qwen3.8-flash` |
 | `advisor-security-post` | `opencode-go/qwen3.7-plus` |
 | `advisor-maintainability-post` | `opencode-go/ling-3.1-flash` |

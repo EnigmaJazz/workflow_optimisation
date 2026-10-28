@@ -598,7 +598,7 @@
         ]
       }
     ],
-    "opencode-go/minimax-m3.1-flash": [
+    "opencode-go/mimo-v2.6-flash": [
       {
         "providerID": "deepseek",
         "modelID": "deepseek-flash",
