@@ -721,6 +721,17 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   `advisor-security-pre` move off Sol; PM/writer fallback family independence and the Astra
   exclusion remain requirements. That implementation is still OPEN; the cheaper PM for
   docs/tiny-fix is satisfied by the selected GLM seat, but deployment is UNVERIFIED.
+- **Model-assignment update (2026-10-28, commit `3e2264d`, native review acknowledged with
+  non-blocking findings only):** reliability lens `claude-haiku-5-5` `high`; both validators
+  `openai/gpt-6.1-sol` `high` (native review actors excluded from Astra aliases in the plugin
+  and verifier); `advisor-integration-pre` `mimo-v2.6-flash`; `advisor-integration-post` and
+  `advisor-maintainability-pre` `glm-5.3-flash` `high`, so each advisory's pre and post differ.
+  `minimax-m3.1-flash` has no seat. DONE for these seats. The PM seat is NOT done: `pm-odd` and
+  `pm-systematic` are on `muse-spark-1.3-contributor` as an uncommitted live trial (owner,
+  2026-10-28); the verifier PM seat policy, family map and four PM tests still name
+  `glm-5.3-flash`. Refuter, `gentle-ai-verify` versus the Planner and the DeepSeek `high`
+  fallback review remain open. Deferred review findings: validator on Sol has no failover (by
+  design, excluded from fallback); Astra tests skip without `bun` and assert by substring.
 
 ### Q61. PM layer: remaining routes and close
 - **Status:** PLANNED.
@@ -1593,7 +1604,8 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   ≥ 32768 (owner direction 2026-10-23; `minimax-m3` remains excluded and M3.1 promotion still
   needs session/hang/Go-allowance acceptance), R4 resilience `glm-5.3-flash` `high` — PLUS the
   provider-selected refuter `mimo-v2.6-flash` default thinking (output ≥ 32768) and validator
-  `claude-haiku-5-5` `high`. Targets are planned, not live.
+  `claude-haiku-5-5` `high`. Targets are planned, not live. **Superseded 2026-10-28 for the
+  reliability lens, validators and advisors** by the model-assignment update under Q60.
 - **Units:**
   - **T1 — queue revision (COMPLETE):** Q90, the Q57-Q60 forward lines, the Q87 planning overlay,
     Q91 and the router row. Source `114366b`; metadata `dfbeb29`; final assessment
