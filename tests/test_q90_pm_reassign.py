@@ -153,7 +153,9 @@ class FallbackPolicy(unittest.TestCase):
             self.assertNotIn(name, self.fallback["excludeAgents"])
             self.assertNotIn(name, self.fallback["noFallbackAgents"])
 
-    def test_shared_muse_policy_is_unchanged(self):
+    def test_shared_muse_policy_matches_the_pinned_chain(self):
+        self.assertIn(MODEL, self.fallback["fallbackModels"],
+                      "Muse Spark PM model has no exact fallback policy")
         keys = [(f"{entry['providerID']}/{entry['modelID']}", entry.get("variant"))
                 for entry in self.fallback["fallbackModels"][MODEL]]
         self.assertEqual(keys, SHARED)
