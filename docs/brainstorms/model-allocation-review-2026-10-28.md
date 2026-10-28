@@ -21,7 +21,7 @@ The routing proxy is in `live` mode, so with Go nearly exhausted, traffic falls 
 How the two backends charge, which sets the multiplier in section 3:
 
 - **Go:** every model has its own monthly dollar limit (5h = 20%, week = 50%, month = 100%). The proxy treats it as one pool, where a metered dollar on a model costs `100 / limit` percent of the pool. DeepSeek V4.1 Flash costs 1.25% per dollar, MiniMax M3.1 Flash costs 5% per dollar.
-- **cc:** one dollar cap per window ($14 / $35 / $70.07 on this account), plus a per-model monthly credit ceiling. The proxy fits a real "dollars charged per metered dollar" weight per model from usage.
+- **cc:** one dollar cap per window ($14 / $35 / $70.07 on this account). **Owner correction (2026-10-28): each provider is one shared pool, not a pool per model.** The per-model "monthly credits" in the cc docs and the per-model limits in the Go docs are therefore relative weights (how fast a model drains the shared pool), not separate allowances. The proxy fits a real "dollars charged per metered dollar" weight per model from usage. In section 3, "Go limit / cc credit" columns read as weights, and "req/mo" means requests if the whole pool went to that model.
 
 ## 2. Agent and model map
 
