@@ -255,7 +255,8 @@ class RealConfig(unittest.TestCase):
 
     def test_each_pm_prompt_pins_route_marker_and_envelope_discipline(self):
         needles = (
-            "only when the brief's route is Tiny fix",
+            "only for a genuinely tiny side fix found mid-unit",
+            "the unit's own planned change is never dispatched with it",
             "never choose a route, writer or label the brief did not give you",
             "or `unavailable` if it is not exposed",
             "including those made by fixed plan and gate tools",
