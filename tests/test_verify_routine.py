@@ -54,7 +54,8 @@ class RoutineVerifier(unittest.TestCase):
     def test_workflow_states_when_each_tier_is_used(self):
         self.assertIn("`gentle-ai-verify-routine`", WORKFLOW)
         self.assertRegex(WORKFLOW, r"Risk line names a high-risk item[^\n]*`gentle-ai-verify`")
-        self.assertRegex(WORKFLOW, r"`gentle-ai-verify-routine`[^\n]*(otherwise|default)")
+        self.assertIn("**Verifier tiers (owner, 2026-10-28).**", WORKFLOW)
+        self.assertRegex(WORKFLOW, r"`gentle-ai-verify-routine` \(`opencode-go/claude-haiku-5-5`, `high`\) is the default")
 
 
 if __name__ == "__main__":
