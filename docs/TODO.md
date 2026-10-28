@@ -727,9 +727,9 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   and verifier); `advisor-integration-pre` `mimo-v2.6-flash`; `advisor-integration-post` and
   `advisor-maintainability-pre` `glm-5.3-flash` `high`, so each advisory's pre and post differ.
   `minimax-m3.1-flash` has no seat. DONE for these seats. The PM seat is NOT done: `pm-odd` and
-  `pm-systematic` are on `muse-spark-1.3-contributor` as an uncommitted live trial (owner,
-  2026-10-28); the verifier PM seat policy, family map and four PM tests still name
-  `glm-5.3-flash`. Refuter, `gentle-ai-verify` versus the Planner and the DeepSeek `high`
+  `pm-systematic` now run `muse-spark-1.3-contributor` with no variant (owner, 2026-10-28, after a
+  two-model trial against `mimo-v2.6-flash`; PM fallback stays the per-agent `qwen3.8-flash` then Gemini
+  override, the verifier PM seat policy and tests updated). PM seat DONE; Q60's "cheaper PM" is met. Refuter, `gentle-ai-verify` versus the Planner and the DeepSeek `high`
   fallback review remain open. Refuter stays `grok-4.7` `high` (owner, 2026-10-28): rare (about 5 calls a week, about $0.25 each), separate family, routes to Command Code while Go is exhausted. Verifier tiers (commit `4507394`, four-lens native review approved, non-blocking findings only): `gentle-ai-verify-routine` (Haiku `high`) is the default verifier; `gentle-ai-verify` (Sol) when the Risk line names a high-risk item. DONE. Deferred review findings: validator on Sol has no failover (by
   design, excluded from fallback); Astra tests skip without `bun` and assert by substring.
 

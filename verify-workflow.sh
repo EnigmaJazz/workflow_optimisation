@@ -2460,9 +2460,10 @@ if (genericRuntimeReady && ggaRuntimeReady && !distinct) {
 }
 
 // pm-seat-policy:begin
-// Owner direction 2026-10-24: both PM seats are the same exact GLM high seat.
-const PM_SEAT_MODEL="opencode-go/glm-5.3-flash"
-const PM_SEAT_VARIANT="high"
+// Owner direction 2026-10-28: both PM seats are the same exact Muse Spark Contributor seat
+// with no variant (the model defines none); this supersedes the 2026-10-24 GLM high seat.
+const PM_SEAT_MODEL="opencode-go/muse-spark-1.3-contributor"
+const PM_SEAT_VARIANT=undefined
 function pmSeatFailures(agents) {
   const failures=[]
   for (const name of ["pm-odd","pm-systematic"]) {

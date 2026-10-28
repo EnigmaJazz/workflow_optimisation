@@ -18,7 +18,7 @@ SCRIPT = REPO / "verify-workflow.sh"
 CONFIG = REPO / "global-config" / "opencode.json"
 FALLBACK = REPO / "global-config" / "rate-limit-fallback.json"
 PMS = ("pm-odd", "pm-systematic")
-MODEL, VARIANT = "opencode-go/glm-5.3-flash", "high"
+MODEL, VARIANT = "opencode-go/muse-spark-1.3-contributor", None
 BEGIN, END = "// pm-seat-policy:begin", "// pm-seat-policy:end"
 CAPS = ["files", "tools", "vision"]
 QWEN = {"providerID": "opencode-go", "modelID": "qwen3.8-flash",
@@ -27,12 +27,9 @@ GEMINI = {"providerID": "openrouter", "modelID": "~google/gemini-flash-latest",
           "capabilities": CAPS}
 QWEN_KEY, GEMINI_KEY = "opencode-go/qwen3.8-flash", "openrouter/~google/gemini-flash-latest"
 SHARED = [
-    ("opencode-go/glm-5.3", "high"),
-    ("opencode-go/deepseek-v4.1-flash", "default"),
-    ("deepseek/deepseek-flash", "high"),
-    (GEMINI_KEY, None),
-    ("openrouter/deepseek/deepseek-v4.1-flash", "default"),
     ("opencode-go/mimo-v2.6-flash", "high"),
+    ("deepseek/deepseek-flash", "high"),
+    ("openrouter/deepseek/deepseek-v4.1-flash", "default"),
 ]
 
 
@@ -104,9 +101,9 @@ class PmSeatGate(unittest.TestCase):
     def setUpClass(cls):
         cls.agents = load(CONFIG)["agent"]
 
-    def test_configured_glm_high_is_accepted(self):
+    def test_configured_muse_spark_without_variant_is_accepted(self):
         for name in PMS:
-            self.assertEqual((self.agents[name]["model"], self.agents[name]["variant"]),
+            self.assertEqual((self.agents[name]["model"], self.agents[name].get("variant")),
                              (MODEL, VARIANT))
         self.assertEqual(seat_failures(self.agents), [])
 
@@ -126,11 +123,11 @@ class PmSeatGate(unittest.TestCase):
                 mutated[name]["variant"] = "medium"
                 self.assertEqual(seat_failures(mutated), [
                     f'PM_SEAT_VARIANT_MISMATCH: {name}="medium"'])
-            with self.subTest(agent=name, variant="missing"):
+            with self.subTest(agent=name, variant="high"):
                 mutated = copy.deepcopy(self.agents)
-                del mutated[name]["variant"]
+                mutated[name]["variant"] = "high"
                 self.assertEqual(seat_failures(mutated), [
-                    f"PM_SEAT_VARIANT_MISMATCH: {name}=undefined"])
+                    f'PM_SEAT_VARIANT_MISMATCH: {name}="high"'])
 
     def test_production_verifier_calls_the_pm_seat_gate(self):
         script = SCRIPT.read_text(encoding="utf-8")
@@ -156,7 +153,7 @@ class FallbackPolicy(unittest.TestCase):
             self.assertNotIn(name, self.fallback["excludeAgents"])
             self.assertNotIn(name, self.fallback["noFallbackAgents"])
 
-    def test_shared_glm_policy_is_unchanged(self):
+    def test_shared_muse_policy_is_unchanged(self):
         keys = [(f"{entry['providerID']}/{entry['modelID']}", entry.get("variant"))
                 for entry in self.fallback["fallbackModels"][MODEL]]
         self.assertEqual(keys, SHARED)
@@ -183,7 +180,7 @@ class FallbackPolicy(unittest.TestCase):
 
     def test_removed_or_shared_pm_override_breaks_the_qwen_chain(self):
         expected, shared = [QWEN_KEY, GEMINI_KEY], [key for key, _ in SHARED]
-        for name, label in [(n, m) for n in PMS for m in ("removed", "shared-glm")]:
+        for name, label in [(n, m) for n in PMS for m in ("removed", "shared-muse")]:
             fallback = copy.deepcopy(self.fallback)
             if label == "removed": fallback["agentFallbackModels"].pop(name)
             else: fallback["agentFallbackModels"][name] = copy.deepcopy(fallback["fallbackModels"][MODEL])
