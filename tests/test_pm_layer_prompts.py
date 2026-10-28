@@ -260,6 +260,8 @@ class RealConfig(unittest.TestCase):
             "never choose a route, writer or label the brief did not give you",
             "or `unavailable` if it is not exposed",
             "including those made by fixed plan and gate tools",
+            "dispatch `gentle-ai-verify-routine` by default",
+            "dispatch `gentle-ai-verify` instead only when the unit's Risk line names a high-risk item",
         )
         for name in AGENT_NAMES:
             prompt = prompt_of(self.data, name)
