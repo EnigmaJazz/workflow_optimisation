@@ -194,3 +194,23 @@ describe("V2 adapter", () => {
     expect(readFileSync(join(sessionDir("ses_turn"), ".agent"), "utf8")).toContain("pm-odd")
   })
 })
+
+describe("V2 agent-observation log", () => {
+  test("a V2 observation is labelled with the V2 hook, and V1 keeps its own label", async () => {
+    process.env.SYSTEMATIC_ROUTING_GUARD_OBSERVE_AGENT_HOOKS = "1"
+    try {
+      const other = makeV2()
+      const stop = await guard.default.setup(other.ctx)
+      await other.hooks["tool:execute.before"]({ tool: "read", sessionID: "ses_label", agent: "pm-odd", input: {} })
+      await stop()
+      const v1 = await guard.default.server({})
+      await v1["chat.message"]({ sessionID: "ses_label_v1", agent: "pm-odd" })
+    } finally {
+      delete process.env.SYSTEMATIC_ROUTING_GUARD_OBSERVE_AGENT_HOOKS
+    }
+    const lines = logText().split("\n").filter((l) => l.includes("TEMP agent-hook"))
+    expect(lines.some((l) => l.includes("hook=tool.execute.before") && l.includes("session=ses_label "))).toBe(true)
+    expect(lines.some((l) => l.includes("hook=chat.message") && l.includes("session=ses_label_v1 "))).toBe(true)
+    expect(lines.some((l) => l.includes("hook=chat.message") && l.includes("session=ses_label "))).toBe(false)
+  })
+})

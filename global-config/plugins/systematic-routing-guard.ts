@@ -952,10 +952,10 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
     },
 
     /**
-     * A new user message starts a new routing turn. State is kept per session,
-     * so subagent sessions cannot clear or contaminate their parent's state.
+     * A new user message (V1 chat.message, V2 prompt hook) starts a new routing turn: the per-session
+     * in-memory activation resets. State is kept per session, so subagent sessions cannot clear or
+     * contaminate their parent's state.
      */
-    /** A new user prompt starts a new routing turn (per-session in-memory activation resets). */
     newTurn(sessionID: string): void {
       activeBySession.delete(sessionID)
       lastKeyRefreshBySession.delete(sessionID)
@@ -965,13 +965,13 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
      * Record the agent observed for a session. V1 gets it from chat.message; V2 supplies it on every
      * tool hook. It is the latest value the host reported, not an authenticated identity.
      */
-    async observeAgent(sessionID: string, agent: unknown): Promise<void> {
+    async observeAgent(sessionID: string, agent: unknown, source: string = "chat.message"): Promise<void> {
       if (observeAgentHooks) {
         const observedAgent = typeof agent === "string" && agent.length > 0
           ? encodeObservationField(agent)
           : "none"
         await appendRoutingLog(
-          `[systematic-routing-guard] TEMP agent-hook hook=chat.message session=${encodeObservationField(sessionID)} agent=${observedAgent} child=${childSessions.has(sessionID)}`,
+          `[systematic-routing-guard] TEMP agent-hook hook=${source} session=${encodeObservationField(sessionID)} agent=${observedAgent} child=${childSessions.has(sessionID)}`,
         )
       }
       // The guard observes the message agent here; it is the latest observed value, not an
@@ -1395,7 +1395,7 @@ async function setupV2(ctx: GuardCtxV2) {
   registrations.push(await ctx.session.hook("prompt", (event) => core.newTurn(event.sessionID)))
 
   registrations.push(await ctx.tool.hook("execute.before", async (event) => {
-    await core.observeAgent(event.sessionID, event.agent)
+    await core.observeAgent(event.sessionID, event.agent, "tool.execute.before")
     const input = (event.input && typeof event.input === "object" ? event.input : undefined) as Record<string, unknown> | undefined
     if (event.tool === "subagent" && input) {
       // `model` is a real V2 argument, so it is not stripped (only the V1 task schema lacked it).

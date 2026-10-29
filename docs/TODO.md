@@ -2080,6 +2080,9 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
     opencode`; magic-context/aft/systematic TUI parts load with their server plugin. (3) The V2 profile
     drops the entries V2 cannot load: `opencode-usage-total`, the `file://` auto-update build and the
     `file://` rate-limit-fallback fork (until ported).
+  - Review note (native review `review-380ebd5f6d64e80b`, approved): the `*-astra` wildcard authorises any
+    agent whose id ends in `-astra`, not only generated aliases. Accepted because aliases are the only
+    such agents today; re-check this if another plugin or config ever defines a `*-astra` agent.
   - Open: nested subagent chains also need each dispatching agent to keep a `subagent` allow, which
     `permission.task` already provides; re-check `general`, which V2's built-in default denies.
 

@@ -216,6 +216,9 @@ async function setupV2(ctx: { agent: AgentDomainV2; event: EventDomainV2 }) {
           console.error(problem)
         }
         if (aliases.length === 0) continue
+        // Each pass replaces the plan. That is safe because aliases created earlier already exist in the
+        // host: a later plan only contains aliases that are still missing, and a later transform pass
+        // re-applies just those.
         pending = aliases
         await ctx.agent.reload()
       }
