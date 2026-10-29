@@ -2053,6 +2053,9 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
     until #97 is fixed.
   - Add a canonical `global-config/cli.json` and retire `tui.json` handling once V2 is the
     runtime.
+  - Add the static orchestrator rule `{ action: "subagent", resource: "*-astra", effect: "allow" }` to
+    the V2 `gentle-orchestrator.permissions`: on V2 the astra plugin creates the `-astra` aliases but a
+    plugin cannot amend a config-defined agent's permissions (B1 follow-up, 2026-10-29).
 
 ### Q44. Verifier V2 mode (`verify-workflow.sh`)
 - **Status:** PLANNED.
