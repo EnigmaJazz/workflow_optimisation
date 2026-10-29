@@ -241,5 +241,48 @@ class AgentsShimWiring(unittest.TestCase):
         self.assertIn('"$OC_PROBE" agent list', self.text)
 
 
+CHECKER = MODULES / "checkers" / "check-parallel-dispatch.py"
+
+
+def parallel(tool, key, agents=("explore", "general")):
+    import json
+    lines = []
+    for i, name in enumerate(agents):
+        lines.append(json.dumps({"part": {"tool": tool, "callID": f"c{i}", "messageID": "m1",
+                                           "state": {"input": {key: name}, "status": "completed",
+                                                     "time": {"start": 1, "end": 5}}}}))
+    path = Path(tempfile.mkdtemp()) / "events.ndjson"
+    path.write_text("\n".join(lines))
+    return subprocess.run(["python3", str(CHECKER), str(path)], capture_output=True, text=True)
+
+
+class BehaviouralParsers(unittest.TestCase):
+    """V2 renamed the task tool to `subagent` (input key `agent`) and bash to `shell`."""
+
+    def test_v1_task_events_still_pass(self):
+        self.assertEqual(parallel("task", "subagent_type").returncode, 0)
+
+    def test_v2_subagent_events_pass(self):
+        r = parallel("subagent", "agent")
+        self.assertEqual(r.returncode, 0, r.stdout)
+
+    def test_positive_control_a_missing_agent_still_fails(self):
+        self.assertEqual(parallel("subagent", "agent", agents=("explore",)).returncode, 1)
+
+    def test_the_read_only_probe_treats_shell_and_non_explore_subagents_as_mutation(self):
+        text = (MODULES / "61-section-10-behavioural.sh").read_text()
+        self.assertIn('"shell"', text)
+        self.assertIn('tool in {"task", "subagent"}', text)
+        self.assertIn('launch.get("agent")', text)
+
+
+class SecureServiceProbes(unittest.TestCase):
+    text = (MODULES / "60-section-9a-9b-secure-service.sh").read_text()
+
+    def test_http_probes_are_skipped_on_v2(self):
+        self.assertIn('"${OC_MAJOR:-0}" = "2"', self.text)
+        self.assertGreaterEqual(self.text.count("skipped: OpenCode V2"), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

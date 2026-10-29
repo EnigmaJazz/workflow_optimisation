@@ -37,7 +37,7 @@ else
   else
     fail "behavioural parallel-dispatch contract failed"
     echo "      retained diagnostic preview:"
-    grep -E '"type":"(tool_use|text|step_finish)"|"tool":"task"' "$PARALLEL_EVENTS" 2>/dev/null | tail -20 | sed 's/^/      /'
+    grep -E '"type":"(tool_use|text|step_finish)"|"tool":"(task|subagent)"' "$PARALLEL_EVENTS" 2>/dev/null | tail -20 | sed 's/^/      /'
     if [ -s "$PARALLEL_STDERR" ]; then
       echo "      probe stderr (tail):"
       tail -12 "$PARALLEL_STDERR" | sed 's/^/      /'
@@ -93,8 +93,8 @@ for line in events.read_text(encoding="utf-8", errors="replace").splitlines():
         skill_calls.append(launch["name"])
         if launch["name"] == "workflow-route":
             loaded_router = True
-    if tool in {"sandbox_write","sandbox_edit","sandbox_apply_patch","sandbox_bash","sandbox_apply","write","edit","bash","host_plan_append","host_review_start","host_register_project"} or (tool == "task" and launch.get("subagent_type") not in {"explore"}):
-        print(f"   !! ODD_READ_ONLY_MUTATION_OR_WRITER: tool={tool} agent={launch.get('subagent_type')}")
+    if tool in {"sandbox_write","sandbox_edit","sandbox_apply_patch","sandbox_bash","sandbox_apply","write","edit","bash","shell","host_plan_append","host_review_start","host_register_project"} or (tool in {"task", "subagent"} and (launch.get("subagent_type") or launch.get("agent")) not in {"explore"}):
+        print(f"   !! ODD_READ_ONLY_MUTATION_OR_WRITER: tool={tool} agent={launch.get('subagent_type') or launch.get('agent')}")
         raise SystemExit(1)
 if not loaded_router:
     print("   !! ODD_ROUTER_SKILL_NOT_LOADED: expected native skill(workflow-route) call")

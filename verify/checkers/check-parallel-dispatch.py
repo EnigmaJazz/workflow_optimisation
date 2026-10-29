@@ -17,7 +17,8 @@ with open(path, "r", encoding="utf-8", errors="replace") as fh:
         part = event.get("part")
         if not isinstance(part, dict):
             continue
-        if part.get("tool") != "task":
+        # V1 calls it `task` (input `subagent_type`); V2 calls it `subagent` (input `agent`).
+        if part.get("tool") not in {"task", "subagent"}:
             continue
 
         state = part.get("state")
@@ -27,7 +28,7 @@ with open(path, "r", encoding="utf-8", errors="replace") as fh:
         inp = state.get("input")
         if not isinstance(inp, dict):
             inp = {}
-        agent = inp.get("subagent_type")
+        agent = inp.get("subagent_type") or inp.get("agent")
         call_id = part.get("callID") or part.get("id") or f"anon:{len(by_call)}"
         rec = by_call.setdefault(call_id, {
             "agent": agent,

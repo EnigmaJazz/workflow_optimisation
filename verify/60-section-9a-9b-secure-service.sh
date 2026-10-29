@@ -2,6 +2,8 @@
 echo "--- 9a. Secure OpenCode Systematic agent registration ---"
 if [ "$RUNTIME_RESTART_REQUIRED" -eq 1 ]; then
   echo "   skipped: configuration was repaired after service start; restart and rerun to inspect live agents"
+elif [ "${OC_MAJOR:-0}" = "2" ]; then
+  echo "   skipped: OpenCode V2 has no V1 HTTP /agent catalog; section 9 covers agent registration through debug agents"
 elif ! command_exists curl; then
   fail "SYSTEMATIC_SERVICE_PROBE_UNAVAILABLE: curl missing"
 elif ! curl --fail --silent --show-error --max-time 12 \
@@ -28,6 +30,8 @@ fi
 echo "--- 9b. Secure OpenCode public GitHub MCP ---"
 if [ "$RUNTIME_RESTART_REQUIRED" -eq 1 ]; then
   echo "   skipped: configuration was repaired after service start; restart and rerun to inspect live GitHub MCP"
+elif [ "${OC_MAJOR:-0}" = "2" ]; then
+  echo "   skipped: OpenCode V2 does not serve the V1 /mcp and /config HTTP endpoints on :4096"
 else
 GITHUB_MCP_STATUS="$TMP_DIR/github-ro-mcp-status.json"
 GITHUB_MCP_CONFIG="$TMP_DIR/github-ro-effective-config.json"

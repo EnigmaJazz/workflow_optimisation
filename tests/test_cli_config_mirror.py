@@ -65,6 +65,15 @@ class Recovery(unittest.TestCase):
         self.assertEqual(json.loads(path.read_text()), {"plugins": ["a"]})
 
 
+class RealSource(unittest.TestCase):
+    def test_the_repository_source_file_is_a_valid_mirror_source(self):
+        real = json.loads((REPO / "global-config" / "cli.json").read_text())
+        r, live, _ = recover(None, source=real)
+        self.assertTrue(r.stdout.startswith("repaired\t"), r.stdout + r.stderr)
+        self.assertEqual(json.loads(live.read_text()), real)
+        self.assertEqual(real.get("plugins"), [], "the mirrored V2 plugin list must stay empty until a V2 plugin is approved")
+
+
 class Wiring(unittest.TestCase):
     def test_env_defines_the_cli_config_paths(self):
         text = (REPO / "verify" / "10-env.sh").read_text()
