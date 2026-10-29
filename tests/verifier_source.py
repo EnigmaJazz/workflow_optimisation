@@ -1,4 +1,4 @@
-"""The verifier's full source text for tests that parse embedded blocks.
+"""The verifier's full source text for tests that parse embedded blocks (entry, modules and checkers).
 
 verify-workflow.sh is a thin entry; its checks live in verify/NN-*.sh (queue Q04). Tests that look for
 a block inside the verifier read the entry plus every module in manifest order, which is the same

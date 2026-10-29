@@ -147,10 +147,11 @@ waits on an owner decision.
 - **Status:** STAGE 1 DONE at source (2026-10-29): 21 digest-bound modules in `verify/`, thin entry with a
   loader that refuses any digest mismatch, missing or unlisted module; `scripts/verifier_manifest.py`
   `check|update`; tests read the verifier through `tests/verifier_source.py`; reassembly proven
-  byte-identical to the former single file and its load-only output identical. STAGE 2 OPEN: the
-  embedded checkers (`41-checker-systematic.sh`, `42-checker-runtime-agents.sh`, about 2,600 lines of
-  node and python in heredocs) should become standalone files the modules copy or call, so they can
-  be run and tested on their own. Ordered before B3 because B3 adds verifier checks.
+  byte-identical to the former single file and its load-only output identical. STAGE 2 DONE at source (2026-10-29): the four embedded checkers
+  (runtime-agents 2,232 lines, systematic-resolution 374, parallel-dispatch 103, routing text 15) are
+  standalone files under `verify/checkers/`, digest-bound by the same manifest, installed by
+  `cat "$VERIFY_MODULE_DIR/checkers/<name>" > "$VAR"` (each proven byte-identical to its former
+  heredoc). Remaining heredocs inside the section modules are small and stay inline. Ordered before B3 because B3 adds verifier checks.
 - **Prerequisites:** none. Preserve check ordering, `fail` aggregation, TTY/`NO_COLOR` colour
   behaviour, the digest pinning contract and the `WORKFLOW_VERIFY_*` switches.
 - **Source:** `docs/PLAN.md` "11. Split `verify-workflow.sh`"; `docs/TODO-HISTORY.md` item 11.

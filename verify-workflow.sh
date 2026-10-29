@@ -91,9 +91,9 @@ VERIFY_MODULES=(
   "30-recover-config.sh 538d7715451823ce58e3227e10fa0e55811d4b7ee461fdcc3efb61c7d3d32c7a"
   "31-recover-skills-agents.sh 7c646795f905093f1582dca0ea6f4badee906264fc1051df9f3d46a6ffb1cf38"
   "32-recover-systematic.sh 6e218d4f6ff59bd3875665c9c8cc71f20e2fdb08298cdc3cb935739bd700793e"
-  "40-temp-and-routing.sh 0d494bb767959722a1a5553ad1551a4f3e8c4bc9bba0b516f58c2c1f86f7a149"
-  "41-checker-systematic.sh ab83a70d8289fe6263859431fb33e7b129ab246a8b36b422ebfed69898f90880"
-  "42-checker-runtime-agents.sh 46eaab36bf1fe6d696c6b9add5db81e977a9382e31f4d5f05fa6f709bb0c0b09"
+  "40-temp-and-routing.sh 8516dec379a9c711ff398d2e6117e3d4df93d49cb02c126419999752f9db65d8"
+  "41-checker-systematic.sh d2b24934715d00f7d56fc86402bc20554bd9665b18f43c613ea19c402ad3dd14"
+  "42-checker-runtime-agents.sh e3ab3706ce136917b46df9bc73a338dc00e4e0aaf809bf834ef8ac6e5ba4a8be"
   "50-section-0-recover.sh 59acbf25902e61292d30175df05c073b27d13b62e9c83dd0ecf439ea9f2cc7c1"
   "51-section-1-gentle-ai.sh 6f125ca157c9b14033749cb4f68c989551230a5d22f5f4a2d1d538704924c7f5"
   "52-section-2-systematic-install.sh 2439384f1c65f5ca51f9584a75e0f887f46d8e73fac69cf9df0a9d405904e197"
@@ -107,6 +107,10 @@ VERIFY_MODULES=(
   "60-section-9a-9b-secure-service.sh fab3a32e1a08b55b3fb39fa24c8346ebf5d0c22cd55accbeeecb5af481f31d6b"
   "61-section-10-behavioural.sh 8dc2fa4080a8ad9a3385c9854bdb8fb3add707e6c74a033efb652b5c52e7b168"
   "62-section-11-summary.sh 5df415a1b7f63144822d2bb62c2300df4f2de8ea36cc0dc7ee5d4138c477ea76"
+  "checkers/check-parallel-dispatch.py 7082138c1ee02dc51d73ac45e8b06911eca92c845c1e1029539042cf470b3815"
+  "checkers/check-runtime-agents.cjs f23021ea00ff50efd383bb29ecb39467a1e0e499c0c6f2d249a292fbb5b7616b"
+  "checkers/check-systematic-resolution.cjs 39b81b3ef5aacffa9b45ccde1bb2b3b5afc123bf928975403f8f287190360691"
+  "checkers/routing-canonical.md 23c0c9ab507e96b04966a4e1e2b5419771859dfd87eef1efb2d3191e52c559e4"
 )
 # END VERIFY_MODULES
 
@@ -123,15 +127,19 @@ for verify_module_entry in "${VERIFY_MODULES[@]}"; do
   verify_module_got=$(sha256sum "$VERIFY_MODULE_DIR/$verify_module_name" 2>/dev/null | awk '{print $1}')
   [ "$verify_module_got" = "$verify_module_want" ] || verify_loader_fail "module digest mismatch: $verify_module_name"
 done
-for verify_module_file in "$VERIFY_MODULE_DIR"/*.sh; do
-  [ -e "$verify_module_file" ] || continue
+for verify_module_file in "$VERIFY_MODULE_DIR"/*.sh "$VERIFY_MODULE_DIR"/checkers/*; do
+  [ -f "$verify_module_file" ] || continue
+  verify_module_rel=${verify_module_file#"$VERIFY_MODULE_DIR"/}
   case "$verify_listed" in
-    *" ${verify_module_file##*/} "*) ;;
-    *) verify_loader_fail "unlisted module file: ${verify_module_file##*/}" ;;
+    *" $verify_module_rel "*) ;;
+    *) verify_loader_fail "unlisted module file: $verify_module_rel" ;;
   esac
 done
 for verify_module_entry in "${VERIFY_MODULES[@]}"; do
-  # shellcheck source=/dev/null
-  source "$VERIFY_MODULE_DIR/${verify_module_entry%% *}"
+  case "${verify_module_entry%% *}" in
+    *.sh)
+      # shellcheck source=/dev/null
+      source "$VERIFY_MODULE_DIR/${verify_module_entry%% *}" ;;
+  esac
 done
 # END VERIFY_LOADER

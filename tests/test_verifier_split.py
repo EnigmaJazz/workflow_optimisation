@@ -37,9 +37,44 @@ class Manifest(unittest.TestCase):
     def test_manifest_matches_the_module_files_in_order(self):
         listed = manifest(ENTRY.read_text())
         self.assertGreater(len(listed), 10)
-        self.assertEqual([n for n, _ in listed], sorted(p.name for p in MODULES.glob("*.sh")))
+        on_disk = sorted(str(p.relative_to(MODULES)) for p in MODULES.rglob("*") if p.is_file())
+        self.assertEqual([n for n, _ in listed], on_disk)
         for name, digest in listed:
             self.assertEqual(sha(MODULES / name), digest, name)
+
+    def test_the_embedded_checkers_are_standalone_digest_bound_files(self):
+        names = [n for n, _ in manifest(ENTRY.read_text())]
+        for expected in ("checkers/check-runtime-agents.cjs", "checkers/check-systematic-resolution.cjs",
+                         "checkers/check-parallel-dispatch.py", "checkers/routing-canonical.md"):
+            self.assertIn(expected, names)
+
+    def test_checkers_are_valid_scripts(self):
+        for node_file in sorted((MODULES / "checkers").glob("*.cjs")):
+            r = subprocess.run(["node", "--check", str(node_file)], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, f"{node_file.name}: {r.stderr[:200]}")
+        for py_file in sorted((MODULES / "checkers").glob("*.py")):
+            r = subprocess.run([sys.executable, "-I", "-c", f"import ast,sys;ast.parse(open(sys.argv[1]).read())", str(py_file)], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, f"{py_file.name}: {r.stderr[:200]}")
+
+    def test_modules_install_each_checker_by_copying_it_not_by_embedding_it(self):
+        text = "\n".join(p.read_text() for p in MODULES.glob("*.sh"))
+        for var, name in (("RUNTIME_AGENT_CHECKER", "check-runtime-agents.cjs"), ("SYSTEMATIC_CHECKER", "check-systematic-resolution.cjs"),
+                          ("PARALLEL_CHECKER", "check-parallel-dispatch.py"), ("ROUTING_CANONICAL", "routing-canonical.md")):
+            self.assertIn(f'cat "$VERIFY_MODULE_DIR/checkers/{name}" > "${var}"', text)
+            self.assertNotRegex(text, rf'cat > "\${var}" <<')
+
+    def test_the_single_statement_modules_write_exactly_the_checker_bytes(self):
+        for module, var, name in (("41-checker-systematic.sh", "SYSTEMATIC_CHECKER", "check-systematic-resolution.cjs"),
+                                  ("42-checker-runtime-agents.sh", "RUNTIME_AGENT_CHECKER", "check-runtime-agents.cjs")):
+            d = Path(tempfile.mkdtemp())
+            try:
+                out = d / "written"
+                script = f'VERIFY_MODULE_DIR="{MODULES}"\n{var}="{out}"\nsource "{MODULES / module}"\n'
+                r = subprocess.run(["bash", "-c", script], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(out.read_bytes(), (MODULES / "checkers" / name).read_bytes(), module)
+            finally:
+                shutil.rmtree(d, ignore_errors=True)
 
     def test_every_module_parses_cleanly(self):
         for module in sorted(MODULES.glob("*.sh")):
@@ -92,6 +127,31 @@ class Loader(unittest.TestCase):
         rc, out, err = self.run_loader({"10-a.sh": "A=1\n"}, extra={"99-unlisted.sh": "A=evil\n"})
         self.assertEqual(rc, 2)
         self.assertIn("unlisted", err + out)
+
+    def test_a_tampered_checker_file_is_refused_and_an_unlisted_one_too(self):
+        d = Path(tempfile.mkdtemp())
+        try:
+            (d / "checkers").mkdir()
+            (d / "10-a.sh").write_text("A=ok\n")
+            (d / "checkers/x.cjs").write_text("// x\n")
+            def run(listed):
+                lines = "\n".join(f'  "{n} {h}"' for n, h in listed)
+                script = f'VERIFY_MODULE_DIR="{d}"\nVERIFY_MODULES=(\n{lines}\n)\n{loader_text(ENTRY.read_text())}\necho "LOADED A=${{A:-unset}}"\n'
+                r = subprocess.run(["bash", "-c", script], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+                return r.returncode, r.stdout + r.stderr
+            good = [("10-a.sh", sha(d / "10-a.sh")), ("checkers/x.cjs", sha(d / "checkers/x.cjs"))]
+            self.assertEqual(run(good)[0], 0)                                  # control: clean run loads, .cjs is not sourced
+            (d / "checkers/x.cjs").write_text("// tampered\n")
+            rc, out = run(good)
+            self.assertEqual(rc, 2)
+            self.assertIn("checkers/x.cjs", out)
+            (d / "checkers/x.cjs").write_text("// x\n")
+            (d / "checkers/y.cjs").write_text("// unlisted\n")
+            rc, out = run(good)
+            self.assertEqual(rc, 2)
+            self.assertIn("unlisted", out)
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
 
     def test_positive_control_a_clean_run_loads(self):
         rc, out, err = self.run_loader({"10-a.sh": "A=ok\n"})

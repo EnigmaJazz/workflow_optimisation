@@ -4,7 +4,7 @@
   python3 scripts/verifier_manifest.py check    # exit 1 if the manifest or the pin is stale
   python3 scripts/verifier_manifest.py update   # regenerate the manifest, then re-pin the plugin
 
-The manifest lists every verify/*.sh in filename (execution) order with its sha256. The pin is the
+The manifest lists every file under verify/ (the *.sh modules in execution order, then checkers/*) with its sha256. The pin is the
 sha256 of verify-workflow.sh itself (which embeds the manifest), so one digest covers the whole
 verifier. Never hand-edit either value."""
 import argparse
@@ -22,7 +22,9 @@ def digest(path):
 
 
 def render(modules_dir):
-    rows = [f'  "{p.name} {digest(p)}"' for p in sorted(Path(modules_dir).glob("*.sh"))]
+    base = Path(modules_dir)
+    files = sorted(p for p in base.rglob("*") if p.is_file())
+    rows = [f'  "{p.relative_to(base)} {digest(p)}"' for p in files]
     return "VERIFY_MODULES=(\n" + "\n".join(rows) + "\n)\n"
 
 
@@ -36,7 +38,8 @@ def current_block(entry_text):
 def drift(entry_text, modules_dir):
     """Names of modules whose listed digest is wrong, missing from the manifest, or no longer on disk."""
     listed = dict(re.findall(r'^\s*"([^ "]+) ([0-9a-f]{64})"', current_block(entry_text).group(1), re.M))
-    actual = {p.name: digest(p) for p in Path(modules_dir).glob("*.sh")}
+    base = Path(modules_dir)
+    actual = {str(p.relative_to(base)): digest(p) for p in base.rglob("*") if p.is_file()}
     names = sorted(
         {n for n in listed if listed[n] != actual.get(n)} | {n for n in actual if n not in listed}
     )
