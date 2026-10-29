@@ -111,7 +111,7 @@ VERIFY_MODULES=(
   "checkers/check-parallel-dispatch.py ab5c840412aec78327dc199ebfe497585f57ed06f951152b41959b3469440ad2"
   "checkers/check-runtime-agents.cjs f23021ea00ff50efd383bb29ecb39467a1e0e499c0c6f2d249a292fbb5b7616b"
   "checkers/check-systematic-resolution.cjs 39b81b3ef5aacffa9b45ccde1bb2b3b5afc123bf928975403f8f287190360691"
-  "checkers/oc-probe.sh 054deaca7b3fc8b84c443278fefe9cab9588ad5cbeaffae45ef1eb6926bf2375"
+  "checkers/oc-probe.sh 5b6b7229e2c37ae1e46df96d4609082639a48c9373f99f91133f66781a2f8571"
   "checkers/recover-cli-config.py 5dc9e7af0c465f3ba237ba14c03a7b5b702f0e613445828b617189e56e05295f"
   "checkers/routing-canonical.md 23c0c9ab507e96b04966a4e1e2b5419771859dfd87eef1efb2d3191e52c559e4"
   "checkers/v2-agents-shim.cjs ac216f6f36b7d746807a20b1a588dfe0caa4d932590d776e6e552ecef890bbb5"
@@ -141,6 +141,7 @@ for verify_module_file in "$VERIFY_MODULE_DIR"/*.sh "$VERIFY_MODULE_DIR"/checker
 done
 for verify_module_entry in "${VERIFY_MODULES[@]}"; do
   case "${verify_module_entry%% *}" in
+    checkers/*) ;; # run by the sections (bash "$OC_PROBE" ...), never sourced: sourcing oc-probe.sh would exec a bare opencode (the TUI)
     *.sh)
       # shellcheck source=/dev/null
       source "$VERIFY_MODULE_DIR/${verify_module_entry%% *}" ;;

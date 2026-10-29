@@ -284,5 +284,53 @@ class SecureServiceProbes(unittest.TestCase):
         self.assertGreaterEqual(self.text.count("skipped: OpenCode V2"), 2)
 
 
+class LoaderAndProbeWrapper(unittest.TestCase):
+    """Regression: the loader sourced checkers/oc-probe.sh as if it were a section, and its `exec opencode "$@"` replaced
+    the finished verifier with a bare `opencode` (the TUI)."""
+
+    def run_loader(self, entries, files):
+        entry = (REPO / "verify-workflow.sh").read_text()
+        block = entry[entry.index("# BEGIN VERIFY_LOADER"):entry.index("# END VERIFY_LOADER")]
+        # drop the digest and unlisted-file checks (the fixture has no manifest); keep the sourcing loop
+        loop = block[block.index("for verify_module_entry in \"${VERIFY_MODULES[@]}\"; do\n  case"):]
+        root = Path(tempfile.mkdtemp())
+        for rel, text in files.items():
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_text(text)
+        names = " ".join(f'"{e} x"' for e in entries)
+        script = f'VERIFY_MODULE_DIR="{root}"\nVERIFY_MODULES=({names})\n{loop}\n'
+        subprocess.run([shutil.which("bash"), "-c", script], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        return root
+
+    def test_sections_are_sourced(self):
+        root = self.run_loader(["10-a.sh"], {"10-a.sh": f'touch "{{VERIFY_MODULE_DIR}}/ran-a"\n'.replace("{VERIFY_MODULE_DIR}", "$VERIFY_MODULE_DIR")})
+        self.assertTrue((root / "ran-a").exists())
+
+    def test_checker_scripts_are_never_sourced(self):
+        root = self.run_loader(
+            ["10-a.sh", "checkers/probe.sh"],
+            {"10-a.sh": "true\n", "checkers/probe.sh": 'touch "$VERIFY_MODULE_DIR/ran-checker"\n'},
+        )
+        self.assertFalse((root / "ran-checker").exists())
+
+    def test_the_wrapper_refuses_to_run_without_arguments(self):
+        stub = Stub("1.19.5")
+        try:
+            r = subprocess.run([shutil.which("bash"), str(PROBE)], capture_output=True, text=True, env=stub.env(OC_MAJOR="1"), stdin=subprocess.DEVNULL)
+            self.assertNotEqual(r.returncode, 0)
+            self.assertEqual([c for c in stub.calls() if c.startswith("ARGS:")], [])  # opencode was not started
+        finally:
+            stub.close()
+
+    def test_sourcing_the_wrapper_cannot_replace_the_calling_shell(self):
+        stub = Stub("1.19.5")
+        try:
+            script = f'source "{PROBE}"; echo STILL_HERE'
+            r = subprocess.run([shutil.which("bash"), "-c", script], capture_output=True, text=True, env=stub.env(OC_MAJOR="1"), stdin=subprocess.DEVNULL)
+            self.assertEqual([c for c in stub.calls() if c.startswith("ARGS:")], [])
+        finally:
+            stub.close()
+
+
 if __name__ == "__main__":
     unittest.main()
