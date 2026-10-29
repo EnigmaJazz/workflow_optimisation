@@ -2042,7 +2042,9 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - Tests: stage-table assertions (Q03) run against both entrypoints.
 
 ### Q43. Config for V2 (`global-config/opencode.json`, `tui.json` → `cli.json`)
-- **Status:** PLANNED.
+- **Status:** DONE at source (2026-10-29), not deployed. Source: `global-config/opencode.json`,
+  `global-config/cli.json`, `tests/test_v2_config.py`. Deployment of `cli.json` needs the Q44 verifier
+  mirror; the cutover-time removals below belong to the Q46 change set.
 - **Prerequisites:** Q41, Q40 (plugin list).
 - **Description:**
   - Keep V1-compatible keys while dual-running (V2 normalises them in memory). Move to native
@@ -2056,6 +2058,24 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - Add the static orchestrator rule `{ action: "subagent", resource: "*-astra", effect: "allow" }` to
     the V2 `gentle-orchestrator.permissions`: on V2 the astra plugin creates the `-astra` aliases but a
     plugin cannot amend a config-defined agent's permissions (B1 follow-up, 2026-10-29).
+  - **Done (valid on V1 and V2 at once, verified on isolated V1 1.19.5 and V2 2.2.0):**
+    - `experimental.subagent_depth: 4` next to the top-level `subagent_depth: 4` (V1 ignores the new key and
+      keeps the old; V2 ignores the old and reads the new; the default is 1);
+    - `"*-astra": "allow"` last in `gentle-orchestrator.permission.task` (V2 maps it to the final
+      `subagent` rule; the Astra plugin only creates the aliases);
+    - a canonical `global-config/cli.json` with an empty `plugins` list.
+  - **Decisions:** keep the V1 `plugin` key (V2 normalises it; `plugins` plus the auto-update fork would be
+    rewritten back); keep `compaction.prune` (V2 ignores it with a warning); keep `external_directory`
+    as is (V2 default is allow; `ask` auto-rejects in a non-interactive `run`).
+  - **Cutover caveats (Q46):** (1) install `cli.json` BEFORE the first V2 TUI start: without it V2
+    migrates `tui.json` into `cli.json` and copies the V1-only TUI plugins (statusline 1.3.1,
+    gentle-logo, the auto-update local file, usage-total), which cannot load. (2) `tui.jsonc` is never
+    migrated: the herdr and aft entries living there are re-created with `herdr integration install
+    opencode`; magic-context/aft/systematic TUI parts load with their server plugin. (3) The V2 profile
+    drops the entries V2 cannot load: `opencode-usage-total`, the `file://` auto-update build and the
+    `file://` rate-limit-fallback fork (until ported).
+  - Open: nested subagent chains also need each dispatching agent to keep a `subagent` allow, which
+    `permission.task` already provides; re-check `general`, which V2's built-in default denies.
 
 ### Q44. Verifier V2 mode (`verify-workflow.sh`)
 - **Status:** PLANNED.

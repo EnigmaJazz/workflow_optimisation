@@ -766,7 +766,8 @@
           "planner": "allow",
           "advisor-gemini-pre": "allow",
           "advisor-gemini-post": "allow",
-          "advisor-gemini-evidence": "deny"
+          "advisor-gemini-evidence": "deny",
+          "*-astra": "allow"
         },
         "edit": "deny",
         "write": "deny",
@@ -3542,6 +3543,9 @@
   },
   "share": "disabled",
   "subagent_depth": 4,
+  "experimental": {
+    "subagent_depth": 4
+  },
   "theme": "gentleman-kanagawa",
   "compaction": {
     "auto": false,
