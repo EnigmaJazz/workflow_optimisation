@@ -2008,7 +2008,8 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Status:** BLOCKED. Owner reported 2026-10-29 that the gentle-ai v4 upgrade is complete (`gentle-ai version`
   reports 4.3.1); the Q29/Q39 entries still read PLANNED/RECORDED and need their status lines reconciled.
   Remaining: V2-compatible Systematic (3.27.2 pinned, 3.27.x loads on isolated V2), third-party plugin dispositions
-  (`OPENCODE-V2-PLUGIN-TASKS.md`, 26 open), Q47 sandbox adapter, and the owner's V2 target-version choice.
+  (`OPENCODE-V2-PLUGIN-TASKS.md`; `use-grep-tool` and the rate-limit fork are done), the sandbox adapter (Q47: written at
+  source, awaiting the owner's manual review and install), and the owner's V2 target-version choice.
 - **Prerequisites:**
   - gentle-ai v4 upgrade complete (Q29-Q39), because native review on V2 needs v4.
   - A V2-compatible Systematic release (external).
@@ -2151,7 +2152,13 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - `cli.json` is left in place (V1 ignores it).
 
 ### Q47. Cross-project and out-of-repo plugin work for V2
-- **Status:** PLANNED, external.
+- **Status:** IN PROGRESS at source (2026-10-29), not installed. agent-sandbox-integration (branch
+  `refactor/p0-shared-tool-table`, unpushed) now has V2 adapters for `sandbox-tools`, the routing guard,
+  the reviewer relay, V2 config fragments, a nono profile, launcher, installer/rollback and a gated host
+  fixture, all verified on isolated V2 2.2.0 (details: its `docs/upgrades/opencode-v2.md`). Delivery is
+  manual (S17). Local plugins: `use-grep-tool` and the rate-limit fork are done (Q42); nono, codecast,
+  herdr, auto-update, gentle-logo and `sdd-task-result-artifacts` remain in
+  `~/ai-workspace/OPENCODE-V2-PLUGIN-TASKS.md`.
 - **Prerequisites:** none to file.
 - **Description:**
   - **agent-sandbox-integration owns** `sandbox-tools.ts` (about 40 `tool({...})` definitions →
