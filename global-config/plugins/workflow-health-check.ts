@@ -76,7 +76,6 @@
  *   opencode.json plugin entry is required.
  */
 
-import type { Plugin } from "@opencode-ai/plugin"
 import { execFile } from "child_process"
 import { promisify } from "util"
 
@@ -90,7 +89,7 @@ const VERIFY_TIMEOUT_MS = 300_000
 // Pinned sha256 digest of the reviewed verify-workflow.sh. Keep this assignment
 // on one line: verify-workflow.sh deliberately parses this source line to confirm
 // that the reviewed plugin and verifier are bound to one another.
-const VERIFY_SCRIPT_SHA256 = "8e69a9a5b574890b0d311a7d0e919f83471d137e2951b40a238880c3589a89d4";
+const VERIFY_SCRIPT_SHA256 = "4cbfc1d2a0f6268691ad06c67b93830de36e2bb17d3b9d9e110097722c3ec517";
 
 type HealthState = "clean" | "repaired" | "failed"
 
@@ -190,7 +189,20 @@ async function runHealthCheck(): Promise<void> {
   }
 }
 
-export const WorkflowHealthCheckPlugin: Plugin = async () => {
+// Test-only: lets tests set the cached health result. Honoured only in probe mode, where the
+// startup check never runs, so it cannot affect a real session.
+function testHealthOverride(): HealthResult | undefined {
+  if (process.env.WORKFLOW_HEALTH_CHECK_PROBE !== "1") return undefined
+  const raw = process.env.WORKFLOW_HEALTH_CHECK_TEST_HEALTH
+  if (!raw) return undefined
+  try {
+    return JSON.parse(raw) as HealthResult
+  } catch {
+    return undefined
+  }
+}
+
+function startHealthCheckOnce(): void {
   // Critical recursion guard for verify-workflow.sh's nested
   // `opencode debug config` runtime-resolution probe. The child process must
   // still load the rest of the normal OpenCode/plugin stack so Systematic's
@@ -211,43 +223,75 @@ export const WorkflowHealthCheckPlugin: Plugin = async () => {
       console.error("[workflow-health-check] unexpected error:", err)
     })
   }
+}
 
+// The notice injected into the system prompt, or undefined when nothing needs attention.
+// One text for both hosts: the V1 hook pushes a string, the V2 hook pushes a text part.
+function healthNotice(): string | undefined {
+  const current = testHealthOverride() ?? health
+  if (!current || current.state === "clean") return undefined
+
+  if (current.state === "repaired") {
+    return [
+      "## Workflow health check SELF-REPAIRED",
+      "The global Gentle AI + Systematic workflow verifier repaired one or more user-owned workflow artifacts during this OpenCode process. The verifier now passes, but this process may still have pre-repair plugin, skill, or routing state loaded in memory.",
+      "Tell the user that the workflow self-repaired and recommend restarting OpenCode before relying on the repaired setup. Do not rerun or modify the workflow automatically unless the user asks.",
+      "Verifier tail:",
+      "```",
+      current.tail,
+      "```",
+    ].join("\n")
+  }
+
+  return [
+    "## Workflow health check FAILED",
+    "The global Gentle AI + Systematic workflow setup has a problem that the startup verifier could not fully repair or validate.",
+    `Run \`bash ${VERIFY_SCRIPT}\` and offer the user the result. If RDD is off, re-enable it with \`gentle-ai review mode enable --scope global\`. Do not claim the workflow is healthy until the verifier exits successfully.`,
+    "Verifier tail:",
+    "```",
+    current.tail,
+    "```",
+  ].join("\n")
+}
+
+// OpenCode V1 entry (>= 1.18.29 reads `server` from an object default export).
+async function serverV1() {
+  startHealthCheckOnce()
   return {
     "experimental.chat.system.transform": async (
       _input: unknown,
       output: { system?: string[] },
     ) => {
-      if (!health || health.state === "clean") return
-      if (!Array.isArray(output.system)) return
-
-      if (health.state === "repaired") {
-        output.system.push(
-          [
-            "## Workflow health check SELF-REPAIRED",
-            "The global Gentle AI + Systematic workflow verifier repaired one or more user-owned workflow artifacts during this OpenCode process. The verifier now passes, but this process may still have pre-repair plugin, skill, or routing state loaded in memory.",
-            "Tell the user that the workflow self-repaired and recommend restarting OpenCode before relying on the repaired setup. Do not rerun or modify the workflow automatically unless the user asks.",
-            "Verifier tail:",
-            "```",
-            health.tail,
-            "```",
-          ].join("\n"),
-        )
-        return
-      }
-
-      output.system.push(
-        [
-          "## Workflow health check FAILED",
-          "The global Gentle AI + Systematic workflow setup has a problem that the startup verifier could not fully repair or validate.",
-          `Run \`bash ${VERIFY_SCRIPT}\` and offer the user the result. If RDD is off, re-enable it with \`gentle-ai review mode enable --scope global\`. Do not claim the workflow is healthy until the verifier exits successfully.`,
-          "Verifier tail:",
-          "```",
-          health.tail,
-          "```",
-        ].join("\n"),
-      )
+      const notice = healthNotice()
+      if (!notice || !Array.isArray(output.system)) return
+      output.system.push(notice)
     },
   }
 }
 
-export default WorkflowHealthCheckPlugin
+// OpenCode V2 entry: the context hook edits the request's system parts.
+async function setupV2(ctx: {
+  session: {
+    hook: (
+      name: "context",
+      callback: (event: { system: Array<{ type: "text"; text: string }> }) => void,
+    ) => Promise<{ dispose: () => Promise<void> | void }>
+  }
+}) {
+  startHealthCheckOnce()
+  const registration = await ctx.session.hook("context", (event) => {
+    const notice = healthNotice()
+    if (notice) event.system.push({ type: "text", text: notice })
+  })
+  return async () => {
+    await registration.dispose()
+  }
+}
+
+// Dual-mode default export (the shape proven on V2 2.2.0 by the B1 probe). Do not add named
+// function exports: OpenCode V1 would treat each one as a second plugin.
+export default {
+  id: "workflow-health-check",
+  setup: setupV2,
+  server: serverV1,
+}
