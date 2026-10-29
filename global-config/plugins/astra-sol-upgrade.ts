@@ -8,8 +8,6 @@
  * plugin-owned agent definitions.
  */
 
-import type { Plugin } from "@opencode-ai/plugin"
-
 const SOL_MODEL = "openai/gpt-6.1-sol"
 const ASTRA_MODEL = "openai/gpt-6-astra"
 const ASTRA_VARIANT = "xhigh"
@@ -30,7 +28,8 @@ function normalizeModel(value: unknown): string | undefined {
 
   const model = value as Record<string, unknown>
   const providerID = model.providerID ?? model.providerId
-  const modelID = model.modelID ?? model.modelId
+  // V1 spells it modelID; the V2 agent model is { providerID, id, variant? }.
+  const modelID = model.modelID ?? model.modelId ?? model.id
   return typeof providerID === "string" && typeof modelID === "string"
     ? `${providerID}/${modelID}`
     : undefined
@@ -65,40 +64,121 @@ function taskPermission(agent: AgentConfig): Record<string, unknown> {
   return task as Record<string, unknown>
 }
 
-export const AstraSolUpgradePlugin: Plugin = async () => ({
-  config: async (config) => {
-    const agents = config.agent as Record<string, AgentConfig> | undefined
-    if (!agents) return
+// The V1 config hook: mutates the plain agent record (agent.* and permission.task).
+async function serverV1() {
+  return {
+    config: async (config: { agent?: unknown }) => {
+      const agents = config.agent as Record<string, AgentConfig> | undefined
+      if (!agents) return
+      addAliasesV1(agents)
+    },
+  }
+}
 
-    const orchestrator = agents["gentle-orchestrator"]
-    if (!orchestrator) {
-      throw new Error("astra-sol-upgrade: gentle-orchestrator is missing")
+function addAliasesV1(agents: Record<string, AgentConfig>): void {
+  const orchestrator = agents["gentle-orchestrator"]
+  if (!orchestrator) {
+    throw new Error("astra-sol-upgrade: gentle-orchestrator is missing")
+  }
+  const orchestratorTasks = taskPermission(orchestrator)
+
+  const solAgents = Object.entries(agents).filter(
+    ([name, agent]) =>
+      !name.endsWith(ASTRA_SUFFIX) &&
+      agent.mode !== "primary" &&
+      normalizeModel(agent.model) === SOL_MODEL &&
+      !isImplementationRoute(name) &&
+      !isReviewActor(name),
+  )
+
+  for (const [name, agent] of solAgents) {
+    const alias = `${name}${ASTRA_SUFFIX}`
+    if (Object.prototype.hasOwnProperty.call(agents, alias)) {
+      throw new Error(`astra-sol-upgrade: refusing to overwrite agent ${alias}`)
     }
-    const orchestratorTasks = taskPermission(orchestrator)
 
-    const solAgents = Object.entries(agents).filter(
-      ([name, agent]) =>
-        !name.endsWith(ASTRA_SUFFIX) &&
-        agent.mode !== "primary" &&
-        normalizeModel(agent.model) === SOL_MODEL &&
-        !isImplementationRoute(name) &&
-        !isReviewActor(name),
-    )
+    agents[alias] = {
+      ...agent,
+      description: `${agent.description ?? name} — selectable Astra upgrade`,
+      hidden: true,
+      model: ASTRA_MODEL,
+      variant: ASTRA_VARIANT,
+    }
+    orchestratorTasks[alias] = "allow"
+  }
+}
 
-    for (const [name, agent] of solAgents) {
-      const alias = `${name}${ASTRA_SUFFIX}`
-      if (Object.prototype.hasOwnProperty.call(agents, alias)) {
-        throw new Error(`astra-sol-upgrade: refusing to overwrite agent ${alias}`)
-      }
+// V2 agent shape (B1 probe, OpenCode 2.2.0): { id, name, model?: { providerID, id, variant? },
+// mode, hidden, description?, permissions: [{ action, resource, effect }] } with ordered rules.
+type AgentV2 = {
+  id: string
+  name?: string
+  mode?: string
+  hidden?: boolean
+  description?: string
+  model?: unknown
+  permissions: Array<{ action: string; resource: string; effect: string }>
+  [key: string]: unknown
+}
 
-      agents[alias] = {
-        ...agent,
-        description: `${agent.description ?? name} — selectable Astra upgrade`,
+type AgentEditorV2 = {
+  list: () => readonly AgentV2[]
+  update: (id: string, update: (agent: AgentV2) => void) => void
+}
+
+function addAliasesV2(editor: AgentEditorV2): void {
+  const agents = editor.list()
+  const orchestrator = agents.find((agent) => agent.id === "gentle-orchestrator")
+  if (!orchestrator) {
+    throw new Error("astra-sol-upgrade: gentle-orchestrator is missing")
+  }
+  const existing = new Set(agents.map((agent) => agent.id))
+  const [astraProvider, ...astraModelParts] = ASTRA_MODEL.split("/")
+
+  const solAgents = agents.filter(
+    (agent) =>
+      !agent.id.endsWith(ASTRA_SUFFIX) &&
+      agent.mode !== "primary" &&
+      normalizeModel(agent.model) === SOL_MODEL &&
+      !isImplementationRoute(agent.id) &&
+      !isReviewActor(agent.id),
+  )
+
+  for (const source of solAgents) {
+    const alias = `${source.id}${ASTRA_SUFFIX}`
+    if (existing.has(alias)) {
+      throw new Error(`astra-sol-upgrade: refusing to overwrite agent ${alias}`)
+    }
+    const copy = JSON.parse(JSON.stringify(source)) as AgentV2
+    editor.update(alias, (target) => {
+      Object.assign(target, copy, {
+        id: alias,
+        name: `${source.name ?? source.id} (Astra)`,
+        description: `${source.description ?? source.id} — selectable Astra upgrade`,
         hidden: true,
-        model: ASTRA_MODEL,
-        variant: ASTRA_VARIANT,
-      }
-      orchestratorTasks[alias] = "allow"
-    }
-  },
-})
+        model: { providerID: astraProvider, id: astraModelParts.join("/"), variant: ASTRA_VARIANT },
+      })
+    })
+    // Rules are ordered and the last match wins, so the allow goes at the end.
+    editor.update("gentle-orchestrator", (target) => {
+      target.permissions.push({ action: "subagent", resource: alias, effect: "allow" })
+    })
+  }
+}
+
+async function setupV2(ctx: {
+  agent: { transform: (callback: (editor: AgentEditorV2) => void) => Promise<{ dispose: () => Promise<void> | void }> }
+}) {
+  const registration = await ctx.agent.transform(addAliasesV2)
+  return async () => {
+    await registration.dispose()
+  }
+}
+
+// Dual-mode default export (the shape proven on V2 2.2.0 by the B1 probe). Do not add named
+// function exports: OpenCode V1 would treat each one as a second plugin.
+export default {
+  id: "astra-sol-upgrade",
+  setup: setupV2,
+  server: serverV1,
+}
