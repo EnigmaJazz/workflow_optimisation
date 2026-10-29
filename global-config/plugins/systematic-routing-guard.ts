@@ -955,7 +955,17 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
      * A new user message starts a new routing turn. State is kept per session,
      * so subagent sessions cannot clear or contaminate their parent's state.
      */
-    async message(sessionID: string, agent: unknown): Promise<void> {
+    /** A new user prompt starts a new routing turn (per-session in-memory activation resets). */
+    newTurn(sessionID: string): void {
+      activeBySession.delete(sessionID)
+      lastKeyRefreshBySession.delete(sessionID)
+    },
+
+    /**
+     * Record the agent observed for a session. V1 gets it from chat.message; V2 supplies it on every
+     * tool hook. It is the latest value the host reported, not an authenticated identity.
+     */
+    async observeAgent(sessionID: string, agent: unknown): Promise<void> {
       if (observeAgentHooks) {
         const observedAgent = typeof agent === "string" && agent.length > 0
           ? encodeObservationField(agent)
@@ -964,12 +974,16 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
           `[systematic-routing-guard] TEMP agent-hook hook=chat.message session=${encodeObservationField(sessionID)} agent=${observedAgent} child=${childSessions.has(sessionID)}`,
         )
       }
-      activeBySession.delete(sessionID)
-      lastKeyRefreshBySession.delete(sessionID)
       // The guard observes the message agent here; it is the latest observed value, not an
       // authenticated session identity. A matching candidate consumes the tiny-fix permit.
       matchTinyFixCandidate(sessionID, agent)
       await boxed(persistLatestMessageAgent(sessionID, agent))
+    },
+
+    /** V1 chat.message: a new turn, then the agent observation. */
+    async message(sessionID: string, agent: unknown): Promise<void> {
+      this.newTurn(sessionID)
+      await this.observeAgent(sessionID, agent)
     },
 
     async beforeTool(sessionID: string, tool: string, args: Record<string, unknown> | undefined): Promise<void> {
@@ -1209,7 +1223,7 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
       if (tool === "task") {
         try {
           const result = typeof output === "string" ? output : JSON.stringify(output ?? "")
-          const childSessionID = result.match(/id="(ses_[A-Za-z0-9]+)"/)?.[1]
+          const childSessionID = result.match(/\b(?:sessionID|id)="(ses_[A-Za-z0-9]+)"/)?.[1]
           if (!childSessionID || childSessionID === sessionID) return
           const directory = routingKeySessionDirectory(childSessionID)
           if (!directory) return
@@ -1318,7 +1332,7 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
 }
 
 /** OpenCode V1 adapter: maps the V1 hook payloads onto the core. */
-export const SystematicRoutingGuardPlugin: Plugin = async () => {
+const serverV1: Plugin = async () => {
   const core = await createGuardCore()
   return {
     event: async ({ event }) => {
@@ -1342,5 +1356,112 @@ export const SystematicRoutingGuardPlugin: Plugin = async () => {
   }
 }
 
-export default SystematicRoutingGuardPlugin
+type RegistrationV2 = { dispose: () => Promise<void> | void }
+
+type GuardCtxV2 = {
+  session: {
+    hook: (name: "prompt", callback: (event: { sessionID: string }) => void) => Promise<RegistrationV2>
+    get: (input: { sessionID: string }) => Promise<{ parentID?: unknown } | undefined>
+  }
+  tool: {
+    hook: (name: "execute.before" | "execute.after", callback: (event: any) => unknown) => Promise<RegistrationV2>
+  }
+  event: { subscribe: () => AsyncIterable<{ type: string; data?: { sessionID?: unknown } }> }
+}
+
+// V2 spells the Task tool `subagent` (input { agent, description, prompt, ... }); the core's gates
+// are written against the V1 name and args, so the adapter translates in both directions.
+function resultTextV2(result: unknown): string {
+  if (typeof result === "string") return result
+  const content = (result as { content?: unknown } | undefined)?.content
+  if (typeof content === "string") return content
+  if (Array.isArray(content)) {
+    const text = content
+      .map((part) => (part && typeof part === "object" && typeof (part as { text?: unknown }).text === "string" ? (part as { text: string }).text : ""))
+      .filter(Boolean)
+      .join("\n")
+    if (text) return text
+  }
+  return result === undefined ? "" : JSON.stringify(result)
+}
+
+// OpenCode V2 adapter (shapes proven on 2.2.0 by the B1 probe). Not available on V2: the V1
+// command.execute.before hook has no global equivalent, so slash-command activation is not
+// replayed; skill loads still activate workflows through the skill tool hook.
+async function setupV2(ctx: GuardCtxV2) {
+  const core = await createGuardCore()
+  const registrations: RegistrationV2[] = []
+
+  registrations.push(await ctx.session.hook("prompt", (event) => core.newTurn(event.sessionID)))
+
+  registrations.push(await ctx.tool.hook("execute.before", async (event) => {
+    await core.observeAgent(event.sessionID, event.agent)
+    const input = (event.input && typeof event.input === "object" ? event.input : undefined) as Record<string, unknown> | undefined
+    if (event.tool === "subagent" && input) {
+      // `model` is a real V2 argument, so it is not stripped (only the V1 task schema lacked it).
+      const { model: _model, ...rest } = input
+      const args: Record<string, unknown> = { ...rest, subagent_type: input.agent }
+      await core.beforeTool(event.sessionID, "task", args)
+      if (typeof args.subagent_type === "string") input.agent = args.subagent_type
+      return
+    }
+    await core.beforeTool(event.sessionID, event.tool, input)
+  }))
+
+  registrations.push(await ctx.tool.hook("execute.after", async (event) => {
+    if (event.status !== "completed") return
+    const input = (event.input && typeof event.input === "object" ? event.input : undefined) as Record<string, unknown> | undefined
+    let text = resultTextV2(event.result)
+    let tool: string = event.tool
+    let args = input
+    if (event.tool === "subagent") {
+      tool = "task"
+      const childSessionID = (event.result as { metadata?: { sessionID?: unknown } } | undefined)?.metadata?.sessionID
+      if (typeof childSessionID === "string" && !text.includes(childSessionID)) text += `\nsessionID="${childSessionID}"`
+    } else if (event.tool === "skill") {
+      args = { name: input?.id }
+    }
+    await core.afterTool(event.sessionID, tool, args, text)
+  }))
+
+  // session.created carries only the session id; the parent link comes from the session itself.
+  let stopped = false
+  const iterator = ctx.event.subscribe()[Symbol.asyncIterator]()
+  const loop = (async () => {
+    try {
+      for (let step = await iterator.next(); !step.done && !stopped; step = await iterator.next()) {
+        const sessionID = step.value.data?.sessionID
+        if (typeof sessionID !== "string") continue
+        if (step.value.type === "session.created") {
+          let parentID: unknown
+          try {
+            parentID = (await ctx.session.get({ sessionID }))?.parentID
+          } catch {
+            // An unreadable session is treated as a root session.
+          }
+          core.sessionCreated({ id: sessionID, parentID })
+        } else if (step.value.type === "session.deleted") {
+          core.sessionDeleted({ id: sessionID })
+        }
+      }
+    } catch (error) {
+      console.warn("[systematic-routing-guard] V2 event stream stopped:", error)
+    }
+  })()
+
+  return async () => {
+    stopped = true
+    await iterator.return?.()
+    for (const registration of registrations) await registration.dispose()
+    await loop
+  }
+}
+
+// Dual-mode default export (the shape proven on V2 2.2.0 by the B1 probe). Do not add named
+// function exports: OpenCode V1 would treat each one as a second plugin.
+export default {
+  id: "systematic-routing-guard",
+  setup: setupV2,
+  server: serverV1,
+}
 void logObservedLine("[systematic-routing-guard] module evaluated").catch(() => undefined)
