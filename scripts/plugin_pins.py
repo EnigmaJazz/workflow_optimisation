@@ -7,8 +7,8 @@ verifier then mirrors the reviewed source as usual. Only entries named on the co
 changed, and only when the proposal verdict is "propose" and the source still holds the
 proposal's `current` pin.
 
-  plugin_pins.py report
-  plugin_pins.py apply --approve NAME[=VERSION] [--approve ...] [--dry-run]
+  python3 scripts/plugin_pins.py report
+  python3 scripts/plugin_pins.py apply --approve NAME[=VERSION] [--approve ...] [--dry-run]
 """
 import argparse
 import json
