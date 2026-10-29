@@ -2102,9 +2102,12 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   `debug agents` shim `checkers/v2-agents-shim.cjs` (`a65019d`, hardened `fc78a41`); `cli.json` mirror
   `checkers/recover-cli-config.py` plus prune and approval coverage (`737122c`); `shell`/`subagent` in the behavioural
   parsers and 9a/9b skipped on V2 (`2428555`). Native review approved for `2ffb9ac`, `a65019d`, `737122c`, `2428555`;
-  `fc78a41` was not reviewed. **Still open:** (1) empty/retired auto-update ref in V2 mode (needs the Q46 decision to
-  drop the fork from the managed plugin list; the ref is woven through both recovery heredocs in
-  `verify/30-recover-config.sh`); (2) V2 package cache layout `npm/<spec>/<epoch-ms>/` for sections 2, 2b, 2c, 6
+  `fc78a41` was not reviewed. **Still open:** (1) retired auto-update ref in V2 mode. DECIDED 2026-10-29: the fork is
+  retired on V2 and updates are automatic and guarded instead (`scripts/v2-plugin-autoupdate.py`, `~x.y.z` patch ranges,
+  `plugin update`, restart, load gate, pin-back rollback; unit templates in `docs/systemd/`; verified on isolated V2
+  2.2.2). The verifier's V2 mode must therefore drop the fork's `file://…/dist/index.js` requirement and accept `~`
+  ranges; the ref is woven through both recovery heredocs in `verify/30-recover-config.sh`. Also open: the V2 config
+  root (`~/.local/share/opencode-v2/config/opencode`) is not mirrored from `global-config/` by anything yet (Q46); (2) V2 package cache layout `npm/<spec>/<epoch-ms>/` for sections 2, 2b, 2c, 6
   (observed only in isolation); (3) a V2 replacement for the 9b GitHub MCP check; (4) the V2 `run --format json` event
   shape is unobserved, so the section 10 parser changes are unproven (needs `--behavioral` on V2); (5) V2 exposes no
   per-agent `tools` map, so the shim emits `tools: {}`; section 9 tool checks need a real V2 run.
