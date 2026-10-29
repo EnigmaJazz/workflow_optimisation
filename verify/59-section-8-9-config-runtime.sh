@@ -43,8 +43,11 @@ else
     if [ "${OC_MAJOR:-0}" = "2" ]; then
       # V2 has no `agent list` or `debug agent <name>`: one `debug agents` call, rewritten into the V1 shapes.
       V2_AGENTS_RAW="$TMP_DIR/opencode-v2-debug-agents.json"
-      timeout 45s bash "$OC_PROBE" debug agents >"$V2_AGENTS_RAW" 2>"$AGENT_LIST_STDERR" &&
-        "${JS_RUNTIME:-node}" "$VERIFY_MODULE_DIR/checkers/v2-agents-shim.cjs" "$AGENT_LIST_OUT" "$DEBUG_AGENT_DIR" <"$V2_AGENTS_RAW" 2>>"$AGENT_LIST_STDERR"
+      if ! timeout 45s bash "$OC_PROBE" debug agents >"$V2_AGENTS_RAW" 2>"$AGENT_LIST_STDERR"; then
+        echo "v2-agents-shim: \`debug agents\` exited non-zero" >>"$AGENT_LIST_STDERR"
+        exit 1
+      fi
+      "${JS_RUNTIME:-node}" "$VERIFY_MODULE_DIR/checkers/v2-agents-shim.cjs" "$AGENT_LIST_OUT" "$DEBUG_AGENT_DIR" <"$V2_AGENTS_RAW" 2>>"$AGENT_LIST_STDERR"
     else
       timeout 45s bash "$OC_PROBE" agent list >"$AGENT_LIST_OUT" 2>"$AGENT_LIST_STDERR"
     fi
@@ -143,7 +146,10 @@ else
     PROBE_FAILURE=0
     for name in "${UNIQUE_PROBES[@]}"; do
       status=$(cat "$DEBUG_AGENT_DIR/$name.status" 2>/dev/null || printf 'missing')
-      if [ "$status" != "0" ]; then
+      if [ "$status" = "missing" ] && [ "${OC_MAJOR:-0}" = "2" ]; then
+        echo "   !! agent $name is not registered by OpenCode V2 (absent from \`debug agents\`)"
+        PROBE_FAILURE=1
+      elif [ "$status" != "0" ]; then
         echo "   !! opencode debug agent $name failed (status $status)"
         tail -8 "$DEBUG_AGENT_DIR/$name.stderr" 2>/dev/null | sed 's/^/      /'
         PROBE_FAILURE=1

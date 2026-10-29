@@ -195,6 +195,34 @@ class AgentsShim(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertFalse(listing.exists())
 
+    def test_unsafe_agent_ids_are_rejected_before_anything_is_written(self):
+        for bad in ("../escape", "a/b", "", ".hidden", "x y"):
+            with self.subTest(bad=bad):
+                agents = [V2_AGENTS[0], {**V2_AGENTS[1], "id": bad}]
+                r, listing, debug_dir = run_shim(agents)
+                self.assertNotEqual(r.returncode, 0)
+                self.assertIn("unsafe agent id", r.stderr)
+                self.assertNotIn("Error:", r.stderr.split("unsafe agent id")[0])  # clear message, not a stack trace
+                self.assertFalse(listing.exists())
+                self.assertFalse(debug_dir.exists())
+
+    def test_duplicate_ids_are_rejected(self):
+        r, listing, _ = run_shim([V2_AGENTS[0], V2_AGENTS[0]])
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("duplicate agent id", r.stderr)
+        self.assertFalse(listing.exists())
+
+    def test_a_write_failure_is_a_clear_message_not_a_stack_trace(self):
+        import json
+        out = Path(tempfile.mkdtemp())
+        blocker = out / "debug"
+        blocker.write_text("a file where the directory should go")
+        r = subprocess.run(["node", str(SHIM), str(out / "list.txt"), str(blocker)],
+                           input=json.dumps(V2_AGENTS), capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("v2-agents-shim: cannot write", r.stderr)
+        self.assertNotIn("    at ", r.stderr)
+
 
 class AgentsShimWiring(unittest.TestCase):
     text = (MODULES / "59-section-8-9-config-runtime.sh").read_text()
@@ -202,6 +230,12 @@ class AgentsShimWiring(unittest.TestCase):
     def test_v2_branch_uses_debug_agents_and_the_shim(self):
         self.assertIn('debug agents', self.text)
         self.assertIn("v2-agents-shim.cjs", self.text)
+
+    def test_a_probe_name_v2_does_not_register_gets_a_clear_message(self):
+        self.assertIn("is not registered by OpenCode V2", self.text)
+
+    def test_the_two_shim_steps_report_which_one_failed(self):
+        self.assertIn("exited non-zero", self.text)
 
     def test_v1_branch_still_calls_agent_list(self):
         self.assertIn('"$OC_PROBE" agent list', self.text)

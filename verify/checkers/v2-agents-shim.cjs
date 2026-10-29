@@ -64,14 +64,35 @@ if (!agents) {
   process.exit(1)
 }
 
-fs.mkdirSync(debugDir, { recursive: true })
-const lines = []
+// The id becomes a filename, so validate every id (and uniqueness) before writing anything.
+const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
+const seen = new Set()
 for (const agent of agents) {
-  const v1 = toV1(agent)
-  fs.writeFileSync(path.join(debugDir, `${v1.name}.json`), JSON.stringify(v1, null, 2) + "\n")
-  fs.writeFileSync(path.join(debugDir, `${v1.name}.status`), "0\n")
-  fs.writeFileSync(path.join(debugDir, `${v1.name}.stderr`), "")
-  lines.push(`${v1.name} (${v1.mode})`)
+  if (!SAFE_ID.test(agent.id)) {
+    console.error(`v2-agents-shim: unsafe agent id ${JSON.stringify(agent.id)}`)
+    process.exit(1)
+  }
+  if (seen.has(agent.id)) {
+    console.error(`v2-agents-shim: duplicate agent id ${JSON.stringify(agent.id)}`)
+    process.exit(1)
+  }
+  seen.add(agent.id)
 }
-fs.mkdirSync(path.dirname(listFile), { recursive: true })
-fs.writeFileSync(listFile, lines.join("\n") + "\n")
+
+try {
+  fs.mkdirSync(debugDir, { recursive: true })
+  const lines = []
+  for (const agent of agents) {
+    const v1 = toV1(agent)
+    fs.writeFileSync(path.join(debugDir, `${v1.name}.json`), JSON.stringify(v1, null, 2) + "\n")
+    fs.writeFileSync(path.join(debugDir, `${v1.name}.status`), "0\n")
+    fs.writeFileSync(path.join(debugDir, `${v1.name}.stderr`), "")
+    lines.push(`${v1.name} (${v1.mode})`)
+  }
+  fs.mkdirSync(path.dirname(listFile), { recursive: true })
+  // The listing is written last: its absence means the run did not complete.
+  fs.writeFileSync(listFile, lines.join("\n") + "\n")
+} catch (err) {
+  console.error(`v2-agents-shim: cannot write the agent files: ${err.message}`)
+  process.exit(1)
+}
