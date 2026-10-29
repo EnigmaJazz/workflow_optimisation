@@ -2137,7 +2137,15 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - Update the routing-guard and plugin-order notes for the refusal-skips-later-hooks limitation.
 
 ### Q46. OpenCode V2 change set and runbook (non-destructive, reversible)
-- **Status:** PLANNED.
+- **Status:** PARTIAL (2026-10-29). The V2 config source is written: `scripts/derive-v2-config.py` derives the V2 config
+  root from `global-config/` (plugin list to `plugins` with `~x.y.z` ranges, the rate-limit fork as a directory entry under
+  `vendor/`, auto-update and `opencode-usage-total` dropped, file references resolved, the repo's dual-mode plugins and
+  prompts/skills copied, permissions left as V1 and checked for explicit rules). Dry-run by default; `--target ... --apply`
+  backs up differing files and never deletes; V1 roots refused. Verified on isolated V2 2.2.2 (99 agents, 7 plugins loaded).
+  Still open: the changeset-tool profile (`upgrade/opencode-v2/`) and runbook wrapper, the V2 verifier mode (Q44), and the
+  gaps the script reports: `host_review_start` is `allow` for gentle-orchestrator (V2 will not prompt), the `vision-bridge`
+  MCP path is under the V1 root (the V2 nono profile does not grant it), and 3 prompt files exist only in the live V1 root.
+  Owner confirmation needed: dropping `opencode-usage-total` on V2.
 - **Prerequisites:** Q36 tool (reuse it with an `upgrade/opencode-v2/` profile); Q40-Q45.
 - **Description.** The same declarative operations, `expect_before`, write-ahead journal and
   drift-preserving revert as Q36.
