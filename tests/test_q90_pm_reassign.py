@@ -12,6 +12,10 @@ import shutil
 import subprocess
 import unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "verify-workflow.sh"
@@ -49,7 +53,7 @@ def function(text, name):
 
 
 def pm_block(text=None):
-    text = SCRIPT.read_text(encoding="utf-8") if text is None else text
+    text = verifier_text() if text is None else text
     start, end = text.find(BEGIN), text.find(END)
     if start < 0 or end < start:
         raise AssertionError("pm-seat-policy block not found in verify-workflow.sh")
@@ -68,7 +72,7 @@ def run_js(program, stdin=""):
 
 
 def seat_failures(agents):
-    script = SCRIPT.read_text(encoding="utf-8")
+    script = verifier_text()
     program = ("const show=(value)=>JSON.stringify(value);"
                + function(script, "normalizeModel") + "\n"
                + function(script, "modelFamily") + "\n" + pm_block(script)
@@ -78,7 +82,7 @@ def seat_failures(agents):
 
 
 def resolve(fallback, model, agent):
-    script = SCRIPT.read_text(encoding="utf-8")
+    script = verifier_text()
     start, end = script.find("function modelString(value)"), script.find("function addRole(")
     if start < 0 or end <= start:
         raise AssertionError("fallback resolver block not found in verify-workflow.sh")
@@ -130,7 +134,7 @@ class PmSeatGate(unittest.TestCase):
                     f'PM_SEAT_VARIANT_MISMATCH: {name}="high"'])
 
     def test_production_verifier_calls_the_pm_seat_gate(self):
-        script = SCRIPT.read_text(encoding="utf-8")
+        script = verifier_text()
         self.assertIn("function pmSeatFailures(agents)", pm_block(script))
         self.assertIn("for (const failure of pmSeatFailures(deployedAgents)) fail(failure)",
                       script)

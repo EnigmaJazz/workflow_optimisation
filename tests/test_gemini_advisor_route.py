@@ -25,6 +25,10 @@ import shutil
 import subprocess
 import unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 REPO = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO / "global-config" / "opencode.json"
@@ -207,7 +211,7 @@ def production_declarations(text):
 
 def run_verifier_block(agents, fallback):
     """Execute the extracted verifier block; return its failure list."""
-    text = SCRIPT.read_text(encoding="utf-8")
+    text = verifier_text()
     block = extract_block(text)
     if block is None:
         raise AssertionError("gemini-advisor-route block not found in verify-workflow.sh")

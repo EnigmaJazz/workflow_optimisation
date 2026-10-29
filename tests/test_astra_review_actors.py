@@ -22,6 +22,10 @@ ACTORS = [f"{prefix}review-{role}" for prefix in ("", "asi-")
 
 RUNNER = """
 import plugin from %s
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 const names = JSON.parse(process.argv[1])
 const agents = { "gentle-orchestrator": { mode: "primary", model: "x/y", permission: { task: {} } },
   "planner": { mode: "subagent", model: "%s" } }
@@ -48,7 +52,7 @@ class AstraReviewActors(unittest.TestCase):
     def test_verifier_uses_the_same_exclusion(self):
         pattern = r"(asi-)?review-(risk|resilience|readability|reliability|refuter|validator)"
         self.assertIn(pattern, PLUGIN.read_text(encoding="utf-8"))
-        self.assertIn(pattern, VERIFIER.read_text(encoding="utf-8"))
+        self.assertIn(pattern, verifier_text())
 
 
 if __name__ == "__main__":

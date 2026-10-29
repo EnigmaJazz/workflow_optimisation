@@ -14,6 +14,10 @@ Run: python3 -m unittest tests/test_anchor_manifest.py -v
 import re
 import unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "verify-workflow.sh"
@@ -143,7 +147,7 @@ def validate_manifest_keystones(body):
 class RealTables(unittest.TestCase):
     def setUp(self):
         self.assertTrue(SCRIPT.is_file(), f"{SCRIPT} missing")
-        self.text = SCRIPT.read_text(encoding="utf-8")
+        self.text = verifier_text()
 
     def test_manifest_keystones_are_not_self_referential(self):
         body = table_body(self.text, "ANCHOR_MANIFEST")

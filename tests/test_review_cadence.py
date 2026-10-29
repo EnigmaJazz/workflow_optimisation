@@ -7,6 +7,10 @@ owning anchor block. They cannot prove the orchestrator acts on the rule.
 import re
 import unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "verify-workflow.sh"
@@ -75,7 +79,7 @@ def cadence_errors(contents, tokens):
 
 class ReviewCadence(unittest.TestCase):
     def test_keystone_literals_are_pinned_in_each_owning_anchor(self):
-        script = SCRIPT.read_text(encoding="utf-8")
+        script = verifier_text()
         body = table_body(script)
         self.assertIsNotNone(body, "ANCHOR_TOKENS table not found")
         tokens = cadence_rows(body)
@@ -85,7 +89,7 @@ class ReviewCadence(unittest.TestCase):
 
 class PositiveControl(unittest.TestCase):
     def test_reworded_away_rule_is_rejected(self):
-        script = SCRIPT.read_text(encoding="utf-8")
+        script = verifier_text()
         tokens = cadence_rows(table_body(script))
         contents = {
             file_field: path.read_text(encoding="utf-8")
