@@ -33,3 +33,9 @@ the advisory role.
   the deployed plugin is still the OLD apply-mode build. The new build is not deployed.
 - Known gap: an unpinned entry is reported `hold/unpinned` and its peer compatibility is not
   shown (the statusline 2.1.0 V2-only case). Follow-up inside T3.
+- L3 (2026-10-29): review outcome. Assessment on `11d7aeb..8ed94f2` was high (executable_mode,
+  process_boundary on `scripts/plugin_pins.py`). OpenCode relay refused the five-commit candidate
+  (`opencode_review_transport_binding_invalid`; local relay defect, not filed upstream). OpenCode
+  read-only inspection (not a review verdict) found F1 false positive (shebang), F2-F6 hardening;
+  fixed in `d8a0024`. Re-assessment at `d8a0024`: medium, 470 lines, `review_due: false`,
+  under budget. Owner decision: no native receipt for this slice.
