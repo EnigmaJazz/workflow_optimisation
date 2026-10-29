@@ -29,6 +29,9 @@ deploys and self-heals all of it. Changes here take effect in every project on t
 HOME="$(mktemp -d)" bun test tests/routing-guard
 HOME="$(mktemp -d)" bun test tests/routing-guard -t "<test name pattern>"
 
+# use-grep-tool plugin tests (load the user-owned files under ~/.config/opencode/plugins; they fail if absent)
+bun test tests/use-grep-tool
+
 # Python tests (change-set tool, plugin cache integrity)
 python3 -m unittest discover -s tests
 python3 -m unittest tests/test_changeset.py -v

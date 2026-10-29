@@ -2041,7 +2041,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   (forced 429 recovers on the fallback model; next turn restores the original) on branch `feat/v2-adapter`
   (`8bc84e9`) of `~/.config/opencode/plugins/opencode-rate-limit-fallback-mapped`; NOT merged or live (the live
   checkout is on `feat/fallback-resilience`). Gaps vs V1: no replay, stall/loop/empty-stop detection, subagent
-  result hold or per-turn capability inference. The verifier reads only the fork's `src/config.ts` (`FALLBACK_EXCLUSION_SOURCE`) and the `plugin` entry path, and the branch leaves `config.ts` unchanged, so no verifier change is expected; re-run it after merging. The merge drops the named `RateLimitFallbackPlugin` export from `index.ts` (default `{id,setup,server}` only). `use-grep-tool.ts` (user-owned) is not ported.
+  result hold or per-turn capability inference. The verifier reads only the fork's `src/config.ts` (`FALLBACK_EXCLUSION_SOURCE`) and the `plugin` entry path, and the branch leaves `config.ts` unchanged, so no verifier change is expected; re-run it after merging. The merge drops the named `RateLimitFallbackPlugin` export from `index.ts` (default `{id,setup,server}` only). `use-grep-tool.ts` (user-owned, outside the repo) is dual-mode as of 2026-10-29 (checks in `plugins/lib/use-grep-check.ts`, backup `use-grep-tool.ts.bak-20261029`, tests `tests/use-grep-tool`, verified on isolated V1 and V2).
 - **Prerequisites:** Q41.
 - **Description.** Each file exports `Plugin.define({id, setup})` plus `server()` with the
   current V1 hooks, so one file works before and after the switch:
