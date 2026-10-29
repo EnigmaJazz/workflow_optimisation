@@ -2005,7 +2005,10 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
     to 0.58.2; both have V2 support.
 
 ### Q40. V2 prerequisites and blockers
-- **Status:** BLOCKED.
+- **Status:** BLOCKED. Owner reported 2026-10-29 that the gentle-ai v4 upgrade is complete (`gentle-ai version`
+  reports 4.3.1); the Q29/Q39 entries still read PLANNED/RECORDED and need their status lines reconciled.
+  Remaining: V2-compatible Systematic (3.27.0 pinned, loads on isolated V2), third-party plugin dispositions
+  (`OPENCODE-V2-PLUGIN-TASKS.md`, 26 open), Q47 sandbox adapter, and the owner's V2 target-version choice.
 - **Prerequisites:**
   - gentle-ai v4 upgrade complete (Q29-Q39), because native review on V2 needs v4.
   - A V2-compatible Systematic release (external).
