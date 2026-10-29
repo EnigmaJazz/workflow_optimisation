@@ -52,8 +52,8 @@ class PinTests(unittest.TestCase):
 
     def test_target_versions(self):
         s = versions(self.server)
-        self.assertEqual(s["@fro.bot/systematic"], "3.27.0")
-        self.assertEqual(s["@cortexkit/opencode-magic-context"], "0.49.28")
+        self.assertEqual(s["@fro.bot/systematic"], "3.27.2")
+        self.assertEqual(s["@cortexkit/opencode-magic-context"], "0.49.29")
         self.assertEqual(s["@cortexkit/aft-opencode"], "0.62.0")
 
     def test_systematic_not_in_tui(self):
