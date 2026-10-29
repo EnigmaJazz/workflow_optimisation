@@ -2009,7 +2009,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   reports 4.3.1); the Q29/Q39 entries still read PLANNED/RECORDED and need their status lines reconciled.
   Remaining: V2-compatible Systematic (3.27.2 pinned, 3.27.x loads on isolated V2), third-party plugin dispositions
   (`OPENCODE-V2-PLUGIN-TASKS.md`; `use-grep-tool` and the rate-limit fork are done), the sandbox adapter (Q47: written at
-  source, awaiting the owner's manual review and install), and the owner's V2 target-version choice.
+  source, awaiting the owner's manual review and install), and the owner's V2 target-version choice (decided 2026-10-29: 2.2.2, re-verified on an isolated install; see the sandbox repo's `docs/opencode-v2-discovery.md`).
 - **Prerequisites:**
   - gentle-ai v4 upgrade complete (Q29-Q39), because native review on V2 needs v4.
   - A V2-compatible Systematic release (external).
