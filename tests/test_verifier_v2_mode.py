@@ -131,5 +131,81 @@ class Wiring(unittest.TestCase):
         self.assertLess(names.index("21-opencode-major.sh") if "21-opencode-major.sh" in names else 99, names.index("50-section-0-recover.sh"))
 
 
+SHIM = MODULES / "checkers" / "v2-agents-shim.cjs"
+V2_AGENTS = [
+    {"id": "zed", "name": "zed", "model": {"id": "claude-x", "providerID": "anthropic"},
+     "request": {"settings": {}, "headers": {}, "body": {"foo": 1, "temperature": 0.3}},
+     "system": "hello", "description": "d", "mode": "subagent", "hidden": False, "steps": 7,
+     "permissions": [{"action": "shell", "resource": "git *", "effect": "allow"},
+                     {"action": "edit", "resource": "*", "effect": "deny"}]},
+    {"id": "build", "name": "Build", "mode": "primary", "hidden": False,
+     "request": {"settings": {}, "headers": {}, "body": {}}, "permissions": []},
+]
+
+
+def run_shim(payload, stdin_text=None):
+    import json
+    out = Path(tempfile.mkdtemp())
+    listing, debug_dir = out / "list.txt", out / "debug"
+    r = subprocess.run(["node", str(SHIM), str(listing), str(debug_dir)],
+                       input=stdin_text if stdin_text is not None else json.dumps(payload),
+                       capture_output=True, text=True)
+    return r, listing, debug_dir
+
+
+class AgentsShim(unittest.TestCase):
+    """V2 has `debug agents` (one JSON array) instead of `agent list` + `debug agent <name>`; the shim
+    rewrites it into the V1 shapes the runtime checker reads."""
+
+    def test_listing_uses_the_v1_line_format_keyed_by_id(self):
+        r, listing, _ = run_shim(V2_AGENTS)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(listing.read_text().splitlines(), ["zed (subagent)", "build (primary)"])
+
+    def test_per_agent_file_has_v1_field_names(self):
+        import json
+        _, _, debug_dir = run_shim(V2_AGENTS)
+        zed = json.loads((debug_dir / "zed.json").read_text())
+        self.assertEqual(zed["name"], "zed")
+        self.assertEqual(zed["mode"], "subagent")
+        self.assertEqual(zed["model"], {"providerID": "anthropic", "modelID": "claude-x"})
+        self.assertEqual(zed["prompt"], "hello")
+        self.assertEqual(zed["steps"], 7)
+        self.assertEqual(zed["options"], {"foo": 1})
+        self.assertEqual(zed["temperature"], 0.3)
+        self.assertEqual(zed["permission"], [
+            {"permission": "bash", "pattern": "git *", "action": "allow"},
+            {"permission": "edit", "pattern": "*", "action": "deny"}])
+        self.assertEqual(zed["tools"], {})
+
+    def test_status_file_marks_each_agent_probed_ok(self):
+        _, _, debug_dir = run_shim(V2_AGENTS)
+        self.assertEqual((debug_dir / "zed.status").read_text().strip(), "0")
+        self.assertEqual((debug_dir / "build.status").read_text().strip(), "0")
+        self.assertTrue((debug_dir / "build.stderr").exists())
+
+    def test_plugin_chatter_before_the_array_is_tolerated(self):
+        import json
+        r, listing, _ = run_shim(None, "plugin loaded\n" + json.dumps(V2_AGENTS))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("zed (subagent)", listing.read_text())
+
+    def test_garbage_input_fails_closed(self):
+        r, listing, _ = run_shim(None, "not json")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertFalse(listing.exists())
+
+
+class AgentsShimWiring(unittest.TestCase):
+    text = (MODULES / "59-section-8-9-config-runtime.sh").read_text()
+
+    def test_v2_branch_uses_debug_agents_and_the_shim(self):
+        self.assertIn('debug agents', self.text)
+        self.assertIn("v2-agents-shim.cjs", self.text)
+
+    def test_v1_branch_still_calls_agent_list(self):
+        self.assertIn('"$OC_PROBE" agent list', self.text)
+
+
 if __name__ == "__main__":
     unittest.main()

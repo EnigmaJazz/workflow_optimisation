@@ -104,7 +104,7 @@ VERIFY_MODULES=(
   "56-section-4-5-agents-registry.sh 2b66b463ddd9942fba8c065fa7e94689217add64a39a717f62547424d68951f8"
   "57-section-6-plugin-mirrors.sh 44937c5fb60833afe7358159c12ecd754b436cb8330882960512e56f65447af5"
   "58-section-7-recipe.sh 9f02d1b88bd2dd08ee2aacf1f8619f2c149dcc383b66a4ed6f808da74f4e8502"
-  "59-section-8-9-config-runtime.sh c5cacdbdcdcb2bc7c850fec6d41104657de9fefd2750da84d1a291fce71ff430"
+  "59-section-8-9-config-runtime.sh 8f3e1adc72cbc9664a8e2600aee8967b3570c7c15c0053ed17ab584a33e27959"
   "60-section-9a-9b-secure-service.sh fab3a32e1a08b55b3fb39fa24c8346ebf5d0c22cd55accbeeecb5af481f31d6b"
   "61-section-10-behavioural.sh fe14341fb52b734573e1b94f8e068a3e94308f690e0252cf03bba50e74d490b9"
   "62-section-11-summary.sh 5df415a1b7f63144822d2bb62c2300df4f2de8ea36cc0dc7ee5d4138c477ea76"
@@ -113,6 +113,7 @@ VERIFY_MODULES=(
   "checkers/check-systematic-resolution.cjs 39b81b3ef5aacffa9b45ccde1bb2b3b5afc123bf928975403f8f287190360691"
   "checkers/oc-probe.sh 054deaca7b3fc8b84c443278fefe9cab9588ad5cbeaffae45ef1eb6926bf2375"
   "checkers/routing-canonical.md 23c0c9ab507e96b04966a4e1e2b5419771859dfd87eef1efb2d3191e52c559e4"
+  "checkers/v2-agents-shim.cjs 6902e9b93e94c5169320860a43a7a284bd1b800513318961d5158154f72fe374"
 )
 # END VERIFY_MODULES
 

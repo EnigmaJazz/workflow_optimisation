@@ -39,9 +39,15 @@ else
   LIST_STATUS=0
   (
     cd "$AGENT_PROBE_CWD" || exit 1
-    WORKFLOW_HEALTH_CHECK_PROBE=1 \
-    SYSTEMATIC_ROUTING_GUARD_MODE=off \
-    timeout 45s bash "$OC_PROBE" agent list >"$AGENT_LIST_OUT" 2>"$AGENT_LIST_STDERR"
+    export WORKFLOW_HEALTH_CHECK_PROBE=1 SYSTEMATIC_ROUTING_GUARD_MODE=off
+    if [ "${OC_MAJOR:-0}" = "2" ]; then
+      # V2 has no `agent list` or `debug agent <name>`: one `debug agents` call, rewritten into the V1 shapes.
+      V2_AGENTS_RAW="$TMP_DIR/opencode-v2-debug-agents.json"
+      timeout 45s bash "$OC_PROBE" debug agents >"$V2_AGENTS_RAW" 2>"$AGENT_LIST_STDERR" &&
+        "${JS_RUNTIME:-node}" "$VERIFY_MODULE_DIR/checkers/v2-agents-shim.cjs" "$AGENT_LIST_OUT" "$DEBUG_AGENT_DIR" <"$V2_AGENTS_RAW" 2>>"$AGENT_LIST_STDERR"
+    else
+      timeout 45s bash "$OC_PROBE" agent list >"$AGENT_LIST_OUT" 2>"$AGENT_LIST_STDERR"
+    fi
   ) || LIST_STATUS=$?
 
   if [ "$LIST_STATUS" -ne 0 ]; then
@@ -116,6 +122,7 @@ else
       fi
     done <<< "$CHECKER_AGENT_REFS"
     for name in "${UNIQUE_PROBES[@]}"; do
+      [ "${OC_MAJOR:-0}" = "2" ] && break # V2: the shim already wrote every agent's debug files
       (
         cd "$AGENT_PROBE_CWD" || exit 1
         status=0
