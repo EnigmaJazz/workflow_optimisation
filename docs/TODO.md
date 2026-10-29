@@ -2142,10 +2142,14 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   `vendor/`, auto-update and `opencode-usage-total` dropped, file references resolved, the repo's dual-mode plugins and
   prompts/skills copied, permissions left as V1 and checked for explicit rules). Dry-run by default; `--target ... --apply`
   backs up differing files and never deletes; V1 roots refused. Verified on isolated V2 2.2.2 (99 agents, 7 plugins loaded).
-  Still open: the changeset-tool profile (`upgrade/opencode-v2/`) and runbook wrapper, the V2 verifier mode (Q44), and the
-  gaps the script reports: `host_review_start` is `allow` for gentle-orchestrator (V2 will not prompt), the `vision-bridge`
-  MCP path is under the V1 root (the V2 nono profile does not grant it), and 3 prompt files exist only in the live V1 root.
-  Owner confirmation needed: dropping `opencode-usage-total` on V2.
+  Decided 2026-10-29: `opencode-usage-total` is retired on V2; the 3 live-only prompts now live in
+  `global-config/prompts/`; the vision bridge ships in `global-config/mcp/vision-bridge/` and runs from the V2 root with
+  V2-owned credential and log paths (`VISION_BRIDGE_AUTH_FILE`, `VISION_BRIDGE_LEG_LOG` in the MCP `environment`; verified:
+  it connects on isolated V2 2.2.2 and the `environment` key reaches the process). V2 needs its own OpenAI login for the
+  bridge (its token comes from the V2 data root, not the V1 `auth.json`). The V1 config still points at the live
+  `~/.config/opencode/mcp/vision-bridge` copy, which is unchanged.
+  Still open: the changeset-tool profile (`upgrade/opencode-v2/`) and runbook wrapper, the V2 verifier mode (Q44), and one
+  reported gap: `host_review_start` is `allow` for gentle-orchestrator (V2 will not prompt for it).
 - **Prerequisites:** Q36 tool (reuse it with an `upgrade/opencode-v2/` profile); Q40-Q45.
 - **Description.** The same declarative operations, `expect_before`, write-ahead journal and
   drift-preserving revert as Q36.

@@ -32,7 +32,15 @@ NAME = r"(?:@[A-Za-z0-9][\w.-]*/)?[A-Za-z0-9][\w.-]*"
 EXACT = re.compile(rf"^(?P<name>{NAME})@(?P<version>\d+\.\d+\.\d+)$")
 FORK_NAME = "opencode-rate-limit-fallback-mapped"
 COPY_FILES = ("cli.json", "AGENTS.md", "systematic.jsonc", "rate-limit-fallback.json")
-COPY_DIRS = ("prompts", "skills", "plugins")
+COPY_DIRS = ("prompts", "skills", "plugins", "mcp")
+# Environment a local MCP server needs under V2: its own credential and log paths, never the V1 data directory.
+# `{data}` is the V2 data root (<opencode-v2>/data).
+MCP_ENV = {
+    "vision-bridge": {
+        "VISION_BRIDGE_AUTH_FILE": "{data}/opencode/auth.json",
+        "VISION_BRIDGE_LEG_LOG": "{data}/vision-bridge/leg.log",
+    }
+}
 FORK_IGNORE = shutil.ignore_patterns(".git", ".gitignore", ".atl", "node_modules", "odd", "tests", "CLAUDE.md", "tsconfig.json", "bunfig.toml", "bun.lock", "*.bak*", ".backup*")
 
 
@@ -47,7 +55,7 @@ def derive_plugins(plugins, fork_dir=None, fork_ref=None):
         if "opencode-plugin-auto-update" in spec:
             notes.append(f"dropped {spec}: auto-update is retired on V2 (guarded updates use scripts/v2-plugin-autoupdate.py)")
         elif re.match(r"^opencode-usage-total@", spec):
-            notes.append(f"dropped {spec}: V1-only (peer @opencode-ai/plugin <2); confirm retiring it on V2")
+            notes.append(f"dropped {spec}: V1-only (peer @opencode-ai/plugin <2); retired on V2 (owner decision 2026-10-29)")
         elif spec.startswith("file://") and spec.endswith(f"/{FORK_NAME}/index.ts"):
             if fork_dir is None:
                 fork_dir = Path(spec[len("file://"):-len("/index.ts")])
@@ -123,6 +131,29 @@ def resolve_file_refs(config_text, source_dir, live_root, staging):
     return notes
 
 
+def rewrite_mcp(config, source_dir, root_path, env_by_server):
+    """Local MCP commands under the V1 root that the repo holds move into the V2 root, with V2-owned environment."""
+    v1 = str(HOME / ".config" / "opencode")
+    root = Path(root_path)
+    data = root.parents[1] / "data"
+    notes = []
+    for name, server in (config.get("mcp") or {}).items():
+        command = server.get("command") or []
+        changed = False
+        for index, part in enumerate(command):
+            if isinstance(part, str) and part.startswith(v1 + "/"):
+                rel = part[len(v1) + 1:]
+                if (Path(source_dir) / rel).is_file():
+                    command[index] = str(root / rel)
+                    changed = True
+        if changed:
+            env = {k: v.format(data=data) for k, v in (env_by_server.get(name) or {}).items()}
+            if env:
+                server["environment"] = {**(server.get("environment") or {}), **env}
+            notes.append(f"mcp {name}: command moved into the V2 root" + (" with V2-owned environment (" + ", ".join(env) + ")" if env else ""))
+    return notes
+
+
 def derive_config(source, fork_dir=None, fork_ref=None):
     plugins, notes = derive_plugins(source.get("plugin") or [], fork_dir, fork_ref)
     out = {}
@@ -151,6 +182,7 @@ def build(source_dir, sandbox_repo, staging, root_path, live_root=None):
             raise DeriveError(f"the rate-limit fork is not at {fork_src}")
         shutil.copytree(fork_src, vendor, ignore=FORK_IGNORE, dirs_exist_ok=True)
     config, notes = derive_config(source, vendor if fork_src else None, Path(root_path) / "vendor" / FORK_NAME)
+    notes += rewrite_mcp(config, source_dir, root_path, MCP_ENV)
     tools = scan_tools(sandbox_repo)
     warnings = check_rules(config, tools) + check_v1_paths(config)
     staging.mkdir(parents=True, exist_ok=True)

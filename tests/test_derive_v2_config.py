@@ -122,6 +122,12 @@ class RealConfig(unittest.TestCase):
         for key, value in self.src.items():
             if key == "plugin":
                 continue
+            if key == "mcp":  # only the vision bridge moves; the rest are carried over
+                for name, server in value.items():
+                    if name != "vision-bridge":
+                        self.assertEqual(got["mcp"][name], server, name)
+                self.assertEqual(set(got["mcp"]), set(value))
+                continue
             self.assertEqual(got[key], value, key)
         self.assertNotIn("plugin", got)
         self.assertEqual(len(got["agent"]), 46)
@@ -158,6 +164,52 @@ class RealConfig(unittest.TestCase):
     def test_the_report_lists_what_was_dropped_and_what_needs_attention(self):
         self.assertIn("usage-total", self.run1.stdout)
         self.assertIn("auto-update", self.run1.stdout)
+
+    def test_no_prompt_is_taken_from_the_live_root_any_more(self):
+        self.assertNotIn("copied from the live V1 root", self.run1.stdout)
+
+    def test_the_vision_bridge_runs_from_the_v2_root_with_its_own_credential_and_log_paths(self):
+        bridge = json.loads((self.out / "opencode.json").read_text())["mcp"]["vision-bridge"]
+        root = "/home/james/.local/share/opencode-v2/config/opencode"
+        self.assertEqual(bridge["command"], ["python3", f"{root}/mcp/vision-bridge/server.py"])
+        env = bridge["environment"]
+        self.assertEqual(env["VISION_BRIDGE_AUTH_FILE"], "/home/james/.local/share/opencode-v2/data/opencode/auth.json")
+        self.assertTrue(env["VISION_BRIDGE_LEG_LOG"].startswith("/home/james/.local/share/opencode-v2/data/"))
+        self.assertTrue((self.out / "mcp/vision-bridge/server.py").is_file())
+        self.assertNotIn("under /home/james/.config/opencode", self.run1.stdout)
+        # the V1 credential store is not referenced anywhere in the derived config
+        self.assertNotIn(".local/share/opencode/auth.json", json.dumps(bridge))
+
+
+class McpPaths(unittest.TestCase):
+    def setUp(self):
+        self.m = load()
+        self.src = Path(tempfile.mkdtemp())
+        (self.src / "mcp/tool").mkdir(parents=True)
+        (self.src / "mcp/tool/server.py").write_text("x")
+        self.v1 = str(Path.home() / ".config/opencode")
+        self.root = Path("/r/config/opencode")
+
+    def test_a_command_under_the_v1_root_that_the_repo_holds_is_rewritten_into_the_v2_root(self):
+        config = {"mcp": {"t": {"type": "local", "command": ["python3", f"{self.v1}/mcp/tool/server.py"]}}}
+        notes = self.m.rewrite_mcp(config, self.src, self.root, {"t": {"A": "{data}/a"}})
+        self.assertEqual(config["mcp"]["t"]["command"], ["python3", "/r/config/opencode/mcp/tool/server.py"])
+        self.assertEqual(config["mcp"]["t"]["environment"], {"A": "/r/data/a"})
+        self.assertEqual(len(notes), 1)
+
+    def test_a_command_the_repo_does_not_hold_is_left_alone_and_reported(self):
+        config = {"mcp": {"t": {"type": "local", "command": ["python3", f"{self.v1}/mcp/other/server.py"]}}}
+        warnings = self.m.check_v1_paths(config)
+        self.m.rewrite_mcp(config, self.src, self.root, {})
+        self.assertEqual(config["mcp"]["t"]["command"][1], f"{self.v1}/mcp/other/server.py")
+        self.assertEqual(len(warnings), 1)
+
+    def test_remote_servers_and_existing_environment_are_untouched_or_merged(self):
+        config = {"mcp": {"r": {"type": "remote", "url": "https://x"},
+                          "t": {"type": "local", "command": ["python3", f"{self.v1}/mcp/tool/server.py"], "environment": {"KEEP": "1"}}}}
+        self.m.rewrite_mcp(config, self.src, self.root, {"t": {"A": "{data}/a"}})
+        self.assertEqual(config["mcp"]["r"], {"type": "remote", "url": "https://x"})
+        self.assertEqual(config["mcp"]["t"]["environment"], {"KEEP": "1", "A": "/r/data/a"})
 
 
 class FileRefs(unittest.TestCase):
