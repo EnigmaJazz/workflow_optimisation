@@ -2088,7 +2088,17 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
     `permission.task` already provides; re-check `general`, which V2's built-in default denies.
 
 ### Q44. Verifier V2 mode (`verify-workflow.sh`)
-- **Status:** PLANNED.
+- **Status:** PARTIAL (2026-10-29). Shipped at source and deployed to the live mirror (verifier passed on V1 after
+  restart, `bash verify-workflow.sh` exit 0): `OC_MAJOR` detection and `checkers/oc-probe.sh` (`2ffb9ac`); section 9
+  `debug agents` shim `checkers/v2-agents-shim.cjs` (`a65019d`, hardened `fc78a41`); `cli.json` mirror
+  `checkers/recover-cli-config.py` plus prune and approval coverage (`737122c`); `shell`/`subagent` in the behavioural
+  parsers and 9a/9b skipped on V2 (`2428555`). Native review approved for `2ffb9ac`, `a65019d`, `737122c`, `2428555`;
+  `fc78a41` was not reviewed. **Still open:** (1) empty/retired auto-update ref in V2 mode (needs the Q46 decision to
+  drop the fork from the managed plugin list; the ref is woven through both recovery heredocs in
+  `verify/30-recover-config.sh`); (2) V2 package cache layout `npm/<spec>/<epoch-ms>/` for sections 2, 2b, 2c, 6
+  (observed only in isolation); (3) a V2 replacement for the 9b GitHub MCP check; (4) the V2 `run --format json` event
+  shape is unobserved, so the section 10 parser changes are unproven (needs `--behavioral` on V2); (5) V2 exposes no
+  per-agent `tools` map, so the shim emits `tools: {}`; section 9 tool checks need a real V2 run.
 - **Prerequisites:** Q41, Q42, Q43; Q04 and Q26 strongly preferred.
 - **Description.** Select the mode by the `opencode --version` major.
   - Runtime probes `:4437` (`agent list`), `:4518` (`debug agent`) and `:4650`/`:4657`/`:4696`
