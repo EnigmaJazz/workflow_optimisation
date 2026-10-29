@@ -1,5 +1,5 @@
 write_cache_prune_approval() {
-  python3 - "$CACHE_PRUNE_APPROVAL" "$OPENCODE_CONFIG_FILE" "$TUI_CONFIG_FILE" "$0" <<'PY_CACHE_APPROVAL'
+  python3 - "$CACHE_PRUNE_APPROVAL" "$OPENCODE_CONFIG_FILE" "$TUI_CONFIG_FILE" "$0" "${CLI_CONFIG_FILE:-}" <<'PY_CACHE_APPROVAL'
 import hashlib
 import json
 import os
@@ -11,6 +11,10 @@ import time
 target = Path(sys.argv[1])
 config_paths = [Path(sys.argv[2]), Path(sys.argv[3])]
 verifier = Path(sys.argv[4]).resolve(strict=True)
+# V2's cli.json joins the approved surface only when it exists (its list key is `plugins`).
+cli_config = Path(sys.argv[5]) if len(sys.argv) > 5 and sys.argv[5] else None
+if cli_config is not None and cli_config.is_file():
+    config_paths.append(cli_config)
 
 def sha256(path):
     digest = hashlib.sha256()
@@ -23,7 +27,7 @@ references = set()
 digests = {}
 for path in config_paths:
     value = json.loads(path.read_text(encoding="utf-8"))
-    plugins = value.get("plugin", [])
+    plugins = value.get("plugins" if path.name == "cli.json" else "plugin", [])
     if not isinstance(plugins, list) or not all(isinstance(ref, str) for ref in plugins):
         raise RuntimeError(f"invalid plugin list in {path}")
     references.update(plugins)

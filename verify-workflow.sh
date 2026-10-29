@@ -86,16 +86,16 @@ set -uo pipefail
 
 # BEGIN VERIFY_MODULES
 VERIFY_MODULES=(
-  "10-env.sh 09b537202513193205fb6fc598b4febb0b0e7020e8018321cdc7d620f8ac2194"
+  "10-env.sh 64d80dd149027f3c5a0d2db948d4acac195829ada6e1cd126b09cf66fe0c8725"
   "20-helpers.sh b88837e9368b62a7175ef768881f1b51595935ec62cb82f24eb5f0fecaddbaf5"
   "21-opencode-major.sh a36e6d093cfc19f24fc9c77ef72495cd17cd317d6479fd71f65726846bbfbc22"
-  "30-recover-config.sh 538d7715451823ce58e3227e10fa0e55811d4b7ee461fdcc3efb61c7d3d32c7a"
+  "30-recover-config.sh 70b478ced6f0478c67756bb221a3dc827c6463575cea8d852ea859762a6c38af"
   "31-recover-skills-agents.sh 7c646795f905093f1582dca0ea6f4badee906264fc1051df9f3d46a6ffb1cf38"
   "32-recover-systematic.sh 6e218d4f6ff59bd3875665c9c8cc71f20e2fdb08298cdc3cb935739bd700793e"
   "40-temp-and-routing.sh 8516dec379a9c711ff398d2e6117e3d4df93d49cb02c126419999752f9db65d8"
   "41-checker-systematic.sh d2b24934715d00f7d56fc86402bc20554bd9665b18f43c613ea19c402ad3dd14"
   "42-checker-runtime-agents.sh e3ab3706ce136917b46df9bc73a338dc00e4e0aaf809bf834ef8ac6e5ba4a8be"
-  "50-section-0-recover.sh 59acbf25902e61292d30175df05c073b27d13b62e9c83dd0ecf439ea9f2cc7c1"
+  "50-section-0-recover.sh 4bfd53571dcc571da4c3757200a7f61827202966a0de198add0ad9a20e370513"
   "51-section-1-gentle-ai.sh 6f125ca157c9b14033749cb4f68c989551230a5d22f5f4a2d1d538704924c7f5"
   "52-section-2-systematic-install.sh 2439384f1c65f5ca51f9584a75e0f887f46d8e73fac69cf9df0a9d405904e197"
   "53-section-2b-magic-context.sh a04df319dcf8a5fe740123644c57ccb2c8198fa998583662e8a18212eadd727b"
@@ -112,6 +112,7 @@ VERIFY_MODULES=(
   "checkers/check-runtime-agents.cjs f23021ea00ff50efd383bb29ecb39467a1e0e499c0c6f2d249a292fbb5b7616b"
   "checkers/check-systematic-resolution.cjs 39b81b3ef5aacffa9b45ccde1bb2b3b5afc123bf928975403f8f287190360691"
   "checkers/oc-probe.sh 054deaca7b3fc8b84c443278fefe9cab9588ad5cbeaffae45ef1eb6926bf2375"
+  "checkers/recover-cli-config.py 5dc9e7af0c465f3ba237ba14c03a7b5b702f0e613445828b617189e56e05295f"
   "checkers/routing-canonical.md 23c0c9ab507e96b04966a4e1e2b5419771859dfd87eef1efb2d3191e52c559e4"
   "checkers/v2-agents-shim.cjs ac216f6f36b7d746807a20b1a588dfe0caa4d932590d776e6e552ecef890bbb5"
 )

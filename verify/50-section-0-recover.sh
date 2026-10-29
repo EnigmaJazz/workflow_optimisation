@@ -38,6 +38,20 @@ case "$TUI_RECOVERY" in
     ;;
 esac
 
+# V2 reads cli.json; mirror it before any V2 TUI start so the tui.json migration cannot copy V1-only plugins.
+CLI_RECOVERY=$(python3 "$VERIFY_MODULE_DIR/checkers/recover-cli-config.py" "$CLI_CONFIG_FILE" "$CLI_CONFIG_SOURCE" "$RECOVERY_BACKUP_ROOT" "$RECOVERY_RUN_ID" 2>&1)
+case "$CLI_RECOVERY" in
+  clean$'\t'*)
+    echo "   ok: ${CLI_RECOVERY#*$'\t'}"
+    ;;
+  repaired$'\t'*)
+    repair_note "cli.json mirrored: ${CLI_RECOVERY#*$'\t'}"
+    ;;
+  *)
+    fail "CLI_CONFIG_RECOVERY_FAILED: ${CLI_RECOVERY:-<empty>}"
+    ;;
+esac
+
 LOCAL_AUTO_UPDATE_PATH="${LOCAL_AUTO_UPDATE_REF#file://}"
 if [[ "$LOCAL_AUTO_UPDATE_REF" != file://* ]] || [ ! -f "$LOCAL_AUTO_UPDATE_PATH" ]; then
   fail "LOCAL_AUTO_UPDATE_BUILD_MISSING: $LOCAL_AUTO_UPDATE_PATH"
