@@ -12,6 +12,10 @@ import shutil
 import subprocess
 import unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 REPO = Path(__file__).resolve().parent.parent
 PLUGIN = REPO / "global-config" / "plugins" / "astra-sol-upgrade.ts"
@@ -48,7 +52,7 @@ class AstraReviewActors(unittest.TestCase):
     def test_verifier_uses_the_same_exclusion(self):
         pattern = r"(asi-)?review-(risk|resilience|readability|reliability|refuter|validator)"
         self.assertIn(pattern, PLUGIN.read_text(encoding="utf-8"))
-        self.assertIn(pattern, VERIFIER.read_text(encoding="utf-8"))
+        self.assertIn(pattern, verifier_text())
 
 
 if __name__ == "__main__":

@@ -419,9 +419,9 @@ Changes that deploy outside a git repo (OpenCode plugins, config, skills) use th
 
 The health-check plugin pins `verify-workflow.sh`'s sha256 and **refuses to execute a mismatched script** (fail-closed). Every edit to the script or its embedded heredocs REQUIRES the full re-pin cycle — forgetting it breaks the startup check with a FAILED banner in every session:
 
-1. Edit `verify-workflow.sh` in this workspace.
-2. Compute the new digest: `sha256sum verify-workflow.sh`.
-3. Update `VERIFY_SCRIPT_SHA256` in `global-config/plugins/workflow-health-check.ts` with the new value.
+1. Edit the verifier in this workspace. `verify-workflow.sh` is a thin entry; the checks live in `verify/NN-*.sh`, which the entry sources after verifying each module's sha256 against its manifest.
+2. Regenerate the manifest and compute the new entry digest: `python3 scripts/verifier_manifest.py update`.
+3. That command also updates `VERIFY_SCRIPT_SHA256` in `global-config/plugins/workflow-health-check.ts`; confirm with `python3 scripts/verifier_manifest.py check`. Never hand-edit the manifest or the pin.
 4. Run the native RDD review checkpoint on the plugin source when enabled, completing the exact approved acknowledgement (source → review evidence → mirror).
 5. Re-mirror the reviewed plugin: `bash verify-workflow.sh` (step 6 re-copies it) — verify `cmp` passes.
 6. Log the task with the commit and native review acknowledgement/evidence references.

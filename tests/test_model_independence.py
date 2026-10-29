@@ -6,6 +6,10 @@ import shutil
 import subprocess
 import unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 REPO = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO / "global-config/opencode.json"
@@ -163,7 +167,7 @@ class PositiveControl(unittest.TestCase):
             )
 
     def test_verifier_model_family_matches_python_recognition(self):
-        script = (REPO / "verify-workflow.sh").read_text(encoding="utf-8")
+        script = verifier_text()
         runtime = shutil.which("bun") or shutil.which("node")
         if not runtime:
             self.skipTest("Bun or Node is required to execute the extracted verifier functions")

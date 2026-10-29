@@ -53,16 +53,19 @@ The owner's interactive shell is Fish: commands suggested to the owner must be F
 `backups/`. `gentle-ai sync` and plugin auto-updates overwrite the live files; the verifier
 restores the user-owned overlays while preserving safe newer plugin version pins.
 
-**`verify-workflow.sh`** (~4,900 lines, one file; its header comment is the index of every
-check). Path overrides are `WORKFLOW_VERIFY_*` environment variables, which is how to point it at
+**`verify-workflow.sh`** (a thin entry over about 6,000 lines in `verify/NN-*.sh` modules; its
+header comment is the index of every check). Path overrides are `WORKFLOW_VERIFY_*` environment variables, which is how to point it at
 fixtures. It spawns short-lived `opencode run` probes with `WORKFLOW_HEALTH_CHECK_PROBE=1`;
 plugins must stay inert under that flag.
 
-**Digest pin (do not skip).** `global-config/plugins/workflow-health-check.ts` pins the sha256
-of `verify-workflow.sh` in `VERIFY_SCRIPT_SHA256` and refuses to run a mismatched script. Any
-edit to the verifier, including comment or heredoc text, requires updating the pin in the same
-change, then a verifier run to re-mirror the plugin. See `WORKFLOW.md` "Health-check plugin
-lifecycle".
+**Digest pin (do not skip).** `verify-workflow.sh` is a thin entry; the checks are
+`verify/NN-*.sh` modules the entry sources after verifying each module's sha256 against a manifest
+inside the entry. `global-config/plugins/workflow-health-check.ts` pins the sha256 of the entry in
+`VERIFY_SCRIPT_SHA256` and refuses to run a mismatched script, so one digest binds everything. After
+any edit to the entry or a module run `python3 scripts/verifier_manifest.py update` (regenerates the
+manifest and the pin; `check` verifies without writing), then a verifier run to re-mirror the plugin.
+Tests that parse the verifier read it through `tests/verifier_source.py`. See `WORKFLOW.md`
+"Health-check plugin lifecycle".
 
 **Routing guard** (`global-config/plugins/systematic-routing-guard.ts`, design in
 `docs/specs/routing-guard-q03.md`). Warning-only apart from one generic-task block. It records

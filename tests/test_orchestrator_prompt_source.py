@@ -15,6 +15,10 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -750,7 +754,7 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
         self.assertIn("do not require or supply those values until that tool lands", assembled.stdout)
 
     def test_embedded_prompt_verifier_has_real_bidirectional_equality_control(self):
-        verifier = (ROOT / "verify-workflow.sh").read_text(encoding="utf-8")
+        verifier = verifier_text()
         check = verifier.split("check_embedded_orchestrator_prompt() {", 1)[1].split("\n}", 1)[0]
         self.assertIn("timeout=30", check)
         self.assertIn("mutated = assembled +", check)
@@ -771,7 +775,7 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_odd_readonly_probe_requires_route_skill_after_router(self):
-        verifier = (ROOT / "verify-workflow.sh").read_text(encoding="utf-8")
+        verifier = verifier_text()
         block = verifier.split("<<'PY_ODD_READONLY'\n", 1)[1].split("\nPY_ODD_READONLY", 1)[0]
 
         def run(events):
@@ -815,8 +819,7 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
     def test_verifier_script_pin_matches_its_own_regex(self):
         verifier = ROOT / "verify-workflow.sh"
         plugin = ROOT / "global-config" / "plugins" / "workflow-health-check.ts"
-        verifier_text = verifier.read_text(encoding="utf-8")
-        function = verifier_text.split("read_verify_script_pin() {", 1)[1].split("\n}", 1)[0]
+        function = verifier_text().split("read_verify_script_pin() {", 1)[1].split("\n}", 1)[0]
         regex_literal = re.search(r"r'''(.*?)'''", function, re.DOTALL)
         if regex_literal is None:
             raise AssertionError("read_verify_script_pin regex literal must be present")
