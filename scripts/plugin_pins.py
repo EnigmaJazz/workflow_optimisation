@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Consume the auto-update plugin's pending-updates.json and bump pins in global-config/.
 
 The plugin only proposes. This tool is the human-approved apply step: it edits the canonical
@@ -20,6 +19,7 @@ from pathlib import Path
 SCHEMA = "opencode-plugin-auto-update.pending/v1"
 CONFIG_FILES = ("opencode.json", "tui.json")
 ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_CONFIG_DIR = ROOT / "global-config"
 
 
 class Refusal(Exception):
@@ -87,6 +87,8 @@ def apply(pending: Path, config_dir: Path, approve: list, dry_run: bool = False)
             found = versions_in(text, name)
             if not found:
                 continue
+            if len(found) > 1:
+                raise Refusal(f"{name}: listed {len(found)} times in {f}; fix the duplicate first")
             if any(v != cur for v in found):
                 raise Refusal(f"{name}: {f} holds {sorted(set(found))}, proposal was made against {cur} (stale)")
             edits[f] = text.replace(f'"{name}@{cur}"', f'"{name}@{new}"')
@@ -101,11 +103,23 @@ def apply(pending: Path, config_dir: Path, approve: list, dry_run: bool = False)
         except ValueError as exc:
             raise Refusal(f"{f}: result is not valid JSON ({exc}); nothing written")
     if not dry_run:
-        for f, text in edits.items():
-            path = config_dir / f
-            tmp = path.with_name(f".{f}.tmp")
-            tmp.write_text(text, encoding="utf-8")
-            os.replace(tmp, path)
+        originals = {f: (config_dir / f).read_text(encoding="utf-8") for f in edits}
+        temps, done = {}, []
+        try:
+            for f, text in edits.items():
+                tmp = (config_dir / f).with_name(f".{f}.tmp")
+                tmp.write_text(text, encoding="utf-8")
+                temps[f] = tmp
+            for f in edits:
+                os.replace(temps[f], config_dir / f)
+                done.append(f)
+        except OSError as exc:
+            for f in done:
+                (config_dir / f).write_text(originals[f], encoding="utf-8")
+            for tmp in temps.values():
+                if tmp.exists():
+                    tmp.unlink()
+            raise Refusal(f"write failed ({exc}); rolled back, no file changed")
     order = {f: i for i, f in enumerate(CONFIG_FILES)}
     return sorted(changes, key=lambda c: (order[c[0]], c[1]))
 
@@ -113,7 +127,8 @@ def apply(pending: Path, config_dir: Path, approve: list, dry_run: bool = False)
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--pending", type=Path, default=None)
-    ap.add_argument("--config-dir", type=Path, default=ROOT / "global-config")
+    ap.add_argument("--config-dir", type=Path, default=DEFAULT_CONFIG_DIR)
+    ap.add_argument("--allow-outside-repo", action="store_true", help="permit a config dir outside this repo (tests, fixtures)")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("report")
     a = sub.add_parser("apply")
@@ -122,6 +137,8 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     pending = args.pending or default_pending()
     try:
+        if not args.allow_outside_repo and ROOT not in (args.config_dir.resolve(), *args.config_dir.resolve().parents):
+            raise Refusal(f"--config-dir {args.config_dir} is outside {ROOT}; pass --allow-outside-repo to override")
         if args.cmd == "report":
             for r in report(pending, args.config_dir):
                 src = "" if r["in_source"] else "  (source differs from proposal base)"

@@ -91,6 +91,42 @@ class ApplyTests(Case):
             self.apply(["a"])
 
 
+class HardeningTests(Case):
+    def test_partial_write_failure_rolls_back_both_files(self):
+        real = pp.os.replace
+        calls = {"n": 0}
+
+        def flaky(src, dst):
+            calls["n"] += 1
+            if calls["n"] == 2:
+                raise PermissionError("simulated")
+            return real(src, dst)
+
+        pp.os.replace = flaky
+        try:
+            with self.assertRaises(pp.Refusal):
+                self.apply(["a"])
+        finally:
+            pp.os.replace = real
+        self.assertEqual((self.cfg / "opencode.json").read_text(), SERVER)
+        self.assertEqual((self.cfg / "tui.json").read_text(), TUI)
+        self.assertEqual([p.name for p in self.cfg.iterdir()], ["opencode.json", "tui.json"])
+
+    def test_duplicate_pin_in_one_file_is_refused(self):
+        (self.cfg / "opencode.json").write_text(SERVER.replace('"/local.ts"', '"a@1.0.0"'))
+        with self.assertRaises(pp.Refusal):
+            self.apply(["a"])
+
+    def test_cli_refuses_config_dir_outside_the_repo_source(self):
+        rc = pp.main(["--pending", str(self.pending), "--config-dir", str(self.cfg), "apply", "--approve", "a", "--dry-run"])
+        self.assertEqual(rc, 3)
+        rc = pp.main(["--pending", str(self.pending), "--config-dir", str(self.cfg), "--allow-outside-repo", "apply", "--approve", "a", "--dry-run"])
+        self.assertEqual(rc, 0)
+
+    def test_default_config_dir_is_the_repo_global_config(self):
+        self.assertEqual(pp.DEFAULT_CONFIG_DIR, ROOT / "global-config")
+
+
 class ReportTests(Case):
     def test_report_lists_each_verdict(self):
         rows = pp.report(self.pending, self.cfg)
