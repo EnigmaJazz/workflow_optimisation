@@ -2150,8 +2150,9 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - The plugin only proposes pin updates (`pending-updates.json`, host-compatibility gate); it no
     longer installs packages or rewrites `opencode.json`/`tui.json`.
   - `scripts/plugin_pins.py report|apply --approve NAME[=VERSION]` is the human-approved apply
-    step: it edits only `global-config/`; the verifier mirrors the reviewed source. The verifier
-    itself is unchanged (no digest re-pin).
+    step: it edits only `global-config/`; the verifier mirrors the reviewed source. The consumer
+    script does not touch the verifier (no digest re-pin for it); the separate Q42 load-check unit
+    does edit the verifier and re-pins the digest.
   - Original A5 ("retire auto-update") is superseded: the old build is replaced by deploying the
     propose-only build at the same reviewed path; removal from the V2 `plugins` list belongs to
     Q43. Until the new build is deployed the old build still rewrites live pins.

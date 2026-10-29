@@ -18,6 +18,7 @@ from pathlib import Path
 
 SCHEMA = "opencode-plugin-auto-update.pending/v1"
 CONFIG_FILES = ("opencode.json", "tui.json")
+PLAIN_VERSION = re.compile(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?")
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG_DIR = ROOT / "global-config"
 
@@ -63,14 +64,23 @@ def parse_approval(item: str):
 def apply(pending: Path, config_dir: Path, approve: list, dry_run: bool = False) -> list:
     doc = load_pending(pending)
     by_name = {p["name"]: p for p in doc["proposals"]}
-    plan = []
+    plan, approved = [], {}
     for item in approve:
         name, version = parse_approval(item)
+        if name in approved:
+            if version is not None and approved[name] not in (None, version):
+                raise Refusal(f"{name}: approved twice with different versions ({approved[name]} and {version})")
+            approved[name] = approved[name] or version
+            continue
+        approved[name] = version
         p = by_name.get(name)
         if p is None:
             raise Refusal(f"{name}: no proposal")
         if p["verdict"] != "propose":
             raise Refusal(f"{name}: verdict is {p['verdict']} ({p['reason']}), not approvable")
+        for field in ("current", "candidate"):
+            if not isinstance(p.get(field), str) or not PLAIN_VERSION.fullmatch(p[field]):
+                raise Refusal(f"{name}: proposal {field} {p.get(field)!r} is not a plain version; nothing written")
         if version is not None and version != p.get("candidate"):
             raise Refusal(f"{name}: approved {version} but the proposal is {p.get('candidate')}")
         plan.append(p)

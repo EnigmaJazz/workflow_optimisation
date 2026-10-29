@@ -91,6 +91,41 @@ class ApplyTests(Case):
             self.apply(["a"])
 
 
+class InputValidationTests(Case):
+    def write_pending(self, candidate, current="1.0.0"):
+        doc = proposals()
+        doc["proposals"][0].update({"candidate": candidate, "current": current})
+        self.pending.write_text(json.dumps(doc))
+
+    def test_candidate_with_a_quote_cannot_splice_a_new_entry(self):
+        self.write_pending('1.0.1", "evil@9.9.9')
+        with self.assertRaises(pp.Refusal) as ctx:
+            self.apply(["a"])
+        self.assertIn("plain version", str(ctx.exception))
+        self.assertEqual((self.cfg / "opencode.json").read_text(), SERVER)
+
+    def test_non_semver_candidates_are_refused(self):
+        for bad in ("latest", "1.0", "v1.0.1", "1.0.1 ", "1.0.1\n", "../x", ""):
+            self.write_pending(bad)
+            with self.assertRaises(pp.Refusal, msg=repr(bad)):
+                self.apply(["a"])
+
+    def test_prerelease_and_build_versions_are_plain_versions(self):
+        self.write_pending("1.0.1-rc.1+build.5")
+        self.apply(["a"])
+        self.assertIn('"a@1.0.1-rc.1+build.5"', (self.cfg / "opencode.json").read_text())
+
+    def test_the_same_name_approved_twice_is_applied_once(self):
+        out = self.apply(["a", "a", "a=1.0.1"])
+        self.assertEqual(out, [("opencode.json", "a", "1.0.0", "1.0.1"), ("tui.json", "a", "1.0.0", "1.0.1")])
+        self.assertIn("a@1.0.1", (self.cfg / "opencode.json").read_text())
+
+    def test_conflicting_versions_for_one_name_are_refused(self):
+        with self.assertRaises(pp.Refusal):
+            self.apply(["a=1.0.1", "a=1.0.2"])
+        self.assertEqual((self.cfg / "opencode.json").read_text(), SERVER)
+
+
 class HardeningTests(Case):
     def test_partial_write_failure_rolls_back_both_files(self):
         real = pp.os.replace
