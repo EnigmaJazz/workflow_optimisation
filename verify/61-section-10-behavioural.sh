@@ -14,14 +14,14 @@ else
     (
       cd "$PROBE_CWD" || exit 1
       WORKFLOW_HEALTH_CHECK_PROBE=1 \
-      timeout 180s opencode run --format json --agent gentle-orchestrator "$PARALLEL_PROMPT" \
+      timeout 180s bash "$OC_PROBE" run --format json --agent gentle-orchestrator "$PARALLEL_PROMPT" \
         >"$PARALLEL_EVENTS" 2>"$PARALLEL_STDERR"
     ) || PARALLEL_STATUS=$?
   else
     (
       cd "$PROBE_CWD" || exit 1
       WORKFLOW_HEALTH_CHECK_PROBE=1 \
-      opencode run --format json --agent gentle-orchestrator "$PARALLEL_PROMPT" \
+      bash "$OC_PROBE" run --format json --agent gentle-orchestrator "$PARALLEL_PROMPT" \
         >"$PARALLEL_EVENTS" 2>"$PARALLEL_STDERR"
     ) || PARALLEL_STATUS=$?
   fi
@@ -60,7 +60,7 @@ else
   ODD_STATUS=0
   (
     cd "$PROBE_CWD" || exit 1
-    WORKFLOW_HEALTH_CHECK_PROBE=1 timeout 120s opencode run --format json --agent gentle-orchestrator "$ODD_PROMPT" >"$ODD_EVENTS" 2>"$ODD_STDERR"
+    WORKFLOW_HEALTH_CHECK_PROBE=1 timeout 120s bash "$OC_PROBE" run --format json --agent gentle-orchestrator "$ODD_PROMPT" >"$ODD_EVENTS" 2>"$ODD_STDERR"
   ) || ODD_STATUS=$?
   if [ "$ODD_STATUS" -ne 0 ]; then
     fail "ODD_READ_ONLY_PROBE_FAILED: opencode run exited $ODD_STATUS"

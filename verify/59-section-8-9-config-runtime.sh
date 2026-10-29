@@ -41,7 +41,7 @@ else
     cd "$AGENT_PROBE_CWD" || exit 1
     WORKFLOW_HEALTH_CHECK_PROBE=1 \
     SYSTEMATIC_ROUTING_GUARD_MODE=off \
-    timeout 45s opencode agent list >"$AGENT_LIST_OUT" 2>"$AGENT_LIST_STDERR"
+    timeout 45s bash "$OC_PROBE" agent list >"$AGENT_LIST_OUT" 2>"$AGENT_LIST_STDERR"
   ) || LIST_STATUS=$?
 
   if [ "$LIST_STATUS" -ne 0 ]; then
@@ -121,7 +121,7 @@ else
         status=0
         WORKFLOW_HEALTH_CHECK_PROBE=1 \
         SYSTEMATIC_ROUTING_GUARD_MODE=off \
-        timeout 15s opencode debug agent "$name" \
+        timeout 15s bash "$OC_PROBE" debug agent "$name" \
           >"$DEBUG_AGENT_DIR/$name.json" 2>"$DEBUG_AGENT_DIR/$name.stderr" || status=$?
         printf '%s\n' "$status" >"$DEBUG_AGENT_DIR/$name.status"
       ) &
