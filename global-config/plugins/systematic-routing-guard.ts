@@ -804,7 +804,11 @@ function writtenPaths(tool: string, args: Record<string, unknown> | undefined): 
   }
 }
 
-export const SystematicRoutingGuardPlugin: Plugin = async () => {
+/**
+ * Host-neutral guard core. Both OpenCode adapters (V1 hooks below, a V2 adapter later) drive the same
+ * state and decisions through these methods; nothing in here depends on a plugin API shape.
+ */
+async function createGuardCore() {
   console.warn("[systematic-routing-guard] factory entered")
   const mode = guardMode()
   if (!reportedRegistration) {
@@ -924,33 +928,26 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
   }
 
   return {
-    /**
-     * Q75 tiny-fix: session creation adds a parent-linked candidate but does not grant a permit.
-     * The candidate is granted only after chat.message reports the expected writer agent. This
-     * in-memory map is needed before child writes because the task-result hook runs too late.
-     */
-    event: async ({ event }) => {
-      if (event.type === "session.created") {
-        const info = (event as { properties?: { info?: { id?: unknown; parentID?: unknown } } }).properties?.info
-        if (typeof info?.id === "string") {
-          if (typeof info.parentID === "string") {
-            childSessions.add(info.id)
-            registerTinyFixChild(info.id, info.parentID)
-          } else {
-            childSessions.delete(info.id)
-          }
-        }
-      } else if (event.type === "session.deleted") {
-        const info = (event as { properties?: { info?: { id?: unknown } } }).properties?.info
-        if (typeof info?.id === "string") {
-          tinyFixChildPermits.delete(info.id)
-          tinyFixPendingParents.delete(info.id)
-          tinyFixCandidates.delete(info.id)
-          for (const [child, candidate] of tinyFixCandidates) {
-            if (candidate.parentSessionID === info.id) tinyFixCandidates.delete(child)
-          }
+    sessionCreated(info: { id?: unknown; parentID?: unknown } | undefined): void {
+      if (typeof info?.id === "string") {
+        if (typeof info.parentID === "string") {
+          childSessions.add(info.id)
+          registerTinyFixChild(info.id, info.parentID)
+        } else {
           childSessions.delete(info.id)
         }
+      }
+    },
+
+    sessionDeleted(info: { id?: unknown } | undefined): void {
+      if (typeof info?.id === "string") {
+        tinyFixChildPermits.delete(info.id)
+        tinyFixPendingParents.delete(info.id)
+        tinyFixCandidates.delete(info.id)
+        for (const [child, candidate] of tinyFixCandidates) {
+          if (candidate.parentSessionID === info.id) tinyFixCandidates.delete(child)
+        }
+        childSessions.delete(info.id)
       }
     },
 
@@ -958,28 +955,27 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
      * A new user message starts a new routing turn. State is kept per session,
      * so subagent sessions cannot clear or contaminate their parent's state.
      */
-    "chat.message": async (input) => {
+    async message(sessionID: string, agent: unknown): Promise<void> {
       if (observeAgentHooks) {
-        const observedAgent = typeof input.agent === "string" && input.agent.length > 0
-          ? encodeObservationField(input.agent)
+        const observedAgent = typeof agent === "string" && agent.length > 0
+          ? encodeObservationField(agent)
           : "none"
         await appendRoutingLog(
-          `[systematic-routing-guard] TEMP agent-hook hook=chat.message session=${encodeObservationField(input.sessionID)} agent=${observedAgent} child=${childSessions.has(input.sessionID)}`,
+          `[systematic-routing-guard] TEMP agent-hook hook=chat.message session=${encodeObservationField(sessionID)} agent=${observedAgent} child=${childSessions.has(sessionID)}`,
         )
       }
-      activeBySession.delete(input.sessionID)
-      lastKeyRefreshBySession.delete(input.sessionID)
+      activeBySession.delete(sessionID)
+      lastKeyRefreshBySession.delete(sessionID)
       // The guard observes the message agent here; it is the latest observed value, not an
       // authenticated session identity. A matching candidate consumes the tiny-fix permit.
-      matchTinyFixCandidate(input.sessionID, input.agent)
-      await boxed(persistLatestMessageAgent(input.sessionID, input.agent))
+      matchTinyFixCandidate(sessionID, agent)
+      await boxed(persistLatestMessageAgent(sessionID, agent))
     },
 
-    "tool.execute.before": async (input, output) => {
+    async beforeTool(sessionID: string, tool: string, args: Record<string, unknown> | undefined): Promise<void> {
       // Refresh before the status check: it must see the refreshed key.
-      await boxed(refreshWorkflowKeyActivity(input.sessionID, lastKeyRefreshBySession))
-      const args = output.args as Record<string, unknown> | undefined
-      const paths = writtenPaths(input.tool, args)
+      await boxed(refreshWorkflowKeyActivity(sessionID, lastKeyRefreshBySession))
+      const paths = writtenPaths(tool, args)
       const stagesWritten: Array<{ route: string; stage: RouteStage }> = []
       for (const [route, stages] of Object.entries(ROUTE_STAGES)) {
         for (const stage of stages) {
@@ -987,7 +983,7 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
         }
       }
       if (stagesWritten.length > 0) {
-        const directory = routingKeySessionDirectory(input.sessionID)
+        const directory = routingKeySessionDirectory(sessionID)
         if (directory) {
           await boxed(
             mkdir(directory, { recursive: true }).then(() => Promise.all(stagesWritten.map(({ route, stage }) =>
@@ -996,14 +992,14 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
           )
         }
       }
-      if (mode !== "off" && isRoutingGateTool(input.tool) && !isRoutingGateDisabled()) {
-        const activeWorkflow = getActiveWorkflow(activeBySession, input.sessionID)
-        const keyStatus = await getWorkflowKeyStatus(input.sessionID)
-        const keyStatusLogKey = `${input.sessionID}\u0000${keyStatus}`
+      if (mode !== "off" && isRoutingGateTool(tool) && !isRoutingGateDisabled()) {
+        const activeWorkflow = getActiveWorkflow(activeBySession, sessionID)
+        const keyStatus = await getWorkflowKeyStatus(sessionID)
+        const keyStatusLogKey = `${sessionID}\u0000${keyStatus}`
         if (!reportedKeyStatuses.has(keyStatusLogKey)) {
           reportedKeyStatuses.add(keyStatusLogKey)
           try {
-            await logObservedLine(`[systematic-routing-guard] workflow key status=${keyStatus} (session: ${input.sessionID})`)
+            await logObservedLine(`[systematic-routing-guard] workflow key status=${keyStatus} (session: ${sessionID})`)
           } catch {
             // Key-status observability must never affect a tool call.
           }
@@ -1015,7 +1011,7 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
               : "workflow key status: expired (workflow key expired)",
             activeWorkflow ? "in-memory activation present (context only)" : "in-memory activation absent (context only)",
           ]
-          await warn(input.tool, input.sessionID, failures.join("; "))
+          await warn(tool, sessionID, failures.join("; "))
           // Future block behavior could throw here; this rollout is warning-only.
         }
 
@@ -1023,33 +1019,33 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
         // host_review_* call. The binding is the persisted latest observed message agent, never
         // input.agent/output.agent. Own-directory validation only: an inherited or unrelated
         // adapter key does not satisfy it. Warning-only, exactly like the key gate above.
-        const boundAgent = await readLatestMessageAgent(input.sessionID)
+        const boundAgent = await readLatestMessageAgent(sessionID)
         const requiredPmSkill = boundAgent ? pmRequiredRouteSkill(boundAgent) : null
         if (
           requiredPmSkill &&
-          (HOST_MUTATION_GATE_TOOLS.has(input.tool) || input.tool.startsWith("host_review_"))
+          (HOST_MUTATION_GATE_TOOLS.has(tool) || tool.startsWith("host_review_"))
         ) {
-          const ownStatus = await getOwnWorkflowKeyStatus(input.sessionID, requiredPmSkill)
+          const ownStatus = await getOwnWorkflowKeyStatus(sessionID, requiredPmSkill)
           if (ownStatus !== "valid") {
             await warn(
-              input.tool,
-              input.sessionID,
-              `${boundAgent} requires its own ${requiredPmSkill} route key before ${input.tool} (PM session key status: ${ownStatus})`,
+              tool,
+              sessionID,
+              `${boundAgent} requires its own ${requiredPmSkill} route key before ${tool} (PM session key status: ${ownStatus})`,
             )
           }
         }
 
-        if (input.tool === "host_review_start") {
+        if (tool === "host_review_start") {
           try {
-            if ((await getWorkflowKeyStatus(input.sessionID, "workflow-systematic")) === "valid") {
+            if ((await getWorkflowKeyStatus(sessionID, "workflow-systematic")) === "valid") {
               const reviewStage = ROUTE_STAGES["workflow-systematic"].find((stage) => stage.id === "review")
               if (
                 reviewStage &&
-                !(await hasRouteStageArtifactInAncestorChain(input.sessionID, "workflow-systematic", reviewStage))
+                !(await hasRouteStageArtifactInAncestorChain(sessionID, "workflow-systematic", reviewStage))
               ) {
                 await warn(
-                  input.tool,
-                  input.sessionID,
+                  tool,
+                  sessionID,
                   `workflow-systematic review started before ${reviewStage.id} stage artifact exists`,
                 )
               }
@@ -1061,21 +1057,21 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
 
         // The guard is project-blind: in a multi-project session, a marker cannot satisfy a stage for the other project. A true fix needs a verified session-project source.
         // A tiny-fix child session is exempt from the bootstrap stage gate for its own writes.
-        if (FILE_MUTATING_TOOLS.has(input.tool) && paths && paths.length > 0 && tinyFixPermitsSession(input.sessionID) && hasExecutableFileTripwire(paths, args)) {
-          await warn(input.tool, input.sessionID, `tiny-fix executable-file tripwire: ${paths.join(", ")} must escalate before apply`)
+        if (FILE_MUTATING_TOOLS.has(tool) && paths && paths.length > 0 && tinyFixPermitsSession(sessionID) && hasExecutableFileTripwire(paths, args)) {
+          await warn(tool, sessionID, `tiny-fix executable-file tripwire: ${paths.join(", ")} must escalate before apply`)
         }
-        if (FILE_MUTATING_TOOLS.has(input.tool) && paths && paths.length > 0 && !tinyFixPermitsSession(input.sessionID)) {
+        if (FILE_MUTATING_TOOLS.has(tool) && paths && paths.length > 0 && !tinyFixPermitsSession(sessionID)) {
           for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
             if (routeSkill !== "workflow-odd-secure") continue
-            if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
+            if ((await getWorkflowKeyStatus(sessionID, routeSkill)) !== "valid") continue
             for (const stage of stages) {
               if (!stage.allowsSpecialists) continue
               // A call that writes the stage artifact itself counts as writing it.
               if (paths.some((path) => stage.artifactPattern?.test(path))) continue
-              if (await hasRouteStageArtifactInAncestorChain(input.sessionID, routeSkill, stage)) continue
+              if (await hasRouteStageArtifactInAncestorChain(sessionID, routeSkill, stage)) continue
               await warn(
-                input.tool,
-                input.sessionID,
+                tool,
+                sessionID,
                 `${routeSkill} bootstrap: write to ${paths.join(", ")} before ${stage.id} stage artifact exists`,
               )
             }
@@ -1083,7 +1079,7 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
         }
       }
 
-      if (input.tool !== "task" || !args) return
+      if (tool !== "task" || !args) return
 
       // Q72 tiny-fix: recognize only the exact first description token, a supported Task-schema
       // field; ordinary descriptions that mention a tiny fix do not arm the permit.
@@ -1128,50 +1124,50 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
       // skip every stage gate for that dispatch. A marker on a non-writer target arms nothing.
       if (isWriterDispatch && tinyFix) {
         if (dispatchedType) {
-          tinyFixPendingParents.set(input.sessionID, { expectedAgent: dispatchedType, expiry: Date.now() + TINY_FIX_PERMIT_TTL_MS })
+          tinyFixPendingParents.set(sessionID, { expectedAgent: dispatchedType, expiry: Date.now() + TINY_FIX_PERMIT_TTL_MS })
         }
-        await logObservedLine(`[systematic-routing-guard] tiny-fix permit consumed (session: ${input.sessionID}, target: ${dispatchedType})`)
+        await logObservedLine(`[systematic-routing-guard] tiny-fix permit consumed (session: ${sessionID}, target: ${dispatchedType})`)
       }
 
       if (mode !== "off" && isWriterDispatch && !tinyFix) {
         try {
-          const boundAgent = await readLatestMessageAgent(input.sessionID)
+          const boundAgent = await readLatestMessageAgent(sessionID)
           if (
             boundAgent === "gentle-orchestrator" &&
-            (await getWorkflowKeyStatus(input.sessionID)) === "valid"
+            (await getWorkflowKeyStatus(sessionID)) === "valid"
           ) {
             await warn(
               "task",
-              input.sessionID,
+              sessionID,
               `orchestrator dispatched writing specialist ${dispatchedType}; orchestrator must delegate through the route coordinator`,
             )
           }
 
           for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
-            if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
+            if ((await getWorkflowKeyStatus(sessionID, routeSkill)) !== "valid") continue
             const adviceStage = stages.find((stage) => stage.id === "advice")
             if (
               adviceStage &&
-              !(await hasRouteStageArtifactInAncestorChain(input.sessionID, routeSkill, adviceStage))
+              !(await hasRouteStageArtifactInAncestorChain(sessionID, routeSkill, adviceStage))
             ) {
               await warn(
                 "task",
-                input.sessionID,
+                sessionID,
                 `${routeSkill} specialist ${dispatchedType} dispatched before advice record odd/advice/<change>.md exists`,
               )
             }
             for (const stage of stages) {
               if (!stage.allowsSpecialists) continue
-              if (!(await hasRouteStageArtifactInAncestorChain(input.sessionID, routeSkill, stage))) {
+              if (!(await hasRouteStageArtifactInAncestorChain(sessionID, routeSkill, stage))) {
                 await warn(
                   "task",
-                  input.sessionID,
+                  sessionID,
                   `${routeSkill} specialist ${dispatchedType} dispatched before ${stage.id} stage artifact exists`,
                 )
               } else if (!stage.allowsSpecialists.includes(dispatchedType)) {
                 await warn(
                   "task",
-                  input.sessionID,
+                  sessionID,
                   `${routeSkill} specialist ${dispatchedType} is not allowed at ${stage.id} stage`,
                 )
               }
@@ -1185,7 +1181,7 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
       if (mode === "off") return
       if (args.subagent_type !== "general" && args.subagent_type !== "explore") return
 
-      const state = getActiveWorkflow(activeBySession, input.sessionID)
+      const state = getActiveWorkflow(activeBySession, sessionID)
       if (!state) return
 
       const kind = classifyTask(args)
@@ -1209,19 +1205,19 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
      * dispatch-shaped syntax for extra target hints; ordinary qualified persona
      * references are left untouched.
      */
-    "tool.execute.after": async (input, output) => {
-      if (input.tool === "task") {
+    async afterTool(sessionID: string, tool: string, args: Record<string, unknown> | undefined, output: unknown): Promise<void> {
+      if (tool === "task") {
         try {
-          const result = typeof output.output === "string" ? output.output : JSON.stringify(output.output ?? "")
+          const result = typeof output === "string" ? output : JSON.stringify(output ?? "")
           const childSessionID = result.match(/id="(ses_[A-Za-z0-9]+)"/)?.[1]
-          if (!childSessionID || childSessionID === input.sessionID) return
+          if (!childSessionID || childSessionID === sessionID) return
           const directory = routingKeySessionDirectory(childSessionID)
           if (!directory) return
           await boxed((async () => {
             await mkdir(directory, { recursive: true })
-            await taskWriteFile(join(directory, ".parent"), input.sessionID, "utf8")
+            await taskWriteFile(join(directory, ".parent"), sessionID, "utf8")
             try {
-              const parentDirectory = routingKeySessionDirectory(input.sessionID)
+              const parentDirectory = routingKeySessionDirectory(sessionID)
               if (parentDirectory) {
                 await mkdir(parentDirectory, { recursive: true })
                 const childEntries = await readdir(directory, { withFileTypes: true })
@@ -1252,7 +1248,7 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
             const mintedAt = Date.now()
             await taskWriteFile(
               join(directory, "inherited.key"),
-              JSON.stringify({ inherited_from: input.sessionID, minted_at: mintedAt, last_active: mintedAt }),
+              JSON.stringify({ inherited_from: sessionID, minted_at: mintedAt, last_active: mintedAt }),
               "utf8",
             )
           })())
@@ -1261,8 +1257,7 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
         }
         return
       }
-      if (input.tool !== "systematic_skill" && input.tool !== "skill") return
-      const args = ((output.args ?? input.args) as Record<string, unknown> | undefined)
+      if (tool !== "systematic_skill" && tool !== "skill") return
       const rawName = args?.name
       if (typeof rawName === "string") {
         const sanitizedName = skillMarkerName(rawName)
@@ -1273,13 +1268,13 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
         ) {
           try {
             for (const [routeSkill, stages] of Object.entries(ROUTE_STAGES)) {
-              if ((await getWorkflowKeyStatus(input.sessionID, routeSkill)) !== "valid") continue
+              if ((await getWorkflowKeyStatus(sessionID, routeSkill)) !== "valid") continue
               for (const stage of stages) {
                 if (!stage.gatesSkillLoads?.includes(sanitizedName)) continue
-                if (await hasRouteStageArtifactInAncestorChain(input.sessionID, routeSkill, stage)) continue
+                if (await hasRouteStageArtifactInAncestorChain(sessionID, routeSkill, stage)) continue
                 await warn(
-                  input.tool,
-                  input.sessionID,
+                  tool,
+                  sessionID,
                   `${routeSkill} skill ${sanitizedName} loaded before ${stage.id} stage artifact exists`,
                 )
               }
@@ -1288,7 +1283,7 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
             // Skill-stage observation must never block or fail a tool call.
           }
         }
-        const directory = routingKeySessionDirectory(input.sessionID)
+        const directory = routingKeySessionDirectory(sessionID)
         if (directory) {
           await boxed(
             mkdir(directory, { recursive: true })
@@ -1296,18 +1291,18 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
           )
         }
       }
-      const content = typeof output.output === "string" ? output.output : ""
+      const content = typeof output === "string" ? output : ""
       activateWorkflow(
         activeBySession,
-        input.sessionID,
+        sessionID,
         rawName,
-        input.tool === "systematic_skill" ? "systematic_skill" : "skill",
+        tool === "systematic_skill" ? "systematic_skill" : "skill",
         content,
       )
       const loadedSkillName = canonicalSkillName(rawName)
-      const activeWorkflow = getActiveWorkflow(activeBySession, input.sessionID)
+      const activeWorkflow = getActiveWorkflow(activeBySession, sessionID)
       if (loadedSkillName?.startsWith("workflow-")) {
-        await boxed(mintWorkflowKey(input.sessionID, loadedSkillName, activeWorkflow ? [...activeWorkflow.targets] : []))
+        await boxed(mintWorkflowKey(sessionID, loadedSkillName, activeWorkflow ? [...activeWorkflow.targets] : []))
       }
     },
 
@@ -1315,10 +1310,35 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
      * Slash-command execution may bypass an explicit systematic_skill() tool
      * call, so activate the same guard from the rendered command body.
      */
-    "command.execute.before": async (input, output) => {
-      const content = extractTextParts(output.parts)
-      activateWorkflow(activeBySession, input.sessionID, input.command, "command", content)
+    command(sessionID: string, command: string, parts: unknown): void {
+      const content = extractTextParts(parts)
+      activateWorkflow(activeBySession, sessionID, command, "command", content)
     },
+  }
+}
+
+/** OpenCode V1 adapter: maps the V1 hook payloads onto the core. */
+export const SystematicRoutingGuardPlugin: Plugin = async () => {
+  const core = await createGuardCore()
+  return {
+    event: async ({ event }) => {
+      if (event.type === "session.created") {
+        core.sessionCreated((event as { properties?: { info?: { id?: unknown; parentID?: unknown } } }).properties?.info)
+      } else if (event.type === "session.deleted") {
+        core.sessionDeleted((event as { properties?: { info?: { id?: unknown } } }).properties?.info)
+      }
+    },
+    "chat.message": async (input) => core.message(input.sessionID, input.agent),
+    "tool.execute.before": async (input, output) =>
+      core.beforeTool(input.sessionID, input.tool, output.args as Record<string, unknown> | undefined),
+    "tool.execute.after": async (input, output) =>
+      core.afterTool(
+        input.sessionID,
+        input.tool,
+        (output.args ?? input.args) as Record<string, unknown> | undefined,
+        output.output,
+      ),
+    "command.execute.before": async (input, output) => core.command(input.sessionID, input.command, output.parts),
   }
 }
 
