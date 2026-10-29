@@ -21,9 +21,10 @@ the advisory role.
 - [x] T2 runner, dual-mode entry, old apply path removed (S1, S5, S6): fork commit `1ffc20e`.
   35 tests pass, typecheck and build clean; real-data run on a scratch copy of the live config
   proposed Systematic 3.26.0 -> 3.27.0 and Magic Context 0.49.20 -> 0.49.28.
-- [ ] T3 verifier consumes `pending-updates.json` (apply approved bumps through `global-config/`)
-  and A5 retires the old build from the config. Not started; touches `verify-workflow.sh` and the
-  digest pin.
+- [x] T3a consumer: `scripts/plugin_pins.py` (report/apply, edits only `global-config/`), `tests/test_plugin_pins_apply.py` 12 tests; verifier untouched so no digest re-pin. Queue entry Q93.
+- [ ] T3b (deferred, needs a digest re-pin): verifier advisory line for pending proposals.
+- [ ] A5 (revised): deploy the propose-only build at the reviewed path; owner restarts OpenCode.
+  Blocked on T4.
 - [ ] T4 load check on a real V1 host and, after the V2 probe, on V2. NOT DONE.
 
 ## Log

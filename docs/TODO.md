@@ -35,7 +35,8 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   READY and PLANNED items in listed order (Q11, Q13, Q15-Q23).
 - **Phase 4, gentle-ai v4 upgrade (owner-triggered):** Q29, then Q30-Q33 and Q35-Q39 delivered as
   the Q36 change set, then Q34, plus Q65 and Q66. Q49 runs throughout.
-- **Phase 5, OpenCode V2 upgrade (owner-triggered, after Phase 4):** Q40-Q47.
+- **Phase 5, OpenCode V2 upgrade (owner-triggered, after Phase 4):** Q40-Q47, plus Q93 (V1-safe
+  auto-update prep).
 - **Project-manager layer (owner, 2026-10-04; runs alongside Phases 2 and 3):** Q53 and Q54 are
   complete as reports. Removal check (c) PASSED by a failed `pm-probe` Task dispatch. Checks (a)
   and (b) are PARTIALLY PASSED: permitted-operation broker authorization and the installed
@@ -2137,6 +2138,25 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - Reports rebase conflicts and conflict-skipped operations, and changes nothing.
   - Run it after each merged work unit that touches `global-config/`, `WORKFLOW.md`, skills or
     the verifier.
+
+### Q93. Auto-update propose-only rewrite and pin consumer (V1-safe; prepares Q43)
+- **Status:** IN PROGRESS. Fork rewrite DONE at source (fork commits `ff03f85`, `1ffc20e` on
+  `feat/propose-only`; tracker `odd/tasks/auto-update-propose-only.md`). Consumer
+  `scripts/plugin_pins.py` DONE at source. NOT DEPLOYED: the live fork `dist/` is still the old
+  apply-mode build; T4 (load check on a real V1 host, restart is the owner's action) is open.
+- **Prerequisites:** none for the consumer; the V2 load check waits on Q41.
+- **Source:** owner, 2026-10-28/29 (`~/ai-workspace/OPENCODE-V2-UPGRADE-PLAN.md` section 9).
+- **Description:**
+  - The plugin only proposes pin updates (`pending-updates.json`, host-compatibility gate); it no
+    longer installs packages or rewrites `opencode.json`/`tui.json`.
+  - `scripts/plugin_pins.py report|apply --approve NAME[=VERSION]` is the human-approved apply
+    step: it edits only `global-config/`; the verifier mirrors the reviewed source. The verifier
+    itself is unchanged (no digest re-pin).
+  - Original A5 ("retire auto-update") is superseded: the old build is replaced by deploying the
+    propose-only build at the same reviewed path; removal from the V2 `plugins` list belongs to
+    Q43. Until the new build is deployed the old build still rewrites live pins.
+  - Open: show peer incompatibility for unpinned entries; a verifier advisory line for pending
+    proposals (needs a digest re-pin, deliberately deferred).
 
 ## Done
 
