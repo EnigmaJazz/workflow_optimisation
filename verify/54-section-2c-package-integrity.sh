@@ -1,7 +1,7 @@
 # --- 2c. Incomplete plugin package directories (interrupted installs) ---
 echo "--- 2c. Plugin package integrity ---"
 if [ "${OC_MAJOR:-0}" = "2" ]; then
-  echo "   skipped on V2: the integrity helper audits V1's auto-update cache and lock; V2 installs are checked in sections 2 and 2b"
+  echo "   skipped on V2: the integrity helper audits V1's auto-update cache and lock; V2 installs are checked in sections 2 and 2b, including their entry file"
 else
 if [ ! -f "$PLUGIN_CACHE_INTEGRITY_HELPER" ]; then
   fail "PLUGIN_PACKAGE_INTEGRITY_HELPER_MISSING: $PLUGIN_CACHE_INTEGRITY_HELPER"

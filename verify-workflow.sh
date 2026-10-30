@@ -97,12 +97,12 @@ VERIFY_MODULES=(
   "42-checker-runtime-agents.sh e3ab3706ce136917b46df9bc73a338dc00e4e0aaf809bf834ef8ac6e5ba4a8be"
   "50-section-0-recover.sh 75bbc6d3f0d771822b6ad14d73b42346f6eeab102a14addff6e12ce7477e7ee6"
   "51-section-1-gentle-ai.sh 6f125ca157c9b14033749cb4f68c989551230a5d22f5f4a2d1d538704924c7f5"
-  "52-section-2-systematic-install.sh d094a019efc7b61890803dc577d282120ed306dd22b20dc0bc206db9d7527065"
-  "53-section-2b-magic-context.sh 9bb3fe46028e80c1d72b6fd7e6adf976ca79b3c507722bb7b6d97713a5c93cb5"
-  "54-section-2c-package-integrity.sh a736281b58c2505d5691b2f1d7d14c53edc17cbc8869c5bd7d07e498343c485c"
+  "52-section-2-systematic-install.sh 0e28347f1bf988336beb31012c6fa1816dfb43e9561d266858575a84df1e96eb"
+  "53-section-2b-magic-context.sh 1f6b26b6f947977452c31f98bc75edb46f226108e918880520e9f1e0568f7070"
+  "54-section-2c-package-integrity.sh 13e85a3e148e396604f0c525830fb5ae7a80291e3c349488f60f68a5647ea165"
   "55-section-3-skills.sh 9d7ff4416ae7a1c8565258a60e1b3e284217e02063daa8a3b35973f54854933f"
   "56-section-4-5-agents-registry.sh 2b66b463ddd9942fba8c065fa7e94689217add64a39a717f62547424d68951f8"
-  "57-section-6-plugin-mirrors.sh 8e0beeaf7f5c96a52d902f11546273c35619d63df6dabe1a0ebd72d954648bae"
+  "57-section-6-plugin-mirrors.sh cb7dbcea161e3e4c862ea4c3b5bd1b182419fb2d1ecca4aa2155345eb009ac33"
   "58-section-7-recipe.sh 9f02d1b88bd2dd08ee2aacf1f8619f2c149dcc383b66a4ed6f808da74f4e8502"
   "59-section-8-9-config-runtime.sh 7fe40ea35887ee61f25d65177b43c5c287cf406e1709ceed220a331fb1957f4c"
   "60-section-9a-9b-secure-service.sh 1f89acd7ba903442f6fc027e1b3fe44cc049984fb37ca481e04e6c8ad2995903"
@@ -116,7 +116,8 @@ VERIFY_MODULES=(
   "checkers/routing-canonical.md 23c0c9ab507e96b04966a4e1e2b5419771859dfd87eef1efb2d3191e52c559e4"
   "checkers/v2-agents-shim.cjs ac216f6f36b7d746807a20b1a588dfe0caa4d932590d776e6e552ecef890bbb5"
   "checkers/v2-config-check.py fe1739a16d7d98958bc1a1305cdfbc6286edbc48a6c79cb792b4b939594b8698"
-  "checkers/v2-plugin-resolve.py 20002facbb3612251bc82083ef68df8b7f43d10f5a938c525d024249eb67fece"
+  "checkers/v2-plugin-resolve.py fde29cdd4c04e40b2422d993ada0238fa60ccdcc11a2301bf75c9dedaeec2051"
+  "checkers/v2-sandbox-plugins-check.py 5f515045a91faad0f6fe8d6783b39536c2fcb52de2f3d23bd1efb016c33ea1c0"
 )
 # END VERIFY_MODULES
 

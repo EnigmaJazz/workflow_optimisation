@@ -7,10 +7,11 @@ if [ "${OC_MAJOR:-0}" = "2" ]; then
   V2_SYSTEMATIC=$(python3 "$VERIFY_MODULE_DIR/checkers/v2-plugin-resolve.py" "$V2_CONFIG_ROOT/opencode.json" "$V2_NPM_CACHE" "@fro.bot/systematic" 2>&1)
   case "$V2_SYSTEMATIC" in
     ok$'\t'*)
-      IFS=$'\t' read -r _ V2_ROOT VERSION SYSTEMATIC_PLUGIN_SPEC <<< "$V2_SYSTEMATIC"
+      IFS=$'\t' read -r _ V2_ROOT VERSION SYSTEMATIC_PLUGIN_SPEC V2_NOTE <<< "$V2_SYSTEMATIC"
       echo "   configured: $SYSTEMATIC_PLUGIN_SPEC"
       echo "   resolved cache: $V2_ROOT"
       echo "   version: $VERSION"
+      [ -n "$V2_NOTE" ] && echo "   info: $V2_NOTE"
       if [ ! -d "$V2_ROOT/skills" ] || [ ! -d "$V2_ROOT/agents" ]; then
         fail "SYSTEMATIC_V2_INSTALL_INCOMPLETE: $V2_ROOT has no skills or agents directory"
       elif [ "$(printf '%s\n' "3.18.4" "$VERSION" | sort -V | head -n 1)" != "3.18.4" ]; then

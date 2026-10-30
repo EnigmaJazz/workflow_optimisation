@@ -1,7 +1,8 @@
 """Resolve one plugin package from the OpenCode V2 npm cache and check it against its configured range (queue Q44).
 
 usage: v2-plugin-resolve.py <v2-opencode.json> <v2-npm-cache> <package-name>
-Prints one line: ok <TAB> root <TAB> version <TAB> spec  |  error <TAB> detail.
+Prints one line: ok <TAB> root <TAB> version <TAB> spec <TAB> note  |  error <TAB> detail. `note` is empty unless a newer,
+incomplete install had to be skipped for an older complete one in the same range.
 
 V2 lists plugins under `plugins` with `~x.y.z` patch ranges and installs each into
 <cache>/<scope>/<name>@<spec>/<epoch-ms>/node_modules/<scope>/<name>. The newest epoch directory is the one V2 loads. Read-only."""
@@ -27,7 +28,9 @@ def satisfies(version, spec_range):
         return False
     if op == "~":
         return got[:2] == want[:2]
-    return got[0] == want[0] if want[0] > 0 else got[:2] == want[:2]
+    if want[0] > 0:
+        return got[0] == want[0]
+    return got[:2] == want[:2] if want[1] > 0 else got == want  # ^0.0.x admits only that exact patch
 
 
 def main(argv):
@@ -55,16 +58,31 @@ def main(argv):
     if not epochs:
         print(f"error\t{spec} is not materialized in the V2 cache (expected {package_dir}/<epoch>)")
         return 0
-    root = epochs[0] / "node_modules" / name
-    try:
-        version = str(json.loads((root / "package.json").read_text(encoding="utf-8")).get("version", ""))
-    except (OSError, ValueError):
-        print(f"error\tthe newest cached install of {spec} has no readable package.json: {root}")
+    # Newest first: an install in progress has an epoch directory before its package.json exists, so fall back to the newest
+    # complete, in-range one and say so. A complete install that is out of range is an error, never skipped over.
+    skipped = []
+    for epoch in epochs:
+        root = epoch / "node_modules" / name
+        try:
+            manifest = json.loads((root / "package.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            skipped.append(epoch.name)
+            continue
+        version = str(manifest.get("version", ""))
+        if not version:
+            print(f"error\tthe cached install of {spec} has no version in its package.json: {root}")
+            return 0
+        if not satisfies(version, wanted):
+            print(f"error\t{spec} resolved to {version} at {root}, which is outside the configured range")
+            return 0
+        entry = manifest.get("main")
+        if isinstance(entry, str) and entry and not (root / entry).exists():
+            print(f"error\tthe cached install of {spec} is incomplete: its entry file {entry} is missing in {root}")
+            return 0
+        note = f"skipped incomplete newer install(s): {', '.join(skipped)}" if skipped else ""
+        print(f"ok\t{root}\t{version}\t{spec}\t{note}")
         return 0
-    if not satisfies(version, wanted):
-        print(f"error\t{spec} resolved to {version} at {root}, which is outside the configured range")
-        return 0
-    print(f"ok\t{root}\t{version}\t{spec}")
+    print(f"error\tno complete install of {spec} in the V2 cache (incomplete epochs: {', '.join(skipped)})")
     return 0
 
 

@@ -1,5 +1,6 @@
 """Verifier V2 mode (queue Q44): plugin packages are resolved from the V2 npm cache against their ~/^ ranges."""
 import json
+import os
 import re
 import subprocess
 import sys
@@ -34,12 +35,44 @@ class Resolver(unittest.TestCase):
         install(self.cache, "~3.27.2", 1000, "3.27.2")
         newest = install(self.cache, "~3.27.2", 2000, "3.27.5")
         got = resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)
-        self.assertEqual(got, ["ok", str(newest), "3.27.5", f"{NAME}@~3.27.2"])
+        self.assertEqual(got[:4], ["ok", str(newest), "3.27.5", f"{NAME}@~3.27.2"])  # the empty note is a stripped trailing tab
 
     def test_epochs_compare_numerically_not_alphabetically(self):
         install(self.cache, "~3.27.2", 999, "3.27.2")
         newest = install(self.cache, "~3.27.2", 1000, "3.27.4")
         self.assertEqual(resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)[1], str(newest))
+
+    def test_an_install_in_progress_falls_back_to_the_newest_complete_one_and_says_so(self):
+        complete = install(self.cache, "~3.27.2", 1000, "3.27.2")
+        (self.cache / f"{NAME}@~3.27.2" / "2000" / "node_modules").mkdir(parents=True)  # newer epoch, no package.json yet
+        got = resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)
+        self.assertEqual(got[:3], ["ok", str(complete), "3.27.2"])
+        self.assertIn("2000", got[4])
+
+    def test_only_incomplete_installs_is_an_error(self):
+        (self.cache / f"{NAME}@~3.27.2" / "2000" / "node_modules").mkdir(parents=True)
+        got = resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)
+        self.assertEqual(got[0], "error")
+        self.assertIn("no complete install", got[1])
+
+    def test_a_complete_out_of_range_install_is_never_skipped_for_an_older_one(self):
+        install(self.cache, "~3.27.2", 1000, "3.27.2")
+        install(self.cache, "~3.27.2", 2000, "3.28.0")
+        self.assertIn("outside the configured range", resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)[1])
+
+    def test_a_missing_version_is_a_metadata_error_not_a_range_error(self):
+        root = install(self.cache, "~3.27.2", 1, "3.27.2")
+        (root / "package.json").write_text(json.dumps({"name": NAME}))
+        got = resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)
+        self.assertIn("no version in its package.json", got[1])
+
+    def test_a_declared_entry_file_must_exist(self):
+        root = install(self.cache, "~3.27.2", 1, "3.27.2")
+        (root / "package.json").write_text(json.dumps({"name": NAME, "version": "3.27.2", "main": "dist/index.js"}))
+        self.assertIn("entry file dist/index.js is missing", resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)[1])
+        (root / "dist").mkdir()
+        (root / "dist" / "index.js").write_text("")
+        self.assertEqual(resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)[0], "ok")
 
     def test_the_v1_plugin_key_is_read_too(self):
         install(self.cache, "3.27.2", 1, "3.27.2")
@@ -78,16 +111,104 @@ class Resolver(unittest.TestCase):
         for version, rng, ok in [("3.27.2", "~3.27.2", True), ("3.27.1", "~3.27.2", False), ("3.28.0", "~3.27.2", False),
                                  ("0.49.30", "~0.49.29", True), ("0.50.0", "~0.49.29", False),
                                  ("3.9.0", "^3.2.0", True), ("4.0.0", "^3.2.0", False), ("0.3.5", "^0.3.1", True), ("0.4.0", "^0.3.1", False),
-                                 ("1.2.3", "1.2.3", True), ("1.2.4", "1.2.3", False), ("junk", "~1.0.0", False)]:
+                                 ("1.2.3", "1.2.3", True), ("1.2.4", "1.2.3", False), ("junk", "~1.0.0", False),
+                                 ("0.0.3", "^0.0.3", True), ("0.0.4", "^0.0.3", False)]:
             self.assertEqual(module.satisfies(version, rng), ok, (version, rng))
 
     def test_the_real_cache_resolves_when_present(self):
+        # Opt-in: the default suite must not depend on what happens to be installed on the host.
+        if os.environ.get("WORKFLOW_VERIFY_TEST_LIVE_V2") != "1":
+            self.skipTest("set WORKFLOW_VERIFY_TEST_LIVE_V2=1 to check the live V2 install")
         cache = Path.home() / ".local/share/opencode-v2/cache/opencode/npm"
         config = Path.home() / ".local/share/opencode-v2/config/opencode/opencode.json"
         if not (cache.is_dir() and config.is_file()):
             self.skipTest("no V2 install on this machine")
         out = subprocess.run([sys.executable, str(RESOLVER), str(config), str(cache), NAME], capture_output=True, text=True).stdout
         self.assertTrue(out.startswith("ok\t"), out)
+
+
+class SandboxPlugins(unittest.TestCase):
+    CHECKER = REPO / "verify" / "checkers" / "v2-sandbox-plugins-check.py"
+
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp())
+        self.repo, self.plugins = self.dir / "repo", self.dir / "plugins"
+        (self.repo / "scripts").mkdir(parents=True)
+        (self.repo / "opencode").mkdir()
+        self.plugins.mkdir()
+        (self.repo / "scripts" / "secure-launcher-v2.conf").write_text(
+            'V2_PLUGIN_FILES=(\n  "opencode/a.ts|a.ts"\n  "opencode/lib/b.ts|lib/b.ts"\n)\n')
+        (self.repo / "opencode" / "lib").mkdir()
+        for rel in ("a.ts", "lib/b.ts"):
+            (self.repo / "opencode" / rel).write_text("same")
+            (self.plugins / rel).parent.mkdir(exist_ok=True)
+            (self.plugins / rel).write_text("same")
+
+    def run_checker(self):
+        return subprocess.run([sys.executable, str(self.CHECKER), str(self.repo), str(self.plugins)], capture_output=True, text=True).stdout.strip()
+
+    def test_matching_files_are_clean(self):
+        self.assertTrue(self.run_checker().startswith("clean\tall 2 sandbox plugin files match"))
+
+    def test_a_drifted_missing_or_sourceless_file_is_an_error(self):
+        (self.plugins / "a.ts").write_text("changed")
+        self.assertIn("1 differ from source (a.ts)", self.run_checker())
+        (self.plugins / "lib" / "b.ts").unlink()
+        out = self.run_checker()
+        self.assertIn("1 not installed (lib/b.ts)", out)
+        self.assertIn("install-user-files-v2", out)
+        (self.repo / "opencode" / "a.ts").unlink()
+        self.assertIn("source opencode/a.ts is missing", self.run_checker())
+
+    def test_an_unreadable_or_empty_list_is_an_error_not_a_pass(self):
+        (self.repo / "scripts" / "secure-launcher-v2.conf").write_text("V2_PLUGIN_FILES=(\n)\n")
+        self.assertIn("no V2_PLUGIN_FILES entries", self.run_checker())
+        (self.repo / "scripts" / "secure-launcher-v2.conf").unlink()
+        self.assertTrue(self.run_checker().startswith("error\tcannot read"))
+
+    def test_the_real_install_list_parses(self):
+        sandbox = Path.home() / "agent-sandbox-integration"
+        if not (sandbox / "scripts" / "secure-launcher-v2.conf").is_file():
+            self.skipTest("the sandbox repository is not present")
+        out = subprocess.run([sys.executable, str(self.CHECKER), str(sandbox), str(self.dir / "empty")], capture_output=True, text=True).stdout
+        self.assertIn("not installed", out)  # an empty plugins dir: every listed file is missing, proving the list parsed
+
+
+class Sections(unittest.TestCase):
+    """Run the V2 branches of sections 2 and 2b for real against a fake config root and npm cache."""
+
+    def run_section(self, module, systematic_version="3.27.2", with_skills=True, magic=True, config_plugins=None, spec="~3.27.2"):
+        base = Path(tempfile.mkdtemp())
+        cache, root = base / "npm", base / "root"
+        root.mkdir()
+        plugins = config_plugins if config_plugins is not None else [f"@fro.bot/systematic@{spec}", "@cortexkit/opencode-magic-context@~0.49.29"]
+        (root / "opencode.json").write_text(json.dumps({"plugins": plugins}))
+        sysroot = install(cache, spec, 1, systematic_version)
+        if with_skills:
+            (sysroot / "skills").mkdir()
+            (sysroot / "agents").mkdir()
+        if magic:
+            install(cache, "~0.49.29", 1, "0.49.30", name="@cortexkit/opencode-magic-context")
+        script = (f'fail() {{ echo "FAIL:$*"; }}\nOC_MAJOR=2\nVERIFY_MODULE_DIR="{REPO}/verify"\nV2_CONFIG_ROOT="{root}"\nV2_NPM_CACHE="{cache}"\n'
+                  f'source "{REPO}/verify/{module}"\necho "ACTIVE_ROOT=${{ACTIVE_ROOT:-}}"\necho "MAGIC_ROOT=${{MAGIC_ROOT:-}}"\n')
+        return subprocess.run(["bash", "-c", script], capture_output=True, text=True).stdout
+
+    def test_section_2_resolves_a_healthy_install(self):
+        out = self.run_section("52-section-2-systematic-install.sh")
+        self.assertNotIn("FAIL:", out)
+        self.assertRegex(out, r"ACTIVE_ROOT=\S+/node_modules/@fro\.bot/systematic")
+        self.assertIn("ok: the V2 Systematic install is materialized", out)
+
+    def test_section_2_fails_on_the_version_floor_missing_dirs_and_resolver_errors(self):
+        self.assertIn("v3.18.4+ is required", self.run_section("52-section-2-systematic-install.sh", systematic_version="3.18.3", spec="~3.18.0"))
+        out = self.run_section("52-section-2-systematic-install.sh", with_skills=False)
+        self.assertIn("SYSTEMATIC_V2_INSTALL_INCOMPLETE", out)
+        self.assertIn("ACTIVE_ROOT=\n", out)  # nothing downstream may use a half-resolved install
+        self.assertIn("SYSTEMATIC_V2_RESOLUTION_FAILED", self.run_section("52-section-2-systematic-install.sh", config_plugins=[]))
+
+    def test_section_2b_resolves_and_fails_closed(self):
+        self.assertRegex(self.run_section("53-section-2b-magic-context.sh"), r"MAGIC_ROOT=\S+/node_modules/@cortexkit/opencode-magic-context")
+        self.assertIn("MAGIC_CONTEXT_V2_RESOLUTION_FAILED", self.run_section("53-section-2b-magic-context.sh", magic=False))
 
 
 class Wiring(unittest.TestCase):
@@ -110,13 +231,16 @@ class Wiring(unittest.TestCase):
             self.assertIn("PACKAGES_DIR", v1)  # the V1 resolution is intact
             self.assertTrue(text.rstrip().endswith("fi"))
 
-    def test_2c_and_the_section_6_mirror_check_are_skipped_on_v2_but_the_digest_binding_is_not(self):
+    def test_2c_is_skipped_on_v2_and_section_6_checks_the_sandbox_plugins_there_without_dropping_the_digest_binding(self):
         c = self.text("54-section-2c-package-integrity.sh")
         self.assertIn("skipped on V2", c.partition("\nelse\n")[0])
         self.assertIn("PLUGIN_CACHE_INTEGRITY_HELPER", c.partition("\nelse\n")[2])
         m = self.text("57-section-6-plugin-mirrors.sh")
         before, _, after = m.partition("SELF_PATH=$(readlink -f")
-        self.assertIn("skipped on V2", before)
+        v2 = before.partition("\nelse\n")[0]
+        self.assertIn("v2-sandbox-plugins-check.py", v2)
+        self.assertIn("HOST_TOOL_PLUGIN_SOURCE_DRIFT", v2)
+        self.assertIn("HOST_TOOL_PLUGIN_MISSING", before.partition("\nelse\n")[2])  # the V1 check is intact
         self.assertTrue(before.rstrip().endswith("fi"))
         self.assertIn("SELF_SHA", after)  # outside the skipped branch
 
