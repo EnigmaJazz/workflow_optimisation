@@ -31,7 +31,7 @@ regenerated, and a single file qualifies: the units. The V2 config root is regen
    - OpenChamber settings: `cp -a ~/.config/openchamber ~/.config/openchamber.bak-$(date +%Y%m%d)`
    - Record the OpenChamber 1.24.2 reinstall command (it is not V2-compatible).
 3. **V2 beside V1.** Already installed and pinned exactly (`prefix/package.json` must read `"@opencode/cli": "2.2.0"`, no `^`
-   or `~`; the preflight fails otherwise). To move to the 2.2.3+ target, first confirm an AFT release containing cortexkit/aft#1144 loads in an isolated trial, then
+   or `~`; the preflight fails otherwise). The 2.2.3+ target is proven: in an isolated trial (2026-10-31) OpenCode 2.2.5 with AFT 0.63.4 registers every tool (0 `Skipping invalid tool registration`), while 2.2.5 with the old AFT 0.62.0 gives 40. `derive` runs AFT 0.63.4 on V2 only (`V2_PLUGIN_VERSIONS`), leaving V1's pin as the rollback. To move the live install:
    `npm install --prefix ~/.local/share/opencode-v2/prefix --save-exact --no-audit --no-fund @opencode/cli@<version>`, restart, and
    require a clean preflight (no "Skipping invalid" tool registrations).
 4. **Apply the config.**

@@ -43,8 +43,8 @@ class PluginList(unittest.TestCase):
         return self.m.derive_plugins(plugins, fork_dir=self.fork)
 
     def test_registry_pins_become_patch_ranges(self):
-        out, _ = self.derive(["@fro.bot/systematic@3.27.2", "@cortexkit/aft-opencode@0.62.0", "plain-pkg@1.2.3"])
-        self.assertEqual(out, ["@fro.bot/systematic@~3.27.2", "@cortexkit/aft-opencode@~0.62.0", "plain-pkg@~1.2.3"])
+        out, _ = self.derive(["@fro.bot/systematic@3.27.2", "@cortexkit/opencode-magic-context@0.49.29", "plain-pkg@1.2.3"])
+        self.assertEqual(out, ["@fro.bot/systematic@~3.27.2", "@cortexkit/opencode-magic-context@~0.49.29", "plain-pkg@~1.2.3"])
 
     def test_the_fork_becomes_a_directory_entry(self):
         out, _ = self.derive([FORK_FILE])
@@ -415,6 +415,26 @@ class V2AstraAliases(unittest.TestCase):
         for pattern in self.m.ASTRA_IMPLEMENTATION_PATTERNS:
             self.assertIn("/" + pattern + "/", block)
         self.assertIn("/" + self.m.ASTRA_REVIEW_ACTOR + "/", ts)
+
+
+class V2PluginVersions(unittest.TestCase):
+    """V2 can run a newer plugin than the shared source pins, so V1 (the rollback path) is untouched."""
+
+    def setUp(self):
+        self.m = load()
+
+    def test_aft_runs_ahead_of_the_shared_pin_on_v2_only(self):
+        out, notes = self.m.derive_plugins(["@cortexkit/aft-opencode@0.62.0", "@fro.bot/systematic@3.27.2"])
+        self.assertEqual(out, ["@cortexkit/aft-opencode@~0.63.4", "@fro.bot/systematic@~3.27.2"])
+        self.assertTrue(any("aft-opencode: V2 runs 0.63.4" in n and "0.62.0 for V1" in n for n in notes))
+
+    def test_a_source_pin_already_at_the_override_adds_no_note(self):
+        out, notes = self.m.derive_plugins(["@cortexkit/aft-opencode@0.63.4"])
+        self.assertEqual((out, notes), (["@cortexkit/aft-opencode@~0.63.4"], []))
+
+    def test_the_shared_v1_source_still_pins_the_old_aft(self):
+        source = json.loads((REPO / "global-config" / "opencode.json").read_text())
+        self.assertIn("@cortexkit/aft-opencode@0.62.0", source["plugin"])  # V1 rollback keeps the version it was proven with
 
 
 class V2GrepPolicy(unittest.TestCase):

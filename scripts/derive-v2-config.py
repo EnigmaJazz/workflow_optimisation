@@ -47,6 +47,12 @@ class DeriveError(Exception):
     pass
 
 
+# Plugin versions that V2 runs ahead of the shared (V1-compatible) source pin, so V1 stays untouched as the rollback path.
+# AFT 0.62.0 registers no tools on OpenCode 2.2.1+ (undefined is not an object evaluating 'a.ref', cortexkit/aft#1141); 0.63.4 carries
+# the fix (#1144) and registers cleanly on 2.2.5: 40 errors with 0.62.0, none with 0.63.4 in an isolated control (2026-10-31).
+V2_PLUGIN_VERSIONS = {"@cortexkit/aft-opencode": "0.63.4"}
+
+
 def derive_plugins(plugins, fork_dir=None, fork_ref=None):
     """-> (V2 plugin list, notes). `fork_dir` is where the fork copy is checked for `exports`; `fork_ref` is the final path."""
     out, notes = [], []
@@ -66,7 +72,10 @@ def derive_plugins(plugins, fork_dir=None, fork_ref=None):
             m = EXACT.match(spec)
             if not m:
                 raise DeriveError(f"plugin entry needs a decision (not an exact registry pin, the fork or a known drop): {spec}")
-            out.append(f"{m.group('name')}@~{m.group('version')}")
+            version = V2_PLUGIN_VERSIONS.get(m.group("name"), m.group("version"))
+            if version != m.group("version"):
+                notes.append(f"{m.group('name')}: V2 runs {version} (the shared source pins {m.group('version')} for V1)")
+            out.append(f"{m.group('name')}@~{version}")
     return out, notes
 
 
