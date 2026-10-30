@@ -177,6 +177,18 @@ def run_shim(payload, stdin_text=None):
     return r, listing, debug_dir
 
 
+class EmptyVariantComparison(unittest.TestCase):
+    """V1 reports an empty variant literally as "" and V2 drops it; the direct-agent check must treat both as none.
+    Regression: normalising only the configured side broke V1 (DIRECT_RUNTIME_VARIANT_MISMATCH: gentle-ai-worker-local)."""
+
+    def test_both_sides_of_the_direct_variant_comparison_treat_an_empty_string_as_none(self):
+        text = (MODULES / "checkers" / "check-runtime-agents.cjs").read_text()
+        block = text[text.index("An empty string has always meant"):]
+        block = block[:block.index("DIRECT_RUNTIME_VARIANT_MISMATCH")]
+        self.assertIn('configured.variant==null||configured.variant===""?undefined', block)
+        self.assertIn('typeof actual.variant==="string"&&actual.variant!==""?actual.variant:undefined', block)
+
+
 class AgentsShimDerived(unittest.TestCase):
     """The V1-shaped `tools` map and the variant, both derived from what V2 does report."""
 

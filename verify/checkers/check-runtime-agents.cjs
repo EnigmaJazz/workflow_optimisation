@@ -2013,9 +2013,9 @@ function assertDirectAgentModelMatchesConfig(name) {
     console.log(`   ok: ${name} runtime model matches opencode.json (${expectedModel})`)
   }
   if (hasOwn(configured,"variant")) {
-    // An empty string has always meant "no variant" (derive drops it on V2), so it must compare equal to a runtime with none.
+    // An empty string has always meant "no variant": V1 reports it literally and V2 drops it, so both sides compare as none.
     const expectedVariant=configured.variant==null||configured.variant===""?undefined:configured.variant
-    const runtimeVariant=typeof actual.variant==="string"?actual.variant:undefined
+    const runtimeVariant=typeof actual.variant==="string"&&actual.variant!==""?actual.variant:undefined
     if (runtimeVariant!==expectedVariant) {
       fail(`DIRECT_RUNTIME_VARIANT_MISMATCH: ${name}: opencode.json=${show(expectedVariant)} runtime=${show(runtimeVariant)}`)
     } else {
