@@ -37,7 +37,6 @@ COPY_DIRS = ("prompts", "skills", "plugins", "mcp")
 # `{data}` is the V2 data root (<opencode-v2>/data).
 MCP_ENV = {
     "vision-bridge": {
-        "VISION_BRIDGE_AUTH_FILE": "{data}/opencode/auth.json",
         "VISION_BRIDGE_LEG_LOG": "{data}/vision-bridge/leg.log",
     }
 }
@@ -154,6 +153,44 @@ def rewrite_mcp(config, source_dir, root_path, env_by_server):
     return notes
 
 
+def expose_mcp_directly(config):
+    """V2 hides an MCP server's tools behind its single `execute` (Code Mode) tool unless the server sets `codemode: false`.
+    The V1 agent prompts and permission rules name the tools directly (codegraph_codegraph_explore, github_ro_*), so keep them
+    direct; an explicit `codemode` in the source is the owner's choice and stays."""
+    exposed = []
+    for name, server in (config.get("mcp") or {}).items():
+        if "codemode" not in server:
+            server["codemode"] = False
+            exposed.append(name)
+    return [f"mcp {', '.join(exposed)}: codemode=false so the tools stay directly callable (V2 default routes them through `execute`)"] if exposed else []
+
+
+# Plugin-owned agents whose sandbox access must match a reviewed agent. On V2 the Systematic category rules come AFTER an agent
+# overlay in the rule list and V2 takes the last match, so the overlay's `sandbox_*` allows lose to the category denies. A
+# permission block in opencode.json is applied last, so mirror the reference agent's sandbox/host rules there (V2 only).
+ACCESS_MIRRORS = {"systematic-implementer": "gentle-ai-worker"}
+MIRRORED_PREFIXES = ("sandbox_", "host_")
+
+
+def mirror_agent_access(config, mirrors=None):
+    notes = []
+    agents = config.setdefault("agent", {})
+    for target, reference in (ACCESS_MIRRORS if mirrors is None else mirrors).items():
+        ref = agents.get(reference)
+        if ref is None:
+            notes.append(f"agent {target}: access mirror skipped, reference agent {reference} is not in the source config")
+            continue
+        entry = agents.setdefault(target, {})
+        copied = []
+        for field in ("permission", "tools"):
+            rules = {k: v for k, v in (ref.get(field) or {}).items() if k.startswith(MIRRORED_PREFIXES)}
+            if rules:
+                entry[field] = {**(entry.get(field) or {}), **rules}
+                copied.append(f"{len(rules)} {field}")
+        notes.append(f"agent {target}: sandbox/host access mirrored from {reference} ({', '.join(copied)}) so the V2 category denies do not win")
+    return notes
+
+
 def derive_config(source, fork_dir=None, fork_ref=None):
     plugins, notes = derive_plugins(source.get("plugin") or [], fork_dir, fork_ref)
     out = {}
@@ -183,6 +220,8 @@ def build(source_dir, sandbox_repo, staging, root_path, live_root=None):
         shutil.copytree(fork_src, vendor, ignore=FORK_IGNORE, dirs_exist_ok=True)
     config, notes = derive_config(source, vendor if fork_src else None, Path(root_path) / "vendor" / FORK_NAME)
     notes += rewrite_mcp(config, source_dir, root_path, MCP_ENV)
+    notes += expose_mcp_directly(config)
+    notes += mirror_agent_access(config)
     tools = scan_tools(sandbox_repo)
     warnings = check_rules(config, tools) + check_v1_paths(config)
     staging.mkdir(parents=True, exist_ok=True)
@@ -218,6 +257,19 @@ def sync(staging, target, apply):
         print("[derive-v2] dry-run - nothing was written. Re-run with --apply to write.")
 
 
+def sync_systematic_home(staging, target, apply):
+    """Systematic reads its user config from $HOME/.config/opencode, whatever XDG_CONFIG_HOME says, and the V2 sandbox does not
+    grant the V1 tree. The V2 launcher therefore runs the server with HOME=<config root>/home; put the overlay there."""
+    overlay = Path(staging) / "systematic.jsonc"
+    if not overlay.is_file():
+        return
+    with tempfile.TemporaryDirectory() as home_staging:
+        dest = Path(home_staging) / ".config/opencode/systematic.jsonc"
+        dest.parent.mkdir(parents=True)
+        shutil.copy2(overlay, dest)
+        sync(home_staging, target.parent / "home", apply)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--source", required=True)
@@ -246,6 +298,7 @@ def main(argv=None):
                 for line in warnings:
                     print(f"[derive-v2] WARNING: {line}")
                 sync(tmp, args.target, args.apply)
+                sync_systematic_home(tmp, Path(args.target), args.apply)
             return 0
     except DeriveError as err:
         print(f"[derive-v2] refused: {err}", file=sys.stderr)

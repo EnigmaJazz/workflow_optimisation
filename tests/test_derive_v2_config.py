@@ -122,15 +122,24 @@ class RealConfig(unittest.TestCase):
         for key, value in self.src.items():
             if key == "plugin":
                 continue
-            if key == "mcp":  # only the vision bridge moves; the rest are carried over
+            if key == "mcp":  # only the vision bridge moves; the rest are carried over, plus V2's codemode=false on every server
                 for name, server in value.items():
                     if name != "vision-bridge":
-                        self.assertEqual(got["mcp"][name], server, name)
+                        self.assertEqual(got["mcp"][name], {**server, "codemode": False}, name)
+                    self.assertIs(got["mcp"][name]["codemode"], False, name)
                 self.assertEqual(set(got["mcp"]), set(value))
+                continue
+            if key == "agent":  # carried over, plus the one plugin-owned agent whose sandbox access is mirrored in (V2 only)
+                self.assertEqual({k: v for k, v in got["agent"].items() if k != "systematic-implementer"}, value)
+                self.assertEqual(set(got["agent"]) - set(value), {"systematic-implementer"})
                 continue
             self.assertEqual(got[key], value, key)
         self.assertNotIn("plugin", got)
-        self.assertEqual(len(got["agent"]), 46)
+        self.assertEqual(len(got["agent"]), 47)
+        mirrored = got["agent"]["systematic-implementer"]
+        reference = got["agent"]["gentle-ai-worker"]
+        self.assertEqual(mirrored["permission"]["sandbox_bash"], "allow")
+        self.assertEqual({k: v for k, v in mirrored["permission"].items()}, {k: v for k, v in reference["permission"].items() if k.startswith(("sandbox_", "host_"))})
 
     def test_the_plugin_list_is_v2_shaped(self):
         plugins = json.loads((self.out / "opencode.json").read_text())["plugins"]
@@ -173,7 +182,8 @@ class RealConfig(unittest.TestCase):
         root = "/home/james/.local/share/opencode-v2/config/opencode"
         self.assertEqual(bridge["command"], ["python3", f"{root}/mcp/vision-bridge/server.py"])
         env = bridge["environment"]
-        self.assertEqual(env["VISION_BRIDGE_AUTH_FILE"], "/home/james/.local/share/opencode-v2/data/opencode/auth.json")
+        self.assertNotIn("VISION_BRIDGE_AUTH_FILE", env)  # the bridge has no direct OpenAI leg and so no login file
+        self.assertNotIn("VISION_BRIDGE_AUTH_DB", env)
         self.assertTrue(env["VISION_BRIDGE_LEG_LOG"].startswith("/home/james/.local/share/opencode-v2/data/"))
         self.assertTrue((self.out / "mcp/vision-bridge/server.py").is_file())
         self.assertNotIn("under /home/james/.config/opencode", self.run1.stdout)
@@ -210,6 +220,54 @@ class McpPaths(unittest.TestCase):
         self.m.rewrite_mcp(config, self.src, self.root, {"t": {"A": "{data}/a"}})
         self.assertEqual(config["mcp"]["r"], {"type": "remote", "url": "https://x"})
         self.assertEqual(config["mcp"]["t"]["environment"], {"KEEP": "1", "A": "/r/data/a"})
+
+
+class McpCodeMode(unittest.TestCase):
+    def setUp(self):
+        self.m = load()
+
+    def test_every_server_is_exposed_directly_and_reported(self):
+        config = {"mcp": {"a": {"type": "remote", "url": "https://x"}, "b": {"type": "local", "command": ["c"]}}}
+        notes = self.m.expose_mcp_directly(config)
+        self.assertEqual([config["mcp"]["a"]["codemode"], config["mcp"]["b"]["codemode"]], [False, False])
+        self.assertEqual(len(notes), 1)
+        self.assertIn("a, b", notes[0])
+
+    def test_an_explicit_choice_in_the_source_is_kept(self):
+        config = {"mcp": {"a": {"type": "remote", "url": "https://x", "codemode": True}}}
+        self.assertEqual(self.m.expose_mcp_directly(config), [])
+        self.assertIs(config["mcp"]["a"]["codemode"], True)
+
+    def test_no_servers_is_a_no_op(self):
+        self.assertEqual(self.m.expose_mcp_directly({}), [])
+
+
+class AccessMirror(unittest.TestCase):
+    def setUp(self):
+        self.m = load()
+        self.config = {"agent": {"ref": {"permission": {"sandbox_bash": "allow", "sandbox_apply": "ask", "edit": "deny"}, "tools": {"sandbox_bash": True, "grep": False}}}}
+
+    def test_only_sandbox_and_host_rules_are_copied(self):
+        notes = self.m.mirror_agent_access(self.config, {"target": "ref"})
+        self.assertEqual(self.config["agent"]["target"], {"permission": {"sandbox_bash": "allow", "sandbox_apply": "ask"}, "tools": {"sandbox_bash": True}})
+        self.assertEqual(len(notes), 1)
+
+    def test_existing_target_settings_are_kept_and_mirrored_rules_win(self):
+        self.config["agent"]["target"] = {"permission": {"sandbox_bash": "deny", "edit": "deny"}, "model": "m"}
+        self.m.mirror_agent_access(self.config, {"target": "ref"})
+        self.assertEqual(self.config["agent"]["target"]["permission"], {"sandbox_bash": "allow", "edit": "deny", "sandbox_apply": "ask"})
+        self.assertEqual(self.config["agent"]["target"]["model"], "m")
+
+    def test_a_missing_reference_agent_is_skipped_and_reported(self):
+        config = {"agent": {}}
+        notes = self.m.mirror_agent_access(config, {"target": "ref"})
+        self.assertEqual(config["agent"], {})
+        self.assertIn("skipped", notes[0])
+
+    def test_the_real_mapping_points_at_an_agent_in_the_real_config(self):
+        real = json.loads((REPO / "global-config" / "opencode.json").read_text())
+        for reference in self.m.ACCESS_MIRRORS.values():
+            self.assertIn(reference, real["agent"])
 
 
 class FileRefs(unittest.TestCase):
@@ -270,6 +328,16 @@ class Apply(unittest.TestCase):
         self.run_script("--target", str(self.target), "--apply")
         self.assertTrue(list(self.target.glob("opencode.json.bak-*")))
         self.assertEqual((self.target / "extra.txt").read_text(), "keep me")
+
+    def test_apply_also_places_the_systematic_overlay_in_the_server_home(self):
+        self.run_script("--target", str(self.target), "--apply")
+        home_copy = self.tmp / "home/.config/opencode/systematic.jsonc"
+        self.assertEqual(home_copy.read_text(), "systematic.jsonc")
+        self.assertEqual((self.target / "systematic.jsonc").read_text(), "systematic.jsonc")
+
+    def test_a_dry_run_does_not_create_the_server_home(self):
+        self.run_script("--target", str(self.target))
+        self.assertFalse((self.tmp / "home").exists())
 
     def test_apply_refuses_a_v1_root(self):
         r = self.run_script("--target", str(Path.home() / ".config/opencode"), "--apply")
