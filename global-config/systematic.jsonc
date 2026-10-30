@@ -119,7 +119,7 @@
   "agents": {
     "systematic-implementer": {
       "model": "opencode-go/deepseek-v4.1-flash",
-      "variant": "xhigh",
+      "variant": "max",
       "temperature": 0.1,
       "steps": 50,
       "permission": {
