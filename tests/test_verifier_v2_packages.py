@@ -179,6 +179,28 @@ class SandboxPlugins(unittest.TestCase):
         (self.repo / "opencode" / "a.ts").unlink()
         self.assertIn("source opencode/a.ts is missing", self.run_checker())
 
+    def run_with_workflow(self, workflow):
+        return subprocess.run([sys.executable, str(self.CHECKER), str(self.repo), str(self.plugins), str(workflow)], capture_output=True, text=True).stdout.strip()
+
+    def test_an_unlisted_loadable_plugin_is_an_error_but_workflow_plugins_backups_and_libs_are_not(self):
+        workflow = self.dir / "workflow"
+        workflow.mkdir()
+        (workflow / "health.ts").write_text("x")
+        (self.plugins / "health.ts").write_text("x")             # a workflow plugin derive installs
+        (self.plugins / "a.ts.bak-20261030").write_text("old")   # a backup is not loaded
+        (self.plugins / "README.md").write_text("doc")
+        (self.plugins / "lib" / "extra.ts").write_text("x")      # imported, never auto-loaded
+        self.assertTrue(self.run_with_workflow(workflow).startswith("clean"), self.run_with_workflow(workflow))
+        (self.plugins / "stale.ts").write_text("x")
+        (self.plugins / "planted.mjs").write_text("x")
+        out = self.run_with_workflow(workflow)
+        self.assertTrue(out.startswith("error\t"), out)
+        self.assertIn("2 unlisted plugin file(s) V2 would load (planted.mjs, stale.ts)", out)
+
+    def test_without_the_workflow_argument_unlisted_files_are_not_judged(self):
+        (self.plugins / "stale.ts").write_text("x")
+        self.assertTrue(self.run_checker().startswith("clean"))
+
     def test_an_unreadable_or_empty_list_is_an_error_not_a_pass(self):
         (self.repo / "scripts" / "secure-launcher-v2.conf").write_text("V2_PLUGIN_FILES=(\n)\n")
         self.assertIn("no V2_PLUGIN_FILES entries", self.run_checker())
@@ -259,6 +281,7 @@ class Wiring(unittest.TestCase):
         v2 = before.partition("\nelse\n")[0]
         self.assertIn("v2-sandbox-plugins-check.py", v2)
         self.assertIn("HOST_TOOL_PLUGIN_SOURCE_DRIFT", v2)
+        self.assertIn('global-config/plugins"', v2)  # the workflow plugins are passed so they are not reported as unlisted
         self.assertIn("HOST_TOOL_PLUGIN_MISSING", before.partition("\nelse\n")[2])  # the V1 check is intact
         self.assertTrue(before.rstrip().endswith("fi"))
         self.assertIn("SELF_SHA", after)  # outside the skipped branch

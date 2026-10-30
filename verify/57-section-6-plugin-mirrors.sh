@@ -4,7 +4,7 @@ if [ "${OC_MAJOR:-0}" = "2" ]; then
   # V2: the workflow plugins are generated into the V2 root (section 0's derive check covers them); the sandbox plugins are
   # installed by hand from the sandbox repository, so compare them with their sources here.
   if [ -d "$V2_SANDBOX_REPO" ]; then
-    V2_SANDBOX_CHECK=$(python3 "$VERIFY_MODULE_DIR/checkers/v2-sandbox-plugins-check.py" "$V2_SANDBOX_REPO" "$V2_CONFIG_ROOT/plugins" 2>&1)
+    V2_SANDBOX_CHECK=$(python3 "$VERIFY_MODULE_DIR/checkers/v2-sandbox-plugins-check.py" "$V2_SANDBOX_REPO" "$V2_CONFIG_ROOT/plugins" "$WORKSPACE/global-config/plugins" 2>&1)
     case "$V2_SANDBOX_CHECK" in
       clean$'\t'*) echo "   ok: ${V2_SANDBOX_CHECK#*$'\t'}" ;;
       error$'\t'*) fail "HOST_TOOL_PLUGIN_SOURCE_DRIFT: ${V2_SANDBOX_CHECK#*$'\t'}" ;;

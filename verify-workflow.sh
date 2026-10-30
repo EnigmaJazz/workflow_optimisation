@@ -102,7 +102,7 @@ VERIFY_MODULES=(
   "54-section-2c-package-integrity.sh 13e85a3e148e396604f0c525830fb5ae7a80291e3c349488f60f68a5647ea165"
   "55-section-3-skills.sh 9d7ff4416ae7a1c8565258a60e1b3e284217e02063daa8a3b35973f54854933f"
   "56-section-4-5-agents-registry.sh 2b66b463ddd9942fba8c065fa7e94689217add64a39a717f62547424d68951f8"
-  "57-section-6-plugin-mirrors.sh cb7dbcea161e3e4c862ea4c3b5bd1b182419fb2d1ecca4aa2155345eb009ac33"
+  "57-section-6-plugin-mirrors.sh 476d73263f419f0d413655d07d4c9f29ef7b531fa30e6d970effcdcd152a2622"
   "58-section-7-recipe.sh 9f02d1b88bd2dd08ee2aacf1f8619f2c149dcc383b66a4ed6f808da74f4e8502"
   "59-section-8-9-config-runtime.sh 7fe40ea35887ee61f25d65177b43c5c287cf406e1709ceed220a331fb1957f4c"
   "60-section-9a-9b-secure-service.sh 1f89acd7ba903442f6fc027e1b3fe44cc049984fb37ca481e04e6c8ad2995903"
@@ -117,7 +117,7 @@ VERIFY_MODULES=(
   "checkers/v2-agents-shim.cjs ac216f6f36b7d746807a20b1a588dfe0caa4d932590d776e6e552ecef890bbb5"
   "checkers/v2-config-check.py fe1739a16d7d98958bc1a1305cdfbc6286edbc48a6c79cb792b4b939594b8698"
   "checkers/v2-plugin-resolve.py 5792db1b5ddf8b3bc72f03546d2046946a6b3a6404843aafa52d2e51cd4a0bbd"
-  "checkers/v2-sandbox-plugins-check.py 5f515045a91faad0f6fe8d6783b39536c2fcb52de2f3d23bd1efb016c33ea1c0"
+  "checkers/v2-sandbox-plugins-check.py a26e2b97a6fcc668a2aa2f457877542ec780eb304380082c7634a1adafd6e3bd"
 )
 # END VERIFY_MODULES
 
