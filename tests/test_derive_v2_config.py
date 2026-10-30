@@ -133,6 +133,8 @@ class RealConfig(unittest.TestCase):
         got = json.loads((self.out / "opencode.json").read_text())
         expected = json.loads(json.dumps(self.src))
         derive.apply_v2_grep_policy(expected)  # intended difference: V2's grep policy (global deny, orchestrator ask)
+        derive.apply_v2_secret_read_policy(expected)  # secret-file denies re-applied after agent-level read allows
+        derive.add_v2_astra_aliases(expected)  # the Astra aliases of config-defined agents
         derive.drop_v2_unsupported(expected)  # and keys V2 reports as unsupported and ignores
         for key, value in expected.items():
             if key == "plugin":
@@ -162,7 +164,17 @@ class RealConfig(unittest.TestCase):
                 for flag in ("temperature", "reasoning", "attachment"):
                     self.assertNotIn(flag, model)
         self.assertTrue(all(agent.get("variant") != "" for agent in got["agent"].values()))
-        self.assertEqual(len(got["agent"]), 46 + len(mirrored))
+        aliases = [n for n in got["agent"] if n.endswith("-astra")]
+        self.assertGreaterEqual(len(aliases), 3)
+        self.assertEqual(len(got["agent"]), 46 + len(mirrored) + len(aliases))
+        # Secret files are unreadable for every agent, asserted on the derived file: no agent-level read rule may allow them.
+        denies = {p for p, e in self.src["permission"]["read"].items() if e == "deny"}
+        for name, agent in got["agent"].items():
+            read = (agent.get("permission") or {}).get("read")
+            self.assertNotEqual(read, "allow", name)
+            if isinstance(read, dict):
+                self.assertTrue(all(read.get(p) == "deny" for p in denies), name)
+                self.assertEqual(list(read)[-len(denies):] and set(list(read)[-len(denies):]), denies, name)  # and they come last
         mirrored = got["agent"]["systematic-implementer"]
         reference = got["agent"]["gentle-ai-worker"]
         self.assertEqual(mirrored["permission"]["sandbox_bash"], "allow")
@@ -303,6 +315,106 @@ class AccessMirror(unittest.TestCase):
         real = json.loads((REPO / "global-config" / "opencode.json").read_text())
         for reference in self.m.ACCESS_MIRRORS.values():
             self.assertIn(reference, real["agent"])
+
+
+class V2SecretReadPolicy(unittest.TestCase):
+    """`.env`, keys and credentials stay unreadable for every agent: V2 uses the last matching rule, so an agent-level
+    `read: allow` that comes after the global denies used to win."""
+
+    GLOBAL = {"*": "allow", "**/.env": "deny", "*.env": "deny", "**/*.key": "deny", "**/.env.example": "allow"}
+
+    def setUp(self):
+        self.m = load()
+
+    def config(self, **agents):
+        return {"permission": {"read": dict(self.GLOBAL)}, "agent": agents}
+
+    def test_an_agent_with_read_allow_gets_the_global_map_with_the_denies_last(self):
+        config = self.config(a={"permission": {"read": "allow"}})
+        notes = self.m.apply_v2_secret_read_policy(config)
+        read = config["agent"]["a"]["permission"]["read"]
+        self.assertEqual(read["**/.env"], "deny")
+        self.assertEqual(read["*"], "allow")
+        self.assertEqual(list(read)[-3:], ["**/.env", "*.env", "**/*.key"])
+        self.assertIn("1 agent(s): a", notes[0])
+
+    def test_an_agent_read_map_keeps_its_entries_and_a_conflicting_allow_becomes_deny(self):
+        config = self.config(a={"permission": {"read": {"docs/**": "allow", "**/.env": "allow", "*": "allow"}}})
+        self.m.apply_v2_secret_read_policy(config)
+        read = config["agent"]["a"]["permission"]["read"]
+        self.assertEqual(read["docs/**"], "allow")
+        self.assertEqual(read["**/.env"], "deny")
+        self.assertEqual(list(read)[-3:], ["**/.env", "*.env", "**/*.key"])  # after the wildcard allow
+
+    def test_agents_without_a_read_rule_or_with_read_deny_are_untouched_and_the_run_is_idempotent(self):
+        config = self.config(a={"permission": {"edit": "deny"}}, b={"permission": {"read": "deny"}}, c={"mode": "subagent"}, d={"permission": {"read": "allow"}})
+        self.m.apply_v2_secret_read_policy(config)
+        self.assertEqual(config["agent"]["a"], {"permission": {"edit": "deny"}})
+        self.assertEqual(config["agent"]["b"]["permission"]["read"], "deny")
+        before = json.loads(json.dumps(config))
+        self.assertEqual(self.m.apply_v2_secret_read_policy(config), [])
+        self.assertEqual(config, before)
+
+    def test_a_config_without_a_global_read_map_is_left_alone(self):
+        config = {"permission": {"read": "allow"}, "agent": {"a": {"permission": {"read": "allow"}}}}
+        self.assertEqual(self.m.apply_v2_secret_read_policy(config), [])
+        self.assertEqual(config["agent"]["a"]["permission"]["read"], "allow")
+
+
+class V2AstraAliases(unittest.TestCase):
+    """Config-defined Astra aliases are written by derive, so V2 composes them like their bases."""
+
+    def setUp(self):
+        self.m = load()
+
+    def agent(self, model="openai/gpt-6.1-sol", **extra):
+        return {"model": model, "mode": "subagent", "description": "d", "permission": {"sandbox_write": "allow"}, **extra}
+
+    def test_a_sol_subagent_gets_a_hidden_alias_on_the_astra_model_with_its_own_rules(self):
+        config = {"agent": {"advisor": self.agent()}}
+        notes = self.m.add_v2_astra_aliases(config)
+        alias = config["agent"]["advisor-astra"]
+        self.assertEqual((alias["model"], alias["variant"], alias["hidden"]), ("openai/gpt-6-astra", "xhigh", True))
+        self.assertEqual(alias["permission"], {"sandbox_write": "allow"})  # the base's grant survives
+        self.assertIsNot(alias["permission"], config["agent"]["advisor"]["permission"])  # a copy, not a shared object
+        self.assertEqual(alias["description"], "d — selectable Astra upgrade")
+        self.assertEqual(config["agent"]["advisor"]["model"], "openai/gpt-6.1-sol")
+        self.assertIn("advisor-astra", notes[0])
+
+    def test_the_same_agents_are_excluded_as_by_the_plugin(self):
+        agents = {"adv": self.agent(), "orch": self.agent(mode="primary"), "other": self.agent(model="openai/gpt-6.1-luna"), "general": self.agent(),
+                  "frontend-apply": self.agent(), "the-implementer": self.agent(), "review-risk": self.agent(), "asi-review-refuter": self.agent(),
+                  "x-astra": self.agent(), "systematic-implementer": self.agent(), "bug-reproduction-validator": self.agent()}
+        config = {"agent": agents}
+        self.m.add_v2_astra_aliases(config)
+        self.assertEqual(sorted(n for n in config["agent"] if n.endswith("-astra") and n != "x-astra"), ["adv-astra"])
+
+    def test_an_existing_alias_is_never_overwritten_and_a_second_run_adds_nothing(self):
+        config = {"agent": {"adv": self.agent(), "adv-astra": {"model": "x/y"}}}
+        self.assertEqual(self.m.add_v2_astra_aliases(config), [])
+        self.assertEqual(config["agent"]["adv-astra"], {"model": "x/y"})
+        config = {"agent": {"adv": self.agent()}}
+        self.m.add_v2_astra_aliases(config)
+        before = json.loads(json.dumps(config))
+        self.assertEqual(self.m.add_v2_astra_aliases(config), [])
+        self.assertEqual(config, before)
+
+    def test_the_v2_object_model_shape_is_understood(self):
+        config = {"agent": {"adv": self.agent(model={"providerID": "openai", "id": "gpt-6.1-sol"})}}
+        self.m.add_v2_astra_aliases(config)
+        self.assertIn("adv-astra", config["agent"])
+
+    def test_the_selection_rules_match_the_plugin_source(self):
+        ts = (REPO / "global-config" / "plugins" / "astra-sol-upgrade.ts").read_text()
+        import re
+        for name, value in (("SOL_MODEL", self.m.ASTRA_SOL_MODEL), ("ASTRA_MODEL", self.m.ASTRA_MODEL), ("ASTRA_VARIANT", self.m.ASTRA_VARIANT), ("ASTRA_SUFFIX", self.m.ASTRA_SUFFIX)):
+            self.assertEqual(re.search(rf'const {name} = "([^"]+)"', ts).group(1), value, name)
+        block = re.search(r"function isImplementationRoute.*?\n}\n", ts, re.S).group(0)
+        self.assertEqual(tuple(re.findall(r'name === "([^"]+)"', block)), self.m.ASTRA_IMPLEMENTATION_NAMES)
+        self.assertEqual(tuple(re.findall(r"test\(name\)", block)).__len__(), len(self.m.ASTRA_IMPLEMENTATION_PATTERNS))
+        for pattern in self.m.ASTRA_IMPLEMENTATION_PATTERNS:
+            self.assertIn("/" + pattern + "/", block)
+        self.assertIn("/" + self.m.ASTRA_REVIEW_ACTOR + "/", ts)
 
 
 class V2GrepPolicy(unittest.TestCase):

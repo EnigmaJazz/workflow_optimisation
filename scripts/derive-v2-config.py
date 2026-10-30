@@ -227,6 +227,75 @@ def apply_v2_grep_policy(config, orchestrator="gentle-orchestrator"):
     return [f"native grep: global policy deny and {orchestrator} ask on V2 (V2 uses the last matching rule, so a global ask would expose it to plugin-owned agents)"]
 
 
+def apply_v2_secret_read_policy(config):
+    """Secret files (.env, keys, cloud and git credentials, auth.json) stay unreadable for every agent.
+    The global `permission.read` map allows everything and then denies those paths, but 16 agents carry `read: "allow"`, and V2 uses
+    the last matching rule, so their allow came after the denies and won (an orchestrator could read `.env`). Each such agent gets
+    the global map instead, and an agent-level read map has the global denies re-appended after its own entries."""
+    glob = (config.get("permission") or {}).get("read")
+    if not isinstance(glob, dict):
+        return []
+    denies = {pattern: "deny" for pattern, effect in glob.items() if effect == "deny"}
+    if not denies:
+        return []
+    fixed = []
+    for name, agent in (config.get("agent") or {}).items():
+        permission = agent.get("permission") if isinstance(agent, dict) else None
+        if not isinstance(permission, dict) or "read" not in permission:
+            continue
+        current = permission["read"]
+        if current == "allow":
+            current = {"*": "allow"}
+        elif current == "deny" or not isinstance(current, dict):
+            continue
+        updated = {pattern: effect for pattern, effect in current.items() if pattern not in denies}
+        updated.update(denies)  # last, so a wildcard allow in the same map cannot override them
+        if updated != permission["read"]:
+            permission["read"] = updated
+            fixed.append(name)
+    return [f"secret-file read denies re-applied after the agent-level read rule for {len(fixed)} agent(s): {', '.join(sorted(fixed))}"] if fixed else []
+
+
+# Mirrors global-config/plugins/astra-sol-upgrade.ts (tests/test_derive_v2_config.py pins the two together).
+ASTRA_SOL_MODEL = "openai/gpt-6.1-sol"
+ASTRA_MODEL = "openai/gpt-6-astra"
+ASTRA_VARIANT = "xhigh"
+ASTRA_SUFFIX = "-astra"
+ASTRA_IMPLEMENTATION_NAMES = ("general", "jd-fix-agent", "design-iterator", "bug-reproduction-validator", "pr-comment-resolver", "systematic-implementer")
+ASTRA_IMPLEMENTATION_PATTERNS = (r"(^|-)apply($|-)", r"(^|-)implement(er|ation)?($|-)")
+ASTRA_REVIEW_ACTOR = r"^(asi-)?review-(risk|resilience|readability|reliability|refuter|validator)$"
+
+
+def astra_alias_wanted(name, agent):
+    model = agent.get("model")
+    if isinstance(model, dict):
+        model = f"{model.get('providerID') or model.get('providerId')}/{model.get('modelID') or model.get('modelId') or model.get('id')}"
+    return (not name.endswith(ASTRA_SUFFIX) and agent.get("mode") != "primary" and model == ASTRA_SOL_MODEL
+            and name not in ASTRA_IMPLEMENTATION_NAMES
+            and not any(re.search(p, name) for p in ASTRA_IMPLEMENTATION_PATTERNS) and not re.match(ASTRA_REVIEW_ACTOR, name))
+
+
+def add_v2_astra_aliases(config):
+    """Write the Astra aliases of config-defined agents into the config, as the plugin's V1 half does.
+    On V2 the plugin creates an alias with the base's resolved rules and the host then appends the global rules after them, so
+    the alias of an agent whose own rules grant a tool (the sandbox writers, ctx_memory) lost that grant. A config-defined alias
+    is composed like its base and keeps it. The plugin still creates the aliases of plugin-owned agents, which have no entry here;
+    it skips any alias that already exists on the Astra model."""
+    agents = config.get("agent")
+    if not isinstance(agents, dict):
+        return []
+    added = []
+    for name, agent in list(agents.items()):
+        alias = f"{name}{ASTRA_SUFFIX}"
+        if not isinstance(agent, dict) or alias in agents or not astra_alias_wanted(name, agent):
+            continue
+        copy = json.loads(json.dumps(agent))
+        copy.update({"description": f"{agent.get('description') or name} — selectable Astra upgrade", "hidden": True, "model": ASTRA_MODEL, "variant": ASTRA_VARIANT})
+        agents[alias] = copy
+        added.append(alias)
+    return [f"added {len(added)} Astra alias(es) for config-defined agents so they keep their base agent's rules on V2: {', '.join(sorted(added))}"] if added else []
+
+
 def drop_v2_unsupported(config):
     """Remove keys OpenCode V2 reports on every config load as 'omitted unsupported legacy ...'. Each one is dead on V2:
     - top-level subagent_depth: V2 reads experimental.subagent_depth (the V1 config sets both, so nothing is lost; if only the
@@ -302,6 +371,8 @@ def build(source_dir, sandbox_repo, staging, root_path, live_root=None):
     notes += expose_mcp_directly(config)
     notes += mirror_agent_access(config)
     notes += apply_v2_grep_policy(config)
+    notes += apply_v2_secret_read_policy(config)
+    notes += add_v2_astra_aliases(config)
     notes += drop_v2_unsupported(config)
     tools = scan_tools(sandbox_repo)
     warnings = check_rules(config, tools) + check_v1_paths(config)
