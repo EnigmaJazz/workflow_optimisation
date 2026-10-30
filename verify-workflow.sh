@@ -115,8 +115,8 @@ VERIFY_MODULES=(
   "checkers/recover-cli-config.py 5dc9e7af0c465f3ba237ba14c03a7b5b702f0e613445828b617189e56e05295f"
   "checkers/routing-canonical.md 23c0c9ab507e96b04966a4e1e2b5419771859dfd87eef1efb2d3191e52c559e4"
   "checkers/v2-agents-shim.cjs 93e716e96f9cc7cdcfaa73ecf7e64bed42bbbab70a04240b6433108353cf11e6"
-  "checkers/v2-config-check.py c54ef86952af2762d45ac9bd3b36df3342f9144c8f1efde5fe70b3545b80e7ad"
-  "checkers/v2-github-mcp-check.py 1779f5bd7aa8f61e8db546cb67a71d894da604c1efd4d5e73e9f363475955660"
+  "checkers/v2-config-check.py d1b3df3161a7b9b18f21d42610dcabff6951886d171ebc5caccadd39aebd79ae"
+  "checkers/v2-github-mcp-check.py fa24359ddfcf24c21d52f4cfc2948a5813167116fb2574cc98b82f2edce9d386"
   "checkers/v2-plugin-resolve.py 5792db1b5ddf8b3bc72f03546d2046946a6b3a6404843aafa52d2e51cd4a0bbd"
   "checkers/v2-sandbox-plugins-check.py a26e2b97a6fcc668a2aa2f457877542ec780eb304380082c7634a1adafd6e3bd"
 )

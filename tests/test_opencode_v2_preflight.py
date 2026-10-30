@@ -87,6 +87,12 @@ class ConfigAndUnits(unittest.TestCase):
         out = "[derive-v2] note: a global ask would expose it\n[derive-v2] dry-run - nothing was written.\n"
         self.assertEqual(self.m.check_config_in_sync(runner({"derive-v2-config": (0, out, "")}))[0], "PASS")
 
+    def test_a_change_line_in_an_unknown_shape_fails_instead_of_passing(self):
+        out = "[derive-v2] would-replace /r/opencode.json\n[derive-v2] dry-run - nothing was written.\n"
+        status, _, detail = self.m.check_config_in_sync(runner({"derive-v2-config": (0, out, "")}))
+        self.assertEqual(status, "FAIL")
+        self.assertIn("cannot parse", detail)
+
     def test_a_derive_failure_fails(self):
         self.assertEqual(self.m.check_config_in_sync(runner({"derive-v2-config": (2, "", "[derive-v2] refused: x\n")}))[0], "FAIL")
 

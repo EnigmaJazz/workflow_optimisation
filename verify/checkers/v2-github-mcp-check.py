@@ -72,6 +72,7 @@ def main(argv):
         except (urllib.error.URLError, OSError, ValueError) as exc:
             last = f"the V2 server did not answer /api/mcp ({type(exc).__name__}: {exc})"
         if attempt < 2:
+            print(f"   info: github_ro not connected yet (attempt {attempt + 1} of 3); retrying", file=sys.stderr)
             time.sleep(float(os.environ.get("WORKFLOW_VERIFY_RETRY_DELAY", "2")))
     print(f"error\tGITHUB_RO_NOT_CONNECTED: {last}; check the token and the sandbox egress")
     return 0

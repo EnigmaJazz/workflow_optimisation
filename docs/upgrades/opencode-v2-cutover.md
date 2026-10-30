@@ -5,7 +5,7 @@ rollback are therefore service switches, not file edits. The stack itself is spe
 `~/agent-sandbox-integration/docs/upgrades/opencode-v2.md` (V0-V7, the nine manual gates, "Cutover") and installed with its
 `docs/upgrades/opencode-v2-install-checklist.md`. This runbook sequences the workflow-repo side and says what is automated.
 
-**Status 2026-10-30:** V2 2.2.0 is running and passes the stack check, and gate 6 (native review) has passed; the cutover itself has not been done. The owner's target is now 2.2.3 or later (see `HANDOFF.md`). Open decisions and
+**Status 2026-10-30:** V2 2.2.0 is running and passes the stack check, gate 6 (native review) has passed and the verifier has a V2 mode (Q44, reviewed); the cutover itself has not been done. The owner's target is now 2.2.3 or later (see `HANDOFF.md`). Open decisions and
 engineering items are in `HANDOFF.md` ("What still stands between us and cutover").
 
 ## What is automated and what is not
@@ -39,7 +39,7 @@ regenerated, and a single file qualifies: the units. The V2 config root is regen
    - Units: `python3 scripts/changeset.py apply --set changesets/opencode-v2-units --journal-root backups/changesets --allow-root ~/.config/systemd/user --dry-run`, then without `--dry-run`. The drop-in directory `secure-opencode-v2.service.d` must exist first (`file_create` never creates directories). On a machine where the units are already installed, every op is `already_applied` and nothing is written.
    - `systemctl --user daemon-reload` if a unit changed.
 5. **Start or restart V2 (owner).** `systemctl --user restart secure-opencode-v2.service`. V1 and V2 conflict, so V1 must be stopped first for a real cutover. Install `cli.json` before the first V2 TUI start (derive mirrors it); the `tui.json` to `cli.json` migration has not yet been observed.
-6. **Verify.** `python3 scripts/opencode-v2-preflight.py --stack` (config in sync, units match, no rejected registrations, stack check). The V2 mode of `verify-workflow.sh` (Q44) is not finished: its open items are the V2 cache layout, a GitHub-MCP check, the section-10 parser and the retired auto-update reference, so do not treat a verifier run as the V2 acceptance gate yet.
+6. **Verify.** (With V2 first on PATH, `bash verify-workflow.sh < /dev/null` is the V2-mode verifier: config root parity, packages, sandbox plugins, GitHub MCP, runtime agents. `--behavioral` adds the paid probes and is the one outstanding proof for section 10.) `python3 scripts/opencode-v2-preflight.py --stack` (config in sync, units match, no rejected registrations, stack check). The V2 mode of `verify-workflow.sh` (Q44) is not finished: its open items are the V2 cache layout, a GitHub-MCP check, the section-10 parser and the retired auto-update reference, so do not treat a verifier run as the V2 acceptance gate yet.
 7. **Manual gates (owner, with the broker).** The preflight lists them as MANUAL and never marks them passed: host read routing and mutation blocking; lazy worker activation; `sandbox_edit` mode preserved; `sandbox_apply` approval with the full preview; a `host_git_commit` approval; native review end to end; Code Mode cannot bypass approval (re-test after the `codemode: false` change); no `~/.claude` content visible; the approval prompt actually shows in the TUI.
 8. **OpenChamber.** Upgrade to a V2-compatible version and point it at port 4097. Only then retire the V1 launcher. Keep the V1 tree for rollback.
 

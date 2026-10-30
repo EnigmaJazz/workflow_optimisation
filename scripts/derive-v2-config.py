@@ -214,15 +214,16 @@ def apply_v2_grep_policy(config, orchestrator="gentle-orchestrator"):
     if not isinstance(permission, dict) or permission.get("grep") != "ask":
         return []
     agent = (config.get("agent") or {}).get(orchestrator)
+    # Refuse rather than leave the global ask: on V2 that would hand native grep to every plugin-owned agent, and a note nobody reads
+    # is not a safeguard.
     if not isinstance(agent, dict):
-        return [f"left the global grep policy as ask: there is no {orchestrator} agent to carry it"]
-    permission["grep"] = "deny"
+        raise DeriveError(f"native grep policy: there is no {orchestrator} agent to carry the ask, and the global ask would expose grep to plugin-owned agents")
     agent_permission = agent.get("permission")
     if agent_permission is None:
         agent_permission = agent["permission"] = {}
     if not isinstance(agent_permission, dict):
-        permission["grep"] = "ask"
-        return [f"left the global grep policy as ask: {orchestrator}.permission is not an object"]
+        raise DeriveError(f"native grep policy: {orchestrator}.permission is not an object, so it cannot carry the ask")
+    permission["grep"] = "deny"
     agent_permission["grep"] = "ask"
     return [f"native grep: global policy deny and {orchestrator} ask on V2 (V2 uses the last matching rule, so a global ask would expose it to plugin-owned agents)"]
 
@@ -231,7 +232,8 @@ def apply_v2_secret_read_policy(config):
     """Secret files (.env, keys, cloud and git credentials, auth.json) stay unreadable for every agent.
     The global `permission.read` map allows everything and then denies those paths, but 16 agents carry `read: "allow"`, and V2 uses
     the last matching rule, so their allow came after the denies and won (an orchestrator could read `.env`). Each such agent gets
-    the global map instead, and an agent-level read map has the global denies re-appended after its own entries."""
+    a map made of a wildcard allow followed by the global denies, and an agent-level read map has the global denies re-appended after
+    its own entries. (Only the denies matter: the global map's allows are subsumed by the wildcard.)"""
     glob = (config.get("permission") or {}).get("read")
     if not isinstance(glob, dict):
         return []

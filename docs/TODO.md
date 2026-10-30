@@ -2098,20 +2098,17 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
     `permission.task` already provides; re-check `general`, which V2's built-in default denies.
 
 ### Q44. Verifier V2 mode (`verify-workflow.sh`)
-- **Status:** PARTIAL (2026-10-29). Shipped at source and deployed to the live mirror (verifier passed on V1 after
-  restart, `bash verify-workflow.sh` exit 0): `OC_MAJOR` detection and `checkers/oc-probe.sh` (`2ffb9ac`); section 9
-  `debug agents` shim `checkers/v2-agents-shim.cjs` (`a65019d`, hardened `fc78a41`); `cli.json` mirror
-  `checkers/recover-cli-config.py` plus prune and approval coverage (`737122c`); `shell`/`subagent` in the behavioural
-  parsers and 9a/9b skipped on V2 (`2428555`). Native review approved for `2ffb9ac`, `a65019d`, `737122c`, `2428555`;
-  `fc78a41` was not reviewed. **Still open:** (1) retired auto-update ref in V2 mode. DECIDED 2026-10-29: the fork is
-  retired on V2 and updates are automatic and guarded instead (`scripts/v2-plugin-autoupdate.py`, `~x.y.z` patch ranges,
-  `plugin update`, restart, load gate, pin-back rollback; unit templates in `docs/systemd/`; verified on isolated V2
-  2.2.2). The verifier's V2 mode must therefore drop the fork's `file://…/dist/index.js` requirement and accept `~`
-  ranges; the ref is woven through both recovery heredocs in `verify/30-recover-config.sh`. Also open: the V2 config
-  root (`~/.local/share/opencode-v2/config/opencode`) is not mirrored from `global-config/` by anything yet (Q46); (2) V2 package cache layout `npm/<spec>/<epoch-ms>/` for sections 2, 2b, 2c, 6
-  (observed only in isolation); (3) a V2 replacement for the 9b GitHub MCP check; (4) the V2 `run --format json` event
-  shape is unobserved, so the section 10 parser changes are unproven (needs `--behavioral` on V2); (5) V2 exposes no
-  per-agent `tools` map, so the shim emits `tools: {}`; section 9 tool checks need a real V2 run.
+- **Status:** DONE for engineering (2026-10-31); one proof outstanding. Everything from the 2026-10-29 partial (OC_MAJOR detection and
+  `oc-probe.sh`, the `debug agents` shim, the `cli.json` mirror, 9a/9b skipped) stands. Added and reviewed since: section 0 V2 mode
+  (`checkers/v2-config-check.py`: read-only derive dry-run check of the V2 config root, completion marker required, unparseable change lines
+  fail); sections 2/2b via `checkers/v2-plugin-resolve.py` (V2 npm cache `npm/<scope>/<name>@<range>/<epoch>/`, newest epoch only, `~`/`^`
+  ranges, entry file resolved like Node); 2c skipped; section 6 via `checkers/v2-sandbox-plugins-check.py` (the 19 hand-installed files
+  from `secure-launcher-v2.conf`, plus unlisted loadable files); 9b via `checkers/v2-github-mcp-check.py` (scoping from the V2 config,
+  liveness from `GET /api/mcp`); probes run with V2's XDG roots and overlay HOME; the shim derives the V1 `tools` map from permission
+  rules, maps `subagent` to `task` and carries the variant; section 10 parsers accept V2's tool-part shape. The retired auto-update
+  reference is not needed on V2 (the V1 recovery is not run there). **Outstanding:** the `run --format json` tool-event shape is unobserved
+  (no provider reachable in the probe), so section 10 on V2 is unproven; it fails loudly (`ODD_V2_STREAM_UNRECOGNISED`) rather than passing
+  blind. Prove it with one `--behavioral` run on V2.
 - **Prerequisites:** Q41, Q42, Q43; Q04 and Q26 strongly preferred.
 - **Description.** Select the mode by the `opencode --version` major.
   - Runtime probes `:4437` (`agent list`), `:4518` (`debug agent`) and `:4650`/`:4657`/`:4696`

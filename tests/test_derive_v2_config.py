@@ -448,14 +448,18 @@ class V2GrepPolicy(unittest.TestCase):
         self.assertEqual(self.m.apply_v2_grep_policy(config), [])
         self.assertEqual(config, before)
 
-    def test_without_an_orchestrator_the_global_ask_stays_and_says_so(self):
-        config = {"permission": {"grep": "ask"}, "agent": {}}
-        notes = self.m.apply_v2_grep_policy(config)
-        self.assertEqual(config["permission"]["grep"], "ask")
-        self.assertIn("no gentle-orchestrator agent", notes[0])
-        broken = {"permission": {"grep": "ask"}, "agent": {"gentle-orchestrator": {"permission": "ask"}}}
-        self.assertIn("is not an object", self.m.apply_v2_grep_policy(broken)[0])
-        self.assertEqual(broken["permission"]["grep"], "ask")
+    def test_without_a_usable_orchestrator_derive_refuses_instead_of_leaving_the_global_ask(self):
+        for config, fragment in (
+            ({"permission": {"grep": "ask"}, "agent": {}}, "no gentle-orchestrator agent"),
+            ({"permission": {"grep": "ask"}, "agent": {"gentle-orchestrator": {"permission": "ask"}}}, "is not an object"),
+        ):
+            with self.assertRaises(self.m.DeriveError) as raised:
+                self.m.apply_v2_grep_policy(config)
+            self.assertIn(fragment, str(raised.exception))
+            self.assertEqual(config["permission"]["grep"], "ask")  # nothing half-applied
+
+    def test_a_global_that_is_not_ask_needs_no_orchestrator(self):
+        self.assertEqual(self.m.apply_v2_grep_policy({"permission": {"grep": "deny"}, "agent": {}}), [])
 
 
 class V2Unsupported(unittest.TestCase):

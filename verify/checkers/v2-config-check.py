@@ -38,7 +38,13 @@ def main(argv):
         print("error\tderive gave no dry-run completion marker; its output cannot be trusted as a clean result")
         return 0
     # Only derive's own change lines count ("[derive-v2] would replace <path>"); a note that merely contains the word does not.
-    pending = [m.group(1) for m in (re.match(r"^\[derive-v2\] would \w+ (.+)$", line.strip()) for line in lines) if m]
+    # A line that starts like a change line but does not have that shape means derive's output changed: say so, never read it as clean.
+    changes = [line.strip() for line in lines if line.strip().startswith("[derive-v2] would")]
+    parsed = [re.match(r"^\[derive-v2\] would \w+ (.+)$", line) for line in changes]
+    if not all(parsed):
+        print("error\tderive printed a change line this check cannot parse (its output format changed): " + next(l for l, m in zip(changes, parsed) if not m)[:120])
+        return 0
+    pending = [m.group(1) for m in parsed]
     if pending:
         names = "; ".join(item.split("/")[-1] for item in pending[:5])
         print(f"error\t{len(pending)} V2 config file(s) differ from global-config ({names}); run derive --apply")

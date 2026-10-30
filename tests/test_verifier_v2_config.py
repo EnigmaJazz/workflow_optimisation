@@ -58,6 +58,13 @@ class Checker(unittest.TestCase):
         self.assertIn("1 V2 config file(s) differ", out)
         self.assertIn("opencode.json", out)
 
+    def test_a_change_line_in_an_unknown_shape_is_an_error_never_clean(self):
+        marker = "[derive-v2] dry-run - nothing was written. Re-run with --apply to write."
+        _, out = Fixture("[derive-v2] would-replace /r/opencode.json\n" + marker).run()
+        self.assertTrue(out.startswith("error\tderive printed a change line this check cannot parse"), out)
+        _, out = Fixture("[derive-v2] would /r/opencode.json\n" + marker).run()
+        self.assertTrue(out.startswith("error\t"), out)
+
     def test_output_without_the_completion_marker_is_never_clean(self):
         for output in ("", "[derive-v2] note: dropped 1 legacy setting"):
             _, out = Fixture(output).run()
