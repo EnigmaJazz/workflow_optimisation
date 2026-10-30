@@ -217,6 +217,31 @@ class V2Mode(unittest.TestCase):
 
 
 @unittest.skipUnless(SCRIPT.exists(), "opencode-perm is not installed")
+class V2Defaults(unittest.TestCase):
+    """OPENCODE_PERMISSION_API=v2 alone must be enough: the CLI commands (blocking, once, deny) are run by hand with
+    only that variable, and a V1 default there looks at the wrong server and the wrong state."""
+
+    def probe(self, **extra):
+        home = tempfile.mkdtemp()
+        env = {"PATH": os.environ["PATH"], "HOME": home, **extra}
+        code = "import importlib.machinery as m, importlib.util as u; l=m.SourceFileLoader('p', %r); x=u.module_from_spec(u.spec_from_loader('p', l)); l.exec_module(x); print(x.SERVER, x.STATE_DIR, x.V2_MODE)" % str(SCRIPT)
+        out = __import__("subprocess").run(["python3", "-c", code], env=env, capture_output=True, text=True, check=True).stdout.split()
+        return out[0], Path(out[1]), out[2], Path(home)
+
+    def test_v2_mode_alone_selects_the_v2_server_and_a_separate_state_directory(self):
+        server, state, mode, home = self.probe(OPENCODE_PERMISSION_API="v2")
+        self.assertEqual((server, state, mode), ("http://127.0.0.1:4097", home / ".local/state/opencode-permissions-v2", "True"))
+
+    def test_without_v2_mode_the_v1_defaults_are_unchanged(self):
+        server, state, mode, home = self.probe()
+        self.assertEqual((server, state, mode), ("http://127.0.0.1:4096", home / ".local/state/opencode-permissions", "False"))
+
+    def test_explicit_settings_still_win(self):
+        server, state, _, home = self.probe(OPENCODE_PERMISSION_API="v2", OPENCODE_PERMISSION_SERVER="http://127.0.0.1:9999", OPENCODE_PERMISSION_STATE_DIR=str(Path(tempfile.gettempdir()) / "x-perm"))
+        self.assertEqual((server, state), ("http://127.0.0.1:9999", Path(tempfile.gettempdir()) / "x-perm"))
+
+
+@unittest.skipUnless(SCRIPT.exists(), "opencode-perm is not installed")
 class V1Unchanged(unittest.TestCase):
     """V2 mode is opt-in: with it off the V1 log capture and the V1 permission route behave as before."""
 
