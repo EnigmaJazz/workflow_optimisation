@@ -67,6 +67,7 @@ else
     tail -10 "$ODD_STDERR" 2>/dev/null | sed 's/^/      /'
   elif python3 - "$ODD_EVENTS" "$PROBE_CWD" <<'PY_ODD_READONLY'
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -74,15 +75,20 @@ events = Path(sys.argv[1])
 root = Path(sys.argv[2])
 loaded_router = False
 skill_calls = []
+tool_events = 0
 for line in events.read_text(encoding="utf-8", errors="replace").splitlines():
     try:
         event = json.loads(line)
     except json.JSONDecodeError:
         continue
     part = event.get("part")
+    if not isinstance(part, dict) and event.get("type") == "tool":
+        part = event  # V2 may emit the tool part itself rather than wrapping it
     if not isinstance(part, dict):
         continue
-    tool = part.get("tool")
+    tool = part.get("tool") or (part.get("name") if part.get("type") == "tool" else None)  # V1: tool; V2 stored parts: name
+    if tool:
+        tool_events += 1
     state = part.get("state") or {}
     if not isinstance(state, dict):
         state = {}
@@ -96,6 +102,10 @@ for line in events.read_text(encoding="utf-8", errors="replace").splitlines():
     if tool in {"sandbox_write","sandbox_edit","sandbox_apply_patch","sandbox_bash","sandbox_apply","write","edit","bash","shell","host_plan_append","host_review_start","host_register_project"} or (tool in {"task", "subagent"} and (launch.get("subagent_type") or launch.get("agent")) not in {"explore"}):
         print(f"   !! ODD_READ_ONLY_MUTATION_OR_WRITER: tool={tool} agent={launch.get('subagent_type') or launch.get('agent')}")
         raise SystemExit(1)
+if os.environ.get("OC_MAJOR") == "2" and tool_events == 0:
+    # The V2 `run --format json` tool-event shape has not been observed; an empty read must not pass as "no writer launched".
+    print("   !! ODD_V2_STREAM_UNRECOGNISED: no tool events were recognised in the V2 JSON stream; the event shape needs inspecting")
+    raise SystemExit(1)
 if not loaded_router:
     print("   !! ODD_ROUTER_SKILL_NOT_LOADED: expected native skill(workflow-route) call")
     raise SystemExit(1)

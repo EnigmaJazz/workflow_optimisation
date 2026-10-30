@@ -15,10 +15,12 @@ with open(path, "r", encoding="utf-8", errors="replace") as fh:
             continue
 
         part = event.get("part")
+        if not isinstance(part, dict) and event.get("type") == "tool":
+            part = event  # V2 may emit the tool part itself rather than wrapping it
         if not isinstance(part, dict):
             continue
-        # V1 calls it `task` (input `subagent_type`); V2 calls it `subagent` (input `agent`).
-        if part.get("tool") not in {"task", "subagent"}:
+        # V1 calls it `task` (input `subagent_type`); V2 calls it `subagent` (input `agent`). V2 stored parts name the tool in `name`.
+        if (part.get("tool") or (part.get("name") if part.get("type") == "tool" else None)) not in {"task", "subagent"}:
             continue
 
         state = part.get("state")
