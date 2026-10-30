@@ -2,6 +2,24 @@ echo "== Workflow setup health check =="
 
 # --- 0. Recover reviewed user-owned configuration after generator/sync drift ---
 echo "--- 0. User-owned configuration recovery ---"
+# V2 mode (Q44): the V1 files below are not what V2 runs on. V2's config root is generated from global-config by
+# derive-v2-config.py, so check it read-only against a derive dry run; drift is reported, the owner re-applies it.
+if [ "${OC_MAJOR:-0}" = "2" ]; then
+  V2_CONFIG_ROOT="${WORKFLOW_VERIFY_V2_CONFIG_ROOT:-/home/james/.local/share/opencode-v2/config/opencode}"
+  V2_SANDBOX_REPO="${WORKFLOW_VERIFY_SANDBOX_REPO:-/home/james/agent-sandbox-integration}"
+  V2_CONFIG_CHECK=$(python3 "$VERIFY_MODULE_DIR/checkers/v2-config-check.py" "$WORKSPACE" "$V2_SANDBOX_REPO" "$V2_CONFIG_ROOT" 2>&1)
+  case "$V2_CONFIG_CHECK" in
+    clean$'\t'*)
+      echo "   ok: ${V2_CONFIG_CHECK#*$'\t'}"
+      ;;
+    error$'\t'*)
+      fail "V2_CONFIG_ROOT_DRIFT: ${V2_CONFIG_CHECK#*$'\t'}"
+      ;;
+    *)
+      fail "V2_CONFIG_ROOT_DRIFT: unexpected result ${V2_CONFIG_CHECK:-<empty>}"
+      ;;
+  esac
+else
 mkdir -p "$OPENCODE_CONFIG_DIR"
 
 OPENCODE_RECOVERY=$(recover_opencode_config)
@@ -161,6 +179,8 @@ case "$FALLBACK_RECOVERY" in
     fail "FALLBACK_POLICY_RECOVERY_FAILED: unexpected result ${FALLBACK_RECOVERY:-<empty>}"
     ;;
 esac
+
+fi
 
 # Muse and pre-V4.1 DeepSeek models are retired from primary assignments.
 for MODEL_CONFIG in \
