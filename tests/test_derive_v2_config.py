@@ -132,7 +132,8 @@ class RealConfig(unittest.TestCase):
         mirrored = derive.ACCESS_MIRRORS
         got = json.loads((self.out / "opencode.json").read_text())
         expected = json.loads(json.dumps(self.src))
-        derive.drop_v2_unsupported(expected)  # the only other intended difference: keys V2 reports as unsupported and ignores
+        derive.apply_v2_grep_policy(expected)  # intended difference: V2's grep policy (global deny, orchestrator ask)
+        derive.drop_v2_unsupported(expected)  # and keys V2 reports as unsupported and ignores
         for key, value in expected.items():
             if key == "plugin":
                 continue
@@ -150,6 +151,9 @@ class RealConfig(unittest.TestCase):
             self.assertEqual(got[key], value, key)
         self.assertNotIn("plugin", got)
         # What the run must have removed, asserted on the derived file itself and not through the function under test.
+        self.assertEqual(got["permission"]["grep"], "deny")  # asserted on the derived file, not through the function under test
+        self.assertEqual(got["agent"]["gentle-orchestrator"]["permission"]["grep"], "ask")
+        self.assertTrue(all(a.get("permission", {}).get("grep") in (None, "deny") for n, a in got["agent"].items() if n != "gentle-orchestrator"))
         self.assertNotIn("subagent_depth", got)
         self.assertEqual(got["experimental"]["subagent_depth"], self.src.get("experimental", {}).get("subagent_depth", self.src.get("subagent_depth")))
         self.assertNotIn("prune", got.get("compaction", {}))
@@ -299,6 +303,47 @@ class AccessMirror(unittest.TestCase):
         real = json.loads((REPO / "global-config" / "opencode.json").read_text())
         for reference in self.m.ACCESS_MIRRORS.values():
             self.assertIn(reference, real["agent"])
+
+
+class V2GrepPolicy(unittest.TestCase):
+    """Native grep: orchestrator ask, everything else deny. V2 applies the last matching rule, so the global rule must not be ask."""
+
+    def setUp(self):
+        self.m = load()
+
+    def config(self, **extra):
+        return {"permission": {"grep": "ask", "ctx_memory": "deny"}, "agent": {"gentle-orchestrator": {"mode": "primary"}, "general": {"permission": {"grep": "deny"}}}, **extra}
+
+    def test_global_becomes_deny_and_the_orchestrator_carries_the_ask(self):
+        config = self.config()
+        notes = self.m.apply_v2_grep_policy(config)
+        self.assertEqual(config["permission"]["grep"], "deny")
+        self.assertEqual(config["agent"]["gentle-orchestrator"]["permission"], {"grep": "ask"})
+        self.assertEqual(config["agent"]["general"]["permission"], {"grep": "deny"})
+        self.assertEqual(config["permission"]["ctx_memory"], "deny")  # nothing else is touched
+        self.assertEqual(len(notes), 1)
+
+    def test_an_existing_orchestrator_permission_map_keeps_its_other_rules(self):
+        config = self.config()
+        config["agent"]["gentle-orchestrator"]["permission"] = {"host_git_commit": "ask", "grep": "allow"}
+        self.m.apply_v2_grep_policy(config)
+        self.assertEqual(config["agent"]["gentle-orchestrator"]["permission"], {"host_git_commit": "ask", "grep": "ask"})
+
+    def test_it_is_idempotent_and_ignores_a_config_whose_global_grep_is_not_ask(self):
+        config = self.config()
+        self.m.apply_v2_grep_policy(config)
+        before = json.loads(json.dumps(config))
+        self.assertEqual(self.m.apply_v2_grep_policy(config), [])
+        self.assertEqual(config, before)
+
+    def test_without_an_orchestrator_the_global_ask_stays_and_says_so(self):
+        config = {"permission": {"grep": "ask"}, "agent": {}}
+        notes = self.m.apply_v2_grep_policy(config)
+        self.assertEqual(config["permission"]["grep"], "ask")
+        self.assertIn("no gentle-orchestrator agent", notes[0])
+        broken = {"permission": {"grep": "ask"}, "agent": {"gentle-orchestrator": {"permission": "ask"}}}
+        self.assertIn("is not an object", self.m.apply_v2_grep_policy(broken)[0])
+        self.assertEqual(broken["permission"]["grep"], "ask")
 
 
 class V2Unsupported(unittest.TestCase):

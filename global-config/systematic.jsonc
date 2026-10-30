@@ -29,7 +29,7 @@
         "sandbox_copy_out": "deny",
         "sandbox_discard": "deny",
         "sandbox_finish": "deny",
-        "ctx_memory": "allow"
+        "ctx_memory": "deny"
       }
     },
     "research": {

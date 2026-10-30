@@ -205,6 +205,28 @@ def mirror_agent_access(config, mirrors=None):
 V2_DEAD_MODEL_FLAGS = ("temperature", "reasoning", "attachment")
 
 
+def apply_v2_grep_policy(config, orchestrator="gentle-orchestrator"):
+    """Native grep is the orchestrator's alone, and only with an ask; everyone else uses the sandbox tools.
+    V1 expresses that as a global `grep: ask` with `deny` on each agent, because an agent rule beats the global one. V2 uses the
+    last matching rule and puts plugin-owned agents (the Systematic ones, which have no entry here) under the global rule only, so
+    a global ask would expose native grep to them. On V2 the global rule is therefore `deny` and the orchestrator carries the ask."""
+    permission = config.get("permission")
+    if not isinstance(permission, dict) or permission.get("grep") != "ask":
+        return []
+    agent = (config.get("agent") or {}).get(orchestrator)
+    if not isinstance(agent, dict):
+        return [f"left the global grep policy as ask: there is no {orchestrator} agent to carry it"]
+    permission["grep"] = "deny"
+    agent_permission = agent.get("permission")
+    if agent_permission is None:
+        agent_permission = agent["permission"] = {}
+    if not isinstance(agent_permission, dict):
+        permission["grep"] = "ask"
+        return [f"left the global grep policy as ask: {orchestrator}.permission is not an object"]
+    agent_permission["grep"] = "ask"
+    return [f"native grep: global policy deny and {orchestrator} ask on V2 (V2 uses the last matching rule, so a global ask would expose it to plugin-owned agents)"]
+
+
 def drop_v2_unsupported(config):
     """Remove keys OpenCode V2 reports on every config load as 'omitted unsupported legacy ...'. Each one is dead on V2:
     - top-level subagent_depth: V2 reads experimental.subagent_depth (the V1 config sets both, so nothing is lost; if only the
@@ -279,6 +301,7 @@ def build(source_dir, sandbox_repo, staging, root_path, live_root=None):
     notes += rewrite_mcp(config, source_dir, root_path, MCP_ENV)
     notes += expose_mcp_directly(config)
     notes += mirror_agent_access(config)
+    notes += apply_v2_grep_policy(config)
     notes += drop_v2_unsupported(config)
     tools = scan_tools(sandbox_repo)
     warnings = check_rules(config, tools) + check_v1_paths(config)

@@ -83,6 +83,10 @@ class ConfigAndUnits(unittest.TestCase):
     def test_a_dry_run_with_nothing_pending_passes(self):
         self.assertEqual(self.m.check_config_in_sync(runner({"derive-v2-config": (0, "[derive-v2] dry-run - nothing was written.\n", "")}))[0], "PASS")
 
+    def test_a_note_that_contains_the_word_would_is_not_counted_as_a_pending_change(self):
+        out = "[derive-v2] note: a global ask would expose it\n[derive-v2] dry-run - nothing was written.\n"
+        self.assertEqual(self.m.check_config_in_sync(runner({"derive-v2-config": (0, out, "")}))[0], "PASS")
+
     def test_a_derive_failure_fails(self):
         self.assertEqual(self.m.check_config_in_sync(runner({"derive-v2-config": (2, "", "[derive-v2] refused: x\n")}))[0], "FAIL")
 

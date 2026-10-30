@@ -299,8 +299,9 @@ for (const category of categoriesInBundle) {
   }
 }
 
+// ctx_memory works for the main agent (the orchestrator) only, so no Systematic subagent category holds it.
 const systematicMemoryPolicy = {
-  workflow: "allow",
+  workflow: "deny",
   research: "deny",
   design: "deny",
   review: "deny",

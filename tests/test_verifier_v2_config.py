@@ -50,6 +50,14 @@ class Checker(unittest.TestCase):
         _, out = Fixture("[derive-v2] dry-run - nothing was written. Re-run with --apply to write.").run()
         self.assertTrue(out.startswith("clean\t"), out)
 
+    def test_a_note_that_merely_contains_the_word_would_is_not_drift(self):
+        marker = "[derive-v2] dry-run - nothing was written. Re-run with --apply to write."
+        _, out = Fixture("[derive-v2] note: native grep: a global ask would expose it to plugin-owned agents\n" + marker).run()
+        self.assertTrue(out.startswith("clean\t"), out)
+        _, out = Fixture("[derive-v2] note: it would expose x\n[derive-v2] would replace /r/opencode.json\n" + marker).run()
+        self.assertIn("1 V2 config file(s) differ", out)
+        self.assertIn("opencode.json", out)
+
     def test_output_without_the_completion_marker_is_never_clean(self):
         for output in ("", "[derive-v2] note: dropped 1 legacy setting"):
             _, out = Fixture(output).run()

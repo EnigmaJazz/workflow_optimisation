@@ -24,4 +24,9 @@ detect_opencode_major() {
 }
 OC_MAJOR=$(detect_opencode_major)
 export OC_MAJOR
+# V2 loads Systematic's config from the overlay under its own HOME, not from ~/.config/opencode. Point the static validation at it
+# (an explicit WORKFLOW_VERIFY override still wins).
+if [ "$OC_MAJOR" = "2" ] && [ -z "${WORKFLOW_VERIFY_SYSTEMATIC_CONFIG:-}" ]; then
+  SYSTEMATIC_CONFIG="$V2_BASE_DIR/config/home/.config/opencode/systematic.jsonc"
+fi
 OC_PROBE="$VERIFY_MODULE_DIR/checkers/oc-probe.sh"

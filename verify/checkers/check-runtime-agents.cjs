@@ -427,8 +427,9 @@ for (const name of controlNames) {
       if (tool(actual,t)!==true) fail(`SYSTEMATIC_SANDBOX_TOOL_MISSING: ${name}.${t} is not enabled at runtime`)
     }
   }
+  // ctx_memory works for the main agent (the orchestrator) only, so no Systematic subagent category holds it.
   const memoryExpected = {
-    workflow: true,
+    workflow: false,
     research: false,
     design: false,
     review: false,
@@ -2012,7 +2013,8 @@ function assertDirectAgentModelMatchesConfig(name) {
     console.log(`   ok: ${name} runtime model matches opencode.json (${expectedModel})`)
   }
   if (hasOwn(configured,"variant")) {
-    const expectedVariant=configured.variant==null?undefined:configured.variant
+    // An empty string has always meant "no variant" (derive drops it on V2), so it must compare equal to a runtime with none.
+    const expectedVariant=configured.variant==null||configured.variant===""?undefined:configured.variant
     const runtimeVariant=typeof actual.variant==="string"?actual.variant:undefined
     if (runtimeVariant!==expectedVariant) {
       fail(`DIRECT_RUNTIME_VARIANT_MISMATCH: ${name}: opencode.json=${show(expectedVariant)} runtime=${show(runtimeVariant)}`)

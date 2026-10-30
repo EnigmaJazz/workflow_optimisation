@@ -5,6 +5,7 @@ Prints one line: clean|error <TAB> detail (the verifier's recovery protocol).
 
 Read-only by construction: derive runs as a dry run (never --apply) and this checker writes nothing. V2's config root is
 generated and owned by the owner's `derive --apply`, so drift is reported, never repaired by the verifier."""
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -36,7 +37,8 @@ def main(argv):
     if not any("dry-run - nothing was written" in line for line in lines):
         print("error\tderive gave no dry-run completion marker; its output cannot be trusted as a clean result")
         return 0
-    pending = [line.split("would ", 1)[1] for line in lines if "would " in line and "dry-run" not in line]
+    # Only derive's own change lines count ("[derive-v2] would replace <path>"); a note that merely contains the word does not.
+    pending = [m.group(1) for m in (re.match(r"^\[derive-v2\] would \w+ (.+)$", line.strip()) for line in lines) if m]
     if pending:
         names = "; ".join(item.split("/")[-1] for item in pending[:5])
         print(f"error\t{len(pending)} V2 config file(s) differ from global-config ({names}); run derive --apply")

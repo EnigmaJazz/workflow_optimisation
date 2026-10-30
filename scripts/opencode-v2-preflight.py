@@ -70,7 +70,8 @@ def check_config_in_sync(runner=run):
                              "--sandbox-repo", str(SANDBOX), "--target", str(V2_ROOT / "config/opencode")])
     if code != 0:
         return "FAIL", "config in sync", (err or out).strip().splitlines()[-1][:160] if (err or out).strip() else f"derive exited {code}"
-    pending = [line.split("would ", 1)[1] for line in out.splitlines() if "would " in line and "dry-run" not in line]
+    # Only derive's own change lines count ("[derive-v2] would replace <path>"); a note that merely contains the word does not.
+    pending = [m.group(1) for m in (re.match(r"^\[derive-v2\] would \w+ (.+)$", line.strip()) for line in out.splitlines()) if m]
     if pending:
         return "WARN", "config in sync", f"{len(pending)} file(s) differ from global-config (run derive --apply): " + "; ".join(p.split("/")[-1] for p in pending[:4])
     return "PASS", "config in sync", "the V2 config root matches global-config"
