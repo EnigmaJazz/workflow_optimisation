@@ -242,6 +242,88 @@ class V2Defaults(unittest.TestCase):
 
 
 @unittest.skipUnless(SCRIPT.exists(), "opencode-perm is not installed")
+class AutomaticRouting(unittest.TestCase):
+    """The phone button runs `opencode-perm once <id>` with no environment. The tool must work out which detector (V1 or V2)
+    tracked that request and use its server, so the same input works for both."""
+
+    def setUp(self):
+        self.server = FakeV2()
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        self.home = Path(tempfile.mkdtemp())
+        (self.home / "pw").write_text(PASSWORD + "\n")
+        self.v1 = self.home / ".local/state/opencode-permissions"
+        self.v2 = self.home / ".local/state/opencode-permissions-v2"
+        self.server.sessions["ses_1"] = session()
+        self.server.pending[DEFAULT_DIR] = [request("per_v2only")]
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+    def track(self, directory, request_id, session_id="ses_1", location=DEFAULT_DIR):
+        directory.mkdir(parents=True, exist_ok=True)
+        entry = {"id": request_id, "permission": "edit", "patterns": ["a"], "run": None, "session": session_id, "directory": location,
+                 "agent": "a", "model": "m", "provider": "p", "title": "T", "first_seen": time.time() - 600, "status": "pending",
+                 "alerted": False, "phone_alerted": False, "phone_clear_sent": False}
+        path = directory / "blocking-state.json"
+        state = json.loads(path.read_text()) if path.exists() else {"permissions": {}, "sessions": {}, "runs": {}}
+        state["permissions"][request_id] = entry
+        state["sessions"][session_id] = {"last_activity": time.time() - 600}
+        path.write_text(json.dumps(state))
+
+    def run_cli(self, *args, **env_extra):
+        import subprocess
+        env = {"PATH": os.environ["PATH"], "HOME": str(self.home), "OPENCODE_PERMISSION_SERVER": self.server.url,
+               "OPENCODE_PERMISSION_PASSWORD_FILE": str(self.home / "pw"), "OPENCODE_PERMISSION_OTHER_GRACE": "0",
+               "OPENCODE_PERMISSION_OTHER_QUIET": "0", **env_extra}
+        return subprocess.run([str(SCRIPT), *args], env=env, capture_output=True, text=True, timeout=60)
+
+    def test_a_request_tracked_by_the_v2_detector_is_answered_through_v2_with_no_environment(self):
+        self.track(self.v2, "per_v2only")
+        result = self.run_cli("once", "per_v2only")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.server.replies, [("ses_1", "per_v2only", {"decision": "once"})])
+
+    def test_deny_routes_the_same_way(self):
+        self.track(self.v2, "per_v2only")
+        self.assertEqual(self.run_cli("deny", "per_v2only").returncode, 0)
+        self.assertEqual(self.server.replies[-1][2], {"decision": "reject"})
+
+    def test_a_request_tracked_only_by_the_v1_detector_still_uses_the_v1_route(self):
+        self.track(self.v1, "per_v1only")
+        self.run_cli("once", "per_v1only")
+        posts = [path for method, path in self.server.requests if method == "POST"]
+        self.assertEqual(len(posts), 1)
+        self.assertTrue(posts[0].startswith("/permission/per_v1only/reply"), posts)
+        self.assertEqual(self.server.replies, [])
+
+    def test_an_unknown_request_fails_without_calling_either_server_route_for_a_reply(self):
+        result = self.run_cli("once", "per_nobody")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Unknown permission ID", result.stderr)
+        self.assertEqual([r for r in self.server.requests if r[0] == "POST"], [])
+
+    def test_an_explicit_mode_is_not_overridden(self):
+        self.track(self.v2, "per_v2only")
+        result = self.run_cli("once", "per_v2only", OPENCODE_PERMISSION_API="v1")  # explicitly V1: the V2 state is not consulted
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.server.replies, [])
+
+    def test_ack_is_routed_to_the_detector_that_tracked_the_request(self):
+        self.track(self.v2, "per_v2only")
+        self.assertEqual(self.run_cli("ack", "per_v2only").returncode, 0)
+        self.assertTrue(list((self.v2 / "acks").glob("per_v2only*")))
+        self.assertFalse(list((self.v1 / "acks").glob("per_v2only*")))
+
+    def test_blocking_lists_both_detectors(self):
+        self.track(self.v1, "per_v1only", "ses_1")
+        self.track(self.v2, "per_v2only", "ses_1")
+        out = self.run_cli("blocking").stdout
+        self.assertIn("per_v1only", out)
+        self.assertIn("per_v2only", out)
+
+
+@unittest.skipUnless(SCRIPT.exists(), "opencode-perm is not installed")
 class V1Unchanged(unittest.TestCase):
     """V2 mode is opt-in: with it off the V1 log capture and the V1 permission route behave as before."""
 
