@@ -47,7 +47,7 @@ class Checker(unittest.TestCase):
         self.assertIn("derive --apply", out)
 
     def test_the_dry_run_line_is_not_counted_as_drift(self):
-        _, out = Fixture("[derive-v2] dry-run - nothing was written, would not write anything").run()
+        _, out = Fixture("[derive-v2] dry-run - nothing was written. Re-run with --apply to write.").run()
         self.assertTrue(out.startswith("clean\t"), out)
 
     def test_output_without_the_completion_marker_is_never_clean(self):
