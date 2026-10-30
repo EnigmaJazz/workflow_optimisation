@@ -212,12 +212,21 @@ def drop_v2_unsupported(config):
     - compaction.prune: no V2 equivalent (compaction is Magic Context's; compaction.auto stays);
     - per-model temperature/reasoning/attachment flags: V2 takes capabilities from its own model catalog;
     - an empty-string agent variant, which already meant 'no variant'."""
-    dropped = {"subagent_depth": 0, "compaction.prune": 0, "model flags": 0, "empty agent variants": 0}
+    dropped = {"duplicate subagent_depth": 0, "compaction.prune": 0, "model flags": 0, "empty agent variants": 0}
+    notes = []
     if "subagent_depth" in config:
-        legacy = config.pop("subagent_depth")
-        experimental = config.setdefault("experimental", {})
-        experimental.setdefault("subagent_depth", legacy)
-        dropped["subagent_depth"] += 1
+        experimental = config.get("experimental")
+        if experimental is None:  # an explicit null means 'unset' there too
+            experimental = config["experimental"] = {}
+        if isinstance(experimental, dict):
+            legacy = config.pop("subagent_depth")
+            if "subagent_depth" in experimental:
+                dropped["duplicate subagent_depth"] += 1
+            else:
+                experimental["subagent_depth"] = legacy
+                notes.append("moved subagent_depth to experimental.subagent_depth, the key V2 reads for the nesting limit")
+        else:
+            notes.append("kept top-level subagent_depth: experimental is not an object, so there is nowhere to move it")
     compaction = config.get("compaction")
     if isinstance(compaction, dict) and "prune" in compaction:
         del compaction["prune"]
@@ -233,10 +242,10 @@ def drop_v2_unsupported(config):
             del agent["variant"]
             dropped["empty agent variants"] += 1
     total = sum(dropped.values())
-    if not total:
-        return []
-    detail = ", ".join(f"{count} {name}" for name, count in dropped.items() if count)
-    return [f"dropped {total} legacy settings that V2 reports as unsupported and ignores ({detail}); V2 reads experimental.subagent_depth"]
+    if total:
+        detail = ", ".join(f"{count} {name}" for name, count in dropped.items() if count)
+        notes.insert(0, f"dropped {total} legacy {'setting' if total == 1 else 'settings'} that V2 reports as unsupported and ignores ({detail})")
+    return notes
 
 
 def derive_config(source, fork_dir=None, fork_ref=None):

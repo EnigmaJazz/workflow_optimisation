@@ -149,6 +149,15 @@ class RealConfig(unittest.TestCase):
                 continue
             self.assertEqual(got[key], value, key)
         self.assertNotIn("plugin", got)
+        # What the run must have removed, asserted on the derived file itself and not through the function under test.
+        self.assertNotIn("subagent_depth", got)
+        self.assertEqual(got["experimental"]["subagent_depth"], self.src.get("experimental", {}).get("subagent_depth", self.src.get("subagent_depth")))
+        self.assertNotIn("prune", got.get("compaction", {}))
+        for provider in got.get("provider", {}).values():
+            for model in (provider.get("models") or {}).values():
+                for flag in ("temperature", "reasoning", "attachment"):
+                    self.assertNotIn(flag, model)
+        self.assertTrue(all(agent.get("variant") != "" for agent in got["agent"].values()))
         self.assertEqual(len(got["agent"]), 46 + len(mirrored))
         mirrored = got["agent"]["systematic-implementer"]
         reference = got["agent"]["gentle-ai-worker"]
@@ -316,6 +325,29 @@ class V2Unsupported(unittest.TestCase):
         self.m.drop_v2_unsupported(config)
         self.assertEqual(config["experimental"]["subagent_depth"], 2)
         self.assertNotIn("subagent_depth", config)
+
+    def test_a_null_experimental_does_not_abort_the_run(self):
+        config = {"subagent_depth": 3, "experimental": None}
+        self.m.drop_v2_unsupported(config)
+        self.assertEqual(config, {"experimental": {"subagent_depth": 3}})
+
+    def test_a_non_object_experimental_keeps_the_legacy_key_and_says_so(self):
+        config = {"subagent_depth": 3, "experimental": "x"}
+        notes = self.m.drop_v2_unsupported(config)
+        self.assertEqual(config, {"subagent_depth": 3, "experimental": "x"})
+        self.assertIn("nowhere to move", notes[0])
+
+    def test_the_notes_say_what_moved_and_what_was_dropped(self):
+        moved = self.m.drop_v2_unsupported({"subagent_depth": 3})
+        self.assertEqual(len(moved), 1)
+        self.assertTrue(moved[0].startswith("moved subagent_depth to experimental.subagent_depth"))
+        self.assertNotIn("ignores", moved[0])  # a moved setting still takes effect
+        one = self.m.drop_v2_unsupported({"compaction": {"prune": False}})
+        self.assertEqual(one, ["dropped 1 legacy setting that V2 reports as unsupported and ignores (1 compaction.prune)"])
+        both = self.m.drop_v2_unsupported({"subagent_depth": 3, "compaction": {"prune": False}})
+        self.assertEqual(len(both), 2)
+        self.assertIn("dropped 1 legacy setting", both[0])
+        self.assertTrue(both[1].startswith("moved subagent_depth"))
 
     def test_compaction_prune_goes_and_compaction_auto_stays(self):
         config = {"compaction": {"auto": False, "prune": False}}
