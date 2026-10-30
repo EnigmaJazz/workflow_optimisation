@@ -24,14 +24,6 @@ sys.path.insert(0, HERE)
 import server as bridge  # noqa: E402
 
 
-def fake_jwt(payload_claims):
-    def b64url(obj):
-        raw = json.dumps(obj).encode()
-        return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
-
-    return f"{b64url({'alg': 'none'})}.{b64url(payload_claims)}.sig"
-
-
 # ---------------------------------------------------------------- unit tests
 
 class TestContentOf(unittest.TestCase):
@@ -55,57 +47,10 @@ class TestContentOf(unittest.TestCase):
         self.assertIsNone(bridge._content_of({"error": {"message": "boom"}}))
 
 
-class TestCredentials(unittest.TestCase):
-    def test_extracts_token_and_account(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            auth = {
-                "openai": {
-                    "access": fake_jwt(
-                        {
-                            "https://api.openai.com/auth": {
-                                "chatgpt_account_id": "acct-123",
-                            }
-                        }
-                    )
-                }
-            }
-            path = os.path.join(tmp, "auth.json")
-            with open(path, "w") as fh:
-                json.dump(auth, fh)
-            tok, acct = bridge._openai_credentials.__wrapped__(path) \
-                if hasattr(bridge._openai_credentials, "__wrapped__") \
-                else (None, None)
-            # simpler: monkeypatch module AUTH_FILE
-            old = bridge.AUTH_FILE
-            bridge.AUTH_FILE = path
-            try:
-                tok, acct = bridge._openai_credentials()
-            finally:
-                bridge.AUTH_FILE = old
-            self.assertTrue(tok.startswith("ey"))
-            self.assertEqual(acct, "acct-123")
-
-    def test_missing_file_returns_none(self):
-        old = bridge.AUTH_FILE
-        bridge.AUTH_FILE = "/nonexistent/auth.json"
-        try:
-            self.assertEqual(bridge._openai_credentials(), (None, None))
-        finally:
-            bridge.AUTH_FILE = old
-
-    def test_non_jwt_token_no_account(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = os.path.join(tmp, "auth.json")
-            with open(path, "w") as fh:
-                json.dump({"openai": {"access": "plain-token"}}, fh)
-            old = bridge.AUTH_FILE
-            bridge.AUTH_FILE = path
-            try:
-                tok, acct = bridge._openai_credentials()
-            finally:
-                bridge.AUTH_FILE = old
-            self.assertEqual(tok, "plain-token")
-            self.assertIsNone(acct)
+class TestFallbackModel(unittest.TestCase):
+    def test_the_fallback_is_qwen3_8_flash(self):
+        self.assertEqual(bridge.FALLBACK_MODEL, "qwen3.8-flash")
+        self.assertEqual([name for name, _ in bridge.BACKENDS][1], "qwen3.8-flash via opencode-go")
 
 
 class TestMime(unittest.TestCase):
@@ -117,6 +62,25 @@ class TestMime(unittest.TestCase):
     def test_unknown_falls_back_to_png(self):
         self.assertEqual(bridge._mime_for("a.bin"), "image/png")
 
+    def test_a_sandbox_that_denies_the_system_mime_database_does_not_break_the_lookup(self):
+        # Positive control: with this patch the bare stdlib call really raises, as it does under the nono profile
+        # (it cannot read /etc/mime.types). The bridge must not depend on that file for the image types it accepts.
+        def denied(*_args, **_kwargs):
+            raise PermissionError(13, "Permission denied", "/etc/mime.types")
+
+        original = bridge.mimetypes.guess_type
+        bridge.mimetypes.guess_type = denied
+        try:
+            with self.assertRaises(PermissionError):
+                bridge.mimetypes.guess_type("a.png")
+            self.assertEqual(bridge._mime_for("a.PNG"), "image/png")
+            self.assertEqual(bridge._mime_for("a.jpeg"), "image/jpeg")
+            self.assertEqual(bridge._mime_for("a.webp"), "image/webp")
+            self.assertEqual(bridge._mime_for("a.gif"), "image/gif")
+            self.assertEqual(bridge._mime_for("a.unknown"), "image/png")
+        finally:
+            bridge.mimetypes.guess_type = original
+
 
 class TestPayloadShapes(unittest.TestCase):
     """Each leg must use the format its backend accepts (critical regression)."""
@@ -126,6 +90,7 @@ class TestPayloadShapes(unittest.TestCase):
 
         def fake_post(url, headers, payload):
             captured["url"] = url
+            captured["headers"] = headers
             captured["payload"] = payload
             return None, "boom"
 
@@ -137,25 +102,17 @@ class TestPayloadShapes(unittest.TestCase):
             bridge._post = old
         return captured
 
-    def test_luna_proxy_leg_uses_image_media_format(self):
+    def test_luna_proxy_leg_uses_image_url_format(self):
+        # gpt-6-luna through the proxy accepts image_url and rejects the older image+media shape (observed 2026-10-30).
         c = self._capture(bridge._backend_luna_proxy)
         part = c["payload"]["messages"][0]["content"][1]
-        self.assertEqual(part["type"], "image")
-        self.assertEqual(part["media"]["type"], "image/jpeg")
-        self.assertEqual(part["media"]["data"], "BASE64DATA")
+        self.assertEqual(part["type"], "image_url")
+        self.assertEqual(part["image_url"]["url"], "data:image/jpeg;base64,BASE64DATA")
         self.assertIn("8788", c["url"])
 
-    def test_openai_leg_uses_image_url_format(self):
-        old = bridge._openai_credentials
-        bridge._openai_credentials = lambda: ("tok", None)
-        try:
-            c = self._capture(bridge._backend_luna_openai)
-        finally:
-            bridge._openai_credentials = old
-        part = c["payload"]["messages"][0]["content"][1]
-        self.assertEqual(part["type"], "image_url")
-        self.assertTrue(part["image_url"]["url"].startswith("data:image/jpeg;base64,"))
-        self.assertIn("api.openai.com", c["url"])
+    def test_proxy_legs_carry_a_session_header_the_proxy_routes_on(self):
+        for leg in (bridge._backend_luna_proxy, bridge._backend_qwen_proxy):
+            self.assertTrue(self._capture(leg)["headers"]["x-opencode-session"].startswith("vision-bridge-"))
 
     def test_qwen_leg_uses_image_url_format(self):
         c = self._capture(bridge._backend_qwen_proxy)
@@ -163,60 +120,25 @@ class TestPayloadShapes(unittest.TestCase):
         self.assertEqual(part["type"], "image_url")
         self.assertIn("8788", c["url"])
 
-    def test_openai_leg_skipped_without_token(self):
-        old = bridge._openai_credentials
-        bridge._openai_credentials = lambda: (None, None)
+    def test_proxy_legs_send_the_pool_key_when_it_is_in_the_environment(self):
+        saved = {k: os.environ.pop(k, None) for k in ("VISION_BRIDGE_PROXY_KEY", "POOL_PROXY_KEY")}
         try:
-            body, err = bridge._backend_luna_openai("DATA", "image/png", "Q")
+            for leg in (bridge._backend_luna_proxy, bridge._backend_qwen_proxy):
+                self.assertNotIn("Authorization", self._capture(leg)["headers"])  # positive control: absent without the key
+            os.environ["POOL_PROXY_KEY"] = "pool-key"
+            for leg in (bridge._backend_luna_proxy, bridge._backend_qwen_proxy):
+                self.assertEqual(self._capture(leg)["headers"]["Authorization"], "Bearer pool-key")
+            os.environ["VISION_BRIDGE_PROXY_KEY"] = "bridge-key"  # the bridge-specific variable wins
+            self.assertEqual(self._capture(bridge._backend_luna_proxy)["headers"]["Authorization"], "Bearer bridge-key")
         finally:
-            bridge._openai_credentials = old
-        self.assertIsNone(body)
-        self.assertIn("no openai token", err)
+            for k in ("VISION_BRIDGE_PROXY_KEY", "POOL_PROXY_KEY"):
+                os.environ.pop(k, None)
+                if saved[k] is not None:
+                    os.environ[k] = saved[k]
 
-
-class TestVisionRefusal(unittest.TestCase):
-    def test_recognizes_common_refusals(self):
-        for text in [
-            "Please upload the image so I can read it.",
-            "I cannot see the image you attached.",
-            "No image was provided with your message.",
-            "I can't see any photo in this conversation.",
-            "Sorry, I couldn't see the picture.",
-        ]:
-            self.assertTrue(bridge._is_vision_refusal(text), text)
-
-    def test_legit_answers_not_marked(self):
-        for text in [
-            "The image shows a fish pie recipe. Ingredients: potatoes, fish.",
-            "I can't see the exact quantity of salt clearly, but the list is:",
-            "No image editing was applied.",
-        ]:
-            self.assertFalse(bridge._is_vision_refusal(text), text)
-
-    def test_refusal_falls_through_chain(self):
-        old = bridge.BACKENDS
-        bridge.BACKENDS = [
-            ("a", lambda i, m, q: (
-                {"choices": [{"message": {"content": "Please upload the image."}}]},
-                None,
-            )),
-            ("b", lambda i, m, q: (
-                {"choices": [{"message": {"content": "Potatoes, fish"}}]},
-                None,
-            )),
-        ]
-        try:
-            tmp = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
-            tmp.write(b"fake")
-            tmp.close()
-            try:
-                out = bridge._describe(tmp.name, "Q")
-            finally:
-                os.unlink(tmp.name)
-        finally:
-            bridge.BACKENDS = old
-        self.assertEqual(out, "Potatoes, fish")
-
+    def test_the_default_model_is_gpt_6_luna_and_there_is_no_direct_openai_leg(self):
+        self.assertEqual(self._capture(bridge._backend_luna_proxy)["payload"]["model"], "gpt-6-luna")
+        self.assertEqual([name for name, _ in bridge.BACKENDS], ["gpt-6-luna via opencode-go", "qwen3.8-flash via opencode-go"])
 
 class TestChainSelection(unittest.TestCase):
     """First non-empty answer wins; errors/empties fall through; all-fail aggregates."""

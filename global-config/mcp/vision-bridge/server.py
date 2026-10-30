@@ -7,11 +7,9 @@ reason about.
 
 Backend chain (first usable answer wins; empty content or transport failure
 falls through):
-  1. gpt-5.6-luna via the opencode-go proxy  (AI-SDK image+media format —
-     image_url returns an empty 200 for luna on zen)
-  2. gpt-5.6-luna via api.openai.com directly (OpenAI image_url format, OAuth
-     token from opencode's auth.json)
-  3. qwen3.6-plus via the opencode-go proxy  (image_url format)
+  1. gpt-6-luna via the opencode-go proxy  (image_url format, pool key from
+     POOL_PROXY_KEY; the older image+media shape is rejected for gpt-6-luna)
+  2. qwen3.8-flash via the opencode-go proxy  (image_url format)
 
 Stdio transport: newline-delimited JSON-RPC 2.0 (MCP spec).
 Zero dependencies: Python 3 stdlib only.
@@ -23,6 +21,7 @@ import mimetypes
 import os
 import sys
 import time
+import uuid
 import urllib.error
 import urllib.request
 
@@ -30,17 +29,8 @@ PROXY_URL = os.environ.get(
     "VISION_BRIDGE_URL",
     "http://127.0.0.1:8788/v1/chat/completions",
 )
-PROXY_MODEL = os.environ.get("VISION_BRIDGE_MODEL", "gpt-5.6-luna")
-FALLBACK_MODEL = os.environ.get("VISION_BRIDGE_FALLBACK_MODEL", "qwen3.6-plus")
-OPENAI_URL = os.environ.get(
-    "VISION_BRIDGE_OPENAI_URL",
-    "https://api.openai.com/v1/chat/completions",
-)
-OPENAI_MODEL = os.environ.get("VISION_BRIDGE_OPENAI_MODEL", "gpt-5.6-luna")
-AUTH_FILE = os.environ.get(
-    "VISION_BRIDGE_AUTH_FILE",
-    os.path.expanduser("~/.local/share/opencode/auth.json"),
-)
+PROXY_MODEL = os.environ.get("VISION_BRIDGE_MODEL", "gpt-6-luna")
+FALLBACK_MODEL = os.environ.get("VISION_BRIDGE_FALLBACK_MODEL", "qwen3.8-flash")
 TIMEOUT = int(os.environ.get("VISION_BRIDGE_TIMEOUT", "120"))
 UA = "curl/8.5.0"  # the go proxy sits behind Cloudflare; urllib's default UA is 403'd
 
@@ -58,8 +48,22 @@ TOOL_DESCRIPTION = (
 )
 
 
+# The stdlib lookup reads /etc/mime.types, which the nono sandbox does not grant (PermissionError), so the common image types
+# are answered from this table and the stdlib is only a guarded fallback for anything else.
+_IMAGE_MIME = {
+    ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp",
+    ".gif": "image/gif", ".bmp": "image/bmp", ".tif": "image/tiff", ".tiff": "image/tiff",
+    ".heic": "image/heic", ".avif": "image/avif",
+}
+
+
 def _mime_for(path):
-    mime, _ = mimetypes.guess_type(path)
+    mime = _IMAGE_MIME.get(os.path.splitext(str(path))[1].lower())
+    if mime is None:
+        try:
+            mime, _ = mimetypes.guess_type(path)
+        except OSError:
+            mime = None
     mime = mime or "image/png"
     if mime == "application/octet-stream":
         mime = "image/png"  # unknown extension: assume an image
@@ -130,72 +134,24 @@ def _is_vision_refusal(text):
     )
 
 
-def _openai_credentials():
-    """Return (access_token, chatgpt_account_id) for the openai leg, or (None, None)."""
-    try:
-        with open(AUTH_FILE) as fh:
-            auth = json.load(fh)
-        tok = (auth.get("openai") or {}).get("access")
-        if not tok:
-            return None, None
-        acct = None
-        try:
-            payload = tok.split(".")[1]
-            payload += "=" * (-len(payload) % 4)
-            claims = json.loads(base64.urlsafe_b64decode(payload))
-            acct = (claims.get("https://api.openai.com/auth") or {}).get(
-                "chatgpt_account_id"
-            )
-        except Exception:  # noqa: BLE001 - token not a JWT; header omitted
-            pass
-        return tok, acct
-    except Exception:  # noqa: BLE001 - no auth file
-        return None, None
+# The proxy routes on x-opencode-session and refuses requests without one (MissingSessionID); one stable id per bridge process.
+PROXY_SESSION = "vision-bridge-" + uuid.uuid4().hex[:12]
+
+
+def _proxy_headers():
+    """Headers for the local opencode-go proxy. It needs the pool key (the same one the V2 opencode-go provider sends); the
+    bridge inherits POOL_PROXY_KEY from the server environment, and VISION_BRIDGE_PROXY_KEY overrides it."""
+    headers = {"Content-Type": "application/json", "User-Agent": UA, "x-opencode-session": PROXY_SESSION}
+    key = os.environ.get("VISION_BRIDGE_PROXY_KEY") or os.environ.get("POOL_PROXY_KEY")
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
+    return headers
 
 
 def _backend_luna_proxy(img_b64, mime, question):
-    """Leg 1: gpt-5.6-luna via opencode-go proxy — AI-SDK image+media format."""
+    """Leg 1: gpt-6-luna via opencode-go proxy — image_url format (the proxy rejects the older image+media shape for gpt-6-luna)."""
     payload = {
         "model": PROXY_MODEL,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": question
-                        or "Describe this image in detail: layout, colors, "
-                        "text, spacing, and anything visually notable.",
-                    },
-                    {
-                        "type": "image",
-                        "media": {"type": mime, "data": img_b64},
-                    },
-                ],
-            }
-        ],
-    }
-    return _post(
-        PROXY_URL,
-        {"Content-Type": "application/json", "User-Agent": UA},
-        payload,
-    )
-
-
-def _backend_luna_openai(img_b64, mime, question):
-    """Leg 2: gpt-5.6-luna via api.openai.com — OpenAI image_url format."""
-    tok, acct = _openai_credentials()
-    if not tok:
-        return None, "no openai token in auth file"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {tok}",
-        "User-Agent": UA,
-    }
-    if acct:
-        headers["OpenAI-ChatGPT-Account-Id"] = acct
-    payload = {
-        "model": OPENAI_MODEL,
         "messages": [
             {
                 "role": "user",
@@ -216,11 +172,11 @@ def _backend_luna_openai(img_b64, mime, question):
             }
         ],
     }
-    return _post(OPENAI_URL, headers, payload)
+    return _post(PROXY_URL, _proxy_headers(), payload)
 
 
 def _backend_qwen_proxy(img_b64, mime, question):
-    """Leg 3: qwen3.6-plus via opencode-go proxy — image_url format."""
+    """Leg 3: qwen3.8-flash via opencode-go proxy — image_url format."""
     payload = {
         "model": FALLBACK_MODEL,
         "messages": [
@@ -243,17 +199,12 @@ def _backend_qwen_proxy(img_b64, mime, question):
             }
         ],
     }
-    return _post(
-        PROXY_URL,
-        {"Content-Type": "application/json", "User-Agent": UA},
-        payload,
-    )
+    return _post(PROXY_URL, _proxy_headers(), payload)
 
 
 BACKENDS = [
-    ("gpt-5.6-luna via opencode-go", _backend_luna_proxy),
-    ("gpt-5.6-luna via openai", _backend_luna_openai),
-    ("qwen3.6-plus via opencode-go", _backend_qwen_proxy),
+    ("gpt-6-luna via opencode-go", _backend_luna_proxy),
+    ("qwen3.8-flash via opencode-go", _backend_qwen_proxy),
 ]
 
 
