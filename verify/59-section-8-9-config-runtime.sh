@@ -43,7 +43,7 @@ else
     if [ "${OC_MAJOR:-0}" = "2" ]; then
       # V2 has no `agent list` or `debug agent <name>`: one `debug agents` call, rewritten into the V1 shapes.
       V2_AGENTS_RAW="$TMP_DIR/opencode-v2-debug-agents.json"
-      if ! timeout 45s bash "$OC_PROBE" debug agents >"$V2_AGENTS_RAW" 2>"$AGENT_LIST_STDERR"; then
+      if ! timeout 120s bash "$OC_PROBE" debug agents >"$V2_AGENTS_RAW" 2>"$AGENT_LIST_STDERR"; then
         echo "v2-agents-shim: \`debug agents\` exited non-zero" >>"$AGENT_LIST_STDERR"
         exit 1
       fi

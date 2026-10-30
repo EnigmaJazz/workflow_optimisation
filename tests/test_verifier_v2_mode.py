@@ -99,6 +99,30 @@ class ProbeWrapper(unittest.TestCase):
         self.assertEqual(calls[0], "ARGS:--standalone run --format json hello")
         self.assertEqual(calls[1], "STDIN:")
 
+    def run_env_stub(self, major, base=None):
+        d = Path(tempfile.mkdtemp())
+        stub = d / "opencode"
+        stub.write_text('#!/usr/bin/env bash\nprintf "%s|%s|%s|%s|%s|%s\\n" "$HOME" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$XDG_CACHE_HOME" "$*"\n')
+        stub.chmod(stub.stat().st_mode | stat.S_IEXEC)
+        env = {**os.environ, "PATH": f"{d}:{os.environ['PATH']}", "OC_MAJOR": major, "HOME": "/home/v1", "XDG_CONFIG_HOME": "/v1/config"}
+        env.pop("V2_BASE_DIR", None)
+        if base:
+            env["V2_BASE_DIR"] = base
+        r = subprocess.run(["bash", str(PROBE), "debug", "agents"], capture_output=True, text=True, env=env, stdin=subprocess.DEVNULL)
+        return r.stdout.strip()
+
+    def test_a_v2_probe_runs_with_the_v2_roots_and_overlay_home_when_the_base_is_known(self):
+        out = self.run_env_stub("2", "/v2")
+        self.assertEqual(out, "/v2/config/home|/v2/config|/v2/data|/v2/state|/v2/cache|--standalone debug agents")
+
+    def test_without_the_base_a_v2_probe_keeps_the_caller_environment(self):
+        self.assertEqual(self.run_env_stub("2"), "/home/v1|/v1/config||||--standalone debug agents".replace("||||", "|" + os.environ.get("XDG_DATA_HOME", "") + "|" + os.environ.get("XDG_STATE_HOME", "") + "|" + os.environ.get("XDG_CACHE_HOME", "") + "|"))
+
+    def test_v1_never_gets_the_v2_environment_even_if_the_base_is_set(self):
+        out = self.run_env_stub("1", "/v2")
+        self.assertTrue(out.startswith("/home/v1|/v1/config|"), out)
+        self.assertTrue(out.endswith("|debug agents"), out)
+
     def test_unknown_major_behaves_as_v1(self):
         self.assertEqual(probe("0")[1][0], "ARGS:run --format json hello")
 
@@ -153,6 +177,47 @@ def run_shim(payload, stdin_text=None):
     return r, listing, debug_dir
 
 
+class AgentsShimDerived(unittest.TestCase):
+    """The V1-shaped `tools` map and the variant, both derived from what V2 does report."""
+
+    def debug(self, agent):
+        import json
+        r, _, debug_dir = run_shim([agent])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return json.loads((debug_dir / f"{agent['id']}.json").read_text())
+
+    def agent(self, rules, model=None):
+        base = {"id": "a", "name": "a", "mode": "subagent", "hidden": False, "request": {"settings": {}, "headers": {}, "body": {}}, "permissions": rules}
+        if model:
+            base["model"] = model
+        return base
+
+    def rule(self, action, effect, resource="*"):
+        return {"action": action, "resource": resource, "effect": effect}
+
+    def test_a_tool_is_true_when_its_last_star_rule_allows_or_asks_and_false_when_it_denies(self):
+        tools = self.debug(self.agent([self.rule("grep", "deny"), self.rule("sandbox_read", "allow"), self.rule("sandbox_apply", "ask")]))["tools"]
+        self.assertEqual(tools, {"grep": False, "sandbox_read": True, "sandbox_apply": True})
+
+    def test_the_last_rule_wins_so_a_later_ask_overrides_an_earlier_deny(self):
+        # This is V2's own semantics, and the reason a global `grep: ask` listed after an agent's deny exposes native grep.
+        self.assertEqual(self.debug(self.agent([self.rule("grep", "deny"), self.rule("grep", "ask")]))["tools"], {"grep": True})
+        self.assertEqual(self.debug(self.agent([self.rule("ctx_memory", "allow"), self.rule("ctx_memory", "deny")]))["tools"], {"ctx_memory": False})
+
+    def test_unnamed_narrow_and_wildcard_rules_never_become_entries(self):
+        tools = self.debug(self.agent([self.rule("*", "allow"), self.rule("read", "ask", "*.env"), self.rule("edit", "bogus")]))["tools"]
+        self.assertEqual(tools, {})  # not configured is never read as enabled
+
+    def test_the_shell_rule_is_named_bash_in_the_tools_map_as_in_the_permission_list(self):
+        self.assertEqual(self.debug(self.agent([self.rule("shell", "allow")]))["tools"], {"bash": True})
+
+    def test_the_model_variant_is_emitted_at_the_top_level_where_the_checker_reads_it(self):
+        debug = self.debug(self.agent([], {"id": "gpt-6.1-sol", "providerID": "openai", "variant": "high"}))
+        self.assertEqual(debug["variant"], "high")
+        self.assertEqual(debug["model"], {"providerID": "openai", "modelID": "gpt-6.1-sol"})
+        self.assertNotIn("variant", self.debug(self.agent([], {"id": "m", "providerID": "p"})))
+
+
 class AgentsShim(unittest.TestCase):
     """V2 has `debug agents` (one JSON array) instead of `agent list` + `debug agent <name>`; the shim
     rewrites it into the V1 shapes the runtime checker reads."""
@@ -176,7 +241,7 @@ class AgentsShim(unittest.TestCase):
         self.assertEqual(zed["permission"], [
             {"permission": "bash", "pattern": "git *", "action": "allow"},
             {"permission": "edit", "pattern": "*", "action": "deny"}])
-        self.assertEqual(zed["tools"], {})
+        self.assertEqual(zed["tools"], {"edit": False})  # derived from the edit deny rule; the narrower shell rule adds nothing
 
     def test_status_file_marks_each_agent_probed_ok(self):
         _, _, debug_dir = run_shim(V2_AGENTS)

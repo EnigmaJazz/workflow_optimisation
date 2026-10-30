@@ -33,6 +33,20 @@ function parseAgents(text) {
 // V2 renames the shell permission; V1 (and the checker) call it bash.
 const permissionName = (action) => (action === "shell" ? "bash" : action)
 
+// V2 exposes no per-agent tools map, but its permission rules say which tools an agent may use. Derive V1's `tools` shape:
+// a tool the rules name with a "*" resource is true when its LAST such rule allows or asks (the tool is usable, possibly after
+// a prompt) and false when it denies. A bare "*" action and tools with only narrower resources (read of *.env) are not
+// turned into entries: an unnamed tool stays absent, as in V1, so "not configured" is never read as "enabled".
+function toolsFromRules(rules) {
+  const tools = {}
+  for (const r of rules || []) {
+    if (!r || typeof r.action !== "string" || r.action === "*" || r.resource !== "*") continue
+    if (r.effect !== "allow" && r.effect !== "ask" && r.effect !== "deny") continue
+    tools[permissionName(r.action)] = r.effect !== "deny"
+  }
+  return tools
+}
+
 function toV1(agent) {
   const body = (agent.request && agent.request.body) || {}
   const { temperature, topP, ...options } = body
@@ -45,12 +59,15 @@ function toV1(agent) {
       action: r.effect,
     })),
     options,
-    // V2 exposes no per-agent tools map; an empty object keeps the checker's shape test happy.
-    tools: {},
+    tools: toolsFromRules(agent.permissions),
   }
   if (agent.description !== undefined) out.description = agent.description
   if (agent.hidden !== undefined) out.hidden = agent.hidden
-  if (agent.model) out.model = { providerID: agent.model.providerID, modelID: agent.model.id }
+  if (agent.model) {
+    out.model = { providerID: agent.model.providerID, modelID: agent.model.id }
+    // The checker reads the variant at the agent's top level (V1's debug shape), not inside model.
+    if (agent.model.variant !== undefined) out.variant = agent.model.variant
+  }
   if (agent.system !== undefined) out.prompt = agent.system
   if (agent.steps !== undefined) out.steps = agent.steps
   if (temperature !== undefined) out.temperature = temperature

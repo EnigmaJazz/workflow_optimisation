@@ -54,11 +54,13 @@ SYSTEMATIC_CONFIG_SOURCE="$WORKSPACE/global-config/systematic.jsonc"
 FALLBACK_POLICY_SOURCE="$WORKSPACE/global-config/rate-limit-fallback.json"
 FALLBACK_POLICY_DEPLOYED="$OPENCODE_CONFIG_DIR/rate-limit-fallback.json"
 # V2 mode (Q44): the generated V2 config root, its npm cache and the sandbox repo derive reads.
-V2_CONFIG_ROOT="${WORKFLOW_VERIFY_V2_CONFIG_ROOT:-/home/james/.local/share/opencode-v2/config/opencode}"
-V2_NPM_CACHE="${WORKFLOW_VERIFY_V2_NPM_CACHE:-/home/james/.local/share/opencode-v2/cache/opencode/npm}"
+V2_BASE_DIR="${WORKFLOW_VERIFY_V2_BASE_DIR:-/home/james/.local/share/opencode-v2}"
+export V2_BASE_DIR
+V2_CONFIG_ROOT="${WORKFLOW_VERIFY_V2_CONFIG_ROOT:-$V2_BASE_DIR/config/opencode}"
+V2_NPM_CACHE="${WORKFLOW_VERIFY_V2_NPM_CACHE:-$V2_BASE_DIR/cache/opencode/npm}"
 V2_SANDBOX_REPO="${WORKFLOW_VERIFY_SANDBOX_REPO:-/home/james/agent-sandbox-integration}"
 V2_SERVER_URL="${WORKFLOW_VERIFY_V2_SERVER_URL:-http://127.0.0.1:4097}"
-V2_SERVER_PASSWORD_FILE="${WORKFLOW_VERIFY_V2_SERVER_PASSWORD_FILE:-/home/james/.local/share/opencode-v2/server-password}"
+V2_SERVER_PASSWORD_FILE="${WORKFLOW_VERIFY_V2_SERVER_PASSWORD_FILE:-$V2_BASE_DIR/server-password}"
 GENTLE_STATE_FILE="${WORKFLOW_VERIFY_GENTLE_STATE_FILE:-/home/james/.gentle-ai/state.json}"
 
 ROUTING_MARKER_START="<!-- user:workflow-routing -->"
