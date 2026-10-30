@@ -279,9 +279,10 @@ class BehaviouralParsers(unittest.TestCase):
 class SecureServiceProbes(unittest.TestCase):
     text = (MODULES / "60-section-9a-9b-secure-service.sh").read_text()
 
-    def test_http_probes_are_skipped_on_v2(self):
+    def test_the_v1_agent_catalog_probe_is_skipped_on_v2_and_the_github_mcp_probe_is_replaced(self):
         self.assertIn('"${OC_MAJOR:-0}" = "2"', self.text)
-        self.assertGreaterEqual(self.text.count("skipped: OpenCode V2"), 2)
+        self.assertEqual(self.text.count("skipped: OpenCode V2"), 1)  # 9a: section 9 covers agent registration on V2
+        self.assertIn("v2-github-mcp-check.py", self.text)         # 9b: checked against the V2 config and server
 
 
 class LoaderAndProbeWrapper(unittest.TestCase):

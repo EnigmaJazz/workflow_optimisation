@@ -86,7 +86,7 @@ set -uo pipefail
 
 # BEGIN VERIFY_MODULES
 VERIFY_MODULES=(
-  "10-env.sh ed48fa8e799372268ea54dbed243e25b0dd82a9a96cef4110cb41c6059f59f8a"
+  "10-env.sh bbf47fa2dda83b6d6947b279db6f66840dcec53a3d2ff0f26391b2eab4229dd4"
   "20-helpers.sh b88837e9368b62a7175ef768881f1b51595935ec62cb82f24eb5f0fecaddbaf5"
   "21-opencode-major.sh a36e6d093cfc19f24fc9c77ef72495cd17cd317d6479fd71f65726846bbfbc22"
   "30-recover-config.sh 70b478ced6f0478c67756bb221a3dc827c6463575cea8d852ea859762a6c38af"
@@ -105,7 +105,7 @@ VERIFY_MODULES=(
   "57-section-6-plugin-mirrors.sh 476d73263f419f0d413655d07d4c9f29ef7b531fa30e6d970effcdcd152a2622"
   "58-section-7-recipe.sh 9f02d1b88bd2dd08ee2aacf1f8619f2c149dcc383b66a4ed6f808da74f4e8502"
   "59-section-8-9-config-runtime.sh 7fe40ea35887ee61f25d65177b43c5c287cf406e1709ceed220a331fb1957f4c"
-  "60-section-9a-9b-secure-service.sh 1f89acd7ba903442f6fc027e1b3fe44cc049984fb37ca481e04e6c8ad2995903"
+  "60-section-9a-9b-secure-service.sh 2579654362fa71ab3938da3bb858f053aeaa796272033c7e408d8c9675986d87"
   "61-section-10-behavioural.sh 5c5c9e737e953e57ee981cc42701414c4709d3369fbe1aaeba8e7d311b93d32a"
   "62-section-11-summary.sh 5df415a1b7f63144822d2bb62c2300df4f2de8ea36cc0dc7ee5d4138c477ea76"
   "checkers/check-parallel-dispatch.py ab5c840412aec78327dc199ebfe497585f57ed06f951152b41959b3469440ad2"
@@ -116,6 +116,7 @@ VERIFY_MODULES=(
   "checkers/routing-canonical.md 23c0c9ab507e96b04966a4e1e2b5419771859dfd87eef1efb2d3191e52c559e4"
   "checkers/v2-agents-shim.cjs ac216f6f36b7d746807a20b1a588dfe0caa4d932590d776e6e552ecef890bbb5"
   "checkers/v2-config-check.py fe1739a16d7d98958bc1a1305cdfbc6286edbc48a6c79cb792b4b939594b8698"
+  "checkers/v2-github-mcp-check.py 1779f5bd7aa8f61e8db546cb67a71d894da604c1efd4d5e73e9f363475955660"
   "checkers/v2-plugin-resolve.py 5792db1b5ddf8b3bc72f03546d2046946a6b3a6404843aafa52d2e51cd4a0bbd"
   "checkers/v2-sandbox-plugins-check.py a26e2b97a6fcc668a2aa2f457877542ec780eb304380082c7634a1adafd6e3bd"
 )
