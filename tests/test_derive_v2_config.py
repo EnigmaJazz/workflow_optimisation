@@ -275,6 +275,14 @@ class AccessMirror(unittest.TestCase):
         self.assertEqual(config["agent"], {})
         self.assertIn("skipped", notes[0])
 
+    def test_every_overlay_agent_that_allows_sandbox_mutation_is_mirrored(self):
+        # An overlay allow alone loses to the category denies on V2, so each such agent needs the mirror. This catches a new one.
+        import re
+        text = re.sub(r"^\s*//.*$", "", (REPO / "global-config" / "systematic.jsonc").read_text(), flags=re.M)
+        agents = json.loads(text)["agents"]
+        mutating = {n for n, a in agents.items() if (a.get("permission") or {}).get("sandbox_bash") == "allow"}
+        self.assertEqual(mutating, set(self.m.ACCESS_MIRRORS))
+
     def test_the_real_mapping_points_at_an_agent_in_the_real_config(self):
         real = json.loads((REPO / "global-config" / "opencode.json").read_text())
         for reference in self.m.ACCESS_MIRRORS.values():

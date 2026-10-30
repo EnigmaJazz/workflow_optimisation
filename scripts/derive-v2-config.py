@@ -174,7 +174,12 @@ def expose_mcp_directly(config):
 # Plugin-owned agents whose sandbox access must match a reviewed agent. On V2 the Systematic category rules come AFTER an agent
 # overlay in the rule list and V2 takes the last match, so the overlay's `sandbox_*` allows lose to the category denies. A
 # permission block in opencode.json is applied last, so mirror the reference agent's sandbox/host rules there (V2 only).
-ACCESS_MIRRORS = {"systematic-implementer": "gentle-ai-worker", "bug-reproduction-validator": "gentle-ai-worker"}
+ACCESS_MIRRORS = {
+    "systematic-implementer": "gentle-ai-worker",
+    "bug-reproduction-validator": "gentle-ai-worker",
+    "pr-comment-resolver": "gentle-ai-worker",
+    "design-iterator": "gentle-ai-worker",
+}
 MIRRORED_PREFIXES = ("sandbox_", "host_")
 
 
