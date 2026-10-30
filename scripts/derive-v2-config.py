@@ -202,6 +202,43 @@ def mirror_agent_access(config, mirrors=None):
     return notes
 
 
+V2_DEAD_MODEL_FLAGS = ("temperature", "reasoning", "attachment")
+
+
+def drop_v2_unsupported(config):
+    """Remove keys OpenCode V2 reports on every config load as 'omitted unsupported legacy ...'. Each one is dead on V2:
+    - top-level subagent_depth: V2 reads experimental.subagent_depth (the V1 config sets both, so nothing is lost; if only the
+      legacy one is set it moves, so the nesting limit never disappears);
+    - compaction.prune: no V2 equivalent (compaction is Magic Context's; compaction.auto stays);
+    - per-model temperature/reasoning/attachment flags: V2 takes capabilities from its own model catalog;
+    - an empty-string agent variant, which already meant 'no variant'."""
+    dropped = {"subagent_depth": 0, "compaction.prune": 0, "model flags": 0, "empty agent variants": 0}
+    if "subagent_depth" in config:
+        legacy = config.pop("subagent_depth")
+        experimental = config.setdefault("experimental", {})
+        experimental.setdefault("subagent_depth", legacy)
+        dropped["subagent_depth"] += 1
+    compaction = config.get("compaction")
+    if isinstance(compaction, dict) and "prune" in compaction:
+        del compaction["prune"]
+        dropped["compaction.prune"] += 1
+    for provider in (config.get("provider") or {}).values():
+        for model in ((provider or {}).get("models") or {}).values():
+            for flag in V2_DEAD_MODEL_FLAGS:
+                if isinstance(model, dict) and flag in model:
+                    del model[flag]
+                    dropped["model flags"] += 1
+    for agent in (config.get("agent") or {}).values():
+        if isinstance(agent, dict) and agent.get("variant") == "":
+            del agent["variant"]
+            dropped["empty agent variants"] += 1
+    total = sum(dropped.values())
+    if not total:
+        return []
+    detail = ", ".join(f"{count} {name}" for name, count in dropped.items() if count)
+    return [f"dropped {total} legacy settings that V2 reports as unsupported and ignores ({detail}); V2 reads experimental.subagent_depth"]
+
+
 def derive_config(source, fork_dir=None, fork_ref=None):
     plugins, notes = derive_plugins(source.get("plugin") or [], fork_dir, fork_ref)
     out = {}
@@ -233,6 +270,7 @@ def build(source_dir, sandbox_repo, staging, root_path, live_root=None):
     notes += rewrite_mcp(config, source_dir, root_path, MCP_ENV)
     notes += expose_mcp_directly(config)
     notes += mirror_agent_access(config)
+    notes += drop_v2_unsupported(config)
     tools = scan_tools(sandbox_repo)
     warnings = check_rules(config, tools) + check_v1_paths(config)
     staging.mkdir(parents=True, exist_ok=True)

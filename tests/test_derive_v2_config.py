@@ -128,9 +128,12 @@ class RealConfig(unittest.TestCase):
         self.assertEqual(self.run1.returncode, 0, self.run1.stdout + self.run1.stderr)
 
     def test_everything_except_the_plugin_list_is_carried_over_unchanged(self):
-        mirrored = load().ACCESS_MIRRORS
+        derive = load()
+        mirrored = derive.ACCESS_MIRRORS
         got = json.loads((self.out / "opencode.json").read_text())
-        for key, value in self.src.items():
+        expected = json.loads(json.dumps(self.src))
+        derive.drop_v2_unsupported(expected)  # the only other intended difference: keys V2 reports as unsupported and ignores
+        for key, value in expected.items():
             if key == "plugin":
                 continue
             if key == "mcp":  # only the vision bridge moves; the rest are carried over, plus V2's codemode=false on every server
@@ -287,6 +290,63 @@ class AccessMirror(unittest.TestCase):
         real = json.loads((REPO / "global-config" / "opencode.json").read_text())
         for reference in self.m.ACCESS_MIRRORS.values():
             self.assertIn(reference, real["agent"])
+
+
+class V2Unsupported(unittest.TestCase):
+    """Keys OpenCode V2 reports as 'omitted unsupported legacy ...' on every config load (thousands of repeated warnings that
+    drown real ones). Each is dead on V2, so the derived config simply does not carry it."""
+
+    def setUp(self):
+        self.m = load()
+
+    def test_a_top_level_subagent_depth_is_dropped_when_the_experimental_one_exists(self):
+        config = {"subagent_depth": 4, "experimental": {"subagent_depth": 4}}
+        self.m.drop_v2_unsupported(config)
+        self.assertEqual(config, {"experimental": {"subagent_depth": 4}})
+
+    def test_a_top_level_subagent_depth_moves_to_experimental_when_it_is_the_only_one(self):
+        # V2 reads experimental.subagent_depth ("Increase experimental.subagent_depth to allow nested subagents"), so the
+        # limit must not be lost just because only the legacy spelling was set.
+        config = {"subagent_depth": 3}
+        self.m.drop_v2_unsupported(config)
+        self.assertEqual(config, {"experimental": {"subagent_depth": 3}})
+
+    def test_the_experimental_value_wins_when_the_two_disagree(self):
+        config = {"subagent_depth": 9, "experimental": {"subagent_depth": 2}}
+        self.m.drop_v2_unsupported(config)
+        self.assertEqual(config["experimental"]["subagent_depth"], 2)
+        self.assertNotIn("subagent_depth", config)
+
+    def test_compaction_prune_goes_and_compaction_auto_stays(self):
+        config = {"compaction": {"auto": False, "prune": False}}
+        self.m.drop_v2_unsupported(config)
+        self.assertEqual(config["compaction"], {"auto": False})
+
+    def test_model_flags_are_dropped_and_real_model_settings_stay(self):
+        config = {"provider": {"p": {"models": {"m": {"name": "M", "temperature": True, "reasoning": True, "attachment": False,
+                                                      "limit": {"context": 1}, "variants": {"high": {}}}}}}}
+        self.m.drop_v2_unsupported(config)
+        self.assertEqual(config["provider"]["p"]["models"]["m"], {"name": "M", "limit": {"context": 1}, "variants": {"high": {}}})
+
+    def test_an_empty_agent_variant_goes_and_a_real_one_stays(self):
+        config = {"agent": {"a": {"variant": "", "model": "x/y"}, "b": {"variant": "max", "model": "x/y"}}}
+        self.m.drop_v2_unsupported(config)
+        self.assertEqual(config["agent"]["a"], {"model": "x/y"})
+        self.assertEqual(config["agent"]["b"]["variant"], "max")
+
+    def test_it_is_idempotent_and_reports_only_what_it_removed(self):
+        config = {"subagent_depth": 4, "experimental": {"subagent_depth": 4}, "compaction": {"prune": False},
+                  "provider": {"p": {"models": {"m": {"reasoning": True}}}}, "agent": {"a": {"variant": ""}}}
+        first = self.m.drop_v2_unsupported(config)
+        self.assertEqual(len(first), 1)
+        self.assertRegex(first[0], r"\b4 legacy")  # subagent_depth, compaction.prune, reasoning and the empty variant
+        self.assertEqual(self.m.drop_v2_unsupported(config), [])
+
+    def test_a_config_with_none_of_them_is_untouched(self):
+        config = {"agent": {"a": {"variant": "max"}}, "provider": {"p": {"models": {"m": {"name": "M"}}}}, "compaction": {"auto": True}}
+        before = json.loads(json.dumps(config))
+        self.assertEqual(self.m.drop_v2_unsupported(config), [])
+        self.assertEqual(config, before)
 
 
 class FileRefs(unittest.TestCase):
