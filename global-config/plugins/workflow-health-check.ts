@@ -278,7 +278,11 @@ async function setupV2(ctx: {
     ) => Promise<{ dispose: () => Promise<void> | void }>
   }
 }) {
-  startHealthCheckOnce()
+  // The verifier checks and repairs the V1 live config (and runs probes against the V1 binary), so a V2 server must not
+  // launch it: inside the nono sandbox it only failed with permission errors on every start, and unsandboxed it would
+  // mutate the V1 tree from a V2 session. A V2 mode of the verifier is a separate item (Q44); until then opt in with
+  // WORKFLOW_HEALTH_CHECK_V2=1. The notice hook below stays, so a notice from an opted-in check is still shown.
+  if (process.env.WORKFLOW_HEALTH_CHECK_V2 === "1") startHealthCheckOnce()
   const registration = await ctx.session.hook("context", (event) => {
     const notice = healthNotice()
     if (notice) event.system.push({ type: "text", text: notice })

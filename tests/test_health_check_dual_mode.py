@@ -84,5 +84,51 @@ class HealthCheckDualMode(unittest.TestCase):
         self.assertIn("WORKFLOW_HEALTH_CHECK_PROBE", PLUGIN.read_text(encoding="utf-8"))
 
 
+LAUNCH_RUNNER = """
+const mod = await import(%s)
+const plugin = mod.default
+const which = process.env.RUN_ENTRY
+if (which === "v1") await plugin.server({})
+else await plugin.setup({ session: { hook: async () => ({ dispose: async () => {} }) } })
+await new Promise((resolve) => setTimeout(resolve, 1500))
+""" % json.dumps(str(PLUGIN))
+
+
+def launched(entry, extra_env=None):
+    """True if starting the plugin through `entry` launched the verifier. The verifier's first step is `sha256sum`, so a
+    fake one on PATH that leaves a marker shows the launch without running the real verifier."""
+    import os
+    import stat
+    import tempfile
+    work = Path(tempfile.mkdtemp())
+    shim = work / "bin"
+    shim.mkdir()
+    marker = work / "launched"
+    tool = shim / "sha256sum"
+    tool.write_text(f"#!/bin/sh\necho launched > {marker}\necho 0000 $2\n")
+    tool.chmod(tool.stat().st_mode | stat.S_IEXEC)
+    env = {**os.environ, "PATH": f"{shim}:{os.environ['PATH']}", "RUN_ENTRY": entry, **(extra_env or {})}
+    env.pop("WORKFLOW_HEALTH_CHECK_PROBE", None)
+    out = subprocess.run(["bun", "-e", LAUNCH_RUNNER], env=env, cwd=str(REPO), capture_output=True, text=True,
+                         stdin=subprocess.DEVNULL, timeout=60)
+    assert out.returncode == 0, out.stderr
+    return marker.exists()
+
+
+@unittest.skipUnless(shutil.which("bun"), "bun is required to execute the plugin")
+class VerifierLaunch(unittest.TestCase):
+    """The verifier targets and mutates the V1 live config, so only the V1 host may launch it by default. A V2 server start
+    (inside the nono sandbox) used to launch it too and failed on every start with permission errors (found 2026-10-30)."""
+
+    def test_v1_server_launches_the_verifier(self):
+        self.assertTrue(launched("v1"))
+
+    def test_v2_setup_does_not_launch_the_verifier_by_default(self):
+        self.assertFalse(launched("v2"))
+
+    def test_v2_setup_launches_it_only_when_explicitly_opted_in(self):
+        self.assertTrue(launched("v2", {"WORKFLOW_HEALTH_CHECK_V2": "1"}))
+
+
 if __name__ == "__main__":
     unittest.main()
