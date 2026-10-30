@@ -5,7 +5,7 @@ rollback are therefore service switches, not file edits. The stack itself is spe
 `~/agent-sandbox-integration/docs/upgrades/opencode-v2.md` (V0-V7, the nine manual gates, "Cutover") and installed with its
 `docs/upgrades/opencode-v2-install-checklist.md`. This runbook sequences the workflow-repo side and says what is automated.
 
-**Status 2026-10-30:** V2 2.2.0 is running and passes the stack check; the cutover itself has not been done. Open decisions and
+**Status 2026-10-30:** V2 2.2.0 is running and passes the stack check, and gate 6 (native review) has passed; the cutover itself has not been done. The owner's target is now 2.2.3 or later (see `HANDOFF.md`). Open decisions and
 engineering items are in `HANDOFF.md` ("What still stands between us and cutover").
 
 ## What is automated and what is not
@@ -24,14 +24,14 @@ regenerated, and a single file qualifies: the units. The V2 config root is regen
 ## Steps
 
 1. **Preflight.** `python3 scripts/opencode-v2-preflight.py --stack`. It must show no FAIL. Read every WARN. Then clear the open
-   decisions in `HANDOFF.md` section B (2.2.0 versus waiting for the AFT release; V1 history; dropped config keys).
+   decisions in `HANDOFF.md` section B (the 2.2.3+ move and its AFT trial; V1 history; dropped config keys).
 2. **Back up.** All of these, before anything else changes:
    - V1 data: `cp -a ~/.local/share/opencode ~/.local/share/opencode.bak-$(date +%Y%m%d)`
    - V2 data: `cp -a ~/.local/share/opencode-v2/data/opencode/opencode.db ~/.local/share/opencode-v2/data/opencode/opencode.db.bak-$(date +%Y%m%d)` (it holds the provider logins)
    - OpenChamber settings: `cp -a ~/.config/openchamber ~/.config/openchamber.bak-$(date +%Y%m%d)`
    - Record the OpenChamber 1.24.2 reinstall command (it is not V2-compatible).
 3. **V2 beside V1.** Already installed and pinned exactly (`prefix/package.json` must read `"@opencode/cli": "2.2.0"`, no `^`
-   or `~`; the preflight fails otherwise). To move to a newer 2.2.x, wait for an AFT release containing cortexkit/aft#1144, then
+   or `~`; the preflight fails otherwise). To move to the 2.2.3+ target, first confirm an AFT release containing cortexkit/aft#1144 loads in an isolated trial, then
    `npm install --prefix ~/.local/share/opencode-v2/prefix --save-exact --no-audit --no-fund @opencode/cli@<version>`, restart, and
    require a clean preflight (no "Skipping invalid" tool registrations).
 4. **Apply the config.**

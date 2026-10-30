@@ -51,6 +51,10 @@ The six `asi-review-*` Task targets are the mandatory fixed-host relay lane for 
 For every OpenCode V1 v8 provider task, map `review-risk`, `review-resilience`, `review-readability`, `review-reliability`, `review-refuter`, and `review-validator` to the same name prefixed with `asi-`. Forward the provider-issued task line verbatim. A reply stating that `GENTLE_AI_REVIEW_CONTEXT` was not supplied is a **TRANSPORT-LANE FAILURE**: do not record, adjudicate, or count it as a lens result; re-dispatch through the mapped `asi-review-*` lane. While the installed transport is loaded, never dispatch the plain `review-*` target and never grant review lanes to implementation workers or isolated reviewers.
 
 <!-- workflow:anchor workflow.session-decisions.4r-lanes:end -->
+
+#### Lens selection and the V2 relay
+
+Native review takes the lenses the orchestrator selects, not always all four: `review start --lenses <risk,resilience,readability,reliability subset> --lenses-reason "<what changed and how>"`. Pick every lens pertinent to the change and only those (risk: stored data, credentials, permissions, contracts others consume; resilience: failures, retries, concurrency; readability: public API, output, structure; reliability: logic that tests should pin). The choice is frozen with the authority, so a continued lineage keeps its lenses. On OpenCode V2 the same `asi-review-*` lanes apply; the relay plugin declares the V2 relay contract and passes the provider role name (`review-*`) in the transport start frame, and the sandbox profile must allow project `.git` writes for the provider's repository check (see `HANDOFF.md`).
 <!-- workflow:anchor workflow.session-decisions.reviewability-budget:begin -->
 ### Gentle AI 3.4 reviewability budget
 
