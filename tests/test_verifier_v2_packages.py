@@ -42,18 +42,20 @@ class Resolver(unittest.TestCase):
         newest = install(self.cache, "~3.27.2", 1000, "3.27.4")
         self.assertEqual(resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)[1], str(newest))
 
-    def test_an_install_in_progress_falls_back_to_the_newest_complete_one_and_says_so(self):
-        complete = install(self.cache, "~3.27.2", 1000, "3.27.2")
+    def test_an_incomplete_newest_install_is_an_error_even_when_an_older_one_is_complete(self):
+        install(self.cache, "~3.27.2", 1000, "3.27.2")
         (self.cache / f"{NAME}@~3.27.2" / "2000" / "node_modules").mkdir(parents=True)  # newer epoch, no package.json yet
         got = resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)
-        self.assertEqual(got[:3], ["ok", str(complete), "3.27.2"])
-        self.assertIn("2000", got[4])
+        self.assertEqual(got[0], "error")  # V2 loads the newest epoch, so an older complete one must not make this pass
+        self.assertIn("epoch 2000", got[1])
+        self.assertIn("incomplete or still installing", got[1])
+        self.assertIn("older complete install exists (epoch 1000)", got[1])
 
-    def test_only_incomplete_installs_is_an_error(self):
+    def test_only_incomplete_installs_is_an_error_with_no_older_hint(self):
         (self.cache / f"{NAME}@~3.27.2" / "2000" / "node_modules").mkdir(parents=True)
         got = resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)
         self.assertEqual(got[0], "error")
-        self.assertIn("no complete install", got[1])
+        self.assertNotIn("older complete", got[1])
 
     def test_a_complete_out_of_range_install_is_never_skipped_for_an_older_one(self):
         install(self.cache, "~3.27.2", 1000, "3.27.2")
@@ -66,13 +68,24 @@ class Resolver(unittest.TestCase):
         got = resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)
         self.assertIn("no version in its package.json", got[1])
 
-    def test_a_declared_entry_file_must_exist(self):
+    def test_a_declared_entry_resolves_the_way_node_does(self):
         root = install(self.cache, "~3.27.2", 1, "3.27.2")
-        (root / "package.json").write_text(json.dumps({"name": NAME, "version": "3.27.2", "main": "dist/index.js"}))
-        self.assertIn("entry file dist/index.js is missing", resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)[1])
+
+        def with_main(main):
+            (root / "package.json").write_text(json.dumps({"name": NAME, "version": "3.27.2", "main": main}))
+            return resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)
+
+        self.assertIn("entry file dist/index.js is missing", with_main("dist/index.js")[1])
         (root / "dist").mkdir()
+        self.assertIn("entry file dist is missing", with_main("dist")[1])  # an empty directory has no index
         (root / "dist" / "index.js").write_text("")
-        self.assertEqual(resolve({"plugins": [f"{NAME}@~3.27.2"]}, self.cache)[0], "ok")
+        self.assertEqual(with_main("dist/index.js")[0], "ok")   # literal file
+        self.assertEqual(with_main("dist/index")[0], "ok")      # added extension
+        self.assertEqual(with_main("dist")[0], "ok")            # directory index
+        self.assertEqual(with_main("./dist/")[0], "ok")         # directory with a trailing slash
+        (root / "lib.mjs").write_text("")
+        self.assertEqual(with_main("lib")[0], "ok")
+        self.assertIn("entry file nope is missing", with_main("nope")[1])
 
     def test_the_v1_plugin_key_is_read_too(self):
         install(self.cache, "3.27.2", 1, "3.27.2")
