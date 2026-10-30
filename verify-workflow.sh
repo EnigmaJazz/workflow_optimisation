@@ -116,7 +116,7 @@ VERIFY_MODULES=(
   "checkers/routing-canonical.md 23c0c9ab507e96b04966a4e1e2b5419771859dfd87eef1efb2d3191e52c559e4"
   "checkers/v2-agents-shim.cjs ac216f6f36b7d746807a20b1a588dfe0caa4d932590d776e6e552ecef890bbb5"
   "checkers/v2-config-check.py fe1739a16d7d98958bc1a1305cdfbc6286edbc48a6c79cb792b4b939594b8698"
-  "checkers/v2-plugin-resolve.py 455ed3449512191533e5629a091664e9a3b97431407dbc88ef301b09521292f8"
+  "checkers/v2-plugin-resolve.py 5792db1b5ddf8b3bc72f03546d2046946a6b3a6404843aafa52d2e51cd4a0bbd"
   "checkers/v2-sandbox-plugins-check.py 5f515045a91faad0f6fe8d6783b39536c2fcb52de2f3d23bd1efb016c33ea1c0"
 )
 # END VERIFY_MODULES

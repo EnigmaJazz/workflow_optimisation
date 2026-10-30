@@ -86,6 +86,12 @@ class Resolver(unittest.TestCase):
         (root / "lib.mjs").write_text("")
         self.assertEqual(with_main("lib")[0], "ok")
         self.assertIn("entry file nope is missing", with_main("nope")[1])
+        # Node's last resort when main cannot be resolved is the package root's index, so that layout still loads.
+        (root / "empty").mkdir()
+        self.assertIn("entry file empty is missing", with_main("empty")[1])
+        (root / "index.js").write_text("")
+        self.assertEqual(with_main("empty")[0], "ok")
+        self.assertEqual(with_main("nope")[0], "ok")
 
     def test_the_v1_plugin_key_is_read_too(self):
         install(self.cache, "3.27.2", 1, "3.27.2")

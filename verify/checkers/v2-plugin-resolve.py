@@ -37,11 +37,14 @@ ENTRY_EXTENSIONS = ("", ".js", ".json", ".node", ".mjs", ".cjs")
 
 
 def entry_exists(root, entry):
-    """Resolve a package `main` the way Node does: the file itself, with an added extension, or a directory's index file."""
+    """Resolve a package `main` the way Node does: the file itself, with an added extension, a directory's index file, or the package root's index."""
     target = root / entry
     if any((target.parent / (target.name + ext)).is_file() for ext in ENTRY_EXTENSIONS):
         return True
-    return target.is_dir() and any((target / f"index{ext}").is_file() for ext in ENTRY_EXTENSIONS[1:])
+    if target.is_dir() and any((target / f"index{ext}").is_file() for ext in ENTRY_EXTENSIONS[1:]):
+        return True
+    # Node falls back to the package root's index when main cannot be resolved (the deprecated LOAD_INDEX step).
+    return any((root / f"index{ext}").is_file() for ext in ENTRY_EXTENSIONS[1:])
 
 
 def main(argv):
