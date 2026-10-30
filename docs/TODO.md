@@ -2148,8 +2148,12 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   it connects on isolated V2 2.2.2 and the `environment` key reaches the process). V2 needs its own OpenAI login for the
   bridge (its token comes from the V2 data root, not the V1 `auth.json`). The V1 config still points at the live
   `~/.config/opencode/mcp/vision-bridge` copy, which is unchanged.
-  Still open: the changeset-tool profile (`upgrade/opencode-v2/`) and runbook wrapper, the V2 verifier mode (Q44), and one
-  reported gap: `host_review_start` is `allow` for gentle-orchestrator (V2 will not prompt for it).
+  **Update 2026-10-30:** the change set and runbook wrapper are written. `changesets/opencode-v2-units` carries the only
+  authorable content outside git (the V2 server unit, its GitHub-token drop-in and the `opencode-perm-v2` unit; the V2 config
+  root stays derived, per the v4 rule "do not invent a set"). `scripts/opencode-v2-preflight.py` is the read-only readiness
+  report and `docs/upgrades/opencode-v2-cutover.md` is the runbook. `host_review_start: allow` on gentle-orchestrator is
+  intended (owner, 2026-10-30) and no longer warned about. V2 is pinned to 2.2.0 until AFT ships cortexkit/aft#1144.
+  Still open: the V2 verifier mode (Q44), the manual gates, and the cutover decisions listed in `HANDOFF.md`.
 - **Prerequisites:** Q36 tool (reuse it with an `upgrade/opencode-v2/` profile); Q40-Q45.
 - **Description.** The same declarative operations, `expect_before`, write-ahead journal and
   drift-preserving revert as Q36.
