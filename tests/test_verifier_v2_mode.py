@@ -211,6 +211,11 @@ class AgentsShimDerived(unittest.TestCase):
     def test_the_shell_rule_is_named_bash_in_the_tools_map_as_in_the_permission_list(self):
         self.assertEqual(self.debug(self.agent([self.rule("shell", "allow")]))["tools"], {"bash": True})
 
+    def test_the_subagent_permission_is_named_task_as_in_v1(self):
+        debug = self.debug(self.agent([self.rule("subagent", "ask"), self.rule("subagent", "allow", "explore")]))
+        self.assertEqual(debug["tools"], {"task": True})
+        self.assertEqual([r["permission"] for r in debug["permission"]], ["task", "task"])
+
     def test_the_model_variant_is_emitted_at_the_top_level_where_the_checker_reads_it(self):
         debug = self.debug(self.agent([], {"id": "gpt-6.1-sol", "providerID": "openai", "variant": "high"}))
         self.assertEqual(debug["variant"], "high")

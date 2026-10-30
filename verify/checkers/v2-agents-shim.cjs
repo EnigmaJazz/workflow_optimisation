@@ -30,8 +30,9 @@ function parseAgents(text) {
   return undefined
 }
 
-// V2 renames the shell permission; V1 (and the checker) call it bash.
-const permissionName = (action) => (action === "shell" ? "bash" : action)
+// V2 renames two permissions; V1 (and the checker) call them bash and task.
+const V1_NAMES = { shell: "bash", subagent: "task" }
+const permissionName = (action) => V1_NAMES[action] || action
 
 // V2 exposes no per-agent tools map, but its permission rules say which tools an agent may use. Derive V1's `tools` shape:
 // a tool the rules name with a "*" resource is true when its LAST such rule allows or asks (the tool is usable, possibly after
