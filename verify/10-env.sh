@@ -53,6 +53,10 @@ SYSTEMATIC_CONFIG="$OPENCODE_CONFIG_DIR/systematic.jsonc"
 SYSTEMATIC_CONFIG_SOURCE="$WORKSPACE/global-config/systematic.jsonc"
 FALLBACK_POLICY_SOURCE="$WORKSPACE/global-config/rate-limit-fallback.json"
 FALLBACK_POLICY_DEPLOYED="$OPENCODE_CONFIG_DIR/rate-limit-fallback.json"
+# V2 mode (Q44): the generated V2 config root, its npm cache and the sandbox repo derive reads.
+V2_CONFIG_ROOT="${WORKFLOW_VERIFY_V2_CONFIG_ROOT:-/home/james/.local/share/opencode-v2/config/opencode}"
+V2_NPM_CACHE="${WORKFLOW_VERIFY_V2_NPM_CACHE:-/home/james/.local/share/opencode-v2/cache/opencode/npm}"
+V2_SANDBOX_REPO="${WORKFLOW_VERIFY_SANDBOX_REPO:-/home/james/agent-sandbox-integration}"
 GENTLE_STATE_FILE="${WORKFLOW_VERIFY_GENTLE_STATE_FILE:-/home/james/.gentle-ai/state.json}"
 
 ROUTING_MARKER_START="<!-- user:workflow-routing -->"

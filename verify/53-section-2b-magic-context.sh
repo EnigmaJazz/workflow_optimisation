@@ -1,5 +1,19 @@
 # --- 2b. Resolve the exact Magic Context package OpenCode is configured to load ---
 echo "--- 2b. Active Magic Context install ---"
+if [ "${OC_MAJOR:-0}" = "2" ]; then
+  V2_MAGIC=$(python3 "$VERIFY_MODULE_DIR/checkers/v2-plugin-resolve.py" "$V2_CONFIG_ROOT/opencode.json" "$V2_NPM_CACHE" "@cortexkit/opencode-magic-context" 2>&1)
+  case "$V2_MAGIC" in
+    ok$'\t'*)
+      IFS=$'\t' read -r _ MAGIC_ROOT MAGIC_RESOLVED_VERSION MAGIC_PLUGIN_SPEC <<< "$V2_MAGIC"
+      echo "   configured: $MAGIC_PLUGIN_SPEC"
+      echo "   resolved cache: $MAGIC_ROOT"
+      echo "   version: $MAGIC_RESOLVED_VERSION"
+      echo "   ok: the V2 Magic Context install is materialized within its configured range"
+      ;;
+    error$'\t'*) fail "MAGIC_CONTEXT_V2_RESOLUTION_FAILED: ${V2_MAGIC#*$'\t'}" ;;
+    *) fail "MAGIC_CONTEXT_V2_RESOLUTION_FAILED: unexpected result ${V2_MAGIC:-<empty>}" ;;
+  esac
+else
 MAGIC_PLUGIN_SPEC="$(
   node - "$OPENCODE_CONFIG_FILE" <<'EOF_MAGIC_SPEC' 2>/dev/null || true
 const fs = require("fs")
@@ -90,4 +104,4 @@ else
     fi
   fi
 fi
-
+fi

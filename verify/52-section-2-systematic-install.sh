@@ -1,6 +1,33 @@
 # --- 2. Resolve active Systematic install ---
 echo "--- 2. Active Systematic install ---"
 
+if [ "${OC_MAJOR:-0}" = "2" ]; then
+  # V2 (Q44): resolve through the V2 plugin list and npm cache; a ~/^ range is the V2 pin form.
+  ACTIVE_ROOT=""; ACTIVE_SKILLS=""; ACTIVE_AGENTS=""; SYSTEMATIC_NODE_MODULES=""
+  V2_SYSTEMATIC=$(python3 "$VERIFY_MODULE_DIR/checkers/v2-plugin-resolve.py" "$V2_CONFIG_ROOT/opencode.json" "$V2_NPM_CACHE" "@fro.bot/systematic" 2>&1)
+  case "$V2_SYSTEMATIC" in
+    ok$'\t'*)
+      IFS=$'\t' read -r _ V2_ROOT VERSION SYSTEMATIC_PLUGIN_SPEC <<< "$V2_SYSTEMATIC"
+      echo "   configured: $SYSTEMATIC_PLUGIN_SPEC"
+      echo "   resolved cache: $V2_ROOT"
+      echo "   version: $VERSION"
+      if [ ! -d "$V2_ROOT/skills" ] || [ ! -d "$V2_ROOT/agents" ]; then
+        fail "SYSTEMATIC_V2_INSTALL_INCOMPLETE: $V2_ROOT has no skills or agents directory"
+      elif [ "$(printf '%s\n' "3.18.4" "$VERSION" | sort -V | head -n 1)" != "3.18.4" ]; then
+        fail "Systematic v3.18.4+ is required for workflow-guard terminal replay fidelity; got $VERSION"
+      else
+        ACTIVE_ROOT="$V2_ROOT"
+        ACTIVE_SKILLS="$ACTIVE_ROOT/skills"
+        ACTIVE_AGENTS="$ACTIVE_ROOT/agents"
+        SYSTEMATIC_NODE_MODULES="$(dirname "$(dirname "$ACTIVE_ROOT")")"
+        echo "   ok: the V2 Systematic install is materialized within its configured range"
+      fi
+      ;;
+    error$'\t'*) fail "SYSTEMATIC_V2_RESOLUTION_FAILED: ${V2_SYSTEMATIC#*$'\t'}" ;;
+    *) fail "SYSTEMATIC_V2_RESOLUTION_FAILED: unexpected result ${V2_SYSTEMATIC:-<empty>}" ;;
+  esac
+else
+
 # Resolve the Systematic source tree from the plugin spec that is actually
 # deployed in opencode.json. Never prefer an unrelated @latest/bare cache over
 # an exact configured pin: later inventory/model/permission checks must inspect
@@ -145,4 +172,4 @@ else
     fi
   fi
 fi
-
+fi

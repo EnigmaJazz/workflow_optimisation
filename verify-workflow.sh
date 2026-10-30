@@ -86,7 +86,7 @@ set -uo pipefail
 
 # BEGIN VERIFY_MODULES
 VERIFY_MODULES=(
-  "10-env.sh 64d80dd149027f3c5a0d2db948d4acac195829ada6e1cd126b09cf66fe0c8725"
+  "10-env.sh ed48fa8e799372268ea54dbed243e25b0dd82a9a96cef4110cb41c6059f59f8a"
   "20-helpers.sh b88837e9368b62a7175ef768881f1b51595935ec62cb82f24eb5f0fecaddbaf5"
   "21-opencode-major.sh a36e6d093cfc19f24fc9c77ef72495cd17cd317d6479fd71f65726846bbfbc22"
   "30-recover-config.sh 70b478ced6f0478c67756bb221a3dc827c6463575cea8d852ea859762a6c38af"
@@ -95,14 +95,14 @@ VERIFY_MODULES=(
   "40-temp-and-routing.sh 8516dec379a9c711ff398d2e6117e3d4df93d49cb02c126419999752f9db65d8"
   "41-checker-systematic.sh d2b24934715d00f7d56fc86402bc20554bd9665b18f43c613ea19c402ad3dd14"
   "42-checker-runtime-agents.sh e3ab3706ce136917b46df9bc73a338dc00e4e0aaf809bf834ef8ac6e5ba4a8be"
-  "50-section-0-recover.sh eeace27940cbbae173669871fb435a600a8049cc029981a8cc6bedd3721380cc"
+  "50-section-0-recover.sh 75bbc6d3f0d771822b6ad14d73b42346f6eeab102a14addff6e12ce7477e7ee6"
   "51-section-1-gentle-ai.sh 6f125ca157c9b14033749cb4f68c989551230a5d22f5f4a2d1d538704924c7f5"
-  "52-section-2-systematic-install.sh 2439384f1c65f5ca51f9584a75e0f887f46d8e73fac69cf9df0a9d405904e197"
-  "53-section-2b-magic-context.sh a04df319dcf8a5fe740123644c57ccb2c8198fa998583662e8a18212eadd727b"
-  "54-section-2c-package-integrity.sh 41f547688494c14c93b7f0a141937b7e462722196b0d74f539e15da53cdfb3a5"
+  "52-section-2-systematic-install.sh d094a019efc7b61890803dc577d282120ed306dd22b20dc0bc206db9d7527065"
+  "53-section-2b-magic-context.sh 9bb3fe46028e80c1d72b6fd7e6adf976ca79b3c507722bb7b6d97713a5c93cb5"
+  "54-section-2c-package-integrity.sh a736281b58c2505d5691b2f1d7d14c53edc17cbc8869c5bd7d07e498343c485c"
   "55-section-3-skills.sh 9d7ff4416ae7a1c8565258a60e1b3e284217e02063daa8a3b35973f54854933f"
   "56-section-4-5-agents-registry.sh 2b66b463ddd9942fba8c065fa7e94689217add64a39a717f62547424d68951f8"
-  "57-section-6-plugin-mirrors.sh 44937c5fb60833afe7358159c12ecd754b436cb8330882960512e56f65447af5"
+  "57-section-6-plugin-mirrors.sh 8e0beeaf7f5c96a52d902f11546273c35619d63df6dabe1a0ebd72d954648bae"
   "58-section-7-recipe.sh 9f02d1b88bd2dd08ee2aacf1f8619f2c149dcc383b66a4ed6f808da74f4e8502"
   "59-section-8-9-config-runtime.sh 7fe40ea35887ee61f25d65177b43c5c287cf406e1709ceed220a331fb1957f4c"
   "60-section-9a-9b-secure-service.sh 1f89acd7ba903442f6fc027e1b3fe44cc049984fb37ca481e04e6c8ad2995903"
@@ -116,6 +116,7 @@ VERIFY_MODULES=(
   "checkers/routing-canonical.md 23c0c9ab507e96b04966a4e1e2b5419771859dfd87eef1efb2d3191e52c559e4"
   "checkers/v2-agents-shim.cjs ac216f6f36b7d746807a20b1a588dfe0caa4d932590d776e6e552ecef890bbb5"
   "checkers/v2-config-check.py fe1739a16d7d98958bc1a1305cdfbc6286edbc48a6c79cb792b4b939594b8698"
+  "checkers/v2-plugin-resolve.py 20002facbb3612251bc82083ef68df8b7f43d10f5a938c525d024249eb67fece"
 )
 # END VERIFY_MODULES
 

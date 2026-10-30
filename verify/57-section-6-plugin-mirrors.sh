@@ -1,5 +1,8 @@
 # --- 6. Reviewed plugin mirrors + script digest binding ---
 echo "--- 6. Reviewed plugin mirrors ---"
+if [ "${OC_MAJOR:-0}" = "2" ]; then
+  echo "   skipped on V2: plugin and relay files are generated into the V2 config root, whose parity with the sources is section 0's derive check"
+else
 for required_plugin in "$PLUGINS_DIR/sandbox-tools.ts" "$PLUGINS_DIR/routing-guard.ts" "$RELAY_PLUGIN_DEPLOYED" "$PLUGINS_DIR/lib/broker-client.ts" "$HOST_APPROVAL_HELPER_DEPLOYED"; do
   if [ ! -f "$required_plugin" ]; then
     fail "HOST_TOOL_PLUGIN_MISSING: $required_plugin (install from agent-sandbox-integration; keep installer and rollback in sync)"
@@ -20,6 +23,7 @@ if [ -n "$SANDBOX_INTEGRATION_REPO" ]; then
   done
 else
   echo "   info: set WORKFLOW_VERIFY_SANDBOX_REPO to inspect agent-sandbox-integration source, installer and rollback parity"
+fi
 fi
 SELF_PATH=$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")
 SELF_SHA=$(sha256_file "$SELF_PATH")
