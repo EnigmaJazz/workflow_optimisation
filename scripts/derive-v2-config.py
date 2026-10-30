@@ -80,8 +80,14 @@ def scan_tools(sandbox_repo):
     return tools
 
 
-def check_rules(config, tools):
+# (agent, approval tool) pairs the owner decided should be allowed outright even though V2 will not prompt for them
+# (owner, 2026-10-30: the orchestrator starts native reviews itself). Anything else that allows an approval tool is reported.
+INTENDED_APPROVAL_ALLOWS = {("gentle-orchestrator", "host_review_start")}
+
+
+def check_rules(config, tools, intended=None):
     """Raise if a tool has no explicit rule; return warnings for agents that allow an approval tool."""
+    intended = INTENDED_APPROVAL_ALLOWS if intended is None else intended
     permission = config.get("permission") or {}
     missing = sorted(t for t in tools if t not in permission)
     if missing:
@@ -95,7 +101,7 @@ def check_rules(config, tools):
             effect = rules.get(tool, permission.get(tool))
             if isinstance(effect, dict):
                 effect = effect.get("*")
-            if effect not in ("ask", "deny"):
+            if effect not in ("ask", "deny") and (name, tool) not in intended:
                 warnings.append(f"agent {name}: approval tool {tool} is '{effect}', so V2 will not prompt for it")
     return warnings
 
@@ -168,7 +174,7 @@ def expose_mcp_directly(config):
 # Plugin-owned agents whose sandbox access must match a reviewed agent. On V2 the Systematic category rules come AFTER an agent
 # overlay in the rule list and V2 takes the last match, so the overlay's `sandbox_*` allows lose to the category denies. A
 # permission block in opencode.json is applied last, so mirror the reference agent's sandbox/host rules there (V2 only).
-ACCESS_MIRRORS = {"systematic-implementer": "gentle-ai-worker"}
+ACCESS_MIRRORS = {"systematic-implementer": "gentle-ai-worker", "bug-reproduction-validator": "gentle-ai-worker"}
 MIRRORED_PREFIXES = ("sandbox_", "host_")
 
 

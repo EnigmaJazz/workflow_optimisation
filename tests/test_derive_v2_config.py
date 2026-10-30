@@ -95,6 +95,16 @@ class Checks(unittest.TestCase):
         self.assertIn("worker", warnings[0])
         self.assertIn("tool_asks", warnings[0])
 
+    def test_an_intended_allow_is_not_reported_but_any_other_still_is(self):
+        config = {"permission": {"tool_plain": "deny", "tool_asks": "deny"},
+                  "agent": {"orch": {"permission": {"tool_asks": "allow"}}, "worker": {"permission": {"tool_asks": "allow"}}}}
+        warnings = self.m.check_rules(config, {"tool_plain": False, "tool_asks": True}, intended={("orch", "tool_asks")})
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("worker", warnings[0])
+
+    def test_the_real_intended_allow_is_the_orchestrators_review_start(self):
+        self.assertEqual(self.m.INTENDED_APPROVAL_ALLOWS, {("gentle-orchestrator", "host_review_start")})
+
     def test_ask_or_deny_for_approval_tools_gives_no_warning(self):
         config = {"permission": {"tool_plain": "deny", "tool_asks": "deny"}, "agent": {"a": {"permission": {"tool_asks": "ask"}}}}
         self.assertEqual(self.m.check_rules(config, {"tool_plain": False, "tool_asks": True}), [])
@@ -118,6 +128,7 @@ class RealConfig(unittest.TestCase):
         self.assertEqual(self.run1.returncode, 0, self.run1.stdout + self.run1.stderr)
 
     def test_everything_except_the_plugin_list_is_carried_over_unchanged(self):
+        mirrored = load().ACCESS_MIRRORS
         got = json.loads((self.out / "opencode.json").read_text())
         for key, value in self.src.items():
             if key == "plugin":
@@ -130,12 +141,12 @@ class RealConfig(unittest.TestCase):
                 self.assertEqual(set(got["mcp"]), set(value))
                 continue
             if key == "agent":  # carried over, plus the one plugin-owned agent whose sandbox access is mirrored in (V2 only)
-                self.assertEqual({k: v for k, v in got["agent"].items() if k != "systematic-implementer"}, value)
-                self.assertEqual(set(got["agent"]) - set(value), {"systematic-implementer"})
+                self.assertEqual({k: v for k, v in got["agent"].items() if k not in mirrored}, value)
+                self.assertEqual(set(got["agent"]) - set(value), set(mirrored))
                 continue
             self.assertEqual(got[key], value, key)
         self.assertNotIn("plugin", got)
-        self.assertEqual(len(got["agent"]), 47)
+        self.assertEqual(len(got["agent"]), 46 + len(mirrored))
         mirrored = got["agent"]["systematic-implementer"]
         reference = got["agent"]["gentle-ai-worker"]
         self.assertEqual(mirrored["permission"]["sandbox_bash"], "allow")
