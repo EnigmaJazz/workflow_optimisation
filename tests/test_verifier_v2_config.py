@@ -47,8 +47,20 @@ class Checker(unittest.TestCase):
         self.assertIn("derive --apply", out)
 
     def test_the_dry_run_line_is_not_counted_as_drift(self):
-        _, out = Fixture("[derive-v2] dry-run - would not write anything").run()
+        _, out = Fixture("[derive-v2] dry-run - nothing was written, would not write anything").run()
         self.assertTrue(out.startswith("clean\t"), out)
+
+    def test_output_without_the_completion_marker_is_never_clean(self):
+        for output in ("", "[derive-v2] note: dropped 1 legacy setting"):
+            _, out = Fixture(output).run()
+            self.assertTrue(out.startswith("error\tderive gave no dry-run completion marker"), out)
+
+    def test_notes_about_moved_or_kept_settings_are_shown_on_a_clean_result(self):
+        marker = "[derive-v2] dry-run - nothing was written."
+        _, out = Fixture("[derive-v2] note: moved subagent_depth to experimental.subagent_depth\n[derive-v2] note: agent x mirrored\n" + marker).run()
+        self.assertTrue(out.startswith("clean\t"), out)
+        self.assertIn("note: moved subagent_depth", out)
+        self.assertNotIn("mirrored", out)
 
     def test_a_derive_failure_is_an_error_with_its_last_line(self):
         _, out = Fixture("[derive-v2] error: plugin entry needs a decision", code=2).run()

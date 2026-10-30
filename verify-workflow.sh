@@ -115,7 +115,7 @@ VERIFY_MODULES=(
   "checkers/recover-cli-config.py 5dc9e7af0c465f3ba237ba14c03a7b5b702f0e613445828b617189e56e05295f"
   "checkers/routing-canonical.md 23c0c9ab507e96b04966a4e1e2b5419771859dfd87eef1efb2d3191e52c559e4"
   "checkers/v2-agents-shim.cjs ac216f6f36b7d746807a20b1a588dfe0caa4d932590d776e6e552ecef890bbb5"
-  "checkers/v2-config-check.py b39e6bbdbe363c4edbe89cf23add13a63340cd367acdc224d21dceca980756a6"
+  "checkers/v2-config-check.py fe1739a16d7d98958bc1a1305cdfbc6286edbc48a6c79cb792b4b939594b8698"
 )
 # END VERIFY_MODULES
 

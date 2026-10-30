@@ -31,12 +31,20 @@ def main(argv):
     if result.returncode != 0:
         print(f"error\tderive failed ({result.returncode}): {(lines[-1] if lines else 'no output')[:200]}")
         return 0
+    # A healthy dry run ends with this marker. Its absence means derive did not finish or changed its output, which must
+    # never read as "no drift".
+    if not any("dry-run - nothing was written" in line for line in lines):
+        print("error\tderive gave no dry-run completion marker; its output cannot be trusted as a clean result")
+        return 0
     pending = [line.split("would ", 1)[1] for line in lines if "would " in line and "dry-run" not in line]
     if pending:
         names = "; ".join(item.split("/")[-1] for item in pending[:5])
         print(f"error\t{len(pending)} V2 config file(s) differ from global-config ({names}); run derive --apply")
         return 0
-    print(f"clean\tthe V2 config root matches global-config ({root})")
+    # Notes that change what V2 will honour (a setting that moved or could not move) are worth seeing even when nothing drifted.
+    notes = [line.split("note: ", 1)[1] for line in lines if "note: " in line and line.split("note: ", 1)[1].startswith(("moved ", "kept "))]
+    suffix = "".join(f"; note: {note[:160]}" for note in notes[:3])
+    print(f"clean\tthe V2 config root matches global-config ({root}){suffix}")
     return 0
 
 
