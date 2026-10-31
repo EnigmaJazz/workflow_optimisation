@@ -42,14 +42,21 @@ command -v "$SQLITE" >/dev/null 2>&1 || fail "sqlite3 is not installed"
 [ ! -e "$INCOMING" ] || fail "$INCOMING already exists (a previous run was interrupted); inspect and remove it"
 [ ! -e "$ASIDE" ] || fail "$ASIDE already exists"
 
-echo "-- services must be stopped (the databases must be quiescent)"
-if [ "${SKIP_UNIT_CHECK:-0}" != "1" ]; then
+# Only "inactive" and "failed" count as stopped: "activating" and "deactivating" are still moving, and an unreadable state is not proof.
+units_stopped() {
+  [ "${SKIP_UNIT_CHECK:-0}" != "1" ] || return 0
+  local unit state
   for unit in "${UNITS[@]}"; do
-    if "$SYSTEMCTL" --user is-active --quiet "$unit" 2>/dev/null; then
-      fail "$unit is running; stop it first: systemctl --user stop ${UNITS[*]}"
-    fi
+    state=$("$SYSTEMCTL" --user is-active "$unit" 2>/dev/null || true)
+    case "$state" in
+      inactive|failed) ;;
+      *) fail "$unit is running (state: ${state:-unknown}); stop it first: systemctl --user stop ${UNITS[*]}" ;;
+    esac
   done
-fi
+}
+
+echo "-- services must be stopped (the databases must be quiescent)"
+units_stopped
 if [ "${SKIP_UNIT_CHECK:-0}" = "1" ]; then say "service check SKIPPED by SKIP_UNIT_CHECK (tests and read-only inspection only)"; else say "none of: ${UNITS[*]} is running"; fi
 
 echo "-- V1 history must already be in V2 format"
@@ -78,7 +85,7 @@ say "about $((need_kb / 1024)) MB needed, $((have_kb / 1024)) MB free"
 echo "-- plan"
 say "1. build $INCOMING from a consistent copy of $V1_DB"
 say "2. merge the V2 logins into it, check integrity and counts"
-say "3. move the current V2 database files to $ASIDE"
+say "3. move the current V2 database files to $ASIDE (V2 sessions that are not in V1 leave the live database and stay only there)"
 say "4. install the new database as $V2_DB (mode 600)"
 if [ "$APPLY" -ne 1 ]; then
   echo "== dry run complete: nothing was changed. Re-run with --apply. =="
@@ -86,7 +93,8 @@ if [ "$APPLY" -ne 1 ]; then
 fi
 
 cleanup_incoming() { rm -f "$INCOMING" "$INCOMING-shm" "$INCOMING-wal"; }
-trap 'cleanup_incoming' ERR
+trap cleanup_incoming EXIT
+umask 077  # the copy holds the logins: it must never exist with wider permissions than the final file
 
 echo "-- 1. copy"
 "$SQLITE" -readonly "$V1_DB" ".backup '$INCOMING'"
@@ -101,11 +109,14 @@ DETACH DATABASE v2live;
 SQL
 [ "$("$SQLITE" -readonly "$INCOMING" 'pragma integrity_check;')" = "ok" ] || fail "integrity_check failed on the new database"
 [ "$(q "$INCOMING" 'select count(*) from session_v2;')" = "$v2_sessions" ] || fail "the new database lost sessions"
-for integration in $(q "$V2_DB" "select integration_id from credential;"); do
-  [ "$(q "$INCOMING" "select count(*) from credential where integration_id='$integration' and value=(select value from credential where integration_id='$integration');")" -ge 1 ] || fail "login for $integration is missing after the merge"
-done
+# Compare against the live V2 database itself: every V2 login must be present, with the same value, in the new file.
+lost=$("$SQLITE" -readonly "$INCOMING" "ATTACH DATABASE 'file:$V2_DB?mode=ro' AS v2live; select group_concat(v.integration_id, ',') from v2live.credential v left join credential c on c.integration_id = v.integration_id and c.value = v.value where c.integration_id is null;")
+[ -z "$lost" ] || fail "V2 login(s) missing or changed after the merge: $lost"
 say "integrity ok; $v2_sessions sessions; $(q "$INCOMING" 'select count(*) from credential;') logins"
 
+units_stopped  # last check before anything is moved: a unit started during the copy would still be writing
+echo "Rollback (if anything below fails): stop V2, then: rm -f '$V2_DB' '$V2_DB-shm' '$V2_DB-wal' && mv '$ASIDE'/opencode.db* '$V2_DATA'/"
+trap 'echo "INTERRUPTED after the old V2 files were moved aside. The new database is kept as $INCOMING; either finish by hand (mv it to $V2_DB, chmod 600) or roll back with the command printed above." >&2' EXIT
 echo "-- 3. move the old files aside"
 mkdir -p "$ASIDE"
 for f in "$V2_DB" "$V2_DB-shm" "$V2_DB-wal"; do [ -e "$f" ] && mv "$f" "$ASIDE/"; done
@@ -114,6 +125,6 @@ mv "$INCOMING" "$V2_DB"
 [ ! -e "$INCOMING-shm" ] || mv "$INCOMING-shm" "$V2_DB-shm"
 [ ! -e "$INCOMING-wal" ] || mv "$INCOMING-wal" "$V2_DB-wal"
 chmod 600 "$V2_DB"
-trap - ERR
+trap - EXIT
 echo "== done. The previous V2 database is in $ASIDE =="
 echo "Rollback: stop V2, then: rm -f '$V2_DB' '$V2_DB-shm' '$V2_DB-wal' && mv '$ASIDE'/opencode.db* '$V2_DATA'/"

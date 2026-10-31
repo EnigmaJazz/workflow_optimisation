@@ -44,7 +44,7 @@ def make_v2(path):
 
 
 class Fixture:
-    def __init__(self, units_active=(), **v1_kwargs):
+    def __init__(self, units_active=(), active_after_calls=None, **v1_kwargs):
         self.dir = Path(tempfile.mkdtemp())
         self.v1 = self.dir / "v1" / "opencode.db"
         self.v2data = self.dir / "v2" / "opencode"
@@ -53,8 +53,11 @@ class Fixture:
         make_v1(self.v1, **v1_kwargs)
         make_v2(self.v2data / "opencode.db")
         stub = self.dir / "systemctl"
-        active = " ".join(units_active)
-        stub.write_text(f'#!/usr/bin/env bash\nunit="${{@: -1}}"\nfor u in {active}; do [ "$u" = "$unit" ] && exit 0; done\nexit 3\n')
+        cases = "".join(f'  {u.split("=")[0]}) echo {u.split("=")[1] if "=" in u else "active"}; exit 0;;\n' for u in units_active)
+        flip = "" if active_after_calls is None else (
+            f'n=$(cat "{self.dir}/calls" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "{self.dir}/calls"\n'
+            f'if [ $n -gt {active_after_calls} ]; then echo active; exit 0; fi\n')
+        stub.write_text(f'#!/usr/bin/env bash\nunit="${{@: -1}}"\n{flip}case "$unit" in\n{cases}esac\necho inactive; exit 3\n')
         stub.chmod(stub.stat().st_mode | stat.S_IEXEC)
         self.env = {**os.environ, "V1_DB": str(self.v1), "V2_DATA": str(self.v2data), "SYSTEMCTL": str(stub), "STAMP": "T1"}
 
@@ -85,6 +88,11 @@ class DryRun(unittest.TestCase):
         self.assertEqual(f.v2db().read_bytes(), before)
         self.assertEqual(sorted(p.name for p in f.v2data.iterdir()), ["opencode.db"])
 
+    def test_the_plan_says_which_v2_sessions_leave_the_live_database(self):
+        code, out = Fixture().run()
+        self.assertEqual(code, 0, out)
+        self.assertIn("not in V1 leave the live database", out)
+
     def test_it_is_the_default_and_help_prints_usage(self):
         code, out = Fixture().run("-h")
         self.assertEqual(code, 0)
@@ -105,6 +113,15 @@ class Refusals(unittest.TestCase):
     def test_a_running_service_is_refused_even_with_apply(self):
         for unit in ("secure-opencode-v2.service", "opencode-perm-v2.service", "secure-opencode.service"):
             self.refused(Fixture(units_active=[unit]), f"{unit} is running", "--apply")
+
+    def test_a_unit_that_is_still_starting_or_stopping_counts_as_running(self):
+        for state in ("activating", "deactivating", "reloading"):
+            self.refused(Fixture(units_active=[f"secure-opencode-v2.service={state}"]), f"is running (state: {state})", "--apply")
+
+    def test_a_unit_that_started_during_the_copy_is_caught_before_anything_moves(self):
+        f = Fixture(active_after_calls=3)  # the first check (three units) passes, the second finds one running
+        self.refused(f, "is running", "--apply")
+        self.assertFalse((f.v2data / "opencode.db.incoming").exists())
 
     def test_history_that_is_not_fully_in_v2_format_is_refused(self):
         self.refused(Fixture(v2_sessions=2), "migration is incomplete", "--apply")
@@ -163,6 +180,59 @@ class Apply(unittest.TestCase):
         self.assertNotEqual(code, 0)
         self.assertEqual(f.v2db().read_bytes(), before)
         self.assertEqual(sorted(p.name for p in f.v2data.iterdir()), ["opencode.db"])
+
+    def _stub_sqlite(self, f, body):
+        real = subprocess.check_output(["which", "sqlite3"], text=True).strip()
+        stub = f.dir / "sqlite3"
+        stub.write_text("#!/usr/bin/env bash\n" + body.replace("REAL", real))
+        stub.chmod(stub.stat().st_mode | stat.S_IEXEC)
+        f.env["SQLITE3"] = str(stub)
+
+    def test_the_copy_is_never_wider_than_600_even_under_a_permissive_umask(self):
+        f = Fixture()
+        self._stub_sqlite(f, f'''REAL "$@"; rc=$?
+for a in "$@"; do case "$a" in *.backup*) p=$(printf %s "$a" | tr -d "'"); p=${{p#.backup }}; stat -c %a "$p" > "{f.dir}/copy-mode";; esac; done
+exit $rc
+''')
+        r = subprocess.run(["bash", "-c", f'umask 022; exec bash "{SCRIPT}" --apply'], capture_output=True, text=True, env=f.env)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual((f.dir / "copy-mode").read_text().strip(), "600")
+
+    def test_a_v2_login_that_does_not_survive_the_merge_is_refused_against_the_live_v2_database(self):
+        f = Fixture()
+        self._stub_sqlite(f, f'''for a in "$@"; do case "$a" in *integrity_check*) REAL "${{@: -2:1}}" "update credential set value='tampered' where integration_id='openai';";; esac; done
+exec REAL "$@"
+''')
+        before = f.v2db().read_bytes()
+        code, out = f.run("--apply")
+        self.assertEqual(code, 1, out)
+        self.assertIn("missing or changed after the merge: openai", out)
+        self.assertEqual(f.v2db().read_bytes(), before)
+        self.assertEqual(sorted(p.name for p in f.v2data.iterdir()), ["opencode.db"])
+
+    def test_a_failed_install_keeps_the_new_database_and_the_old_files_and_says_how_to_recover(self):
+        f = Fixture()
+        real_mv = subprocess.check_output(["which", "mv"], text=True).strip()
+        bindir = f.dir / "bin"
+        bindir.mkdir()
+        mv = bindir / "mv"
+        mv.write_text(f'#!/usr/bin/env bash\ncase "$1" in *opencode.db.incoming) echo "mv: simulated failure" >&2; exit 1;; esac\nexec {real_mv} "$@"\n')
+        mv.chmod(mv.stat().st_mode | stat.S_IEXEC)
+        f.env["PATH"] = f"{bindir}:{f.env['PATH']}"
+        code, out = f.run("--apply")
+        self.assertNotEqual(code, 0)
+        self.assertIn("INTERRUPTED after the old V2 files were moved aside", out)
+        self.assertIn("Rollback (if anything below fails)", out)
+        self.assertTrue((f.v2data / "opencode.db.incoming").exists())  # the new database is not thrown away
+        self.assertEqual(f.creds(f.v2data / "pre-v1-history-T1" / "opencode.db")["deepseek"], "v2-deepseek")
+
+    def test_a_verification_refusal_leaves_no_incoming_file(self):
+        f = Fixture()
+        self._stub_sqlite(f, f'''for a in "$@"; do case "$a" in *integrity_check*) REAL "${{@: -2:1}}" "update credential set value='tampered' where integration_id='openai';";; esac; done
+exec REAL "$@"
+''')
+        f.run("--apply")
+        self.assertFalse((f.v2data / "opencode.db.incoming").exists())
 
     def test_wal_files_of_the_old_database_move_aside_with_it(self):
         f = Fixture()
