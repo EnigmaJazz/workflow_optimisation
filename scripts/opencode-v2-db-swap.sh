@@ -115,11 +115,30 @@ lost=$("$SQLITE" -readonly "$INCOMING" "ATTACH DATABASE 'file:$V2_DB?mode=ro' AS
 say "integrity ok; $v2_sessions sessions; $(q "$INCOMING" 'select count(*) from credential;') logins"
 
 units_stopped  # last check before anything is moved: a unit started during the copy would still be writing
-echo "Rollback (if anything below fails): stop V2, then: rm -f '$V2_DB' '$V2_DB-shm' '$V2_DB-wal' && mv '$ASIDE'/opencode.db* '$V2_DATA'/"
-trap 'echo "INTERRUPTED after the old V2 files were moved aside. The new database is kept as $INCOMING; either finish by hand (mv it to $V2_DB, chmod 600) or roll back with the command printed above." >&2' EXIT
+MOVED=0  # stays 0 until an old V2 file has actually moved: before that, the recovery text would destroy the live database
+ROLLBACK_SHOWN=0
+show_rollback() {
+  [ "$ROLLBACK_SHOWN" -eq 0 ] || return 0
+  ROLLBACK_SHOWN=1
+  echo "Rollback (if anything below fails): stop V2, then: rm -f '$V2_DB' '$V2_DB-shm' '$V2_DB-wal' && mv '$ASIDE'/opencode.db* '$V2_DATA'/"
+}
+on_exit() {
+  if [ "$MOVED" -eq 1 ]; then
+    echo "INTERRUPTED after the old V2 files were moved aside. The new database is kept as $INCOMING; either finish by hand (mv it to $V2_DB, chmod 600) or roll back with the command printed above." >&2
+  else
+    cleanup_incoming
+  fi
+}
+trap on_exit EXIT
 echo "-- 3. move the old files aside"
 mkdir -p "$ASIDE"
-for f in "$V2_DB" "$V2_DB-shm" "$V2_DB-wal"; do [ -e "$f" ] && mv "$f" "$ASIDE/"; done
+for f in "$V2_DB" "$V2_DB-shm" "$V2_DB-wal"; do
+  if [ -e "$f" ]; then
+    mv "$f" "$ASIDE/"
+    MOVED=1
+    show_rollback
+  fi
+done
 echo "-- 4. install"
 mv "$INCOMING" "$V2_DB"
 [ ! -e "$INCOMING-shm" ] || mv "$INCOMING-shm" "$V2_DB-shm"

@@ -210,6 +210,23 @@ exec REAL "$@"
         self.assertEqual(f.v2db().read_bytes(), before)
         self.assertEqual(sorted(p.name for p in f.v2data.iterdir()), ["opencode.db"])
 
+    def test_a_failure_before_anything_is_moved_prints_no_recovery_command(self):
+        f = Fixture()
+        real_mkdir = subprocess.check_output(["which", "mkdir"], text=True).strip()
+        bindir = f.dir / "bin"
+        bindir.mkdir()
+        mkdir = bindir / "mkdir"
+        mkdir.write_text(f'#!/usr/bin/env bash\ncase "$*" in *pre-v1-history*) echo "mkdir: simulated failure" >&2; exit 1;; esac\nexec {real_mkdir} "$@"\n')
+        mkdir.chmod(mkdir.stat().st_mode | stat.S_IEXEC)
+        f.env["PATH"] = f"{bindir}:{f.env['PATH']}"
+        before = f.v2db().read_bytes()
+        code, out = f.run("--apply")
+        self.assertNotEqual(code, 0)
+        self.assertEqual(f.v2db().read_bytes(), before)
+        self.assertFalse((f.v2data / "opencode.db.incoming").exists())
+        self.assertNotIn("INTERRUPTED", out)
+        self.assertNotIn("rm -f", out)
+
     def test_a_failed_install_keeps_the_new_database_and_the_old_files_and_says_how_to_recover(self):
         f = Fixture()
         real_mv = subprocess.check_output(["which", "mv"], text=True).strip()
