@@ -107,5 +107,31 @@ class ParallelDispatch(unittest.TestCase):
         self.assertIn("PARALLEL_DISPATCH_MISSING", out)
 
 
+class ObservedV2RunStream(unittest.TestCase):
+    """Observed 2026-10-31 on OpenCode 2.2.5 (`run --format json`, gentle-orchestrator): events keep V1's tool_use/part wrapper, and the
+    skill tool names its skill in input.id (V1: input.name)."""
+
+    def test_the_router_skill_is_recognised_from_input_id(self):
+        events = [
+            {"type": "tool_use", "part": {"tool": "skill", "state": {"status": "completed", "input": {"id": "workflow-route"}, "title": "skill"}}},
+            {"type": "tool_use", "part": {"tool": "read", "state": {"status": "completed", "input": {"path": "WORKFLOW.md"}, "title": "read"}}},
+            {"type": "tool_use", "part": {"tool": "skill", "state": {"status": "completed", "input": {"id": "workflow-odd-secure"}, "title": "skill"}}},
+        ]
+        code, out = run_odd(events)
+        self.assertNotIn("ODD_ROUTER_SKILL_NOT_LOADED", out)
+        self.assertEqual(code, 0, out)
+
+    def test_the_observed_router_only_turn_gets_past_the_router_check_and_stops_at_the_adapter_check(self):
+        events = [{"type": "tool_use", "part": {"tool": "skill", "state": {"input": {"id": "workflow-route"}}}}]
+        code, out = run_odd(events)
+        self.assertNotIn("ODD_ROUTER_SKILL_NOT_LOADED", out)
+        self.assertIn("ODD_ROUTE_SKILL_NOT_LOADED", out)
+
+    def test_a_different_skill_id_still_reports_the_router_missing(self):
+        events = [{"type": "tool_use", "part": {"tool": "skill", "state": {"input": {"id": "something-else"}}}}]
+        code, out = run_odd(events)
+        self.assertIn("ODD_ROUTER_SKILL_NOT_LOADED", out)
+
+
 if __name__ == "__main__":
     unittest.main()

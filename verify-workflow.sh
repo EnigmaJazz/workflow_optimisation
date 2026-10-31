@@ -106,7 +106,7 @@ VERIFY_MODULES=(
   "58-section-7-recipe.sh 9f02d1b88bd2dd08ee2aacf1f8619f2c149dcc383b66a4ed6f808da74f4e8502"
   "59-section-8-9-config-runtime.sh 63d7ffd7d0d5e3891f56991ac992ec294de6f58db51700dbbda3d1bfae749223"
   "60-section-9a-9b-secure-service.sh 2579654362fa71ab3938da3bb858f053aeaa796272033c7e408d8c9675986d87"
-  "61-section-10-behavioural.sh 9a96189624e70fca1c0c278452d8eaa3f7bd4b1f62db23b042a51dce27085ef7"
+  "61-section-10-behavioural.sh f72dba7ff6c2a4f7c05ac0c01cb2b54479d8387e8a19a8d94617bc7717c78139"
   "62-section-11-summary.sh 5df415a1b7f63144822d2bb62c2300df4f2de8ea36cc0dc7ee5d4138c477ea76"
   "checkers/check-parallel-dispatch.py d970c748791710131a667b6cc1cd08ea280494c021d9b2bde520b1620208447e"
   "checkers/check-runtime-agents.cjs b8b0391345e55df4b222267b66c58b1460a341f3e86a35b3c8b4572e00c48cd2"

@@ -95,9 +95,10 @@ for line in events.read_text(encoding="utf-8", errors="replace").splitlines():
     launch = state.get("input") or {}
     if not isinstance(launch, dict):
         launch = {}
-    if tool == "skill" and isinstance(launch.get("name"), str):
-        skill_calls.append(launch["name"])
-        if launch["name"] == "workflow-route":
+    skill_name = launch.get("name") if isinstance(launch.get("name"), str) else launch.get("id")  # V1 names the skill in input.name, V2 2.2.5 in input.id
+    if tool == "skill" and isinstance(skill_name, str):
+        skill_calls.append(skill_name)
+        if skill_name == "workflow-route":
             loaded_router = True
     if tool in {"sandbox_write","sandbox_edit","sandbox_apply_patch","sandbox_bash","sandbox_apply","write","edit","bash","shell","host_plan_append","host_review_start","host_register_project"} or (tool in {"task", "subagent"} and (launch.get("subagent_type") or launch.get("agent")) not in {"explore"}):
         print(f"   !! ODD_READ_ONLY_MUTATION_OR_WRITER: tool={tool} agent={launch.get('subagent_type') or launch.get('agent')}")
