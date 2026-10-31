@@ -45,6 +45,19 @@ At tracker creation forecast authored additions plus deletions (excluding genera
 <!-- workflow:anchor workflow.odd-and-review.native-rdd:begin -->
 ### Native risk assessment and RDD checkpoint
 
+#### Native review call card (read this before any search)
+
+Every value a review call needs is either in this card or in the previous call's output. Do not grep the repositories, read gentle-ai sources, or query `github_ro` for review parameters; if a value seems missing, re-read the last `host_review_*` result before looking anywhere else.
+
+1. **Boundary.** The base is the last reviewed boundary (the commit named in the previous acknowledgement, or the branch point). The head is `HEAD`. One range, never a middle slice.
+2. **`host_review_assess`** with `agent: "opencode"`, `baseRef: <boundary>`, `committedOnly: true`. Read `review_due` and `review_due_reason`.
+3. **`host_review_status`** (preflight, no `lineage`) with the same `agent`, `baseRef`, `committedOnly: true`, plus `lenses` and `lensesReason`. `lenses` is a comma list of `risk`, `resilience`, `readability`, `reliability` (no `review-` prefix); `lensesReason` is one sentence naming what the change touches. The provider may add a lens; accept its plan. Pass `intendedUntrackedSelection` exactly as the provider's returned `next_transition` shows it. Untracked files are excluded by default; never select any unless the owner asks.
+4. **`host_review_start`**: pass only the tokens the preflight `next_transition` returned (`contract`, `target`, `projection`, and `untrackedScope: "exclude"` with the returned `expectedUntrackedInventory`), plus `lenses` and `lensesReason`. Relay the consent envelope to the owner verbatim and wait; run the invocation that matches the owner's answer.
+5. **Lens lanes**, capture, correction and acknowledgement: follow only the returned `next_transition`, as the bullets below state.
+6. **Checking a finding.** Before accepting or relaying a finding, open the cited file and lines in the committed tree. If the premise fails there, say so with the line evidence; line numbers off by one are noted, not disputed.
+7. **After `review.acknowledge-approved`** a later `host_review_status` may fail with `unrelated target status is inconsistent` or `lineage ... is not held`. That is a known, benign post-acknowledgement behaviour; report the acknowledgement envelope as the terminal artifact and do not retry.
+8. **`escalated`** is terminal. A new review needs a fresh target (a new commit) and a fresh lineage.
+
 The RDD kill switch is user-owned: `gentle-ai review mode enable|disable|status`. Gentle AI 3.5 resolves an unset switch to on by default; obtain read-only `gentle-ai review mode status --cwd <repo>` and record both the effective mode and deciding source (`default`, `global`, or `clone-local`) at route entry. Only the user may explicitly enable or disable RDD; route a requested change through the reviewed fixed integration or authorized executor, then verify status. Neither agent nor verifier toggles it to clear a health warning. Native review remains available when enabled; substantial ODD follows the work-unit/slice candidate rule above. No phase launches it or treats it as archive authority.
 
 - `ce:review` remains the advisory quality layer before native RDD for substantial and small feature work.
