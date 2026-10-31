@@ -119,7 +119,8 @@ assigned_route = "workflow-odd-secure"
 # The route skill loads the adapter for an ODD change and "only what the specific question requires" for a read-only answer, and
 # WORKFLOW.md makes a planning-only request read-only. So a turn whose ROUTE statement says read-only intent needs no adapter; any
 # other adapter still fails, and a turn with no ROUTE statement keeps the strict adapter checks below.
-route_line = re.search(r"ROUTE:[^|\n]*\|\s*intent:\s*([^|\n]*)\|", answer_text)
+plain_text = re.sub(r"[*`]", "", answer_text)  # the model sometimes bolds the statement or a field of it
+route_line = re.search(r"ROUTE:[^|\n]*\|\s*intent:\s*([^|\n]*)\|", plain_text)
 read_only_route = bool(route_line) and route_line.group(1).strip().lower().startswith("read-only")
 if read_only_route:
     stray = [name for name in route_skills if name != assigned_route]
@@ -132,7 +133,9 @@ if read_only_route:
     print("   ok: planning-only request stated a read-only ROUTE, launched no writer and created no ODD tracker")
     raise SystemExit(0)
 if not route_skills:
+    seen = plain_text[plain_text.find("ROUTE"):][:160].replace("\n", " ") if "ROUTE" in plain_text else "no ROUTE statement in the answer"
     print("   !! ODD_ROUTE_SKILL_NOT_LOADED: expected the assigned workflow-odd-secure route adapter after workflow-route")
+    print(f"      not treated as a read-only route; saw: {seen!r}")
     raise SystemExit(1)
 if assigned_route not in route_skills:
     print(f"   !! ODD_ROUTE_SKILL_NOT_ASSIGNED: expected {assigned_route}, observed {route_skills!r}")

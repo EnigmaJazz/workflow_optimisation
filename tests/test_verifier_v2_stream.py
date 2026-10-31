@@ -179,5 +179,20 @@ class ReadOnlyTurn(unittest.TestCase):
         self.assertIn("ODD_READ_ONLY_TRACKER_CREATED", out)
 
 
+    def test_markdown_around_the_statement_or_the_intent_is_ignored(self):
+        for line in ("**ROUTE: tiny fix | intent: read-only | route: none | specialist: none**",
+                     "ROUTE: tiny fix | intent: **read-only** | route: none | specialist: none",
+                     "`ROUTE: x | intent: read-only (planning)` | route: y | specialist: none"):
+            code, out = run_odd(self.route_only() + [self.text(line)])
+            self.assertEqual(code, 0, f"{line}: {out}")
+
+    def test_a_failure_shows_what_the_answer_said(self):
+        code, out = run_odd(self.route_only() + [self.text("ROUTE: tiny fix | intent: change | route: z")])
+        self.assertEqual(code, 1)
+        self.assertIn("saw: 'ROUTE: tiny fix | intent: change", out)
+        code, out = run_odd(self.route_only())
+        self.assertIn("no ROUTE statement in the answer", out)
+
+
 if __name__ == "__main__":
     unittest.main()
