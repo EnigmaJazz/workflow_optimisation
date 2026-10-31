@@ -85,6 +85,12 @@ say "about $((need_kb / 1024)) MB needed, $((have_kb / 1024)) MB free"
 echo "-- plan"
 say "1. build $INCOMING from a consistent copy of $V1_DB"
 say "2. merge the V2 logins into it, check integrity and counts"
+if [ -n "${POOL_PROXY_KEY:-}" ]; then
+  say "   the stored opencode-go key (V1's own key) is set to POOL_PROXY_KEY, because V2 sends the stored key, not the config's {env:POOL_PROXY_KEY}"
+else
+  say "   WARNING: POOL_PROXY_KEY is not in the environment, so the stored opencode-go key stays V1's own key and every proxy call will answer 401."
+  say "   Re-run as: env (systemctl --user show-environment | grep '^POOL_PROXY_KEY=') bash $0 ... (Fish), or fix the row afterwards (docs/upgrades/opencode-v2-cutover.md, step 4)"
+fi
 say "3. move the current V2 database files to $ASIDE (V2 sessions that are not in V1 leave the live database and stay only there)"
 say "4. install the new database as $V2_DB (mode 600)"
 if [ "$APPLY" -ne 1 ]; then
@@ -107,6 +113,26 @@ INSERT INTO credential SELECT * FROM v2live.credential;
 COMMIT;
 DETACH DATABASE v2live;
 SQL
+# V2 sends the credential stored for the provider, not the config's {env:POOL_PROXY_KEY}. V1's own opencode-go key came across in the
+# copy and the proxy rejects it (401 "Missing or invalid proxy key"). The key is read from the environment inside python: it is never
+# on a command line and never printed.
+if [ -n "${POOL_PROXY_KEY:-}" ]; then
+  python3 -I - "$INCOMING" <<'PY_SETKEY' || fail "could not set the stored opencode-go key"
+import json, os, sqlite3, sys
+db = sqlite3.connect(sys.argv[1])
+row = db.execute("select value from credential where integration_id = 'opencode-go'").fetchone()
+if row is None:
+    print("   no stored opencode-go credential: nothing to set")
+    raise SystemExit(0)
+data = json.loads(row[0])
+if not isinstance(data, dict):
+    raise SystemExit("the stored opencode-go credential is not a JSON object")
+data["key"] = os.environ["POOL_PROXY_KEY"]
+db.execute("update credential set value = ? where integration_id = 'opencode-go'", (json.dumps(data),))
+db.commit()
+print("   stored opencode-go key set to POOL_PROXY_KEY")
+PY_SETKEY
+fi
 [ "$("$SQLITE" -readonly "$INCOMING" 'pragma integrity_check;')" = "ok" ] || fail "integrity_check failed on the new database"
 [ "$(q "$INCOMING" 'select count(*) from session_v2;')" = "$v2_sessions" ] || fail "the new database lost sessions"
 # Compare against the live V2 database itself: every V2 login must be present, with the same value, in the new file.

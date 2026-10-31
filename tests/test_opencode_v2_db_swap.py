@@ -1,4 +1,5 @@
 """scripts/opencode-v2-db-swap.sh: put the V1 history into the V2 database, dry run first (queue Q46, cutover step 4)."""
+import json
 import os
 import sqlite3
 import stat
@@ -259,6 +260,75 @@ exec REAL "$@"
         aside = sorted(p.name for p in (f.v2data / "pre-v1-history-T1").iterdir())
         self.assertEqual(aside, ["opencode.db", "opencode.db-shm", "opencode.db-wal"])
         self.assertFalse((f.v2data / "opencode.db-shm").exists())
+
+
+class ProxyKey(unittest.TestCase):
+    """V2 sends the credential stored for opencode-go; V1's own key there makes the proxy answer 401 (found 2026-10-31)."""
+
+    def with_go_row(self, **kw):
+        f = Fixture(**kw)
+        db = sqlite3.connect(f.v1)
+        db.execute("INSERT INTO credential (id, integration_id, label, value, time_created) VALUES ('c-go','opencode-go','API key',?,1)", (json.dumps({"type": "key", "key": "v1-own-key"}),))
+        db.commit()
+        db.close()
+        return f
+
+    def go_key(self, f):
+        db = sqlite3.connect(f"file:{f.v2db()}?mode=ro", uri=True)
+        try:
+            return json.loads(db.execute("select value from credential where integration_id='opencode-go'").fetchone()[0])
+        finally:
+            db.close()
+
+    def test_apply_sets_the_stored_key_to_the_proxy_key_and_never_prints_it(self):
+        f = self.with_go_row()
+        f.env["POOL_PROXY_KEY"] = "proxy-key-for-the-test-0123456789"
+        code, out = f.run("--apply")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.go_key(f), {"type": "key", "key": "proxy-key-for-the-test-0123456789"})
+        self.assertNotIn("proxy-key-for-the-test", out)
+        self.assertIn("stored opencode-go key set to POOL_PROXY_KEY", out)
+        self.assertEqual(f.creds()["google"], "v1-google")  # other V1 rows are untouched
+
+    def test_without_the_key_apply_still_works_leaves_v1s_key_and_warns(self):
+        f = self.with_go_row()
+        f.env.pop("POOL_PROXY_KEY", None)
+        code, out = f.run("--apply")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.go_key(f)["key"], "v1-own-key")
+        self.assertIn("POOL_PROXY_KEY is not in the environment", out)
+
+    def test_the_dry_run_says_which_it_will_do_and_changes_nothing(self):
+        f = self.with_go_row()
+        before = f.v2db().read_bytes()
+        f.env["POOL_PROXY_KEY"] = "k" * 20
+        code, out = f.run()
+        self.assertEqual(code, 0, out)
+        self.assertIn("is set to POOL_PROXY_KEY", out)
+        self.assertEqual(f.v2db().read_bytes(), before)
+        f.env.pop("POOL_PROXY_KEY")
+        self.assertIn("WARNING: POOL_PROXY_KEY is not in the environment", f.run()[1])
+
+    def test_a_history_without_an_opencode_go_row_is_fine(self):
+        f = Fixture()
+        f.env["POOL_PROXY_KEY"] = "k" * 20
+        code, out = f.run("--apply")
+        self.assertEqual(code, 0, out)
+        self.assertIn("no stored opencode-go credential", out)
+
+    def test_a_stored_value_that_is_not_json_is_refused_and_the_v2_database_is_untouched(self):
+        f = Fixture()
+        db = sqlite3.connect(f.v1)
+        db.execute("INSERT INTO credential (id, integration_id, label, value, time_created) VALUES ('c-go','opencode-go','API key','not json',1)")
+        db.commit()
+        db.close()
+        f.env["POOL_PROXY_KEY"] = "k" * 20
+        before = f.v2db().read_bytes()
+        code, out = f.run("--apply")
+        self.assertNotEqual(code, 0)
+        self.assertIn("could not set the stored opencode-go key", out)
+        self.assertEqual(f.v2db().read_bytes(), before)
+        self.assertEqual(sorted(p.name for p in f.v2data.iterdir()), ["opencode.db"])
 
 
 if __name__ == "__main__":
