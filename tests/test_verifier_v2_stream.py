@@ -133,5 +133,51 @@ class ObservedV2RunStream(unittest.TestCase):
         self.assertIn("ODD_ROUTER_SKILL_NOT_LOADED", out)
 
 
+class ReadOnlyTurn(unittest.TestCase):
+    def text(self, line):
+        return {"type": "text", "part": {"type": "text", "text": line}}
+
+    def route_only(self):
+        return [{"type": "tool_use", "part": {"tool": "skill", "state": {"input": {"id": "workflow-route"}}}}]
+
+    def test_a_read_only_route_statement_needs_no_adapter(self):
+        code, out = run_odd(self.route_only() + [self.text("§4§ ROUTE: read-only planning | intent: read-only | route: read-only | specialist: none | basis: WORKFLOW.md")])
+        self.assertEqual(code, 0, out)
+        self.assertIn("read-only ROUTE", out)
+
+    def test_a_read_only_intent_with_a_parenthesis_is_accepted(self):
+        code, out = run_odd(self.route_only() + [self.text("ROUTE: tiny fix | intent: read-only (planning only) | route: none | specialist: none")])
+        self.assertEqual(code, 0, out)
+
+    def test_an_authorized_change_statement_still_needs_the_adapter(self):
+        code, out = run_odd(self.route_only() + [self.text("ROUTE: tiny fix | intent: authorized change | route: workflow-odd-secure | specialist: general")])
+        self.assertEqual(code, 1)
+        self.assertIn("ODD_ROUTE_SKILL_NOT_LOADED", out)
+
+    def test_no_route_statement_keeps_the_strict_check(self):
+        code, out = run_odd(self.route_only() + [self.text("Here is how I would approach it.")])
+        self.assertEqual(code, 1)
+        self.assertIn("ODD_ROUTE_SKILL_NOT_LOADED", out)
+
+    def test_a_read_only_turn_that_loads_another_route_adapter_fails(self):
+        events = self.route_only() + [{"type": "tool_use", "part": {"tool": "skill", "state": {"input": {"id": "workflow-sdd-secure"}}}},
+                                       self.text("ROUTE: x | intent: read-only | route: y | specialist: none")]
+        code, out = run_odd(events)
+        self.assertEqual(code, 1)
+        self.assertIn("ODD_ROUTE_SKILL_UNEXPECTED", out)
+
+    def test_a_read_only_statement_does_not_excuse_a_writer(self):
+        events = self.route_only() + [{"type": "tool_use", "part": {"tool": "write", "state": {"input": {"path": "x"}}}},
+                                       self.text("ROUTE: x | intent: read-only | route: y | specialist: none")]
+        code, out = run_odd(events)
+        self.assertEqual(code, 1)
+        self.assertIn("ODD_READ_ONLY_MUTATION_OR_WRITER", out)
+
+    def test_a_read_only_turn_that_created_a_tracker_fails(self):
+        code, out = run_odd(self.route_only() + [self.text("ROUTE: x | intent: read-only | route: y | specialist: none")], tracker=True)
+        self.assertEqual(code, 1)
+        self.assertIn("ODD_READ_ONLY_TRACKER_CREATED", out)
+
+
 if __name__ == "__main__":
     unittest.main()

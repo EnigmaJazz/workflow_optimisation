@@ -69,12 +69,14 @@ else
 import json
 import os
 from pathlib import Path
+import re
 import sys
 
 events = Path(sys.argv[1])
 root = Path(sys.argv[2])
 loaded_router = False
 skill_calls = []
+answer_text = ""
 tool_events = 0
 for line in events.read_text(encoding="utf-8", errors="replace").splitlines():
     try:
@@ -82,6 +84,8 @@ for line in events.read_text(encoding="utf-8", errors="replace").splitlines():
     except json.JSONDecodeError:
         continue
     part = event.get("part")
+    if event.get("type") == "text" and isinstance(part, dict) and isinstance(part.get("text"), str):
+        answer_text += part["text"] + "\n"
     if not isinstance(part, dict) and event.get("type") == "tool":
         part = event  # V2 may emit the tool part itself rather than wrapping it
     if not isinstance(part, dict):
@@ -112,6 +116,21 @@ if not loaded_router:
     raise SystemExit(1)
 route_skills = [name for name in skill_calls if name.startswith("workflow-") and name != "workflow-route"]
 assigned_route = "workflow-odd-secure"
+# The route skill loads the adapter for an ODD change and "only what the specific question requires" for a read-only answer, and
+# WORKFLOW.md makes a planning-only request read-only. So a turn whose ROUTE statement says read-only intent needs no adapter; any
+# other adapter still fails, and a turn with no ROUTE statement keeps the strict adapter checks below.
+route_line = re.search(r"ROUTE:[^|\n]*\|\s*intent:\s*([^|\n]*)\|", answer_text)
+read_only_route = bool(route_line) and route_line.group(1).strip().lower().startswith("read-only")
+if read_only_route:
+    stray = [name for name in route_skills if name != assigned_route]
+    if stray:
+        print(f"   !! ODD_ROUTE_SKILL_UNEXPECTED: read-only turn loaded {stray!r}")
+        raise SystemExit(1)
+    if (root / "odd" / "tasks").exists():
+        print("   !! ODD_READ_ONLY_TRACKER_CREATED: odd/tasks exists in probe")
+        raise SystemExit(1)
+    print("   ok: planning-only request stated a read-only ROUTE, launched no writer and created no ODD tracker")
+    raise SystemExit(0)
 if not route_skills:
     print("   !! ODD_ROUTE_SKILL_NOT_LOADED: expected the assigned workflow-odd-secure route adapter after workflow-route")
     raise SystemExit(1)
