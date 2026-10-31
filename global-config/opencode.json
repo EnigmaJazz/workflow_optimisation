@@ -3391,6 +3391,7 @@
         "qwen3.7-plus": {
           "name": "Qwen3.7 Plus",
           "provider": {
+            "npm": "@ai-sdk/openai-compatible",
             "api": "http://127.0.0.1:8788/v1"
           },
           "reasoning": true,
