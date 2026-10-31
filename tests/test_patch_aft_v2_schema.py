@@ -87,3 +87,34 @@ class Patch(unittest.TestCase):
         for rel in m.TARGETS:
             r = subprocess.run([node, "--check", str(root / rel)], capture_output=True, text=True)
             self.assertEqual(r.returncode, 0, r.stderr)
+
+
+class Safety(unittest.TestCase):
+    def test_a_symlinked_bundle_is_refused(self):
+        root, m = make_plugin()
+        real = root / "elsewhere.js"
+        real.write_text((root / m.TARGETS[0]).read_text())
+        (root / m.TARGETS[0]).unlink()
+        (root / m.TARGETS[0]).symlink_to(real)
+        before = real.read_text()
+        self.assertEqual(m.main([str(root), "--apply"]), 1)
+        self.assertEqual(real.read_text(), before)
+
+    def test_a_failed_write_leaves_the_original_bundle_and_no_temp_file(self):
+        root, m = make_plugin()
+        before = {rel: (root / rel).read_text() for rel in m.TARGETS}
+        real_replace = m.os.replace
+        m.os.replace = lambda *a: (_ for _ in ()).throw(OSError("disk full"))
+        try:
+            with self.assertRaises(OSError):
+                m.main([str(root), "--apply"])
+        finally:
+            m.os.replace = real_replace
+        self.assertEqual({rel: (root / rel).read_text() for rel in m.TARGETS}, before)
+        self.assertEqual([p.name for p in (root / "dist").rglob("*.tmp")], [])
+
+    def test_the_patched_bundle_keeps_its_file_mode(self):
+        root, m = make_plugin()
+        (root / m.TARGETS[0]).chmod(0o640)
+        m.main([str(root), "--apply"])
+        self.assertEqual((root / m.TARGETS[0]).stat().st_mode & 0o777, 0o640)

@@ -124,7 +124,7 @@ show_rollback() {
 }
 on_exit() {
   if [ "$MOVED" -eq 1 ]; then
-    echo "INTERRUPTED after the old V2 files were moved aside. The new database is kept as $INCOMING; either finish by hand (mv it to $V2_DB, chmod 600) or roll back with the command printed above." >&2
+    echo "INTERRUPTED after the old V2 files were moved aside. If $INCOMING still exists it is the new database: finish by hand (mv it to $V2_DB, chmod 600). If it is gone the install already moved it, so check that $V2_DB exists and is mode 600. Or roll back with the command printed above." >&2
   else
     cleanup_incoming
   fi

@@ -16,7 +16,9 @@ unpatched files: run it again (and the verifier's V2 check reports it).
 """
 import argparse
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 VERSION = "0.62.0"
@@ -57,6 +59,20 @@ class PatchError(Exception):
     pass
 
 
+def write_atomic(path, text):
+    """Write beside the target and rename over it: a crash or a full disk leaves the old file, never a truncated bundle."""
+    fd, tmp = tempfile.mkstemp(prefix=path.name + ".", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w") as handle:
+            handle.write(text)
+        os.chmod(tmp, path.stat().st_mode & 0o777)
+        os.replace(tmp, path)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
+
+
 def plan(plugin_dir):
     """-> [(path, new_text or None when already patched)]; raises PatchError on anything unexpected."""
     plugin_dir = Path(plugin_dir)
@@ -69,6 +85,8 @@ def plan(plugin_dir):
     out = []
     for rel in TARGETS:
         path = plugin_dir / rel
+        if path.is_symlink():
+            raise PatchError(f"{path} is a symlink; refusing to write through it")
         if not path.is_file():
             raise PatchError(f"missing {path}")
         text = path.read_text()
@@ -109,7 +127,7 @@ def main(argv=None):
             backup = path.with_name(path.name + f".orig-{VERSION}")
             if not backup.exists():
                 backup.write_text(path.read_text())
-            path.write_text(new)
+            write_atomic(path, new)
     if not args.apply:
         print("dry run: nothing changed. Re-run with --apply.")
     return 0
