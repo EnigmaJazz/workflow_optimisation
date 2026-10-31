@@ -48,9 +48,12 @@ class DeriveError(Exception):
 
 
 # Plugin versions that V2 runs ahead of the shared (V1-compatible) source pin, so V1 stays untouched as the rollback path.
-# AFT 0.62.0 registers no tools on OpenCode 2.2.1+ (undefined is not an object evaluating 'a.ref', cortexkit/aft#1141); 0.63.4 carries
-# the fix (#1144) and registers cleanly on 2.2.5: 40 errors with 0.62.0, none with 0.63.4 in an isolated control (2026-10-31).
-V2_PLUGIN_VERSIONS = {"@cortexkit/aft-opencode": "0.63.4"}
+# V2 may run a newer plugin than the shared source pins (V1, the rollback path, keeps the source pin). AFT 0.63.4 is needed on OpenCode
+# 2.2.1+ (0.62.0 registers no tools there: 'a.ref', cortexkit/aft#1141; fixed in #1144), but 0.63.4 cannot start inside the V2 nono
+# profile: its storage-lease code opens "/" with O_NOFOLLOW|O_DIRECTORY, nono denies it, AFT exits ("cannot acquire storage lease ...
+# Permission denied", found 2026-10-31, docs/upstream/aft-storage-lease-root-open.md). Empty until AFT starts in the sandbox; with
+# it empty V2 stays on OpenCode 2.2.0 and AFT 0.62.0. Restore {"@cortexkit/aft-opencode": "0.63.4"} to move to 2.2.5.
+V2_PLUGIN_VERSIONS = {}
 
 
 def derive_plugins(plugins, fork_dir=None, fork_ref=None):

@@ -423,12 +423,19 @@ class V2PluginVersions(unittest.TestCase):
     def setUp(self):
         self.m = load()
 
-    def test_aft_runs_ahead_of_the_shared_pin_on_v2_only(self):
+    def test_aft_stays_on_the_shared_pin_while_0634_cannot_start_in_the_sandbox(self):
+        self.assertEqual(self.m.V2_PLUGIN_VERSIONS, {})  # 0.63.4 exits in the V2 nono profile (storage lease opens "/")
+        out, notes = self.m.derive_plugins(["@cortexkit/aft-opencode@0.62.0", "@fro.bot/systematic@3.27.2"])
+        self.assertEqual((out, notes), (["@cortexkit/aft-opencode@~0.62.0", "@fro.bot/systematic@~3.27.2"], []))
+
+    def test_an_override_still_moves_v2_ahead_of_the_shared_pin_on_v2_only(self):
+        self.m.V2_PLUGIN_VERSIONS = {"@cortexkit/aft-opencode": "0.63.4"}
         out, notes = self.m.derive_plugins(["@cortexkit/aft-opencode@0.62.0", "@fro.bot/systematic@3.27.2"])
         self.assertEqual(out, ["@cortexkit/aft-opencode@~0.63.4", "@fro.bot/systematic@~3.27.2"])
         self.assertTrue(any("aft-opencode: V2 runs 0.63.4" in n and "0.62.0 for V1" in n for n in notes))
 
     def test_a_source_pin_already_at_the_override_adds_no_note(self):
+        self.m.V2_PLUGIN_VERSIONS = {"@cortexkit/aft-opencode": "0.63.4"}
         out, notes = self.m.derive_plugins(["@cortexkit/aft-opencode@0.63.4"])
         self.assertEqual((out, notes), (["@cortexkit/aft-opencode@~0.63.4"], []))
 
