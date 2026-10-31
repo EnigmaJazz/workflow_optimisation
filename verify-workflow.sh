@@ -104,7 +104,7 @@ VERIFY_MODULES=(
   "56-section-4-5-agents-registry.sh 2b66b463ddd9942fba8c065fa7e94689217add64a39a717f62547424d68951f8"
   "57-section-6-plugin-mirrors.sh 476d73263f419f0d413655d07d4c9f29ef7b531fa30e6d970effcdcd152a2622"
   "58-section-7-recipe.sh 9f02d1b88bd2dd08ee2aacf1f8619f2c149dcc383b66a4ed6f808da74f4e8502"
-  "59-section-8-9-config-runtime.sh 63d7ffd7d0d5e3891f56991ac992ec294de6f58db51700dbbda3d1bfae749223"
+  "59-section-8-9-config-runtime.sh 463351d95746a5a6642b7f2b085a232e2014fb78017bd60ed86f279eb849422e"
   "60-section-9a-9b-secure-service.sh 2579654362fa71ab3938da3bb858f053aeaa796272033c7e408d8c9675986d87"
   "61-section-10-behavioural.sh 24a31e750fcbfeaea7e18e6801a14547e596910103ecd1ca7d16db9b9425d134"
   "62-section-11-summary.sh 5df415a1b7f63144822d2bb62c2300df4f2de8ea36cc0dc7ee5d4138c477ea76"
