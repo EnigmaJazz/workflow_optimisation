@@ -65,6 +65,15 @@ class SpecAdvisors(unittest.TestCase):
             AGENTS["advisor-spec-pre"]["permission"]["bash"] = "deny"
 
 
+class MemoryPolicy(unittest.TestCase):
+    def test_new_agents_are_classified_memory_isolated_by_the_verifier(self):
+        checker = (REPO / "verify" / "checkers" / "check-runtime-agents.cjs").read_text(encoding="utf-8")
+        block = checker.split("const isolatedMemoryAgents=new Set([", 1)[1].split("])", 1)[0]
+        for name in ("planner-explore", "advisor-spec-pre", "advisor-spec-post", "advisor-spec-evidence"):
+            self.assertIn(f'"{name}"', block, name)
+            self.assertEqual(AGENTS[name]["permission"]["ctx_memory"], "deny", name)
+
+
 class PlannerWiring(unittest.TestCase):
     def test_planner_dispatches_the_spec_advisors_and_its_own_explore(self):
         task = AGENTS["planner"]["permission"]["task"]

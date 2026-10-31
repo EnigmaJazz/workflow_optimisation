@@ -1740,7 +1740,8 @@ const isolatedMemoryAgents=new Set([
   "advisor-design-post","advisor-integration-post","advisor-testing-post",
   "advisor-security-post","advisor-maintainability-post",
   "advisor-gemini-pre","advisor-gemini-post","advisor-gemini-evidence",
-  "planner","planner-evidence",
+  "planner","planner-evidence","planner-explore",
+  "advisor-spec-pre","advisor-spec-post","advisor-spec-evidence",
   "asi-review-risk","asi-review-resilience","asi-review-readability",
   "asi-review-reliability","asi-review-refuter","asi-review-validator",
 ])
