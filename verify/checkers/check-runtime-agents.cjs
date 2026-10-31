@@ -109,6 +109,8 @@ function modelFamily(value) {
   // Owner-confirmed Kinver model-family mapping; provider identity avoids
   // misclassifying unrelated models that happen to use a generic model name.
   if (normalized.startsWith("kinver/")) return "qwen"
+  // The Claude Agent provider serves Claude Code aliases (`sonnet`, `opus`, `haiku`) that carry no family marker.
+  if (normalized.startsWith("claude-agent/")) return "claude"
   const model=normalized.split("/").slice(1).join("/")
   if (/(^|\/)gpt-[0-9]/.test(model)) return "gpt"
   if (model.includes("deepseek")) return "deepseek"
@@ -136,6 +138,10 @@ const SUPPORTED_VARIANT_TARGETS = Object.freeze({
   "opencode-go/deepseek-v4.1-flash@worker": Object.freeze(["low","high","max"]),
   "opencode-go/deepseek-v4-pro": Object.freeze(["high"]),
   "opencode-go/claude-haiku-5-5": Object.freeze(["high"]),
+  // Claude Agent aliases (Q94): effort is the variant. The per-model effort sets come from Claude Code at runtime and are unverified here.
+  "claude-agent/sonnet": Object.freeze(["low","medium","high","xhigh","max"]),
+  "claude-agent/opus": Object.freeze(["low","medium","high","xhigh","max"]),
+  "claude-agent/haiku": Object.freeze(["low","medium","high","xhigh","max"]),
   "opencode-go/ling-3.1-flash": Object.freeze([]),
   "opencode-go/minimax-m3.1-flash": Object.freeze(["high","xhigh"]),
   "opencode-go/qwen3.8-flash": Object.freeze([]),
@@ -595,9 +601,9 @@ if (genericRuntimeReady && ggaRuntimeReady && !distinct) {
 }
 
 // pm-seat-policy:begin
-// Owner direction 2026-10-28: both PM seats are the same exact Muse Spark Contributor seat
-// with no variant (the model defines none); this supersedes the 2026-10-24 GLM high seat.
-const PM_SEAT_MODEL="opencode-go/muse-spark-1.3-contributor"
+// Owner direction 2026-10-31 (Q94 seat trial): both PM seats are the same exact DeepSeek V4.1 Flash seat
+// with no variant; this supersedes the 2026-10-28 Muse Spark Contributor seat.
+const PM_SEAT_MODEL="opencode-go/deepseek-v4.1-flash"
 const PM_SEAT_VARIANT=undefined
 function pmSeatFailures(agents) {
   const failures=[]
@@ -622,7 +628,7 @@ for (const failure of pmSeatFailures(deployedAgents)) fail(failure)
 // A Go Luna fallback for OpenAI Luna does not create an independent reviewer.
 // Q59: the dispatcher-to-writer pairs add the GLM PMs against their DeepSeek
 // writers; the existing orchestrator/general and worker/verifier pairs remain.
-for (const [writer,reviewer] of [["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"],["gentle-ai-worker","gentle-ai-verify-routine"],["pm-odd","odd-apply"],["pm-systematic","gentle-ai-worker"]]) {
+for (const [writer,reviewer] of [["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"],["gentle-ai-worker","gentle-ai-verify-routine"]]) {
   for (const [surface,writerModel,reviewerModel] of [
     ["configured",deployedAgents[writer]?.model,deployedAgents[reviewer]?.model],
     ["runtime",readDebug(writer)?.model,readDebug(reviewer)?.model],
@@ -636,6 +642,20 @@ for (const [writer,reviewer] of [["general","gentle-orchestrator"],["gentle-ai-w
     } else {
       console.log(`   ok: ${surface} ${writer} (${writerFamily}) is reviewed by ${reviewer} (${reviewerFamily})`)
     }
+  }
+}
+
+// Owner waiver 2026-10-31 (Q94): the DeepSeek PMs share a family with the writers they dispatch. Sameness is accepted for exactly
+// these pairs; the families must still be recognised, and the independent checks are the verifier tiers and the review lanes.
+for (const [writer,reviewer] of [["pm-odd","odd-apply"],["pm-systematic","gentle-ai-worker"]]) {
+  for (const [surface,writerModel,reviewerModel] of [
+    ["configured",deployedAgents[writer]?.model,deployedAgents[reviewer]?.model],
+    ["runtime",readDebug(writer)?.model,readDebug(reviewer)?.model],
+  ]) {
+    if (!writerModel || !reviewerModel) continue // Missing agents have their own probe errors.
+    const writerFamily=modelFamily(writerModel), reviewerFamily=modelFamily(reviewerModel)
+    if (!writerFamily || !reviewerFamily) fail(`PRIMARY_REVIEW_FAMILY_UNKNOWN: ${surface} ${writer}=${show(normalizeModel(writerModel))}, ${reviewer}=${show(normalizeModel(reviewerModel))}`)
+    else console.log(`   ok (owner waiver): ${surface} ${writer} (${writerFamily}) and ${reviewer} (${reviewerFamily})`)
   }
 }
 
@@ -1545,6 +1565,7 @@ function geminiAdvisorRouteFailures(agents,fallback,coordinatorAgents) {
   const out=[]
   const advisors=["advisor-gemini-pre","advisor-gemini-post"]
   const evidence="advisor-gemini-evidence"
+  const evidenceUsers=["advisor-design-pre","advisor-security-pre"]
   const grants=new Set(["allow","ask"])
   const hostRoutes=["edit","write","bash","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]
   const asMap=(value)=>value && typeof value==="object" && !Array.isArray(value) ? value : {}
@@ -1586,6 +1607,11 @@ function geminiAdvisorRouteFailures(agents,fallback,coordinatorAgents) {
         if (effectiveAdvisor==="allow") out.push(`GEMINI_ADVISOR_DISPATCHABLE: ${name}.${advisor}='allow'`)
       }
     }
+    // Owner decision 2026-10-31: the two Argon pre-code seats gather through the same evidence agent, with exactly this scope.
+    if (evidenceUsers.includes(name)) {
+      if (!sameMap(task,{"*":"deny",[evidence]:"allow"})) out.push(`GEMINI_EVIDENCE_USER_SCOPE_MISMATCH: ${name}=${JSON.stringify(task)}`)
+      continue
+    }
     const effective=Object.prototype.hasOwnProperty.call(task,evidence) ? task[evidence] : task["*"]
     if (effective!=="deny") out.push(`GEMINI_EVIDENCE_DISPATCHABLE: ${name}=${JSON.stringify(effective)}`)
   }
@@ -1615,7 +1641,7 @@ function plannerHandoffFailures(agents,gp) {
     "advisor-design-pre","advisor-integration-pre","advisor-testing-pre","advisor-security-pre",
     "advisor-maintainability-pre","advisor-design-post","advisor-integration-post",
     "advisor-testing-post","advisor-security-post","advisor-maintainability-post",
-    "advisor-gemini-pre","advisor-gemini-post",
+    "advisor-gemini-pre","advisor-gemini-post","advisor-spec-pre","advisor-spec-post",
   ]
   const writers=["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine","general","frontend-apply","frontend-apply-local","frontend-dev","systematic-implementer"]
   const readTools=["read","codegraph_codegraph_explore","ast_grep_search","aft_outline","aft_zoom","aft_search","aft_callgraph","aft_inspect","sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"]
@@ -1636,7 +1662,7 @@ function plannerHandoffFailures(agents,gp) {
   else {
     if (planner.mode!=="subagent") failures.push(`PLANNER_MODE_MISMATCH: ${show(planner.mode)}`)
     if (planner.hidden!==true) failures.push("PLANNER_NOT_HIDDEN")
-    if (planner.model!=="openai/gpt-6.1-sol") failures.push(`PLANNER_MODEL_MISMATCH: ${show(planner.model)}`)
+    if (planner.model!=="claude-agent/opus") failures.push(`PLANNER_MODEL_MISMATCH: ${show(planner.model)}`)
     if (planner.variant!=="high") failures.push(`PLANNER_VARIANT_MISMATCH: ${show(planner.variant)}`)
     readSurface("planner",planner)
     if (cfgTool(planner,"task")!==true) failures.push("PLANNER_TASK_TOOL_NOT_ENABLED")
@@ -1645,10 +1671,10 @@ function plannerHandoffFailures(agents,gp) {
     else {
       if (task["*"]!=="deny") failures.push(`PLANNER_TASK_WILDCARD_NOT_DENIED: ${show(task["*"])}`)
       for (const name of advisors) if (task[name]!=="allow") failures.push(`PLANNER_ADVISOR_LANE_MISSING: ${name}`)
-      for (const name of ["planner-evidence","explore"]) if (task[name]!=="allow") failures.push(`PLANNER_EVIDENCE_LANE_MISSING: ${name}`)
+      for (const name of ["planner-evidence","planner-explore"]) if (task[name]!=="allow") failures.push(`PLANNER_EVIDENCE_LANE_MISSING: ${name}`)
       for (const name of writers) if (task[name]==="allow") failures.push(`PLANNER_WRITER_DISPATCH_GRANTED: ${name}`)
       for (const [name,value] of Object.entries(task)) {
-        if (name==="*" || advisors.includes(name) || name==="planner-evidence" || name==="explore") continue
+        if (name==="*" || advisors.includes(name) || name==="planner-evidence" || name==="planner-explore") continue
         failures.push(`PLANNER_TASK_GRANT_UNDECLARED: ${name}=${show(value)}`)
       }
     }

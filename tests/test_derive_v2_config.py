@@ -166,7 +166,7 @@ class RealConfig(unittest.TestCase):
         self.assertTrue(all(agent.get("variant") != "" for agent in got["agent"].values()))
         aliases = [n for n in got["agent"] if n.endswith("-astra")]
         self.assertGreaterEqual(len(aliases), 3)
-        self.assertEqual(len(got["agent"]), 46 + len(mirrored) + len(aliases))
+        self.assertEqual(len(got["agent"]), 50 + len(mirrored) + len(aliases))
         # Secret files are unreadable for every agent, asserted on the derived file: no agent-level read rule may allow them.
         denies = {p for p, e in self.src["permission"]["read"].items() if e == "deny"}
         for name, agent in got["agent"].items():

@@ -2234,6 +2234,24 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - Open: show peer incompatibility for unpinned entries; a verifier advisory line for pending
     proposals (needs a digest re-pin, deliberately deferred).
 
+### Q94. Claude Agent seat trial on V2 (spec advisors, Argon pre-code seats)
+- **Status:** DONE at source, uncommitted, NOT DEPLOYED (owner, 2026-10-31; shared-source option chosen). Seats:
+  orchestrator `claude-agent/sonnet` medium, planner `claude-agent/opus` high, `planner-explore`
+  `claude-agent/haiku` low, `advisor-spec-pre`/`-post` Sol high (compulsory for the planner before Gate 1
+  and Gate 2) with `advisor-spec-evidence` on luna, `advisor-design-pre`/`advisor-security-pre` on
+  `google/gemini-4-argon` with the Gemini 3.8 Flash evidence agent, `gentle-ai-verify-routine` on luna,
+  both PMs on DeepSeek. The verifier pins (planner model, PM seat, Claude family recognition, evidence-agent
+  scope, PM/writer owner waiver) and their tests follow the new truth; digest re-pinned. Open: verifier
+  mirror, derive `--apply`, owner restart, a V2 verifier run, then usage monitoring. V1 rollback goes
+  through git, because V1 has no `claude-agent` provider.
+- **Prerequisites:** the S17 sandbox patch installed by the owner (`docs/proposals-claude-agent-provider.patch`).
+- **Decisions:** model ids are the Claude Code aliases `claude-agent/sonnet|opus|haiku`, effort is the
+  variant (`low|medium|high|xhigh|max`); upstream docs `services/www/src/docs/content/claude-agent.mdx`.
+  The owner waives the advisor-subagent gate for this change (Claude Code advisor used instead) and
+  accepts the PM/writer independence loss on the DeepSeek PMs. Usage is monitored; revert on overspend.
+- **Unverified:** that V2 accepts `claude-agent/<alias>` plus `variant` in an agent entry, and how the
+  rate-limit fallback sees a Claude plan limit.
+
 ## Done
 
 - Review follow-up on the plugin load check (old items 1–2): `71a2eb3` (`d85ca4a` introduced the
