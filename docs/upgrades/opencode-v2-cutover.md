@@ -5,8 +5,11 @@ rollback are therefore service switches, not file edits. The stack itself is spe
 `~/agent-sandbox-integration/docs/upgrades/opencode-v2.md` (V0-V7, the nine manual gates, "Cutover") and installed with its
 `docs/upgrades/opencode-v2-install-checklist.md`. This runbook sequences the workflow-repo side and says what is automated.
 
-**Status 2026-10-30:** V2 2.2.0 is running and passes the stack check, gate 6 (native review) has passed and the verifier has a V2 mode (Q44, reviewed); the cutover itself has not been done. The owner's target is now 2.2.3 or later (see `HANDOFF.md`). Open decisions and
-engineering items are in `HANDOFF.md` ("What still stands between us and cutover").
+**Status 2026-11-01:** the cutover has been executed. OpenCode V2 2.2.5 runs as the live stack on
+port 4097 under `secure-opencode-v2.service`, V1 is kept as rollback, and the V1 history is in V2
+(`HANDOFF.md`, "Done"). The operating guide for the live install is
+[`opencode-v2-operations.md`](opencode-v2-operations.md); this document stays the one-time cutover
+record, and its steps are history. What remains open is in `HANDOFF.md` ("Not done").
 
 ## What is automated and what is not
 
@@ -23,14 +26,14 @@ regenerated, and a single file qualifies: the units. The V2 config root is regen
 
 ## Steps
 
-1. **Preflight.** `python3 scripts/opencode-v2-preflight.py --stack`. It must show no FAIL. Read every WARN. Then clear the open
-   decisions in `HANDOFF.md` section B (the 2.2.3+ move and its AFT trial; V1 history; dropped config keys).
+1. **Preflight.** `python3 scripts/opencode-v2-preflight.py --stack`. It must show no FAIL. Read every WARN. Then read
+   `HANDOFF.md` ("Not done") for what is still open.
 2. **Back up.** All of these, before anything else changes:
    - V1 data: `cp -a ~/.local/share/opencode ~/.local/share/opencode.bak-$(date +%Y%m%d)`
    - V2 data: `cp -a ~/.local/share/opencode-v2/data/opencode/opencode.db ~/.local/share/opencode-v2/data/opencode/opencode.db.bak-$(date +%Y%m%d)` (it holds the provider logins)
    - OpenChamber settings: `cp -a ~/.config/openchamber ~/.config/openchamber.bak-$(date +%Y%m%d)`
    - Record the OpenChamber 1.24.2 reinstall command (it is not V2-compatible).
-3. **V2 beside V1.** Already installed and pinned exactly (`prefix/package.json` must read `"@opencode/cli": "2.2.0"`, no `^`
+3. **V2 beside V1.** Already installed and pinned exactly (`prefix/package.json` must read `"@opencode/cli": "2.2.5"`, no `^`
    or `~`; the preflight fails otherwise). **AFT on 2.2.5 (2026-10-31): V2 keeps AFT 0.62.0 plus a one-change backport.** AFT 0.63.4 cannot start inside the V2 sandbox (its storage lease opens `/`; `docs/upstream/aft-storage-lease-root-open.md`), but 0.62.0 registers no tools on OpenCode 2.2.1+. The fix (cortexkit/aft#1144) is plugin JavaScript only, so `scripts/patch-aft-v2-schema.py` applies it to the installed 0.62.0 plugin (`--check`, then `--apply`; it refuses any other version or build and keeps `*.orig-0.62.0`). Run it on the plugin directory the V2 config resolves to (`~/.local/share/opencode-v2/cache/opencode/npm/@cortexkit/aft-opencode@<pin>/<newest epoch>/node_modules/@cortexkit/aft-opencode`) after the 2.2.5 install and before the restart, and again after any plugin cache reinstall; the preflight's "Skipping invalid" check catches an unpatched plugin. `V2_PLUGIN_VERSIONS` in `scripts/derive-v2-config.py` stays empty until upstream fixes the lease. Trial results (2026-10-31): OpenCode 2.2.5 loads with every tool registered when AFT is patched (0 `Skipping invalid tool registration`, also inside nono with one real `read` call); unpatched 0.62.0 gives 20 in a minimal config and 40 in the full config. `derive` keeps V2 on 0.62.0 (`V2_PLUGIN_VERSIONS` empty), leaving V1's pin the same. To move the live install:
    `npm install --prefix ~/.local/share/opencode-v2/prefix --save-exact --no-audit --no-fund @opencode/cli@<version>`, restart, and
    require a clean preflight (no "Skipping invalid" tool registrations).

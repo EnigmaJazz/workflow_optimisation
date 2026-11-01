@@ -7,8 +7,8 @@ gates and the database swap are **not** repeated here; they are in
 [`opencode-v2-cutover.md`](opencode-v2-cutover.md) and, for the stack itself,
 `~/agent-sandbox-integration/docs/upgrades/opencode-v2.md`.
 
-Validated against source revision: workflow repo, branch `docs/v2-docs-refresh`, HEAD `98c249d`
-(2026-11-01). Re-check that revision before executing; if it has moved, re-validate every command
+Validated against source revision: workflow repo, branch `docs/v2-docs-refresh` (2026-11-01).
+Re-check that branch before executing; if it has moved, re-validate every command
 whose source changed (see [References](#references)). Anything this guide could not confirm from
 source is marked **UNVERIFIED**.
 
@@ -247,35 +247,21 @@ session does not show the V1 FAILED banner by default. Whether the live V2 launc
 
 ### The AFT constraint
 
-AFT is the one plugin with a rule of its own, because no available version works unmodified:
+AFT is the one plugin with a V2-only version, set in `V2_PLUGIN_VERSIONS` (`scripts/derive-v2-config.py`):
 
-- The source pins `@cortexkit/aft-opencode@0.62.0` exactly, in `global-config/opencode.json:3026`
-  and `global-config/tui.json:8`.
-- `V2_PLUGIN_VERSIONS` in `scripts/derive-v2-config.py:56` is **empty**, so V2 runs the same pin as
-  V1 and there is no V2-only override. The comment above it (`:50-56`) still says "with it empty V2
-  stays on OpenCode 2.2.0"; that sentence predates the 2.2.5 move and is stale. The empty map is the
-  operative fact.
-- OpenCode 2.2.1+ rejects every AFT 0.62.0 tool ("undefined is not an object (evaluating 'a.ref')",
-  cortexkit/aft#1141). The fix (#1144) is plugin JavaScript only, so V2 keeps 0.62.0 and gets it
-  applied to the installed copy (`scripts/patch-aft-v2-schema.py:1-15`).
-- AFT 0.63.4 carries the fix but cannot start inside the V2 nono sandbox (its storage lease opens
-  `/`; `docs/upstream/aft-storage-lease-root-open.md`). **Do not add it to `V2_PLUGIN_VERSIONS`**
-  until upstream fixes the lease.
-
-The patch runs against the installed package directory, never the config:
-
-```fish
-python3 scripts/patch-aft-v2-schema.py <plugin-dir> --check
-python3 scripts/patch-aft-v2-schema.py <plugin-dir> --apply
-```
-
-`<plugin-dir>` is
-`~/.local/share/opencode-v2/cache/opencode/npm/@cortexkit/aft-opencode@<pin>/<newest epoch>/node_modules/@cortexkit/aft-opencode`.
-`--check` exits 0 only when every target is already patched; the patch refuses any other version or
-build, is idempotent, and keeps `*.orig-0.62.0` (`scripts/patch-aft-v2-schema.py:104-133`). Run it
-after any plugin-cache reinstall and before the restart. Restart after patching: the plugin bytes are
-read at start. The preflight's "tool registration" check catches an unpatched plugin: the 2.2.5 trial
-measured 20 to 40 `Skipping invalid` lines with it unpatched and 0 patched (see the cutover runbook).
+- The shared source (`global-config/opencode.json`, `global-config/tui.json`) pins
+  `@cortexkit/aft-opencode@0.62.0` exactly, because V1 (the rollback) was proven with it.
+- `V2_PLUGIN_VERSIONS` maps AFT to **0.63.5**, so the derived V2 config carries `@cortexkit/aft-opencode@~0.63.5`
+  and `derive` prints a note saying V2 runs it. Being a `~x.y.z` range, it takes patch updates through
+  `v2-plugin-autoupdate.py` like the other plugins; a minor or major move is a deliberate edit of that map.
+- OpenCode 2.2.1+ rejected every 0.62.0 tool (cortexkit/aft#1141). 0.63.x carries the fix, so
+  `scripts/patch-aft-v2-schema.py` is **no longer needed on V2** (it still refuses anything but 0.62.0 and is
+  kept only for a V2 rollback to 0.62.0).
+- 0.63.4 could not start inside the V2 nono profile (storage lease opened `/`,
+  `docs/upstream/aft-storage-lease-root-open.md`). 0.63.5 fixes that (cortexkit/aft#1245). Checked 2026-11-01:
+  the 0.63.5 binary starts under `opencode-v2-secure.json`; the same probe on 0.63.4 fails with
+  "cannot acquire storage lease". This was a binary-start probe only: confirm after the restart with the
+  preflight "tool registration" check and one real AFT call.
 
 ## Who runs what
 
@@ -296,7 +282,7 @@ proxy key or a token; when a probe needs it, read it from the systemd manager as
 | A `derive --apply` made things worse | Each replaced file has a `.bak-<timestamp>` beside it in the derived root (`scripts/derive-v2-config.py:417-421`). Copy them back, then restart. Nothing was deleted. |
 | A unit file was applied by a set | `python3 scripts/changeset.py revert --journal <journal-root>/opencode-v2-units/<run>/journal.jsonl --journal-root backups/changesets --allow-root ~/.config/systemd/user`, newest journal first, then `systemctl --user daemon-reload`. A hand-edited unit is reported as `drift` and left alone. |
 | A plugin update broke the server | `v2-plugin-autoupdate.py` rolls itself back (exit 4) and pins the previous exact version. For a manual pin, `git revert` the pin commit (or approve a different version with `plugin_pins.py`), then `derive --apply` and restart. |
-| AFT rejects every tool | Re-run `patch-aft-v2-schema.py <plugin-dir> --check`; if the cache was reinstalled, `--apply`. Restoring `.orig-0.62.0` only returns the unpatched, rejected state. |
+| AFT 0.63.5 misbehaves on V2 | Set `V2_PLUGIN_VERSIONS` back to `{}`, `derive --apply`, run `patch-aft-v2-schema.py <plugin-dir> --apply` on the 0.62.0 cache copy, restart. |
 | The whole stack | Stop V2 (`systemctl --user stop secure-opencode-v2.service opencode-perm-v2.service`), start V1 (`systemctl --user start secure-opencode.service opencode-perm.service`), then `bash verify-workflow.sh < /dev/null`. V1's files were never changed by any V2 operation. |
 | Data | V1's `opencode.db` was only read by the swap and stayed the archive; after the cutover V2 writes its own copy under `~/.local/share/opencode-v2/data/opencode/`, so V1 does not see V2-era sessions. The database-level recovery commands belong to [`opencode-v2-cutover.md`](opencode-v2-cutover.md) ("Recovery"). |
 
