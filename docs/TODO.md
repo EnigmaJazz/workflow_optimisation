@@ -2288,7 +2288,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   listed in `HANDOFF.md` ("Not done").
 
 ### Q96. WORKFLOW.md V2 wording (owner decision)
-- **Status:** PLANNED; commit PENDING-COMMIT when it lands.
+- **Status:** DONE at source (2026-11-01; owner approved the exact wording); commit PENDING-COMMIT.
 - **Prerequisites:** an owner decision on the wording, native review of the change, and explicit
   handling of the health-plugin digest pin (`scripts/verifier_manifest.py update`, then
   `derive --apply`). `WORKFLOW.md` and `CLAUDE.md` are normative text: this item records the work, it
@@ -2301,7 +2301,9 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - `WORKFLOW.md:216` — the `asi-review-*` relay is described as the OpenCode V1 v8 transport.
   - `WORKFLOW.md:411-429` and `:501-509` — deployment is described as the verifier mirror, which is
     V1 only; V2 needs `derive --apply`.
-  - `CLAUDE.md:52-57`, `:75`, `:96-98` — the mirror model, live paths and service units are V1 only.
+  - `CLAUDE.md:52-57`, `:96-98` — the mirror model, live paths and service units are V1 only. (`:75` is correct as written; see below.)
+  - Changed: WORKFLOW.md activation list, relay wording, deployment step 3, digest item 5, and after-updates note; CLAUDE.md source→deploy model, digest deployment, and restart units.
+  - `CLAUDE.md:75` was verified correct and left unchanged; `global-config/plugins/systematic-routing-guard.ts:232-238` confirms the routing-keys path is outside the V2 data root.
 
 ### Q97. Trial Orca (Claude Code beside OpenCode V2) instead of the Claude Agent provider
 - **Status:** PLANNED (owner, 2026-11-01). Advisory work only for Claude Code; the trial is run by the owner.

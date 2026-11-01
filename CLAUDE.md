@@ -49,12 +49,15 @@ The owner's interactive shell is Fish: commands suggested to the owner must be F
 
 ## Architecture
 
-**Source → review → mirror.** `global-config/` is the canonical copy of what lives in
+**Source → review → deploy.** `global-config/` is the canonical copy. On V1 the live copy is
 `~/.config/opencode` (`opencode.json`, `tui.json`, `AGENTS.md`, `systematic.jsonc`,
-`rate-limit-fallback.json`, `plugins/`, `skills/`). The live directory is never edited in place:
-`verify-workflow.sh` regenerates it from `global-config/`, after a timestamped backup under
-`backups/`. `gentle-ai sync` and plugin auto-updates overwrite the live files; the verifier
-restores the user-owned overlays while preserving safe newer plugin version pins.
+`rate-limit-fallback.json`, `plugins/`, `skills/`) and `verify-workflow.sh` regenerates it from
+`global-config/` after a timestamped backup under `backups/`. On V2 the live copy is the derived
+root `~/.local/share/opencode-v2/config/opencode`, produced by `scripts/derive-v2-config.py --apply`
+and never edited by hand; the V2 verifier only reports drift. Neither live copy is edited in place.
+`gentle-ai sync` and plugin auto-updates overwrite live files; the V1 verifier restores the
+user-owned overlays while preserving safe newer plugin pins, and on V2 the answer to drift is
+another `derive --apply`.
 
 **`verify-workflow.sh`** (a thin entry over about 6,000 lines in `verify/NN-*.sh` modules; its
 header comment is the index of every check). Path overrides are `WORKFLOW_VERIFY_*` environment variables, which is how to point it at
@@ -66,7 +69,7 @@ plugins must stay inert under that flag.
 inside the entry. `global-config/plugins/workflow-health-check.ts` pins the sha256 of the entry in
 `VERIFY_SCRIPT_SHA256` and refuses to run a mismatched script, so one digest binds everything. After
 any edit to the entry or a module run `python3 scripts/verifier_manifest.py update` (regenerates the
-manifest and the pin; `check` verifies without writing), then a verifier run to re-mirror the plugin.
+manifest and the pin; `check` verifies without writing), then deploy: on V1 a verifier run re-mirrors the plugin, on V2 `derive --apply` and a restart.
 Tests that parse the verifier read it through `tests/verifier_source.py`. See `WORKFLOW.md`
 "Health-check plugin lifecycle".
 
@@ -93,9 +96,10 @@ upgrades.
 **Deployment is not complete at commit.** For the Gentle AI v4 upgrade,
 [`docs/upgrades/gentle-ai-v4.md`](docs/upgrades/gentle-ai-v4.md) is the authority for execution,
 activation, recovery and completion checks; restarts remain the owner's action. A source change
-takes effect only after: verifier run
-(mirror) → owner restarts OpenCode (`secure-opencode.service`, and `ai-proxy.service` for the
-port-18900 server) → verifier passes. Restarts are the owner's action.
+takes effect only after: deploy (V1 verifier mirror; V2 `derive --apply`) → the owner
+restarts the live OpenCode unit (`secure-opencode-v2.service` on V2; `secure-opencode.service`, plus
+`ai-proxy.service` for the port-18900 server, on V1) → verifier passes. Restarts are the owner's
+action.
 
 ## Tracking documents
 
