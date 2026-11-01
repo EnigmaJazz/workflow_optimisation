@@ -19,7 +19,8 @@ role (2026-10-28).
   (backups), live `tui.jsonc` drift (not in `global-config/`).
 
 ## Tasks
-- [x] T1 (S1-S3): `tests/test_plugin_pins.py` RED (5 failures) then pins edited GREEN; full suite 388 OK. Route: inline. Uncommitted.
+- [x] T1 (S1-S3): `tests/test_plugin_pins.py` RED (5 failures) then pins edited GREEN; full suite
+  388 OK. Route: inline. Committed as `eb4a633`.
 
 ## Log
 - L1 (2026-10-28, owner): "I have spare claude code usage and I want to overrule advisory role
@@ -31,3 +32,7 @@ role (2026-10-28).
   (`configuration_change`), `review_due: false`, reason `under_budget` (108 changed lines, base
   `11d7aeb`). Outcome: under budget; stays pending in the slice until a later commit reaches the
   review budget. Review lanes stay the in-OpenCode `asi-review-*` lanes.
+
+
+## Revisions
+- r1 2026-11-01T16:10:32Z gentle-orchestrator: T1 status corrected: eb4a633 is committed (L3); remove the stale "Uncommitted" claim
