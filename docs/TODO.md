@@ -2273,7 +2273,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   spec advisors' independence; consider moving them to another family.
 
 ### Q95. V2 documentation refresh and operations runbook
-- **Status:** DONE at source (2026-11-01); commit PENDING-COMMIT for this docs unit. Two commits make
+- **Status:** DONE at source (2026-11-01); commit `6a81091` for this docs unit. Two commits make
   up the work: `1b302ec` (the operations runbook, committed) and this stale-V1-text removal.
 - **Prerequisites:** none; the cutover is executed (`HANDOFF.md`).
 - **Description:** add the canonical operating guide `docs/upgrades/opencode-v2-operations.md` for the
@@ -2281,14 +2281,12 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   `docs/upgrades/opencode-v2-cutover.md`, `docs/PLAN.md`, `docs/ADVISOR-HANDOFF.md`, this queue and the
   `host-sandbox-integration-v*.md` notes. V1 statements are kept where they remain true of V1 and now
   point at the V2 step (`derive --apply`, then restart).
-- **Blocked sub-item:** `odd/tasks/opencode-v2-phase-a.md` still says T1 is "Uncommitted" while its L3
-  entry records `eb4a633`; the sandbox refuses plan-root edits (`PLAN_ROOT_PROTECTED`,
-  `BROKER_PLAN_ROOT_PROTECTION`), so this is an owner action pending.
+- **Resolved sub-item:** `odd/tasks/opencode-v2-phase-a.md` T1 now records `eb4a633` as committed; the sandbox refuses plan-root edits (`PLAN_ROOT_PROTECTED`), so the one-line correction went through `host_plan_write` and is committed as `797b9ad`.
 - **Open after this unit:** the section-10 paid proof (Q44), the manual gates and the owner actions
   listed in `HANDOFF.md` ("Not done").
 
 ### Q96. WORKFLOW.md V2 wording (owner decision)
-- **Status:** DONE at source (2026-11-01; owner approved the exact wording); commit PENDING-COMMIT.
+- **Status:** DONE at source (2026-11-01; owner approved the exact wording); commit `2ec5e30`.
 - **Prerequisites:** an owner decision on the wording, native review of the change, and explicit
   handling of the health-plugin digest pin (`scripts/verifier_manifest.py update`, then
   `derive --apply`). `WORKFLOW.md` and `CLAUDE.md` are normative text: this item records the work, it
