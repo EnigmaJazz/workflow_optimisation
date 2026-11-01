@@ -103,3 +103,6 @@ Next: Gate 1 REFINE for the named scope decisions; PM obtains explicit owner dis
 ## Revisions
 - r1 2026-11-01T17:37:19Z gentle-orchestrator: Create the Q98 tracker: coordinator selection rule for substantial units, with the observed evidence and acceptance criteria
 - r2 2026-11-01T21:12:39Z planner: Planner finalisation and raw pre-advice; Gate 1 held for explicit ledger/anchor/advice-artifact scope decisions
+
+## Gates
+- T1 REFINE 2026-11-01T21:12:50Z planner ref=odd/tasks/q98-coordinator-selection.md r2; plan commit 5128feec9e628e02bf29db93a56f7c3660674084; RAW advisor sessions recorded in plan :: Gate 1 technical REFINE after reading all three RAW advisors. Before coding obtain explicit owner authority for normative-ledger.md companion SHA/count/classification updates; resolve S3 anchor-token requirement without silently editing verifier source; authorize required odd/advice/q98-coordinator-selection.md or explicitly dispose of that requirement. Do not weaken the ledger pin. Resume Planner with decisions and refreshed branch/tracker anchor; no writer or task completion yet.
