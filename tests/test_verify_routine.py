@@ -1,4 +1,4 @@
-"""Two-tier independent verifier: routine (Luna) and high-risk (Sol).
+"""Two-tier independent verifier: routine (Haiku) and high-risk (Sol).
 
 ``gentle-ai-verify-routine`` is a copy of ``gentle-ai-verify`` on a different model family
 from the Planner, the writers and the orchestrator. The orchestrator and both PMs may
@@ -19,9 +19,9 @@ AGENTS = CONFIG["agent"]
 
 
 class RoutineVerifier(unittest.TestCase):
-    def test_seat_is_luna_high_and_hidden(self):
+    def test_seat_is_haiku_high_and_hidden(self):
         seat = AGENTS[ROUTINE]
-        self.assertEqual((seat["model"], seat.get("variant")), ("openai/gpt-6-luna", "high"))
+        self.assertEqual((seat["model"], seat.get("variant")), ("opencode-go/claude-haiku-5-5", "high"))
         self.assertIs(seat["hidden"], True)
         self.assertEqual(seat["mode"], "subagent")
 
@@ -32,9 +32,9 @@ class RoutineVerifier(unittest.TestCase):
         self.assertEqual(AGENTS[ROUTINE]["tools"]["sandbox_apply"], False)
 
     def test_prompt_matches_except_the_model_label(self):
-        routine = AGENTS[ROUTINE]["prompt"].replace("gpt-6-luna", "gpt-6.1-sol")
+        routine = AGENTS[ROUTINE]["prompt"].replace("claude-haiku-5-5", "gpt-6.1-sol")
         self.assertEqual(routine, AGENTS[HIGH]["prompt"])
-        self.assertIn("gpt-6-luna", AGENTS[ROUTINE]["prompt"])
+        self.assertIn("claude-haiku-5-5", AGENTS[ROUTINE]["prompt"])
 
     def test_only_coordinators_may_dispatch_it(self):
         allowed = sorted(name for name, agent in AGENTS.items()
@@ -44,10 +44,9 @@ class RoutineVerifier(unittest.TestCase):
         self.assertEqual(allowed, ["gentle-orchestrator", "pm-odd", "pm-systematic"])
 
     def test_routine_tier_is_a_different_family_from_planner_and_writers(self):
-        # Luna is the GPT family: the planner is Claude and the DeepSeek writers differ from it.
-        self.assertNotIn("gpt", AGENTS["planner"]["model"])
-        for writer in ("gentle-ai-worker", "odd-apply", "gentle-orchestrator"):
-            self.assertNotIn("gpt", AGENTS[writer]["model"], writer)
+        self.assertNotIn("claude", AGENTS["planner"]["model"])
+        for writer in ("gentle-ai-worker", "odd-apply", "general", "gentle-orchestrator"):
+            self.assertNotIn("claude", AGENTS[writer]["model"], writer)
 
     def test_guard_treats_it_as_a_read_only_specialist(self):
         self.assertRegex(HELPERS, r"gentle-ai-verify-routine")
@@ -56,7 +55,7 @@ class RoutineVerifier(unittest.TestCase):
         self.assertIn("`gentle-ai-verify-routine`", WORKFLOW)
         self.assertRegex(WORKFLOW, r"Risk line names a high-risk item[^\n]*`gentle-ai-verify`")
         self.assertIn("**Verifier tiers (owner, 2026-10-28).**", WORKFLOW)
-        self.assertRegex(WORKFLOW, r"`gentle-ai-verify-routine` \(`openai/gpt-6-luna`, `high`\) is the default")
+        self.assertRegex(WORKFLOW, r"`gentle-ai-verify-routine` \(`opencode-go/claude-haiku-5-5`, `high`\) is the default")
 
 
 if __name__ == "__main__":

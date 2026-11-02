@@ -56,11 +56,11 @@ class SpecAdvisors(unittest.TestCase):
         self.assertIn("advisor-spec-pre", FALLBACK["noFallbackAgents"])
         self.assertIn("advisor-spec-post", FALLBACK["noFallbackAgents"])
 
-    def test_spec_advisors_planner_and_high_risk_verifier_are_three_different_families(self):
-        families = {AGENTS[n]["model"].split("/")[0] + ":" + AGENTS[n]["model"].split("/")[-1].split("-")[0]
-                    for n in ("planner", "advisor-spec-pre", "gentle-ai-verify")}
-        self.assertEqual(len(families), 3, families)
-        self.assertEqual(AGENTS["gentle-ai-verify"]["model"], "opencode-go/grok-4.7")
+    def test_high_risk_verifier_stays_on_sol_and_off_grok(self):
+        # Grok on the verifier used 10% of the weekly allowance in one run (2026-11-01).
+        self.assertEqual(AGENTS["gentle-ai-verify"]["model"], "openai/gpt-6.1-sol")
+        grok = sorted(n for n, a in AGENTS.items() if "grok" in str(a.get("model", "")))
+        self.assertEqual(grok, ["asi-review-refuter", "review-refuter"])
 
     def test_positive_control_a_mutating_grant_is_detected(self):
         AGENTS["advisor-spec-pre"]["permission"]["bash"] = "allow"
