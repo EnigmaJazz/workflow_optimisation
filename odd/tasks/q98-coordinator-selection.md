@@ -61,8 +61,8 @@ Observed source and explorer excerpts: assembler `main` emits stdout with a trai
 
 Original IDs remain pending. T2/T3 are T1 acceptance/test/log substeps, not separate implementation deliveries or deployments. Necessary post-commit metadata closure remains the existing PM procedure.
 
-- [ ] **T1 (S1-S3):** after Gate 1 PASS, implement policy, overlay, generated embedded prompt and approved companion ledger data within the final allowed paths; write the required advice record from truthful evidence.
-- [ ] **T2 (S3; T1 acceptance):** extend `tests/test_orchestrator_prompt_source.py` test-first with exact-once and missing/duplicate controls, preserve existing pin checks and report bounded prompt delta. Leave `tests/test_anchor_manifest.py` and verifier/pin surfaces unchanged.
+- [x] **T1 (S1-S3):** after Gate 1 PASS, implement policy, overlay, generated embedded prompt and approved companion ledger data within the final allowed paths; write the required advice record from truthful evidence.
+- [x] **T2 (S3; T1 acceptance):** extend `tests/test_orchestrator_prompt_source.py` test-first with exact-once and missing/duplicate controls, preserve existing pin checks and report bounded prompt delta. Leave `tests/test_anchor_manifest.py` and verifier/pin surfaces unchanged.
 - [ ] **T3 (T1 evidence):** record ROUTER-LOG row and closure evidence at the correct phase; commit fields stay pending until known; no completion before Gate 2/commit/required review evidence.
 
 ## Execution and verification
@@ -112,7 +112,13 @@ Observed current recovery: loaded workflow-route, workflow-odd-secure, orchestra
 
 Observed limitation: attempted `host_review_mode_status` returned `Tool "host_review_mode_status" is denied by broker admission (ROLE_DENIED_FOR_AFT_READ). Legitimate tools are classified in TOOL_CLASSIFICATION_INVENTORY (broker/src/role-policy.ts); sandbox tools are not affected.` RDD enabled/global remains PM-supplied, not a current tool-verified claim. This Gate 1 recovery does not start or complete review; required later PM review operations must remain fail-closed if their authorized surface is unavailable.
 
-Next: issue Gate 1 reconsideration through the fixed verdict tool using this final plan and the three directly read RAW recovery outputs. After an observed Gate 1 PASS, PM refreshes the branch/tracker anchor and may dispatch the authorized initial writer with these guardrails and accurate advice evidence. No task completion before Gate 2, commit and applicable native review. Both gates are TECHNICAL only, never approval of delivery/deployment/merge/release/user acceptance.
+Observed implementation: writer `ses_e66d2ffa6ffeyF1nezKu5sV4qN` produced result `cdf6932e744cacf321d86a8f7cd1af91797f2501` (seven paths, 202 insertions, 5 deletions, 207 changed lines), RED observed on all four surfaces, focused 58 tests OK, prompt digest `bc50d0bc…` 421 lines, config `1 1`. Installed by the PM with `host_sandbox_result_install`.
+
+Observed verification: independent verifier `ses_e666fa826ffe0M1c6mxn5cNJki` re-ran the checks in a fresh sandbox seeded from the installed tree. Seven-path numstat 202/5/207; config `1 1` with the non-prompt JSON tree equal to `e62a21dc` and the prompt +343 bytes / +2 lines; assembler twice byte-identical at `bc50d0bc…` / 421 lines and equal to the embedded prompt; canonical rule count exactly 1 in `WORKFLOW.md`, overlay, assembled stdout, embedded prompt and ledger row 77; focused `Ran 58 tests ... OK`; anchor pairs closed; full suite 793 run with only the known environment failures. The verifier stated it could not prove the seed equals the result commit, it did not observe the RED itself (it agreed the test bodies imply it), it did not run a parent baseline, and it saw 46 unsuccessful rather than the writer's 44; the Planner judged that difference non-material and named the runner difference as unproved.
+
+Observed closure: Gate 2 PASS `sha256:88455edc…` with post advisor `ses_e665df43bffet1cDvolwMrhLEJ` reporting the specification fulfilled and no blockers. Committed as `1ec5aa23796cd52a4beba2ff61a53ccf6a69efbb` with the seven-path binding. Native assessment `1adba52..1ec5aa2` returned medium risk (`executable_change` on `WORKFLOW.md`), 10 paths, 790 changed lines, `review_due: false`, reason `under_budget`; the reviewed boundary remains `1adba52`.
+
+Next: T3 closure only. Replace the `PENDING` commit cell in the `ROUTER-LOG.md` Q98 row with `1ec5aa2`, and record this tracker tick. Deployment of the rule (`derive-v2-config.py --apply` then the owner's restart of `secure-opencode-v2.service`) remains the owner's action and is not claimed here. Follow-up, non-blocking: `tests/test_orchestrator_prompt_source.py:972-995` compares the config against `HEAD`, so after this commit the splice-confinement test becomes a self-comparison and loses historical value; the same weakness was independently flagged by the Planner and the post advisor. Both gates were TECHNICAL only, never approval of delivery/deployment/merge/release/user acceptance.
 
 
 ## Revisions
@@ -120,6 +126,7 @@ Next: issue Gate 1 reconsideration through the fixed verdict tool using this fin
 - r2 2026-11-01T21:12:39Z planner: Planner finalisation and raw pre-advice; Gate 1 held for explicit ledger/anchor/advice-artifact scope decisions
 - r3 2026-11-01T21:36:06Z planner: r3: final owner ledger/anchor/advice scope decisions; one-time Planner transport exception; RAW evidence recovery pending
 - r4 2026-11-01T22:12:12Z planner: r4: authorized one-time RAW advice recovery; resolve precision gaps and finalise Gate 1 candidate
+- r5 2026-11-02T22:16:38Z gentle-orchestrator: r5: record Gate 2 PASS, commit 1ec5aa2 and the assessment outcome; tick T1 and T2
 
 ## Gates
 - T1 REFINE 2026-11-01T21:12:50Z planner ref=odd/tasks/q98-coordinator-selection.md r2; plan commit 5128feec9e628e02bf29db93a56f7c3660674084; RAW advisor sessions recorded in plan :: Gate 1 technical REFINE after reading all three RAW advisors. Before coding obtain explicit owner authority for normative-ledger.md companion SHA/count/classification updates; resolve S3 anchor-token requirement without silently editing verifier source; authorize required odd/advice/q98-coordinator-selection.md or explicitly dispose of that requirement. Do not weaken the ledger pin. Resume Planner with decisions and refreshed branch/tracker anchor; no writer or task completion yet.
