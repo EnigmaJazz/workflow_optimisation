@@ -2,15 +2,22 @@
 
 Scope: every sentence in the CURRENT prompt (`global-config/opencode.json` →
 `agent["gentle-orchestrator"].prompt`, sha256
-`0cf8da259010ca402320756ef19aaa148b9706d8c93f31a535cd97684b767838`, 419 lines)
+`bc50d0bce64a82f3946825dd9dc1d301a0136efbf3f04b5d616d59aedfc923d7`, 421 lines)
 containing MUST, NEVER, ALWAYS (case-insensitive, word boundary) or "hard rule".
-76 candidate sentences: **50 kept, 1 split, 10 superseded-by-base, 15
+77 candidate sentences: **51 kept, 1 split, 10 superseded-by-base, 15
 removed-by-design; zero unclassified.**
 
 Rows 1-72 were extracted from the pre-T3a1 prompt (sha256
 `521796dfbfc71a125e49b8bbd8127de7197a491b12a0ea8bd942c29de64a046b`, 417 lines);
 their source line numbers are extraction-time references. Rows 73-76 classify
-the T3a1 fixed-host-tool clauses and cite `T3a1` as their source.
+the T3a1 fixed-host-tool clauses and cite `T3a1` as their source. Row 77
+classifies the Q98 coordinator-selection sentence and cites `Q98` as its source.
+
+Recount method: a candidate is one numbered row below; the classification
+tally counts each row's `Classification` cell. Row 77 is a candidate because the
+Q98 sentence contains `never`; its content survives in
+`overlay:user:workflow-routing`, so it is `kept`. The 77/51 counts are tallied
+from these rows, not predicted.
 
 Classification meanings:
 
@@ -102,6 +109,7 @@ prompt and its wiring are produced by `global-config/prompts/gentle-orchestrator
 | 74 | T3a1 | "It may run narrowly defined, pre-registered tests through the allow-gated `host_test_run` fixed tool; never arbitrary caller argv, pipes, redirects, or shell." | kept | overlay:user:host-tools-relay |
 | 75 | T3a1 | "These are fixed control-plane exceptions, not generic shell, edit/write, or sandbox mutation authority, and a failed or unavailable test run is evidence, never permission to widen authority." | kept | overlay:user:host-tools-relay |
 | 76 | T3a1 | "`host_test_run` is not implemented in the current surface and remains inert until the host tool ships; it never grants authority today." | kept | overlay:user:host-tools-relay |
+| 77 | Q98 | "Coordinator selection is automatic: dispatch substantial ODD units to `pm-odd` and substantial Systematic units to `pm-systematic`; tiny fixes stay direct delegated-writer dispatches with no PM, and read-only requests start no coordinator; select by task class and the existing substantial-work test, never by whether the user asks for a PM." | kept | overlay:user:workflow-routing |
 
 ## Structural coupling note
 

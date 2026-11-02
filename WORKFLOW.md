@@ -143,6 +143,8 @@ The one-shot permit is scoped to a Task dispatch whose `description` begins with
 - Work outside a selected route must not create that route's artifacts, attempts, or synthetic phase state.
 - Re-classification is allowed at planning boundaries with user confirmation.
 
+Coordinator selection is automatic: dispatch substantial ODD units to `pm-odd` and substantial Systematic units to `pm-systematic`; tiny fixes stay direct delegated-writer dispatches with no PM, and read-only requests start no coordinator; select by task class and the existing substantial-work test, never by whether the user asks for a PM.
+
 <!-- workflow:anchor workflow.execution-boundary:begin -->
 ## Orchestrator Execution Boundary
 

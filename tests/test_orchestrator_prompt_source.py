@@ -30,8 +30,9 @@ TEMPLATE = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstrea
 SECTIONS = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstream" / "odd-orchestrator-sections.md"
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
 CONFIG = ROOT / "global-config" / "opencode.json"
+WORKFLOW = ROOT / "WORKFLOW.md"
 
-CURRENT_PROMPT_SHA256 = "0cf8da259010ca402320756ef19aaa148b9706d8c93f31a535cd97684b767838"
+CURRENT_PROMPT_SHA256 = "bc50d0bce64a82f3946825dd9dc1d301a0136efbf3f04b5d616d59aedfc923d7"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
@@ -109,6 +110,16 @@ HOST_TOOL_PROMPT_FRAGMENTS = (
     "never arbitrary caller argv, pipes, redirects, or shell",
     "a failed or unavailable test run is evidence, never permission to widen authority",
     "`host_test_run` is not implemented in the current surface and remains inert until the host tool ships",
+)
+
+# Q98 canonical coordinator-selection rule. It must appear exactly once as a
+# standalone, unbulleted physical line in WORKFLOW.md and the overlay, and thus
+# exactly once in the real assembled stdout and the decoded embedded prompt.
+CANONICAL_COORDINATOR_RULE = (
+    "Coordinator selection is automatic: dispatch substantial ODD units to `pm-odd` and "
+    "substantial Systematic units to `pm-systematic`; tiny fixes stay direct delegated-writer "
+    "dispatches with no PM, and read-only requests start no coordinator; select by task class "
+    "and the existing substantial-work test, never by whether the user asks for a PM."
 )
 
 HEADING_RE = re.compile(r"^#{1,6} ")
@@ -288,6 +299,29 @@ def host_tool_prompt_errors(text):
         for fragment in HOST_TOOL_PROMPT_FRAGMENTS
         if fragment not in text
     ]
+
+
+def coordinator_rule_errors(text, surface):
+    """One shared exact-full-sentence checker; count 1 passes, 0 and 2+ fail."""
+    count = text.count(CANONICAL_COORDINATOR_RULE)
+    if count == 1:
+        return []
+    if count == 0:
+        return ["missing coordinator-selection rule in %s" % surface]
+    return ["duplicate coordinator-selection rule in %s (count=%d)" % (surface, count)]
+
+
+def coordinator_rule_surfaces():
+    """The four surfaces that must each carry the canonical rule exactly once."""
+    assembled = run_assembler()
+    assert assembled.returncode == 0, assembled.stderr
+    config = json.loads(CONFIG.read_text(encoding="utf-8"))
+    return {
+        "WORKFLOW.md": WORKFLOW.read_text(encoding="utf-8"),
+        "overlay.md": OVERLAY.read_text(encoding="utf-8"),
+        "assembled stdout": assembled.stdout,
+        "embedded prompt": config["agent"]["gentle-orchestrator"]["prompt"],
+    }
 
 
 class OrchestratorPromptSourceTests(unittest.TestCase):
@@ -851,6 +885,112 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
             )
             self.assertTrue(destination and destination not in ("-", "n/a"),
                             "ledger row lacks a destination: %r" % cells[:4])
+
+
+class CoordinatorSelectionRuleTests(unittest.TestCase):
+    """Q98: the canonical coordinator-selection rule on all four surfaces."""
+
+    def test_canonical_rule_appears_exactly_once_on_all_four_surfaces(self):
+        for surface, text in coordinator_rule_surfaces().items():
+            with self.subTest(surface=surface):
+                self.assertEqual(coordinator_rule_errors(text, surface), [])
+
+    def test_rule_is_a_standalone_unbulleted_physical_line_in_both_sources(self):
+        for surface, text in coordinator_rule_surfaces().items():
+            if surface not in ("WORKFLOW.md", "overlay.md"):
+                continue
+            with self.subTest(surface=surface):
+                matching = [line for line in text.split("\n") if CANONICAL_COORDINATOR_RULE in line]
+                self.assertEqual(len(matching), 1, "rule must sit on exactly one physical line")
+                self.assertEqual(matching[0], CANONICAL_COORDINATOR_RULE,
+                                 "rule must be a standalone, unbulleted physical line")
+
+    def test_missing_and_duplicate_rule_are_rejected_on_every_surface(self):
+        for surface, text in coordinator_rule_surfaces().items():
+            with self.subTest(surface=surface, mutation="missing"):
+                missing = text.replace(CANONICAL_COORDINATOR_RULE, "")
+                self.assertNotEqual(missing, text, "missing-rule mutation must change the input")
+                self.assertIn("missing coordinator-selection rule in " + surface,
+                              coordinator_rule_errors(missing, surface))
+            with self.subTest(surface=surface, mutation="duplicate"):
+                duplicate = text.replace(
+                    CANONICAL_COORDINATOR_RULE,
+                    CANONICAL_COORDINATOR_RULE + "\n" + CANONICAL_COORDINATOR_RULE,
+                )
+                self.assertNotEqual(duplicate, text, "duplicate-rule mutation must change the input")
+                errors = coordinator_rule_errors(duplicate, surface)
+                self.assertTrue(
+                    any(error.startswith("duplicate coordinator-selection rule in " + surface) for error in errors),
+                    "duplicate must be rejected: %r" % errors,
+                )
+
+    def test_full_sentence_check_rejects_clause_corruption(self):
+        corrupted_phrase = "never by whether the user asks for a PM"
+        mutated_phrase = "sometimes by whether the user asks for a PM"
+        for surface, text in coordinator_rule_surfaces().items():
+            with self.subTest(surface=surface):
+                corrupted = text.replace(corrupted_phrase, mutated_phrase)
+                self.assertNotEqual(corrupted, text, "clause mutation must change the input")
+                self.assertIn("missing coordinator-selection rule in " + surface,
+                              coordinator_rule_errors(corrupted, surface))
+
+    def test_mutated_overlay_source_propagates_through_the_real_assembler(self):
+        overlay_text = OVERLAY.read_text(encoding="utf-8")
+        for label, mutated in (
+            ("missing", overlay_text.replace(CANONICAL_COORDINATOR_RULE, "")),
+            ("duplicate", overlay_text.replace(
+                CANONICAL_COORDINATOR_RULE,
+                CANONICAL_COORDINATOR_RULE + "\n" + CANONICAL_COORDINATOR_RULE,
+            )),
+        ):
+            with self.subTest(mutation=label):
+                self.assertNotEqual(mutated, overlay_text, "overlay mutation must change the source")
+                with tempfile.TemporaryDirectory() as tmp:
+                    path = Path(tmp) / "overlay.md"
+                    path.write_text(mutated, encoding="utf-8")
+                    result = run_assembler(("--overlay", str(path)))
+                self.assertEqual(result.returncode, 0, result.stderr)
+                errors = coordinator_rule_errors(result.stdout, "assembled stdout")
+                self.assertTrue(
+                    any(error.startswith("%s coordinator-selection rule in assembled stdout" % label) for error in errors),
+                    "%s rule must be reported: %r" % (label, errors),
+                )
+
+    def test_assembler_is_deterministic(self):
+        first = run_assembler()
+        second = run_assembler()
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertEqual(first.stdout, second.stdout, "two assembler runs must be byte-identical")
+
+    def test_config_prompt_splice_is_confined_to_the_prompt_value(self):
+        old_text = subprocess.run(
+            ["git", "show", "HEAD:global-config/opencode.json"],
+            cwd=str(ROOT),
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+        new_text = CONFIG.read_text(encoding="utf-8")
+        old_config = json.loads(old_text)
+        new_config = json.loads(new_text)
+        old_prompt = old_config["agent"]["gentle-orchestrator"].pop("prompt")
+        new_prompt = new_config["agent"]["gentle-orchestrator"].pop("prompt")
+        self.assertEqual(old_config, new_config, "nonprompt config tree must be unchanged")
+        if old_text.find(json.dumps(old_prompt)) >= 0:
+            encode = json.dumps
+        else:
+            encode = lambda value: json.dumps(value, ensure_ascii=False)
+        old_raw = encode(old_prompt)
+        new_raw = encode(new_prompt)
+        old_index = old_text.find(old_raw)
+        new_index = new_text.find(new_raw)
+        self.assertNotEqual(old_index, -1, "embedded prompt must use a locatable JSON string encoding")
+        self.assertNotEqual(new_index, -1, "embedded prompt must use a locatable JSON string encoding")
+        self.assertEqual(old_text[:old_index], new_text[:new_index],
+                         "raw prefix outside the prompt value must be identical")
+        self.assertEqual(old_text[old_index + len(old_raw):], new_text[new_index + len(new_raw):],
+                         "raw suffix outside the prompt value must be identical")
 
 
 if __name__ == "__main__":
