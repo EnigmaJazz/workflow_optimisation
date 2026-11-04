@@ -7,6 +7,7 @@ supersedes; the assembled output must be free of retired residue - and the
 residue check is proven non-vacuous by a planted positive control.
 """
 
+import copy
 import hashlib
 import json
 import re
@@ -33,6 +34,9 @@ CONFIG = ROOT / "global-config" / "opencode.json"
 WORKFLOW = ROOT / "WORKFLOW.md"
 
 CURRENT_PROMPT_SHA256 = "bc50d0bce64a82f3946825dd9dc1d301a0136efbf3f04b5d616d59aedfc923d7"
+# Pins the config tree with agent["gentle-orchestrator"].prompt removed.
+# The assembler regenerates the prompt; deliberate non-prompt changes must update this pin in the same commit.
+NONPROMPT_CONFIG_SHA256 = "c8f82943a32d7b6665681e61d9d51751a6abf063934a09b7f7af0b8889b3a8e9"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
@@ -963,34 +967,24 @@ class CoordinatorSelectionRuleTests(unittest.TestCase):
         self.assertEqual(second.returncode, 0, second.stderr)
         self.assertEqual(first.stdout, second.stdout, "two assembler runs must be byte-identical")
 
-    def test_config_prompt_splice_is_confined_to_the_prompt_value(self):
-        old_text = subprocess.run(
-            ["git", "show", "HEAD:global-config/opencode.json"],
-            cwd=str(ROOT),
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout
-        new_text = CONFIG.read_text(encoding="utf-8")
-        old_config = json.loads(old_text)
-        new_config = json.loads(new_text)
-        old_prompt = old_config["agent"]["gentle-orchestrator"].pop("prompt")
-        new_prompt = new_config["agent"]["gentle-orchestrator"].pop("prompt")
-        self.assertEqual(old_config, new_config, "nonprompt config tree must be unchanged")
-        if old_text.find(json.dumps(old_prompt)) >= 0:
-            encode = json.dumps
-        else:
-            encode = lambda value: json.dumps(value, ensure_ascii=False)
-        old_raw = encode(old_prompt)
-        new_raw = encode(new_prompt)
-        old_index = old_text.find(old_raw)
-        new_index = new_text.find(new_raw)
-        self.assertNotEqual(old_index, -1, "embedded prompt must use a locatable JSON string encoding")
-        self.assertNotEqual(new_index, -1, "embedded prompt must use a locatable JSON string encoding")
-        self.assertEqual(old_text[:old_index], new_text[:new_index],
-                         "raw prefix outside the prompt value must be identical")
-        self.assertEqual(old_text[old_index + len(old_raw):], new_text[new_index + len(new_raw):],
-                         "raw suffix outside the prompt value must be identical")
+    def test_nonprompt_config_tree_matches_the_pinned_digest(self):
+        tree = json.loads(CONFIG.read_text(encoding="utf-8"))
+        del tree["agent"]["gentle-orchestrator"]["prompt"]
+        serialised = json.dumps(tree, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        digest = hashlib.sha256(serialised.encode("utf-8")).hexdigest()
+        self.assertEqual(digest, NONPROMPT_CONFIG_SHA256,
+                         "nonprompt config tree must match its pinned sha256")
+
+        mutated_tree = copy.deepcopy(tree)
+        mutated_tree["agent"]["explore"]["permission"]["edit"] = "allow"
+        mutated_serialised = json.dumps(
+            mutated_tree, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        )
+        mutated_digest = hashlib.sha256(mutated_serialised.encode("utf-8")).hexdigest()
+        self.assertNotEqual(
+            mutated_digest, digest,
+            "positive control: changing a nested deny permission must change the digest",
+        )
 
 
 if __name__ == "__main__":
