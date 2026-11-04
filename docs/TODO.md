@@ -2324,6 +2324,13 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Does not change:** Claude Code stays advisory in this repo; native review stays on the in-OpenCode
   `asi-review-*` lanes.
 
+### Q100. host_plan_archive permission coverage
+- **Status:** IN PROGRESS (owner-authorized, 2026-11-04); unit q100-host-plan-archive-permission-u1, T1; source and verification pending.
+- **Prerequisites:** none.
+- **Source:** `odd/tasks/q100-host-plan-archive-permission.md` T1; owner decisions 2026-11-04.
+- **Description:** a new host tool shipped without a permission rule, so `derive-v2-config.py` refuses and the V2 root cannot be derived. Add global `deny` and `gentle-orchestrator` `allow`. Permission coverage only; no archive invocation or deployment.
+- **Deferred:** overlay authorization-text alignment is separate follow-up, not this implementation; routing-guard archive parity stays later work.
+
 ## Done
 
 - Review follow-up on the plugin load check (old items 1–2): `71a2eb3` (`d85ca4a` introduced the
