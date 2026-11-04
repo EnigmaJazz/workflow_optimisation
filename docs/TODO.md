@@ -2325,7 +2325,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   `asi-review-*` lanes.
 
 ### Q100. host_plan_archive permission coverage
-- **Status:** IN PROGRESS (owner-authorized, 2026-11-04); unit q100-host-plan-archive-permission-u1, T1; source and verification pending.
+- **Status:** DONE (owner-authorized, 2026-11-04); unit q100-host-plan-archive-permission-u1, T1; Gate 2 PASS; implementation commit `3992ba0`; host proof recorded.
 - **Prerequisites:** none.
 - **Source:** `odd/tasks/q100-host-plan-archive-permission.md` T1; owner decisions 2026-11-04.
 - **Description:** a new host tool shipped without a permission rule, so `derive-v2-config.py` refuses and the V2 root cannot be derived. Add global `deny` and `gentle-orchestrator` `allow`. Permission coverage only; no archive invocation or deployment.
