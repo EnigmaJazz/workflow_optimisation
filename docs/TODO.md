@@ -45,6 +45,9 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   than describe all three removal checks as outstanding or passed. See Q54, Q56 and Q58 below.
   Then Q57-Q60 and Q61. Q62 (retired-model list and seat-assignment reconciliation) is independently
   planned.
+- **Multi-tier orchestration (owner, 2026-11-04; spec `docs/specs/multi-tier-orchestration.md`):** two
+  independent tracks that can run at the same time. Track A (above OpenCode, Tiers 1-4): Q101.
+  Track B (OpenCode side): Q102, then Q103. Order inside Track B follows spec section 13.
 - **Advisor capacity (owner, 2026-10-17; independent of the phases):** Q76.
 - **Multi-agent v2 (owner-authorized, 2026-10-23):** Q89 phase 1 only — permissions first, inert.
   Phases 2-4 (tool implementation with dormant protection, the workflow/tracker change, and
@@ -2137,6 +2140,41 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - Reports rebase conflicts and conflict-skipped operations, and changes nothing.
   - Run it after each merged work unit that touches `global-config/`, `WORKFLOW.md`, skills or
     the verifier.
+
+### Q101. Multi-tier orchestration, Track A: tiers above OpenCode (Tiers 1-4)
+- **Status:** PLANNED.
+- **Prerequisites:** none. Independent of the sandbox and of OpenCode workflow changes (spec D16).
+- **Source:** owner, 2026-11-04.
+- **Description:** Build the tiers above OpenCode, per `docs/specs/multi-tier-orchestration.md`:
+  - written role definitions for Tiers 1, 2, 2s and 4 in a versioned home (spec OPEN-13);
+  - the `CLAUDE.md` rewrite replacing the advisory-only rule for Claude Code (spec OPEN-7);
+  - the Paperclip spike, testing OPEN-10 first, then the Orca transport (spec section 12, item 1);
+  - the Tier 3 prompt flow: Tier 2 drafts, the owner reviews and pastes (spec D12);
+  - the usage ledger and a one-day baseline per subscription (spec section 10, OPEN-14);
+  - the Jev input-size check (spec section 9).
+
+### Q102. Multi-tier orchestration, Track B: OpenCode workflow narrowing and sandbox changes
+- **Status:** PLANNED.
+- **Prerequisites:** none to start. Lands `agent-sandbox-integration` first, then `workflow_optimisation`
+  (spec section 13). Work in `agent-sandbox-integration` starts from a clean branch or fresh worktree.
+- **Source:** owner, 2026-11-04.
+- **Description:**
+  - narrow the orchestrator contract to simple repeated steps, then the need-to-know pass over each
+    phase's instructions (spec D10, D11); the routing guard enforces the result later;
+  - Planner contract and plan-per-stage handling, staging and review-before-apply behaviour
+    (spec OPEN-1) in `agent-sandbox-integration`;
+  - nono profile probes: Engram reachability and the Paperclip attach path (spec OPEN-10, OPEN-11);
+  - amend `WORKFLOW.md:204` so Engram is allowed in OpenCode (spec OPEN-4), after OPEN-11 passes.
+
+### Q103. Full OpenCode model assignment review
+- **Status:** PLANNED.
+- **Prerequisites:** the usage baseline from Q101 for the final numbers. The review can start from
+  `docs/brainstorms/model-allocation-review-2026-10-28.md`.
+- **Source:** owner, 2026-11-04 (spec D15, OPEN-8).
+- **Description:** Review every OpenCode model assignment (`global-config/opencode.json`,
+  `systematic.jsonc`, `rate-limit-fallback.json`) to keep frontier models for native review only
+  (spec D7). Moving the Planner off Sol is one outcome. Keep vendor-independence rules and the
+  digest pin in mind when the config changes.
 
 ## Done
 
