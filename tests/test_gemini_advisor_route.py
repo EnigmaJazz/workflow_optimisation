@@ -38,7 +38,7 @@ SCRIPT = REPO / "verify-workflow.sh"
 ADVISORS = ("advisor-gemini-pre", "advisor-gemini-post")
 EVIDENCE = "advisor-gemini-evidence"
 # Owner decision 2026-10-31: the Argon pre-code seats gather through the same evidence agent, with exactly this task scope.
-EVIDENCE_USERS = ("advisor-design-pre", "advisor-security-pre")
+EVIDENCE_USERS = ("advisor-design-pre", "advisor-security-pre", "advisor-spec-pre", "advisor-spec-post")
 ARGON = "google/gemini-4-argon"
 FLASH = "google/gemini-3.8-flash"
 DISPATCHERS = ("gentle-orchestrator", "pm-odd", "pm-systematic", "planner")

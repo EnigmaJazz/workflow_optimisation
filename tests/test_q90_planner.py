@@ -75,7 +75,7 @@ class RealConfig(unittest.TestCase):
         self.assertEqual(run_block(self.agents, self.gp), [])
         self.assertEqual((self.agents[PLANNER]["model"], self.agents[PLANNER]["variant"],
                           self.agents[PLANNER]["mode"], self.agents[PLANNER]["hidden"]),
-                         ("claude-agent/opus", "high", "subagent", True))
+                         ("openai/gpt-6.1-sol", "high", "subagent", True))
         self.assertEqual((self.agents[EVIDENCE]["model"], self.agents[EVIDENCE]["variant"],
                           self.agents[EVIDENCE]["mode"], self.agents[EVIDENCE]["hidden"]),
                          ("openai/gpt-6-luna", "medium", "subagent", True))
@@ -98,8 +98,8 @@ class RealConfig(unittest.TestCase):
                           planner["tools"]["host_task_mark"]), (True, True, False))
         task = planner["permission"]["task"]
         self.assertEqual(task.get("*"), "deny")
-        self.assertEqual(set(task), set(ADVISORS) | {EVIDENCE, "planner-explore", "*"})
-        for name in ADVISORS + (EVIDENCE, "planner-explore"):
+        self.assertEqual(set(task), set(ADVISORS) | {EVIDENCE, "explore", "*"})
+        for name in ADVISORS + (EVIDENCE, "explore"):
             self.assertEqual(task.get(name), "allow", name)
         for writer in ("odd-apply", "gentle-ai-worker", "gentle-ai-worker-local",
                        "gentle-ai-verify", "general", "systematic-implementer"):
@@ -140,9 +140,9 @@ class RealConfig(unittest.TestCase):
         config_text = CONFIG_PATH.read_text(encoding="utf-8")
         for tool_id in ("aft_import", "aft_safety", "ast_grep_replace"):
             self.assertIn(f'"{tool_id}"', inventory, tool_id)
-            # planner, planner-evidence and advisor-spec-evidence (a planner-evidence clone) carry these denials.
-            self.assertEqual(config_text.count(f'"{tool_id}": false'), 3, tool_id)
-            self.assertEqual(config_text.count(f'"{tool_id}": "deny"'), 3, tool_id)
+            # planner and planner-evidence carry these denials.
+            self.assertEqual(config_text.count(f'"{tool_id}": false'), 2, tool_id)
+            self.assertEqual(config_text.count(f'"{tool_id}": "deny"'), 2, tool_id)
         self.assertNotIn('const coordinatorAgents=["gentle-orchestrator",...pmAgents,"planner"]', verifier)
 
 class NegativeControls(unittest.TestCase):

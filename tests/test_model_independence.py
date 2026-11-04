@@ -32,8 +32,6 @@ def model_family(value):
     # model-name marker that could misclassify unrelated models.
     if normalized.startswith("kinver/"):
         return "qwen"
-    if normalized.startswith("claude-agent/"):
-        return "claude"
     model = "/".join(normalized.split("/")[1:])
     if re.search(r"(^|/)gpt-[0-9]", model):
         return "gpt"
@@ -119,14 +117,12 @@ class ModelIndependence(unittest.TestCase):
         assert_task_target_allowed(self, targets, "gentle-ai-worker-local")
         self.assertNotIn("gentle-ai-worker", targets)
 
-    def test_pm_dispatched_writer_shares_the_pm_family_by_owner_waiver(self):
-        # Owner decision 2026-10-31 (Q94): both PMs run on DeepSeek, the family of their writers. The loss of PM/writer
-        # independence is accepted; the independent checks are the luna verifier and the review lanes.
-        self.assertEqual(model_family(self.agents["pm-odd"]["model"]), "deepseek")
-        self.assertEqual(model_family(self.agents["odd-apply"]["model"]), "deepseek")
-        self.assertEqual(model_family(self.agents["pm-systematic"]["model"]), "deepseek")
-        for verifier in ("gentle-ai-verify", "gentle-ai-verify-routine"):
-            assert_independent(self, self.agents["odd-apply"]["model"], self.agents[verifier]["model"])
+    def test_pm_dispatched_writer_is_independent_from_pm(self):
+        assert_independent(
+            self,
+            self.agents["odd-apply"]["model"],
+            self.agents["pm-odd"]["model"],
+        )
         self.assertEqual(self.agents["pm-odd"]["permission"]["task"].get("odd-apply"), "allow")
 
     def test_every_odd_writer_is_in_the_coverage_inventory(self):
@@ -188,7 +184,6 @@ class PositiveControl(unittest.TestCase):
             "opencode-go/minimax-m3",
             "opencode-go/minimax-m3.1-flash",
             "unknown-provider/unrecognized-model",
-            "claude-agent/sonnet",
         ]
         proc = subprocess.run(
             [runtime, "-e", program],
@@ -200,7 +195,7 @@ class PositiveControl(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(
             json.loads(proc.stdout),
-            ["claude", "ling", "minimax", "minimax", None, "claude"],
+            ["claude", "ling", "minimax", "minimax", None],
         )
 
     def test_same_family_pairing_fails_independence_assertion(self):

@@ -165,8 +165,8 @@ class RealConfig(unittest.TestCase):
                     self.assertNotIn(flag, model)
         self.assertTrue(all(agent.get("variant") != "" for agent in got["agent"].values()))
         aliases = [n for n in got["agent"] if n.endswith("-astra")]
-        self.assertGreaterEqual(len(aliases), 3)
-        self.assertEqual(len(got["agent"]), 50 + len(mirrored) + len(aliases))
+        self.assertGreaterEqual(len(aliases), 2)  # planner and frontend-dev-premium; the verifier and spec advisors left Sol (2026-11-01)
+        self.assertEqual(len(got["agent"]), 48 + len(mirrored) + len(aliases))
         # Secret files are unreadable for every agent, asserted on the derived file: no agent-level read rule may allow them.
         denies = {p for p, e in self.src["permission"]["read"].items() if e == "deny"}
         for name, agent in got["agent"].items():
@@ -423,10 +423,12 @@ class V2PluginVersions(unittest.TestCase):
     def setUp(self):
         self.m = load()
 
-    def test_aft_stays_on_the_shared_pin_while_0634_cannot_start_in_the_sandbox(self):
-        self.assertEqual(self.m.V2_PLUGIN_VERSIONS, {})  # 0.63.4 exits in the V2 nono profile (storage lease opens "/")
+    def test_v2_runs_aft_0635_while_v1_keeps_the_shared_pin(self):
+        # 0.63.4 exited in the V2 nono profile (storage lease opened "/"); 0.63.5 starts there (cortexkit/aft#1245).
+        self.assertEqual(self.m.V2_PLUGIN_VERSIONS, {"@cortexkit/aft-opencode": "0.63.5"})
         out, notes = self.m.derive_plugins(["@cortexkit/aft-opencode@0.62.0", "@fro.bot/systematic@3.27.2"])
-        self.assertEqual((out, notes), (["@cortexkit/aft-opencode@~0.62.0", "@fro.bot/systematic@~3.27.2"], []))
+        self.assertEqual(out, ["@cortexkit/aft-opencode@~0.63.5", "@fro.bot/systematic@~3.27.2"])
+        self.assertTrue(any("aft-opencode: V2 runs 0.63.5" in n and "0.62.0 for V1" in n for n in notes))
 
     def test_an_override_still_moves_v2_ahead_of_the_shared_pin_on_v2_only(self):
         self.m.V2_PLUGIN_VERSIONS = {"@cortexkit/aft-opencode": "0.63.4"}

@@ -759,81 +759,6 @@
           "vision"
         ]
       }
-    ],
-    "claude-agent/sonnet": [
-      {
-        "providerID": "opencode-go",
-        "modelID": "claude-sonnet-5-5",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "opencode-go",
-        "modelID": "deepseek-v4.1-flash",
-        "variant": "default",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "deepseek",
-        "modelID": "deepseek-flash",
-        "variant": "high",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      }
-    ],
-    "claude-agent/opus": [
-      {
-        "providerID": "openai",
-        "modelID": "gpt-6.1-sol",
-        "variant": "high",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "deepseek",
-        "modelID": "deepseek-flash",
-        "variant": "high",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      }
-    ],
-    "claude-agent/haiku": [
-      {
-        "providerID": "opencode-go",
-        "modelID": "claude-haiku-5-5",
-        "variant": "high",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "deepseek",
-        "modelID": "deepseek-flash",
-        "variant": "high",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      }
     ]
   },
   "providerFallbacks": {
@@ -1061,7 +986,6 @@
     "advisor-maintainability-post",
     "advisor-spec-pre",
     "advisor-spec-post",
-    "advisor-spec-evidence",
     "advisor-gemini-pre",
     "advisor-gemini-post",
     "advisor-gemini-evidence"

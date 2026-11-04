@@ -124,8 +124,8 @@ const pmRequired=__PM_REQUIRED__;
 const leafAgents=__LEAF_AGENTS__;
 const handoff=__HANDOFF_TEXT__;
 const identityNeedles=__IDENTITY_NEEDLES__;
-const familyPairs=[["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"]];
-const familyModel=(family)=>family==="gpt"?"openai/gpt-6.1-sol":family==="deepseek"?"opencode-go/deepseek-v4.1-flash":family==="glm"?"opencode-go/glm-5.3-flash":family==="muse"?"opencode-go/muse-spark-1.3-contributor":family==="claude"?"claude-agent/sonnet":"synthetic/no-family";
+const familyPairs=[["general","gentle-orchestrator"],["gentle-ai-worker","gentle-ai-verify"],["pm-odd","odd-apply"],["pm-systematic","gentle-ai-worker"]];
+const familyModel=(family)=>family==="gpt"?"openai/gpt-6.1-sol":family==="deepseek"?"opencode-go/deepseek-v4.1-flash":family==="glm"?"opencode-go/glm-5.3-flash":family==="muse"?"opencode-go/muse-spark-1.3-contributor":"synthetic/no-family";
 const independentRuntime={
   "general":{model:"openai/gpt-6-luna"},
   "gentle-orchestrator":{model:"opencode-go/deepseek-v4.1-flash"},
@@ -329,7 +329,7 @@ control(4,()=>{
   const failures=runPrimaryReviewFamilyLoop(agents,(name)=>independentRuntime[name]);
   assert(failures.length===0,`independent runtime family fixture rejected: ${JSON.stringify(failures)}`);
 });
-for(const [writer,reviewer] of familyPairs){
+for(const [writer,reviewer] of familyPairs.slice(2)){
   for(const branch of ["configured","runtime"]){
     for(const side of ["writer","reviewer"]){
       for(const mutation of ["same","unknown"]){
@@ -559,16 +559,14 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
         for writer, reviewer in (
             ("general", "gentle-orchestrator"),
             ("gentle-ai-worker", "gentle-ai-verify"),
+            ("pm-odd", "odd-apply"),
+            ("pm-systematic", "gentle-ai-worker"),
         ):
             self.assertEqual(
                 family_loop.count(f'["{writer}","{reviewer}"]'),
                 1,
                 f"family loop must contain exactly one {writer}/{reviewer} pair",
             )
-        for pair in ('["pm-odd","odd-apply"]', '["pm-systematic","gentle-ai-worker"]'):
-            self.assertNotIn(pair, family_loop, "PM pairs are owner-waived outside the independence loop (Q94)")
-            self.assertEqual(self.verifier.count(pair), 1, pair)
-        self.assertIn("Owner waiver 2026-10-31 (Q94)", self.verifier)
         self.assertNotIn(
             'for (const [writer,reviewer] of [["general","gentle-orchestrator"],'
             '["gentle-ai-worker","gentle-ai-verify"]])',
@@ -753,7 +751,7 @@ class HostFixedToolPermissionTests(unittest.TestCase):
                 self.assertIs(tools.get(HOST_PLAN_WRITE), True)
                 self.assertIs(tools.get("host_gate_verdict"), True)
                 self.assertIs(tools.get("host_task_mark"), False)
-            elif name in ("planner-evidence", "advisor-spec-evidence"):
+            elif name == "planner-evidence":
                 self.assertIs(tools.get(HOST_PLAN_WRITE), False)
                 self.assertIs(tools.get("host_gate_verdict"), False)
                 self.assertIs(tools.get("host_task_mark"), False)

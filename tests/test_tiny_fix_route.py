@@ -105,8 +105,7 @@ def tiny_fix_writer_contract_gaps(workflow, config):
         writer_family = model_family(writer_model)
         if not dispatcher_family or not writer_family:
             gaps.append((dispatcher, "model family not proven"))
-        elif dispatcher_family == writer_family and not (dispatcher == "PM" and dispatcher_family == "deepseek"):
-            # Owner waiver 2026-10-31 (Q94): the DeepSeek PMs dispatch DeepSeek-family writers.
+        elif dispatcher_family == writer_family:
             gaps.append((dispatcher, f"same model family: {dispatcher_model}"))
     if "ROUTER-LOG.md" not in workflow or "authorized paths" not in workflow:
         gaps.append(("ROUTER-LOG", "writer path requirement missing"))
@@ -177,17 +176,10 @@ class TinyFixTripwireContract(unittest.TestCase):
         config = json.loads(CONFIG.read_text(encoding="utf-8"))
         self.assertEqual(tiny_fix_writer_contract_gaps(workflow, config), [])
 
-    def test_deepseek_pm_with_a_deepseek_writer_is_the_owner_waiver_not_a_gap(self):
-        workflow = (ROOT / "WORKFLOW.md").read_text(encoding="utf-8")
-        config = json.loads(CONFIG.read_text(encoding="utf-8"))
-        self.assertEqual(model_family(config["agent"]["pm-odd"]["model"]), "deepseek")
-        self.assertEqual(model_family(config["agent"]["odd-apply"]["model"]), "deepseek")
-        self.assertEqual(tiny_fix_writer_contract_gaps(workflow, config), [])
-
     def test_pm_same_family_writer_positive_control(self):
         workflow = (ROOT / "WORKFLOW.md").read_text(encoding="utf-8")
         config = json.loads(CONFIG.read_text(encoding="utf-8"))
-        config["agent"]["pm-odd"]["model"] = config["agent"]["odd-apply"]["model"] = "opencode-go/glm-5.3-flash"
+        config["agent"]["odd-apply"]["model"] = config["agent"]["pm-odd"]["model"]
         gaps = tiny_fix_writer_contract_gaps(workflow, config)
         self.assertTrue(
             any(dispatcher == "PM" and "same model family" in reason for dispatcher, reason in gaps),

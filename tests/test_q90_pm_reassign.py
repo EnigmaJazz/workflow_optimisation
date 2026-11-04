@@ -22,7 +22,7 @@ SCRIPT = REPO / "verify-workflow.sh"
 CONFIG = REPO / "global-config" / "opencode.json"
 FALLBACK = REPO / "global-config" / "rate-limit-fallback.json"
 PMS = ("pm-odd", "pm-systematic")
-MODEL, VARIANT = "opencode-go/deepseek-v4.1-flash", None  # owner 2026-10-31 (Q94); was muse-spark
+MODEL, VARIANT = "opencode-go/muse-spark-1.3-contributor", None
 BEGIN, END = "// pm-seat-policy:begin", "// pm-seat-policy:end"
 CAPS = ["files", "tools", "vision"]
 QWEN = {"providerID": "opencode-go", "modelID": "qwen3.8-flash",
@@ -31,8 +31,8 @@ GEMINI = {"providerID": "openrouter", "modelID": "~google/gemini-flash-latest",
           "capabilities": CAPS}
 QWEN_KEY, GEMINI_KEY = "opencode-go/qwen3.8-flash", "openrouter/~google/gemini-flash-latest"
 SHARED = [
-    ("deepseek/deepseek-flash", "high"),
     ("opencode-go/mimo-v2.6-flash", "high"),
+    ("deepseek/deepseek-flash", "high"),
     ("openrouter/deepseek/deepseek-v4.1-flash", "default"),
 ]
 
@@ -105,7 +105,7 @@ class PmSeatGate(unittest.TestCase):
     def setUpClass(cls):
         cls.agents = load(CONFIG)["agent"]
 
-    def test_configured_deepseek_without_variant_is_accepted(self):
+    def test_configured_muse_spark_without_variant_is_accepted(self):
         for name in PMS:
             self.assertEqual((self.agents[name]["model"], self.agents[name].get("variant")),
                              (MODEL, VARIANT))
@@ -157,9 +157,9 @@ class FallbackPolicy(unittest.TestCase):
             self.assertNotIn(name, self.fallback["excludeAgents"])
             self.assertNotIn(name, self.fallback["noFallbackAgents"])
 
-    def test_shared_pm_model_policy_matches_the_pinned_chain(self):
+    def test_shared_muse_policy_matches_the_pinned_chain(self):
         self.assertIn(MODEL, self.fallback["fallbackModels"],
-                      "DeepSeek PM model has no exact fallback policy")
+                      "Muse Spark PM model has no exact fallback policy")
         keys = [(f"{entry['providerID']}/{entry['modelID']}", entry.get("variant"))
                 for entry in self.fallback["fallbackModels"][MODEL]]
         self.assertEqual(keys, SHARED)

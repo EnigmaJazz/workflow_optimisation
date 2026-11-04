@@ -54,7 +54,7 @@ ADVISOR_SEATS = (
     "advisor-security-post", "advisor-integration-pre", "advisor-integration-post",
     "advisor-testing-pre", "advisor-testing-post", "advisor-maintainability-pre",
     "advisor-maintainability-post", "advisor-gemini-pre", "advisor-gemini-post",
-    "advisor-gemini-evidence", "advisor-spec-pre", "advisor-spec-post", "advisor-spec-evidence")
+    "advisor-gemini-evidence", "advisor-spec-pre", "advisor-spec-post")
 NORMAL_ADVISOR_ROWS = (
     "advisor-design-pre", "advisor-design-post", "advisor-security-pre",
     "advisor-security-post", "advisor-integration-pre", "advisor-integration-post",

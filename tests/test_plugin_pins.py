@@ -52,8 +52,9 @@ class PinTests(unittest.TestCase):
 
     def test_target_versions(self):
         s = versions(self.server)
-        self.assertEqual(s["@fro.bot/systematic"], "3.27.2")
-        self.assertEqual(s["@cortexkit/opencode-magic-context"], "0.49.29")
+        # Systematic and Magic Context are updated by the guarded update flow (plugin_pins.py), so only the exact-pin shape is asserted.
+        for name in ("@fro.bot/systematic", "@cortexkit/opencode-magic-context"):
+            self.assertRegex(s[name], r"^\d+\.\d+\.\d+$", name)
         self.assertEqual(s["@cortexkit/aft-opencode"], "0.62.0")
 
     def test_systematic_not_in_tui(self):
