@@ -138,6 +138,11 @@ Native review remains after commit over combined tree with held high-risk slice,
 - r3 2026-11-04T17:03:02Z planner: r3 scope recording: exact fifth-path test-pin update; owner-only postcommit real-inventory proof; install first then one fresh correction. Gate 1 r2 stands.
 - r4 2026-11-04T22:32:06Z planner: Evidence supplement only; r3 plan unchanged. Record owner resolutions and exact F2 success for 3992ba0; preserve chronology, no DONE or ROUTER-LOG edit.
 
+- r5 2026-11-04T22:40:55Z pm-odd: task mark T1 passed
+
+## Ticks
+T1 passed evidence=3992ba08cec20c7d122953c9f63f2df2b3fe3c78 gate=sha256:bcd3b2b96a642875847817fdd0dc6a8153dec49ae9926f262300d4c1b93911f0 tier=high 2026-11-04T22:40:55Z pm-odd: Gate 2 PASS on 3992ba0; F2 host proof recorded; metadata commit pending owner execution
+
 ## Gates
 - T1 REFINE 2026-11-04T15:45:28Z planner ref=odd/tasks/q100-host-plan-archive-permission.md; raw advisors ses_e58d91ef4ffdbrrw5rW4m7uCN7 and ses_e58d91ef4ffeFrJqTTfIcwV8eH :: Before any writer, establish the exact docs/TODO.md queue entry for this unit or obtain explicit scoped owner authority/waiver; TODO is outside the three allowed paths. Resolve overlay.md:213-214 versus the allow-gated archive grant: explicitly scope this to permission coverage with archive use deferred, or authorize separate prompt alignment. Do not infer waivers or expand this patch. Retain exact two insertions, non-skipped real-inventory tests, Bun permission controls, baseline comparison and pre-commit Gate 2. Refresh the writer anchor after the fixed plan commit.
 - T1 PASS 2026-11-04T16:01:25Z planner ref=odd/tasks/q100-host-plan-archive-permission.md r2: explicit Q1/Q2 resolve blockers; RAW advisor rechecks read; four-path queue-first scope, exact limitation and unchanged checks confirmed.
