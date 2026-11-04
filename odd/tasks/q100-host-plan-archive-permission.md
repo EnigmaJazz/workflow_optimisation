@@ -99,3 +99,6 @@ After Gate 2 PASS, the authorized PM commit path and metadata closure apply. Rec
 
 ## Revisions
 - r1 2026-11-04T15:44:52Z planner: Finalize T1 plan and raw pre-advice dispositions; Gate 1 requires scope/queue authorization resolution before writer.
+
+## Gates
+- T1 REFINE 2026-11-04T15:45:28Z planner ref=odd/tasks/q100-host-plan-archive-permission.md; raw advisors ses_e58d91ef4ffdbrrw5rW4m7uCN7 and ses_e58d91ef4ffeFrJqTTfIcwV8eH :: Before any writer, establish the exact docs/TODO.md queue entry for this unit or obtain explicit scoped owner authority/waiver; TODO is outside the three allowed paths. Resolve overlay.md:213-214 versus the allow-gated archive grant: explicitly scope this to permission coverage with archive use deferred, or authorize separate prompt alignment. Do not infer waivers or expand this patch. Retain exact two insertions, non-skipped real-inventory tests, Bun permission controls, baseline comparison and pre-commit Gate 2. Refresh the writer anchor after the fixed plan commit.
