@@ -47,6 +47,7 @@ for every seat, and any implementation.
 | D22 | Gate verdicts: when Jev shows a clear match to the spec, code records the verdict. On a clear fail the work goes back to the Planner to refine. When Jev is unsure it goes to an independent spec-check agent. | Owner, 2026-11-05 |
 | D23 | Tier 5 uses Engram read-only. Tier 2 owns all Engram writes. Magic Context stays the in-session memory. | Owner, 2026-11-05 |
 | D24 | Staging build scope: P0-P2, a reduced P4 (reject, STALE, re-run from the tip, no merge-tree replay), P6 kept, P5 only if unattended multi-stage work needs it, P3 deferred. | Owner, 2026-11-05 |
+| D25 | The usage ledger lives in `workflow_optimisation`. | Owner, 2026-11-05 |
 
 ## 3. Tier contracts
 
@@ -174,7 +175,7 @@ Everything below that is a **proposal** for the owner to confirm.
 | Store | Used by | Holds | Proposed rule |
 |---|---|---|---|
 | Engram, `global` scope | Writes: Tiers 1, 2, 2s and 4. Reads: also Tier 5, read-only (D23) | Cross-repo strategy: decisions, spec index, stage outcomes, handoff summaries. Only this scope is visible to other repos. | Written at phase boundaries only, not per message. Tier 5 has no `mem_save`. |
-| Engram, `project` scope | Same | Repo-specific decisions and discoveries | Stays inside the repo (scoped by git remote). |
+| Engram, `project` scope | Writes: Tiers 1, 2, 2s and 4. Reads: also Tier 5, read-only (D23) | Repo-specific decisions and discoveries | Stays inside the repo (scoped by git remote). |
 | Magic Context | Tier 5 sessions only | In-session state of the OpenCode sessions | Remains the main memory manager in OpenCode. Not mirrored into Engram. |
 
 Constraints that already exist and stay: review and Judgment Day agents are memory-write denied
@@ -273,7 +274,7 @@ No numeric budget is set here; it must come from a measured baseline.
 | OPEN-11 | Can the `opencode-v2-secure` nono profile reach Engram's MCP server and store for **reads**? Section 8's Tier 5 row depends on it. |
 | OPEN-12 | **Resolved (D12):** Tier 2 writes the Antigravity prompt for owner review; the owner pastes it. Still worth checking against the Antigravity subscription terms (OPEN-6). |
 | OPEN-13 | Where do the Tier 1, 2, 2s and 4 role definitions live? Tiers 1-4 have no guard, so they need a written, versioned home. |
-| OPEN-14 | Which repo owns the usage ledger (section 10)? |
+| OPEN-14 | **Resolved (D25):** the usage ledger lives in `workflow_optimisation`. |
 | OPEN-15 | **Resolved (D21).** |
 | OPEN-16 | **Resolved (D22).** Remaining: it changes who may author `host_gate_verdict`, a contract others consume (high-risk item 3, in `agent-sandbox-integration`), so it needs its own commit and an independent verifier. See OPEN-19. |
 | OPEN-17 | **Resolved (D23).** |
@@ -282,10 +283,9 @@ No numeric budget is set here; it must come from a measured baseline.
 
 ## 12. Proving the design before building
 
-1. A Paperclip spike: first test OPEN-10 (can Paperclip drive Tier 5 through the sandbox attach
-   client, and run Claude and Codex without bypassing permissions). Only then one company with
-   adapters for Claude Code, Codex and OpenCode and one real task across two repos. Confirms or kills
-   sections 7 and 10.
+1. A Paperclip spike through its REST API and UI only, with its local CLI adapters disabled (D21,
+   OPEN-10): record cost-events and tickets for one real task across two repos, with Orca launching
+   every agent. Confirms or kills sections 7 and 10.
 2. An Engram reachability probe from the `opencode-v2-secure` profile (OPEN-11).
 3. A one-day usage baseline per subscription, to turn section 10 into numbers.
 4. One end-to-end stage using the existing staging chain, with Codex writing the spec and the Planner
@@ -323,7 +323,7 @@ unit is assigned to exactly one repo.
 | Planner author-split contract and plan-per-stage handling; the D22 change to who authors `host_gate_verdict` (high-risk item 3, own commit and independent verifier) | `agent-sandbox-integration` (`docs/contracts/multi-agent-v2-workflow-prompt.md`, broker), then the matching `WORKFLOW.md` text |
 | Staging chain at the D24 scope, review-before-apply, in-sandbox native review (OPEN-1) | `agent-sandbox-integration` (`docs/staging/plan.md`, broker, host tools) |
 | nono profile: Engram reachability, Paperclip attach path (OPEN-10, OPEN-11) | `agent-sandbox-integration` (`nono/profile`) |
-| Usage ledger (section 10) | Undecided (**OPEN-14**); the OpenCode proxy data lives outside both repos |
+| Usage ledger (section 10, D25) | `workflow_optimisation` |
 
 ### Landing order
 
