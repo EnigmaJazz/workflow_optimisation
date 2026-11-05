@@ -22,7 +22,7 @@ Criteria marked "blocked by OPEN-n" are not implemented until the owner resolves
 | T3 | B0 native-review spike on staged refs, S71, S79 (OPEN-1) | delegated writer (parallel unit) | done; S71/S79 stay blocked on the OPEN-1 owner decision | `odd/advice/b0-native-review-on-staged-refs.md`; parent re-ran assess on the scratch clone: exit 0, risk medium |
 | T4 | A3 Paperclip and Orca setup | inline | pending: needs Paperclip download, README review (S36) and the terms check (S44) | |
 | T5 | A4 Jev plan comparison and advisor step | inline | pending: needs the owner's `TYPESAFE_API_KEY` and consent to send plans | |
-| T6 | B1-B2 sandbox staging and gate routing (`agent-sandbox-integration`) | inline | pending: starts from a clean branch or fresh worktree; S17 paths are installed by the owner | |
+| T6 | B1-B2 sandbox staging and gate routing (`agent-sandbox-integration`), S72-S110 | delegated writers, sequential (shared broker files) | in progress | Worktree `~/orca/workspaces/agent-sandbox-integration/staging-chains-t6`, branch `EnigmaJazz/staging-chains-t6` off `d61f322` (owner chose the refactor tip). U0 P0 docs and U1 P1 chain code run in parallel (disjoint surfaces); then U2 P2 host_stage_* tools, U3 reduced P4, U4 gate routing (D22, own commit, independent verifier), U5 P6 acceptance tests. S17 paths: the owner reviews and installs. |
 | T7 | B3 workflow contracts (`workflow_optimisation`) | inline | pending: lands after T6 | |
 | T8 | B4 model assignment review (Q103) | inline | pending: final numbers need T1's baseline | |
 
@@ -35,3 +35,5 @@ Use the weekly usage before reset at 11:59 on 6/11/26" (the message was cut off 
 - L2: created from the approved spec at commit 41e8381. Reset deadline 2026-11-06 11:59; started 2026-11-05 23:41 GMT.
 - L3 (2026-11-06): T2 and T3 reported; parent spot checks passed. Spec section 8 aligned with D23 (Tier 2 owns all Engram writes). Open flag for the owner: Tier 1 now hands strategic memory to Tier 2 to record.
 - L4 (2026-11-06): T1 reported; parent re-ran the full suite twice (414 OK) and scanned for leaks. Note: `gentle-ai review assess` returns `high`/`unassessable` in a worktree with untracked files; from a clean shared clone the same commits assess correctly (T2 commit medium, under_budget; T3 commit passive). No review is due.
+- L5 (2026-11-06): review of the T1 commit range (base b25670a): assessed high (`process_boundary`, signal `shell_process` on scripts/usage_ledger.py, which has no subprocess, shell or os.system use). Owner declined review for this candidate (`declined_this_candidate`). T2 and T3 commits: no review due. Delivery stays under ordinary repository policy.
+- L6 (2026-11-06): owner chose to build T6 on the refactor branch's committed tip. U0 and U1 launched.
