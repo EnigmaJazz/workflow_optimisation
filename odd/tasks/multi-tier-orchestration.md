@@ -1,0 +1,36 @@
+# Multi-tier orchestration: implementation tracker
+
+**Objective:** implement the approved five-tier orchestration (Q101-Q103). **Branch:** `Enigmajazz/multi-tier-orchestration-spec`.
+**Delivery:** ask-on-risk; no push or PR without the owner. **Test runner:** `python3 -m unittest discover -s tests` (repo CLAUDE.md).
+**Implementer:** Claude Code, by owner authorization on 2026-11-05, until the owner asks to return implementation to OpenCode.
+
+## Specs
+
+The approved specification is `docs/specs/multi-tier-orchestration-criteria.md` (128 criteria, `S1`..`S128`, stages A1-A4 and B0-B4).
+Design and decisions: `docs/specs/multi-tier-orchestration.md` (D1-D27, sections 3-14). Workers read both for their stage and report which `S#` they covered.
+Criteria marked "blocked by OPEN-n" are not implemented until the owner resolves that item. Hard owner strings:
+- Tier 2 "writes no code" and "makes no change" without an explicit owner override (D5).
+- Orca is the only launcher; Paperclip never starts a CLI (D21).
+- Tier 5 uses Engram read-only; Tier 2 owns all Engram writes (D23).
+
+## Tasks
+
+| ID | Stage / specs | Route | Status | Evidence |
+|---|---|---|---|---|
+| T1 | A1 usage ledger, S1-S11 | delegated writer (parallel unit) | in progress | |
+| T2 | A2 roles/ and CLAUDE.md, S12-S35 except S16, S23 | delegated writer (parallel unit) | built; S30-S35 wording pending owner review | commit 62ba6ed; tests.test_roles 15 OK, full suite OK |
+| T3 | B0 native-review spike on staged refs, S71, S79 (OPEN-1) | delegated writer (parallel unit) | done; S71/S79 stay blocked on the OPEN-1 owner decision | `odd/advice/b0-native-review-on-staged-refs.md`; parent re-ran assess on the scratch clone: exit 0, risk medium |
+| T4 | A3 Paperclip and Orca setup | inline | pending: needs Paperclip download, README review (S36) and the terms check (S44) | |
+| T5 | A4 Jev plan comparison and advisor step | inline | pending: needs the owner's `TYPESAFE_API_KEY` and consent to send plans | |
+| T6 | B1-B2 sandbox staging and gate routing (`agent-sandbox-integration`) | inline | pending: starts from a clean branch or fresh worktree; S17 paths are installed by the owner | |
+| T7 | B3 workflow contracts (`workflow_optimisation`) | inline | pending: lands after T6 | |
+| T8 | B4 model assignment review (Q103) | inline | pending: final numbers need T1's baseline | |
+
+Route evidence: T1-T3 are three independent units with disjoint edit surfaces, each needing several minutes of work (Writer trigger a, parallelism). The parent owns git.
+
+## Log
+
+- L1 (2026-11-05, owner, verbatim): "Spec is approved. On this occasion I am authorising Implementation via claude code until I ask to return to opencode for Implementation. This is due to needing to i
+Use the weekly usage before reset at 11:59 on 6/11/26" (the message was cut off after "needing to i"; read as using the weekly usage before the reset).
+- L2: created from the approved spec at commit 41e8381. Reset deadline 2026-11-06 11:59; started 2026-11-05 23:41 GMT.
+- L3 (2026-11-06): T2 and T3 reported; parent spot checks passed. Spec section 8 aligned with D23 (Tier 2 owns all Engram writes). Open flag for the owner: Tier 1 now hands strategic memory to Tier 2 to record.
