@@ -2151,7 +2151,9 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - the Paperclip spike, testing OPEN-10 first, then the Orca transport (spec section 12, item 1);
   - the Tier 3 prompt flow: Tier 2 drafts, the owner reviews and pastes (spec D12);
   - the usage ledger and a one-day baseline per subscription (spec section 10, OPEN-14);
-  - the Jev input-size check (spec section 9).
+  - the Jev input-size check (spec section 9);
+  - the Jev plan-comparison gate and the advisor step before delegation (spec D17, D18, section 9);
+  - the per-role wording of the minimality principles (spec D19, section 14).
 
 ### Q102. Multi-tier orchestration, Track B: OpenCode workflow narrowing and sandbox changes
 - **Status:** PLANNED.
@@ -2161,10 +2163,15 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Description:**
   - narrow the orchestrator contract to simple repeated steps, then the need-to-know pass over each
     phase's instructions (spec D10, D11); the routing guard enforces the result later;
-  - Planner contract and plan-per-stage handling, staging and review-before-apply behaviour
-    (spec OPEN-1) in `agent-sandbox-integration`;
+  - Planner contract and plan-per-stage handling in `agent-sandbox-integration`;
+  - staging build at the spec D24 scope (P0-P2, reduced P4, P6 kept, P5 if needed, P3 deferred),
+    starting with the P0 native-review spike (spec OPEN-1);
+  - gate routing: code records a clear-match verdict, a clear fail goes back to the Planner, an unsure
+    result goes to an independent spec-check agent (spec D22, OPEN-16, OPEN-19). This changes who may
+    author `host_gate_verdict`, so it is its own commit with an independent verifier;
   - nono profile probes: Engram reachability and the Paperclip attach path (spec OPEN-10, OPEN-11);
-  - amend `WORKFLOW.md:204` so Engram is allowed in OpenCode (spec OPEN-4), after OPEN-11 passes.
+  - allow read-only Engram in OpenCode and amend `WORKFLOW.md:204` (spec D23, OPEN-4), after OPEN-11 passes.
+  - apply the minimality principles to the OpenCode seats' instructions (spec D19, section 14).
 
 ### Q103. Full OpenCode model assignment review
 - **Status:** PLANNED.

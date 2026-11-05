@@ -39,13 +39,21 @@ for every seat, and any implementation.
 | D14 | Task tracking is split by level. Paperclip holds the strategic, macro-level oversight. Each repo's own todo and task files hold the micro-level implementation tracking. Paperclip is a role, budget and approval layer and is not the task source of truth. | Owner, 2026-11-04 |
 | D15 | The Planner model change (D3) is expanded into a **full review of OpenCode model assignments**, covering every seat, to minimise frontier-model use outside native review (D7). The Planner leaving Sol is one outcome of that review. | Owner, 2026-11-04 |
 | D16 | The tiers above OpenCode (1-4) do not depend on the sandbox or on OpenCode workflow changes. They can be built independently and at the same time as the OpenCode-side work. | Owner, 2026-11-04 |
+| D17 | A Jev comparison of the Antigravity plan and the Tier 2 plan decides whether they differ materially, before Tier 2 has to read the Antigravity plan. | Owner, 2026-11-05 |
+| D18 | Claude Code sessions (Tiers 1 and 2) use the advisor to review the final plan before delegation and to judge between competing plans. | Owner, 2026-11-05 |
+| D19 | Every stage follows minimality principles (YAGNI and DRY), applied differently per role (section 14). | Owner, 2026-11-05 |
+| D20 | For this change, the Antigravity then Codex steps are run manually with copy-and-paste prompts, as a large architectural change that gets full due diligence. | Owner, 2026-11-05 |
+| D21 | Orca is the only launcher. Paperclip assigns work through tickets and records cost, but never starts a CLI. | Owner, 2026-11-05 |
+| D22 | Gate verdicts: when Jev shows a clear match to the spec, code records the verdict. On a clear fail the work goes back to the Planner to refine. When Jev is unsure it goes to an independent spec-check agent. | Owner, 2026-11-05 |
+| D23 | Tier 5 uses Engram read-only. Tier 2 owns all Engram writes. Magic Context stays the in-session memory. | Owner, 2026-11-05 |
+| D24 | Staging build scope: P0-P2, a reduced P4 (reject, STALE, re-run from the tip, no merge-tree replay), P6 kept, P5 only if unattended multi-stage work needs it, P3 deferred. | Owner, 2026-11-05 |
 
 ## 3. Tier contracts
 
 | Tier | Agent | Does | Must not | Reads | Writes |
 |---|---|---|---|---|---|
-| 1 | Claude Code, one session | Cross-project strategy. Plans the day with the owner. Sequences multi-project work. | Write code. Hold repo-level integration detail. | Project registry, Engram strategic memory, Tier 2 summaries | Day plan, cross-repo briefs, strategic memory |
-| 2 | Claude Code, one session per repo | Repo-level strategy and the initial plan (no code-level specifics). Delegates to Tiers 4-5. Prepares the Tier 3 prompt and opens its TUI for the owner. Makes the first evaluation of returned work. Uses Haiku subagents to explore. | Write code or change files without owner override (D5). Enter the Tier 3 prompt itself, which only the owner may do. | Repo via Haiku explorers, Engram, Tier 4/5 artifacts | Repo brief, delegation orders, evaluation notes |
+| 1 | Claude Code, one session | Cross-project strategy. Plans the day with the owner. Sequences multi-project work. Uses the advisor on the final plan before delegation (D18). | Write code. Hold repo-level integration detail. | Project registry, Engram strategic memory, Tier 2 summaries | Day plan, cross-repo briefs, strategic memory |
+| 2 | Claude Code, one session per repo | Repo-level strategy and the initial plan (no code-level specifics). Delegates to Tiers 4-5. Prepares the Tier 3 prompt and opens its TUI for the owner. Uses the advisor to review the final plan before delegating and to judge between competing plans (D18). Makes the first evaluation of returned work. Uses Haiku subagents to explore. | Write code or change files without owner override (D5). Enter the Tier 3 prompt itself, which only the owner may do. | Repo via Haiku explorers, Engram, Tier 4/5 artifacts | Repo brief, delegation orders, evaluation notes |
 | 2s | Claude Code tech support | Owns global dependency and system changes (the procedure in `WORKFLOW.md` "Global Tooling Changes"). Uses Haiku subagents. | Change anything outside a Tier 2 or owner request. | System state | Change records |
 | 3 | Antigravity (optional) | Produces an alternative plan for Tier 2 to weigh. Tier 2 opens the TUI and drafts the prompt; the owner enters it. | Receive a prompt entered by an agent. Block the pipeline. | The brief, entered by the owner | An alternative plan, saved by the owner |
 | 4 | Codex (can be delegated to by Tiers 1-2 and other agents, D12) | Writes the specification (stages, acceptance criteria). After implementation, reviews the result against the spec and flags defects. May use a `luna` explore subagent. | Write the plan or implement. | Brief, repo via luna | Spec; review verdict |
@@ -81,11 +89,13 @@ mechanism, but the cost lesson is why section 10 is a hard requirement.
 1. **Plan the day (Tier 1 with the owner).** Choose repos and order. Cross-repo dependencies are
    written down here and nowhere else.
 2. **Repo brief (Tier 2).** Tier 2 explores with Haiku subagents and writes a strategic plan
-   without code-level detail. Optionally Tier 2 opens the Tier 3 TUI and drafts the prompt, the
-   owner enters it, and the alternative plan comes back. Tier 2 weighs both. This phase and phases 6-7 are owner-interactive.
+   without code-level detail. Optionally Tier 2 writes the Tier 3 prompt to a file and opens the Tier 3 TUI with the existing
+   Orca commands (no new Orca command), the owner reviews and pastes it, and the alternative plan comes back. A Jev comparison (section 9)
+   decides whether the two plans differ materially; Tier 2 reads the Antigravity plan only if they
+   do (D17), and the advisor then judges between them (D18). This phase and phases 6-7 are owner-interactive.
 3. **Specification (Tier 4).** Codex writes the spec: numbered acceptance criteria, split into
    stages where needed (D2).
-4. **Delegation (Tier 2 to Tier 5).** Tier 2 hands the spec and brief to the repo's gentle
+4. **Delegation (Tier 2 to Tier 5).** The advisor reviews the final plan first (D18). Tier 2 then hands the spec and brief to the repo's gentle
    orchestrator. No further owner input is needed until phase 6.
 5. **Staged implementation (Tier 5).** Per stage: a plan (Planner, D3), the Jev plan-vs-spec check,
    implementation in the sandbox, the Jev implementation-vs-spec check. Stages stay **unapplied**.
@@ -93,7 +103,7 @@ mechanism, but the cost lesson is why section 10 is a hard requirement.
    review runs, ideally inside the sandbox. See OPEN-1.
 7. **Apply to the host.** Only after phase 6, per the staging apply rules.
 8. **Evaluation.** The result returns to Tier 2 (first evaluation), then to Tier 4 (does the final
-   change meet the spec; identify flaws). Defects open a new stage or a new spec revision.
+   change meet the spec; identify flaws), as a structured `PASS` or `FLAWS_FOUND` verdict. Defects open a new stage or a new spec revision.
 9. **Close.** Tier 2 reports to Tier 1; strategic memory is updated (section 8).
 
 ## 6. Handoff protocol
@@ -143,7 +153,7 @@ Not established, and required before commitment:
 - Whether driving subscription CLIs this way is permitted by each provider's terms (**OPEN-6**).
 - Which fields a Paperclip issue carries and how it stays in step with the repo trackers (D14; **OPEN-5** follow-up).
 
-Security conflict to resolve first (**OPEN-10**). The `*_local` adapters take a working directory and
+Security conflict (**OPEN-10**, resolved by D21: Orca is the only launcher and Paperclip never starts a CLI). The `*_local` adapters take a working directory and
 appear to start the provider CLI themselves, and their config documents options named
 `dangerouslySkipPermissions` and `dangerouslyBypassApprovalsAndSandbox` (whether those are required
 or optional was not established). Two consequences:
@@ -163,7 +173,7 @@ Everything below that is a **proposal** for the owner to confirm.
 
 | Store | Used by | Holds | Proposed rule |
 |---|---|---|---|
-| Engram, `global` scope | Tiers 1, 2, 2s, 4; Tier 5 orchestrator through MCP | Cross-repo strategy: decisions, spec index, stage outcomes, handoff summaries. Only this scope is visible to other repos. | Written at phase boundaries only, not per message. |
+| Engram, `global` scope | Writes: Tiers 1, 2, 2s and 4. Reads: also Tier 5, read-only (D23) | Cross-repo strategy: decisions, spec index, stage outcomes, handoff summaries. Only this scope is visible to other repos. | Written at phase boundaries only, not per message. Tier 5 has no `mem_save`. |
 | Engram, `project` scope | Same | Repo-specific decisions and discoveries | Stays inside the repo (scoped by git remote). |
 | Magic Context | Tier 5 sessions only | In-session state of the OpenCode sessions | Remains the main memory manager in OpenCode. Not mirrored into Engram. |
 
@@ -181,6 +191,9 @@ Two checkpoints per stage: (a) the plan against the spec, (b) the implementation
 
 - The spec's acceptance criteria are the unit of checking, so each must be atomic, numbered and
   testable. This is a requirement on Tier 4's output.
+- Code runs the deterministic checks first (touched paths match the spec, tests exit 0, diff within
+  the line budget; the existing broker and guard already gate on path scope and line budgets). Jev
+  only sees what code cannot decide.
 - Each criterion becomes one Noul (the probability that a statement is true), with the criterion and
   only the relevant plan section or diff as state. The decision logic stays in code: the TypeSafe
   guidance is that Jev supplies judgments and code decides, and it suggests 0.7 and 0.3 as starting
@@ -189,9 +202,34 @@ Two checkpoints per stage: (a) the plan against the spec, (b) the implementation
 - To check: the input size limits of the Jev models (documented on the TypeSafe models page, not yet
   read). If one criterion plus a stage diff exceeds them, the diff must be chunked per criterion
   before this design holds.
-- Jev output is **evidence, never approval**, consistent with the existing rule for advice.
+- Gate routing (D22), decided in code from the Jev result and the deterministic checks:
+
+  | Result | Action |
+  |---|---|
+  | Clear match to the spec | Code records the gate verdict. |
+  | Clear fail | Back to the Planner to refine. |
+  | Unsure | An independent spec-check agent decides (OPEN-19). |
+
+- Outside the gate, Jev output is **evidence, never approval**: advisor output keeps that rule. The
+  D22 gate verdict is the one place where code acts on Jev directly, and it changes who may author
+  `host_gate_verdict` (OPEN-16).
 - Proposal, not decided: thresholds are set from measured agreement on past stages, and any stage
   that names a high-risk item keeps its independent verifier regardless of the Jev result.
+
+### Plan comparison (D17)
+
+Used when Tier 3 returns an alternative plan. Code sends both plans as state and asks one Noul per
+aspect, each a single judgment: do the plans (1) split the work into different stages or a different
+order, (2) touch different components or repos, (3) carry different risk items, (4) differ in scope,
+with one including work the other omits, (5) disagree on a design decision. Code, not Jev, decides:
+
+- every Noul below 0.3: no material difference, so Tier 2 need not read the Antigravity plan;
+- any Noul at 0.3 or above, including the unsettled band: Tier 2 reads it.
+
+The bias is deliberate, because the error to avoid is missing a better plan. Jev answers "does it
+differ", never "which is better"; judging between plans is the advisor's job (D18). Both plans are
+sent to the TypeSafe API, which needs the owner's `TYPESAFE_API_KEY` and the owner's consent for that
+data. The input size limits above apply here too.
 
 ## 10. Usage monitoring and feasibility
 
@@ -213,6 +251,9 @@ representative day, and thresholds that make Tier 2 downgrade a model or skip op
 before a limit is reached. Paperclip's cost-events API is a candidate sink but does not read
 subscription quotas itself.
 
+Advisor calls (D18) draw on Claude usage and Jev calls (D17, section 9) are metered by TypeSafe; both
+belong in the ledger.
+
 No numeric budget is set here; it must come from a measured baseline.
 
 ## 11. Open decisions and conflicts
@@ -222,17 +263,22 @@ No numeric budget is set here; it must come from a measured baseline.
 | OPEN-1 | The staging plan prefers review before apply and accepts native review after apply as a fallback. The owner wants native review in the sandbox before apply. Is in-sandbox native review feasible, or is the fallback the reality? |
 | OPEN-2 | **Resolved (D9):** Tier 2 sits above the existing OpenCode setup; the PM layer stays for context management and contract following. Remaining work: narrow the orchestrator contract to simple repeated steps (D10), and run the need-to-know pass over each phase's instructions (D11). |
 | OPEN-3 | Tier 2s has no agent today. Define it as a role over the "Global Tooling Changes" procedure. |
-| OPEN-4 | Allow Engram for Tier 5 and amend `WORKFLOW.md:204`. |
+| OPEN-4 | Allow read-only Engram (search and read, no `mem_save`) in OpenCode and amend `WORKFLOW.md:204` and the matching write ban (D23). |
 | OPEN-5 | **Resolved (D14):** Paperclip = macro oversight; repo todo and tasks (`docs/TODO.md`, `odd/tasks/`, staging) = micro implementation tracking. Remaining work: define which fields Paperclip issues carry and who keeps them in step with the repo trackers. |
 | OPEN-6 | Terms-of-service review for automated driving of Claude, Codex and Gemini subscription CLIs. |
 | OPEN-7 | **Resolved (owner, 2026-11-04):** Tiers 1 and 2 are the new intended role of Claude Code and overwrite the advisory-only rule. Remaining work: rewrite the `CLAUDE.md` "Claude Code's role here" section when the spec is approved. |
 | OPEN-8 | Full OpenCode model assignment review (D15), replacing the single Planner decision. Inputs: `docs/brainstorms/model-allocation-review-2026-10-28.md`, the usage baseline (section 10), vendor-independence rules, and D7. |
 | OPEN-9 | Tier 1 must not hold repo integration detail yet must know the repo set. Define the minimal project registry it reads. |
-| OPEN-10 | Paperclip's local adapters start the provider CLI themselves. Paperclip must drive Tier 5 through the existing sandbox attach client, or not at all, and must not run Claude or Codex with permissions bypassed (section 7). |
-| OPEN-11 | Can the `opencode-v2-secure` nono profile reach Engram's MCP server and store? Section 8's Tier 5 row depends on it. |
+| OPEN-10 | **Resolved as a decision (D21).** Remaining check: Paperclip must be usable through its REST API and UI alone, with its local CLI adapters disabled. Test this first in the spike. |
+| OPEN-11 | Can the `opencode-v2-secure` nono profile reach Engram's MCP server and store for **reads**? Section 8's Tier 5 row depends on it. |
 | OPEN-12 | **Resolved (D12):** Tier 2 writes the Antigravity prompt for owner review; the owner pastes it. Still worth checking against the Antigravity subscription terms (OPEN-6). |
 | OPEN-13 | Where do the Tier 1, 2, 2s and 4 role definitions live? Tiers 1-4 have no guard, so they need a written, versioned home. |
 | OPEN-14 | Which repo owns the usage ledger (section 10)? |
+| OPEN-15 | **Resolved (D21).** |
+| OPEN-16 | **Resolved (D22).** Remaining: it changes who may author `host_gate_verdict`, a contract others consume (high-risk item 3, in `agent-sandbox-integration`), so it needs its own commit and an independent verifier. See OPEN-19. |
+| OPEN-17 | **Resolved (D23).** |
+| OPEN-18 | **Resolved (D24).** It changes the plan decided on 2026-10-12, so `agent-sandbox-integration/docs/staging/plan.md` needs a matching note. |
+| OPEN-19 | Which agent is the independent spec-check agent (D22)? The existing `advisor-spec-pre` and `advisor-spec-post` seats are candidates; it must be a different family from the Planner and the writers. |
 
 ## 12. Proving the design before building
 
@@ -251,6 +297,9 @@ No numeric budget is set here; it must come from a measured baseline.
    no guard covers them.
 7. The full OpenCode model assignment review (D15, OPEN-8), started from the 2026-10-28
    model-allocation review and re-run against the measured usage baseline.
+8. Due diligence for this change (D20): the Tier 2 plan (this spec), a manual Antigravity run with an
+   owner-pasted prompt, the comparison, the advisor's judgment between plans, then a manual Codex run
+   for the specification.
 
 ## 13. Affected repositories
 
@@ -271,8 +320,8 @@ unit is assigned to exactly one repo.
 | Narrowing the orchestrator contract; need-to-know pass; guard enforcement (D10, D11) | `workflow_optimisation` (`WORKFLOW.md`, `global-config/skills`, routing guard) |
 | Full OpenCode model assignment review, including the Planner off Sol (D3, D15, OPEN-8) | `workflow_optimisation` (`global-config/opencode.json`, `systematic.jsonc`, `rate-limit-fallback.json`) |
 | `WORKFLOW.md:204` Engram amendment (OPEN-4) | `workflow_optimisation` |
-| Planner author-split contract and plan-per-stage handling | `agent-sandbox-integration` (`docs/contracts/multi-agent-v2-workflow-prompt.md`), then the matching `WORKFLOW.md` text |
-| Staging chain, review-before-apply, in-sandbox native review (OPEN-1) | `agent-sandbox-integration` (`docs/staging/plan.md`, broker, host tools) |
+| Planner author-split contract and plan-per-stage handling; the D22 change to who authors `host_gate_verdict` (high-risk item 3, own commit and independent verifier) | `agent-sandbox-integration` (`docs/contracts/multi-agent-v2-workflow-prompt.md`, broker), then the matching `WORKFLOW.md` text |
+| Staging chain at the D24 scope, review-before-apply, in-sandbox native review (OPEN-1) | `agent-sandbox-integration` (`docs/staging/plan.md`, broker, host tools) |
 | nono profile: Engram reachability, Paperclip attach path (OPEN-10, OPEN-11) | `agent-sandbox-integration` (`nono/profile`) |
 | Usage ledger (section 10) | Undecided (**OPEN-14**); the OpenCode proxy data lives outside both repos |
 
@@ -280,10 +329,10 @@ unit is assigned to exactly one repo.
 
 Two independent tracks that can be built at the same time (D16):
 
-- **Track A, above OpenCode (Tiers 1-4):** role definitions, Paperclip and Orca setup, the Codex
+- **Track A, above OpenCode (Tiers 1-4):** usage metering first (D6 makes feasibility a gate), then role definitions, Paperclip and Orca setup, the Codex
   spec role, the Tier 3 prompt flow and the usage ledger. None of it depends on the sandbox or on
   OpenCode workflow changes. This spec lands with it.
-- **Track B, OpenCode side:** (1) `agent-sandbox-integration` first: anything the OpenCode side
+- **Track B, OpenCode side:** the P0 native-review spike first, because the staging plan already requires it (OPEN-1). Then (1) `agent-sandbox-integration` first: anything the OpenCode side
   depends on, namely the profile changes, the Planner contract and the staging and review behaviour.
   (2) `workflow_optimisation` second: the workflow text, the model assignment review outcome, config,
   guard and `CLAUDE.md` changes that assume step 1 is in place. The verifier mirrors config to the
@@ -301,3 +350,30 @@ When this spec was written, `agent-sandbox-integration` was on branch `refactor/
 with uncommitted edits under `broker/src/`. Implementation there must start from a clean branch or a
 fresh worktree (a sibling under the user's home, with its own CodeGraph index), never on top of that
 work.
+
+## 14. Minimality principles (D19)
+
+The owner's base prompt, kept verbatim:
+
+> Act as a pragmatic, slightly lazy senior developer who hates writing unnecessary code. Adhere to
+> strict YAGNI (You Ain't Gonna Need It) and DRY principles.
+> Guidelines: 1. Write the absolute bare minimum amount of code to satisfy the core requirements. No
+> fluff, no future-proofing, no speculative infrastructure. 2. Maximize reuse. Prioritize native
+> language features and existing project functions over custom helper code. 3. Stop writing code
+> immediately once functionality is achieved. Keep implementations as concise as structurally
+> possible.
+
+It applies to every stage, but differently per role:
+
+| Role | How the principle applies |
+|---|---|
+| Tiers 1, 2 and 3 (plans) | The smallest set of stages and work units that meets the requirement. No speculative stages or infrastructure. Reuse existing mechanisms (for example the staging chain) before proposing new ones. |
+| Tier 4 (specification) | Only the criteria the owner asked for; assumptions marked as assumptions; no future-proofing. |
+| Tier 5 (Planner, writers) | The base prompt applied directly: minimum code, reuse existing functions, stop when the function is achieved. |
+| Reviewers (Tier 4 after implementation, native review) | Unnecessary code, duplicated helpers and speculative infrastructure are defects. |
+| The instructions themselves | The need-to-know pass (D11) applies the same rule to prompts: only essential information per phase. |
+
+Guard against one misreading. Minimal code must not remove tests, required validation or the Risk
+line: this repo requires tests first and execution-based verification, and a reviewer must still flag
+a missing test as a defect. Each role's wording must say so. The per-role wording itself is a
+deliverable of Q101 and Q102 and is reviewed with the owner before use.
