@@ -49,6 +49,7 @@ for every seat, and any implementation.
 | D24 | Staging build scope: P0-P2, a reduced P4 (reject, STALE, re-run from the tip, no merge-tree replay), P6 kept, P5 only if unattended multi-stage work needs it, P3 deferred. | Owner, 2026-11-05 |
 | D25 | The usage ledger lives in `workflow_optimisation`. | Owner, 2026-11-05 |
 | D26 | The Tier 1, 2, 2s and 4 role definitions live in a `roles/` directory in `workflow_optimisation`, one versioned file per tier. | Owner, 2026-11-05 |
+| D27 | The independent spec-check agent (D22) is the existing `advisor-spec-pre` and `advisor-spec-post` seats. Their models are set by the full OpenCode model assignment review (D15), with the family differing from the Planner and the writers. | Owner, 2026-11-05 |
 
 ## 3. Tier contracts
 
@@ -280,7 +281,7 @@ No numeric budget is set here; it must come from a measured baseline.
 | OPEN-16 | **Resolved (D22).** Remaining: it changes who may author `host_gate_verdict`, a contract others consume (high-risk item 3, in `agent-sandbox-integration`), so it needs its own commit and an independent verifier. See OPEN-19. |
 | OPEN-17 | **Resolved (D23).** |
 | OPEN-18 | **Resolved (D24).** It changes the plan decided on 2026-10-12, so `agent-sandbox-integration/docs/staging/plan.md` needs a matching note. |
-| OPEN-19 | Which agent is the independent spec-check agent (D22)? The existing `advisor-spec-pre` and `advisor-spec-post` seats are candidates; it must be a different family from the Planner and the writers. |
+| OPEN-19 | **Resolved (D27).** |
 
 ## 12. Proving the design before building
 

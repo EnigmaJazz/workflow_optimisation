@@ -158,9 +158,9 @@ Sources: [Tier 2](multi-tier-orchestration.md) (D1–D24, sections 3–14); [adv
 | S104 | B2 | agent-sandbox-integration | Gate payload handling fits Jev’s documented model limits — **blocked by Jev input-size limits**; model limits plus a criterion-level payload strategy are needed. | Documented limits with per-criterion payload-size verification. |
 | S105 | B2 | agent-sandbox-integration | Code records the verdict for a clear match to the spec (D22). | Clear-match routing test verifying code authorship after deterministic checks. |
 | S106 | B2 | agent-sandbox-integration | A clear fail returns work to the Planner for refinement (D22). | Clear-fail routing test. |
-| S107 | B2 | agent-sandbox-integration | An unsure result reaches an independent spec-check agent — **blocked by OPEN-19**; the agent identity is needed. | Unsure routing test against the owner-selected agent. |
-| S108 | B2 | agent-sandbox-integration | The spec-check agent’s family differs from the Planner’s family — **blocked by OPEN-19**; the selected agent family is needed. | Agent-assignment comparison. |
-| S109 | B2 | agent-sandbox-integration | The spec-check agent’s family differs from the writers’ families — **blocked by OPEN-19**; the selected agent family is needed. | Agent-assignment comparison. |
+| S107 | B2 | agent-sandbox-integration | An unsure result reaches the independent spec-check agent, the existing `advisor-spec-pre` and `advisor-spec-post` seats (D27). | Unsure routing test against those seats. |
+| S108 | B2 | agent-sandbox-integration | The spec-check agent’s family differs from the Planner’s family; the models are set by the full assignment review (D15). | Agent-assignment comparison. |
+| S109 | B2 | agent-sandbox-integration | The spec-check agent’s family differs from the writers’ families; the models are set by the full assignment review (D15). | Agent-assignment comparison. |
 | S110 | B2 | agent-sandbox-integration | A classifier’s confidence alone cannot authorize the gate verdict. | Gate fixture with high confidence but failed deterministic evidence. |
 
 ## B3
