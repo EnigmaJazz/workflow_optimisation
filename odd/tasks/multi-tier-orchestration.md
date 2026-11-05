@@ -17,7 +17,7 @@ Criteria marked "blocked by OPEN-n" are not implemented until the owner resolves
 
 | ID | Stage / specs | Route | Status | Evidence |
 |---|---|---|---|---|
-| T1 | A1 usage ledger, S1-S11 | delegated writer (parallel unit) | in progress | |
+| T1 | A1 usage ledger, S1-S11 | delegated writer (parallel unit) | built; S9 needs a measured day, thresholds are placeholders | commit 4f1b338; tests.test_usage_ledger 18 OK, full suite 414 OK twice |
 | T2 | A2 roles/ and CLAUDE.md, S12-S35 except S16, S23 | delegated writer (parallel unit) | built; S30-S35 wording pending owner review | commit 62ba6ed; tests.test_roles 15 OK, full suite OK |
 | T3 | B0 native-review spike on staged refs, S71, S79 (OPEN-1) | delegated writer (parallel unit) | done; S71/S79 stay blocked on the OPEN-1 owner decision | `odd/advice/b0-native-review-on-staged-refs.md`; parent re-ran assess on the scratch clone: exit 0, risk medium |
 | T4 | A3 Paperclip and Orca setup | inline | pending: needs Paperclip download, README review (S36) and the terms check (S44) | |
@@ -34,3 +34,4 @@ Route evidence: T1-T3 are three independent units with disjoint edit surfaces, e
 Use the weekly usage before reset at 11:59 on 6/11/26" (the message was cut off after "needing to i"; read as using the weekly usage before the reset).
 - L2: created from the approved spec at commit 41e8381. Reset deadline 2026-11-06 11:59; started 2026-11-05 23:41 GMT.
 - L3 (2026-11-06): T2 and T3 reported; parent spot checks passed. Spec section 8 aligned with D23 (Tier 2 owns all Engram writes). Open flag for the owner: Tier 1 now hands strategic memory to Tier 2 to record.
+- L4 (2026-11-06): T1 reported; parent re-ran the full suite twice (414 OK) and scanned for leaks. Note: `gentle-ai review assess` returns `high`/`unassessable` in a worktree with untracked files; from a clean shared clone the same commits assess correctly (T2 commit medium, under_budget; T3 commit passive). No review is due.
