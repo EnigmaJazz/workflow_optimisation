@@ -55,7 +55,7 @@ for every seat, and any implementation.
 
 | Tier | Agent | Does | Must not | Reads | Writes |
 |---|---|---|---|---|---|
-| 1 | Claude Code, one session | Cross-project strategy. Plans the day with the owner. Sequences multi-project work. Uses the advisor on the final plan before delegation (D18). | Write code. Hold repo-level integration detail. | Project registry, Engram strategic memory, Tier 2 summaries | Day plan, cross-repo briefs, strategic memory |
+| 1 | Claude Code, one session | Cross-project strategy. Plans the day with the owner. Sequences multi-project work. Uses the advisor on the final plan before delegation (D18). | Write code. Hold repo-level integration detail. | Project registry, Engram day plan inputs for Tier 2 to record as strategic memory, Tier 2 summaries | Day plan, cross-repo briefs, day plan inputs for Tier 2 to record as strategic memory |
 | 2 | Claude Code, one session per repo | Repo-level strategy and the initial plan (no code-level specifics). Delegates to Tiers 4-5. Prepares the Tier 3 prompt and opens its TUI for the owner. Uses the advisor to review the final plan before delegating and to judge between competing plans (D18). Makes the first evaluation of returned work. Uses Haiku subagents to explore. | Write code or change files without owner override (D5). Enter the Tier 3 prompt itself, which only the owner may do. | Repo via Haiku explorers, Engram, Tier 4/5 artifacts | Repo brief, delegation orders, evaluation notes |
 | 2s | Claude Code tech support | Owns global dependency and system changes (the procedure in `WORKFLOW.md` "Global Tooling Changes"). Uses Haiku subagents. | Change anything outside a Tier 2 or owner request. | System state | Change records |
 | 3 | Antigravity (optional) | Produces an alternative plan for Tier 2 to weigh. Tier 2 opens the TUI and drafts the prompt; the owner enters it. | Receive a prompt entered by an agent. Block the pipeline. | The brief, entered by the owner | An alternative plan, saved by the owner |
@@ -176,8 +176,8 @@ Everything below that is a **proposal** for the owner to confirm.
 
 | Store | Used by | Holds | Proposed rule |
 |---|---|---|---|
-| Engram, `global` scope | Writes: Tiers 1, 2, 2s and 4. Reads: also Tier 5, read-only (D23) | Cross-repo strategy: decisions, spec index, stage outcomes, handoff summaries. Only this scope is visible to other repos. | Written at phase boundaries only, not per message. Tier 5 has no `mem_save`. |
-| Engram, `project` scope | Writes: Tiers 1, 2, 2s and 4. Reads: also Tier 5, read-only (D23) | Repo-specific decisions and discoveries | Stays inside the repo (scoped by git remote). |
+| Engram, `global` scope | Writes: Tier 2 only; Tiers 1, 2s and 4 hand findings to Tier 2 (D23). Reads: also Tier 5, read-only | Cross-repo strategy: decisions, spec index, stage outcomes, handoff summaries. Only this scope is visible to other repos. | Written at phase boundaries only, not per message. Tier 5 has no `mem_save`. |
+| Engram, `project` scope | Writes: Tier 2 only; Tiers 1, 2s and 4 hand findings to Tier 2 (D23). Reads: also Tier 5, read-only | Repo-specific decisions and discoveries | Stays inside the repo (scoped by git remote). |
 | Magic Context | Tier 5 sessions only | In-session state of the OpenCode sessions | Remains the main memory manager in OpenCode. Not mirrored into Engram. |
 
 Constraints that already exist and stay: review and Judgment Day agents are memory-write denied

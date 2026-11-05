@@ -11,9 +11,10 @@ deploys and self-heals all of it. Changes here take effect in every project on t
 
 ## Claude Code's role here
 
-- **Advisory by default (owner, 2026-10-02).** The OpenCode agents implement; Claude Code gives
-  pre-code advice and post-code advisory review. Implement only when the owner asks for it
-  explicitly.
+- **Manager role (Tier 1/Tier 2, D5, D26).** Claude Code manages and delegates; it writes no code
+  and makes no change without an explicit owner override. It uses Haiku subagents to explore and
+  owns all Engram writes (D23). Full definitions: `roles/` (`tier-1.md`, `tier-2.md`, `tier-2s.md`,
+  `tier-4.md`); the OpenCode agents implement.
 - `WORKFLOW.md` is written for the OpenCode `gentle-orchestrator` (read-only, delegates every
   mutation to sandbox workers). Its tool names (`sandbox_*`, `host_*`, `ctx_*`, `asi-review-*`)
   do not exist in Claude Code. Read it to understand the rules being enforced, not as
