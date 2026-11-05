@@ -1,0 +1,12 @@
+{
+  "_note": "Placeholder numbers only. Replace limits from the measured one-day baseline (criterion S9) before relying on check.",
+  "tier_map": [
+    {"project": "/path/to/a/tier-2-checkout", "tier": "2"},
+    {"subscription": "openai", "model": "gpt-example", "tier": "4"}
+  ],
+  "thresholds": {
+    "claude": {"unit": "tokens", "window_hours": 5, "limit": 1000000, "downgrade_at": 0.7, "skip_tier3_at": 0.9},
+    "openai": {"unit": "tokens", "window_hours": 5, "limit": 1000000, "downgrade_at": 0.7, "skip_tier3_at": 0.9},
+    "google": {"unit": "calls", "window_hours": 24, "limit": 50, "downgrade_at": 0.7, "skip_tier3_at": 0.9}
+  }
+}
