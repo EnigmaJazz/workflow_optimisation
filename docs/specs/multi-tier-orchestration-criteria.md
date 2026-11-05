@@ -38,7 +38,7 @@ Sources: [Tier 2](multi-tier-orchestration.md) (D1–D24, sections 3–14); [adv
 
 | ID | Stage | Landing repo | Acceptance criterion | Verification |
 |---|---|---|---|---|
-| S12 | A2 | workflow_optimisation | Tier 1/2/2s/4 definitions have a written, versioned home — **blocked by OPEN-13**; the owner must choose the home. | Owner decision plus versioned role artifacts. |
+| S12 | A2 | workflow_optimisation | Tier 1/2/2s/4 definitions live in `roles/`, one versioned file per tier (D26). | Owner decision plus versioned role artifacts. |
 | S13 | A2 | workflow_optimisation | Tier 1 owns the day plan’s cross-repository sequencing. | Tier 1 role section; sample day-plan artifact. |
 | S14 | A2 | workflow_optimisation | Tier 1 excludes repository integration detail from its context. | Tier 1 input contract. |
 | S15 | A2 | workflow_optimisation | Tier 1 is prohibited from writing code. | Tier 1 role restriction. |

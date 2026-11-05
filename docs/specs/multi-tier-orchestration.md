@@ -48,6 +48,7 @@ for every seat, and any implementation.
 | D23 | Tier 5 uses Engram read-only. Tier 2 owns all Engram writes. Magic Context stays the in-session memory. | Owner, 2026-11-05 |
 | D24 | Staging build scope: P0-P2, a reduced P4 (reject, STALE, re-run from the tip, no merge-tree replay), P6 kept, P5 only if unattended multi-stage work needs it, P3 deferred. | Owner, 2026-11-05 |
 | D25 | The usage ledger lives in `workflow_optimisation`. | Owner, 2026-11-05 |
+| D26 | The Tier 1, 2, 2s and 4 role definitions live in a `roles/` directory in `workflow_optimisation`, one versioned file per tier. | Owner, 2026-11-05 |
 
 ## 3. Tier contracts
 
@@ -273,7 +274,7 @@ No numeric budget is set here; it must come from a measured baseline.
 | OPEN-10 | **Resolved as a decision (D21).** Remaining check: Paperclip must be usable through its REST API and UI alone, with its local CLI adapters disabled. Test this first in the spike. |
 | OPEN-11 | Can the `opencode-v2-secure` nono profile reach Engram's MCP server and store for **reads**? Section 8's Tier 5 row depends on it. |
 | OPEN-12 | **Resolved (D12):** Tier 2 writes the Antigravity prompt for owner review; the owner pastes it. Still worth checking against the Antigravity subscription terms (OPEN-6). |
-| OPEN-13 | Where do the Tier 1, 2, 2s and 4 role definitions live? Tiers 1-4 have no guard, so they need a written, versioned home. |
+| OPEN-13 | **Resolved (D26):** `roles/` in `workflow_optimisation`, one versioned file per tier. |
 | OPEN-14 | **Resolved (D25):** the usage ledger lives in `workflow_optimisation`. |
 | OPEN-15 | **Resolved (D21).** |
 | OPEN-16 | **Resolved (D22).** Remaining: it changes who may author `host_gate_verdict`, a contract others consume (high-risk item 3, in `agent-sandbox-integration`), so it needs its own commit and an independent verifier. See OPEN-19. |
@@ -315,7 +316,7 @@ unit is assigned to exactly one repo.
 
 | Change | Repo |
 |---|---|
-| This spec; Tier 1, 2, 2s and 4 role definitions (home to be chosen, **OPEN-13**) | `workflow_optimisation` |
+| This spec; Tier 1, 2, 2s and 4 role definitions (`roles/`, D26) | `workflow_optimisation` |
 | `CLAUDE.md` role rewrite (OPEN-7); remove the advisory-only rule | `workflow_optimisation` (also check the `CLAUDE.md` in the other repo) |
 | Narrowing the orchestrator contract; need-to-know pass; guard enforcement (D10, D11) | `workflow_optimisation` (`WORKFLOW.md`, `global-config/skills`, routing guard) |
 | Full OpenCode model assignment review, including the Planner off Sol (D3, D15, OPEN-8) | `workflow_optimisation` (`global-config/opencode.json`, `systematic.jsonc`, `rate-limit-fallback.json`) |
