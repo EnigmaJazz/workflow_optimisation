@@ -103,7 +103,7 @@ Sources: [Tier 2](multi-tier-orchestration.md) (D1–D24, sections 3–14); [adv
 | S64 | A4 | workflow_optimisation | Any comparison Noul `>= 0.3` requires Tier 2 to read the alternative plan. | Boundary routing test at `0.3`; fixture in the unsettled band. |
 | S65 | A4 | workflow_optimisation | Code decides the plan-comparison route from Jev judgments. | Routing logic diff. |
 | S66 | A4 | workflow_optimisation | Plan-comparison requests require owner consent to send both plans to TypeSafe. | Consent artifact before the first request using `TYPESAFE_API_KEY`. |
-| S67 | A4 | workflow_optimisation | Comparison payload handling fits Jev’s documented model limits — **blocked by Jev input-size limits**; model limits plus a compliant payload strategy are needed. | Documented limits with representative payload-size verification. |
+| S67 | A4 | workflow_optimisation | Each comparison payload fits 32k tokens per question and 64k tokens per request, or is chunked per criterion. | Token-size check of a representative payload against the limits in the spec (section 9). |
 | S68 | A4 | workflow_optimisation | The advisor judges between materially competing plans. | Competing-plan advisor artifact (D18). |
 | S69 | A4 | workflow_optimisation | Claude Code Tiers 1/2 use the advisor on the final plan before delegation. | Final-plan advisor artifact preceding delegation (D18). |
 
@@ -155,7 +155,7 @@ Sources: [Tier 2](multi-tier-orchestration.md) (D1–D24, sections 3–14); [adv
 | S101 | B2 | agent-sandbox-integration | Jev receives only checks not already decided deterministically. | Request fixture excluding deterministically settled checks. |
 | S102 | B2 | agent-sandbox-integration | Each acceptance criterion is checked by one Noul. | Plan/spec and implementation/spec request fixtures keyed by `S#`. |
 | S103 | B2 | agent-sandbox-integration | Each Noul receives only the evidence relevant to its criterion. | Request fixtures containing the relevant plan section or diff. |
-| S104 | B2 | agent-sandbox-integration | Gate payload handling fits Jev’s documented model limits — **blocked by Jev input-size limits**; model limits plus a criterion-level payload strategy are needed. | Documented limits with per-criterion payload-size verification. |
+| S104 | B2 | agent-sandbox-integration | Each gate payload fits 32k tokens per question, or is chunked per criterion, or is treated as unsure and routed under D22. | Per-criterion token-size check against the limits in the spec (section 9). |
 | S105 | B2 | agent-sandbox-integration | Code records the verdict for a clear match to the spec (D22). | Clear-match routing test verifying code authorship after deterministic checks. |
 | S106 | B2 | agent-sandbox-integration | A clear fail returns work to the Planner for refinement (D22). | Clear-fail routing test. |
 | S107 | B2 | agent-sandbox-integration | An unsure result reaches the independent spec-check agent, the existing `advisor-spec-pre` and `advisor-spec-post` seats (D27). | Unsure routing test against those seats. |

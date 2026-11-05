@@ -202,9 +202,14 @@ Two checkpoints per stage: (a) the plan against the spec, (b) the implementation
   guidance is that Jev supplies judgments and code decides, and it suggests 0.7 and 0.3 as starting
   thresholds for a Noul, with the band between meaning "not settled". Here that band goes to an LLM;
   above 0.7 and below 0.3 are recorded as pass and fail. Confidence alone is not the gate.
-- To check: the input size limits of the Jev models (documented on the TypeSafe models page, not yet
-  read). If one criterion plus a stage diff exceeds them, the diff must be chunked per criterion
-  before this design holds.
+- Jev limits (TypeSafe models page, `jev-1.13` and `jev-1.14`, fetched 2026-11-05): 64k tokens per
+  request and 32k tokens per question by default. The state plus any one question must fit 32k tokens,
+  and the state plus all questions must fit 64k. A long-context header raises both to 262k, but the
+  page says it is slower and less accurate, so it is not used by default. No question count, byte size
+  or image token cost is stated. Rate limits are per organization and the figures are only in the
+  developer console. Consequence: code checks the token size of each criterion's state (criterion plus
+  plan section or diff) before the call. A payload over 32k tokens is chunked per criterion or, if it
+  cannot be chunked, treated as unsure and routed under D22.
 - Gate routing (D22), decided in code from the Jev result and the deterministic checks:
 
   | Result | Action |
