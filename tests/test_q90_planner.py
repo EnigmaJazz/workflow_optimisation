@@ -6,6 +6,10 @@ import shutil
 import subprocess
 import unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 REPO = Path(__file__).resolve().parent.parent
 CONFIG_PATH, SCRIPT = REPO / "global-config/opencode.json", REPO / "verify-workflow.sh"
@@ -17,6 +21,7 @@ ADVISORS = (
     "advisor-security-pre", "advisor-maintainability-pre", "advisor-design-post",
     "advisor-integration-post", "advisor-testing-post", "advisor-security-post",
     "advisor-maintainability-post", "advisor-gemini-pre", "advisor-gemini-post",
+    "advisor-spec-pre", "advisor-spec-post",
 )
 READ_TOOLS = ("read", "codegraph_codegraph_explore", "ast_grep_search", "aft_outline",
               "aft_zoom", "aft_search", "aft_callgraph", "aft_inspect", "sandbox_read",
@@ -31,7 +36,7 @@ def load_config():
 
 
 def extract_block():
-    text = SCRIPT.read_text(encoding="utf-8")
+    text = verifier_text()
     start, end = text.find(BEGIN), text.find(END)
     return None if start < 0 or end < 0 or end < start else text[start:end + len(END)]
 
@@ -119,7 +124,7 @@ class RealConfig(unittest.TestCase):
                        "Native built-in `grep` is unavailable"):
             self.assertIn(needle, evidence["prompt"], needle)
     def test_wiring_and_narrow_sweeps(self):
-        verifier = SCRIPT.read_text(encoding="utf-8")
+        verifier = verifier_text()
         for needle in (
             "for (const failure of plannerHandoffFailures(deployedAgents,gp)) fail(failure)",
             'const planWriterAgents=[...coordinatorAgents,"planner"]',
@@ -135,6 +140,7 @@ class RealConfig(unittest.TestCase):
         config_text = CONFIG_PATH.read_text(encoding="utf-8")
         for tool_id in ("aft_import", "aft_safety", "ast_grep_replace"):
             self.assertIn(f'"{tool_id}"', inventory, tool_id)
+            # planner and planner-evidence carry these denials.
             self.assertEqual(config_text.count(f'"{tool_id}": false'), 2, tool_id)
             self.assertEqual(config_text.count(f'"{tool_id}": "deny"'), 2, tool_id)
         self.assertNotIn('const coordinatorAgents=["gentle-orchestrator",...pmAgents,"planner"]', verifier)

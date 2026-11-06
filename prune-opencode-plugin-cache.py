@@ -162,14 +162,15 @@ def configured_plugins(
     references: set[str] = set()
     config_sha256: dict[str, str] = {}
     found_config = False
-    for name in ("opencode.json", "tui.json"):
+    for name in ("opencode.json", "tui.json", "cli.json"):
         path = config_dir / name
         if not path.exists():
             continue
         found_config = True
         config_sha256[name] = sha256_file(path)
         data = load_json(path)
-        config_references = data.get("plugin", [])
+        # V2's cli.json keeps its list under `plugins`; the V1 files use `plugin`.
+        config_references = data.get("plugins" if name == "cli.json" else "plugin", [])
         if config_references is None:
             config_references = []
         if not isinstance(config_references, list):
@@ -305,7 +306,7 @@ def process_cache_dir(pid: int, environment: dict[str, str]) -> Path:
 def config_mtime(config_dir: Path) -> float:
     paths = [
         config_dir / name
-        for name in ("opencode.json", "tui.json")
+        for name in ("opencode.json", "tui.json", "cli.json")
         if (config_dir / name).is_file()
     ]
     if not paths:

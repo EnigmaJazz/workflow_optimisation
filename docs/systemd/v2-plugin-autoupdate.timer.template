@@ -1,0 +1,11 @@
+# Daily guarded plugin update for secured OpenCode V2 (user timer template; see the .service template).
+[Unit]
+Description=Daily guarded plugin update for secured OpenCode V2
+
+[Timer]
+OnCalendar=*-*-* 04:30:00
+RandomizedDelaySec=20m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

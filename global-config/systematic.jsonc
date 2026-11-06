@@ -29,7 +29,7 @@
         "sandbox_copy_out": "deny",
         "sandbox_discard": "deny",
         "sandbox_finish": "deny",
-        "ctx_memory": "allow"
+        "ctx_memory": "deny"
       }
     },
     "research": {
@@ -119,7 +119,7 @@
   "agents": {
     "systematic-implementer": {
       "model": "opencode-go/deepseek-v4.1-flash",
-      "variant": "xhigh",
+      "variant": "max",
       "temperature": 0.1,
       "steps": 50,
       "permission": {

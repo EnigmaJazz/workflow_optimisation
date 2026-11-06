@@ -1,0 +1,15 @@
+<!-- user:workflow-routing -->
+<!-- workflow:anchor workflow.agents.secure-router:begin -->
+## Secure workflow router (MANDATORY)
+
+This global user-owned block is a lightweight entrypoint. Keep `/home/james/ai-workspace/workflow_optimisation/WORKFLOW.md` as the single task-class and route policy. On every new user task, before choosing a phase or specialist, call the native `skill({name:"workflow-route"})` tool and follow its classification; after a long-chat compaction/resume or meaningful scope change, load it again and reconcile the route. Read the current recipe with an authorized read-only tool when the skill requests it. The absence of `skill` or a required named Task tool blocks dependent mutation; do not substitute inline execution. A read-only response may explain the limitation.
+
+Before any writer, establish explicit change intent, and check project registration using only the reviewed `host_register_project` path when required. The `gentle-orchestrator` is a read-only technical lead: no host Bash or project edit/write, no sandbox mutation/lifecycle authority. Every project mutation/execution goes to an authorized sandbox worker, including an upstream inline one-file fix. Do not weaken `grep: ask` or the host/sandbox permission overlays. Read-only requests have no writer or ODD tracker.
+
+Use the router's selected adapters: `workflow-odd-secure` for authorized default ODD, and `workflow-systematic` when the route invokes its installed skills. The selected Systematic, frontend and review skills keep their named agent precedence. No file-count or risk threshold automatically selects SDD. For substantial ODD record route/trigger evidence and actual Task dispatch in the task file and complete Magic Context mirror before claiming progress; on long-chat resume read both. Any commit intended for native RDD must carry the staged reviewability receipt and obey the local per-commit line/byte cap defined by `workflow-odd-secure`; native Gentle AI START remains the final 200 KiB serialized-input authority. RDD defaults on when unset: read effective mode and deciding source per project; never toggle it automatically, and honor explicit off. Native review remains user-owned and separate. Fail closed when the requested specialist or safe tool surface is unavailable.
+
+Before coding, honor the per-project/session local-vs-cloud writing-model choice already specified in the canonical recipe; never silently reuse an unknown decision. Astra is a user-selectable upgrade only for Sol-assigned non-implementation phases on extremely critical changes; recommend it with a concrete reason and never assign it to an implementation worker or edit global config to select it. The active model and plugin permissions remain in `opencode.json`.
+
+Emit `ROUTE: <class> | intent: <read-only/authorized change> | route: <skill/phase> | specialist: <name> | basis: WORKFLOW.md`. A route line alone does not prove execution: verify loaded skill, named Task result and relevant checks. Keep user-facing terminal commands Fish-compatible.
+<!-- workflow:anchor workflow.agents.secure-router:end -->
+<!-- /user:workflow-routing -->

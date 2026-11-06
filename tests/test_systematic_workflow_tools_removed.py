@@ -7,6 +7,10 @@ import json
 import re
 import unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 REPO = Path(__file__).resolve().parent.parent
 REMOVED_TOOL = re.compile(r"systematic_workflow_[a-z_]+")
@@ -18,7 +22,7 @@ def strip_jsonc_comments(text):
 
 class SystematicWorkflowToolsRemoved(unittest.TestCase):
     def test_verifier_does_not_require_removed_tools(self):
-        text = (REPO / "verify-workflow.sh").read_text(encoding="utf-8")
+        text = verifier_text()
         self.assertEqual(REMOVED_TOOL.findall(text), [])
 
     def test_canonical_config_does_not_grant_removed_tools(self):

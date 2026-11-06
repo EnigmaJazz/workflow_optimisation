@@ -1,5 +1,7 @@
 # Host sandbox integration deployment notes — Gentle AI 3.0.2
 
+> **SUPERSEDED / HISTORICAL.** This note records a pre-V2 deployment. The live stack is OpenCode V2 2.2.5 with V1 kept as rollback; see `docs/upgrades/opencode-v2-operations.md`.
+
 The reviewed workflow sources target Gentle AI **3.0.2+** and Systematic **3.18.4+**, with the Systematic reference pinned to **3.18.5**. They preserve `grep: ask`, the local `file://` auto-update plugin, sandbox-only project changes, per-session optional Astra for Sol review roles, and the decision to ignore peak policy. Gentle AI v3 makes ODD the default. For substantial authorized work, our secure adapter delegates creation of `odd/tasks/<feature>.md` and mirrors its complete body to Magic Context before the first implementation source edit. It does not install or require Engram.
 
 ## Files to place in the workflow manager

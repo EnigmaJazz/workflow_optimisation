@@ -7,6 +7,10 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -427,7 +431,7 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
     def setUpClass(cls):
         cls.config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
         cls.agents = cls.config["agent"]
-        cls.verifier = VERIFIER_PATH.read_text(encoding="utf-8")
+        cls.verifier = verifier_text()
         cls.handoff = HANDOFF_PATH.read_text(encoding="utf-8")
 
     def test_three_agents_receive_exact_permissions_and_pm_tool_maps(self):
@@ -678,7 +682,7 @@ class HostFixedToolPermissionTests(unittest.TestCase):
     def setUpClass(cls):
         cls.config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
         cls.agents = cls.config["agent"]
-        cls.verifier = VERIFIER_PATH.read_text(encoding="utf-8")
+        cls.verifier = verifier_text()
         cls.prompt = cls.agents["gentle-orchestrator"]["prompt"]
 
     def run_controls(self, body, fragments=None):
@@ -868,7 +872,7 @@ class ReviewDispatchPermissionTests(unittest.TestCase):
     def setUpClass(cls):
         cls.config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
         cls.agents = cls.config["agent"]
-        cls.verifier = VERIFIER_PATH.read_text(encoding="utf-8")
+        cls.verifier = verifier_text()
 
     def predicate_source(self):
         self.assertIn(

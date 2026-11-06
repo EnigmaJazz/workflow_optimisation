@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const config = JSON.parse(readFileSync(new URL("../global-config/opencode.json", import.meta.url), "utf8"));
-const verifier = readFileSync(new URL("../verify-workflow.sh", import.meta.url), "utf8");
+// verify-workflow.sh is a thin entry (queue Q04); its checks live in the manifest-listed verify/*.sh modules.
+const verifierEntry = readFileSync(new URL("../verify-workflow.sh", import.meta.url), "utf8");
+const moduleNames = [...verifierEntry.matchAll(/^\s*"([^ "]+) [0-9a-f]{64}"/gm)].map((m) => m[1]);
+assert.ok(moduleNames.length > 10, "verifier manifest lists its modules");
+const verifier = [verifierEntry, ...moduleNames.map((name) => readFileSync(new URL(`../verify/${name}`, import.meta.url), "utf8"))].join("\n");
 const permissionBlock = verifier.slice(verifier.indexOf("const registeredHostReads=["), verifier.indexOf("function reviewAgentLockdownFailures("));
 assert.doesNotThrow(() => new Function(permissionBlock), "extracted verifier permission block must parse");
 const functionNames = [

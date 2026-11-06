@@ -92,7 +92,7 @@ beforeEach(async () => {
   process.env.SYSTEMATIC_ROUTING_GUARD_STATE_ROOT = root
   process.env.SYSTEMATIC_ROUTING_GUARD_MODE = "warn"
   guard = await import(GUARD)
-  hooks = await guard.default({} as any)
+  hooks = await guard.default.server({} as any)
 })
 
 afterEach(() => {
@@ -154,12 +154,16 @@ describe("0. state-root seam", () => {
 })
 
 describe("7. exported stage table", () => {
-  test("plugin exports only its factory functions", () => {
+  test("plugin exports no function besides its dual-mode default object", () => {
     const functionExports = Object.entries(guard)
       .filter(([, value]) => typeof value === "function")
       .map(([name]) => name)
       .sort()
-    expect(functionExports).toEqual(["SystematicRoutingGuardPlugin", "default"])
+    expect(functionExports).toEqual([])
+    expect(typeof guard.default).toBe("object")
+    expect(guard.default.id).toBe("systematic-routing-guard")
+    expect(typeof guard.default.setup).toBe("function")
+    expect(typeof guard.default.server).toBe("function")
   })
 
   test("plugin factory returns its recognized hooks", () => {
@@ -1062,7 +1066,7 @@ describe("8. PM own-route key binding", () => {
 
   test("the binding persists for a new plugin factory in the same session", async () => {
     await message("ses_pm_resume", "pm-odd")
-    hooks = await guard.default({} as any)
+    hooks = await guard.default.server({} as any)
     await before("host_git_commit", "ses_pm_resume", {})
     expect(logCount(pmWarning("pm-odd", ODD, "host_git_commit"))).toBe(1)
   })

@@ -12,6 +12,10 @@ import shutil
 import subprocess
 import unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 REPO = Path(__file__).resolve().parent.parent
 PLUGIN = REPO / "global-config" / "plugins" / "astra-sol-upgrade.ts"
@@ -21,12 +25,12 @@ ACTORS = [f"{prefix}review-{role}" for prefix in ("", "asi-")
           for role in ("risk", "resilience", "readability", "reliability", "refuter", "validator")]
 
 RUNNER = """
-import { AstraSolUpgradePlugin } from %s
+import plugin from %s
 const names = JSON.parse(process.argv[1])
 const agents = { "gentle-orchestrator": { mode: "primary", model: "x/y", permission: { task: {} } },
   "planner": { mode: "subagent", model: "%s" } }
 for (const n of names) agents[n] = { mode: "subagent", model: "%s" }
-const hooks = await AstraSolUpgradePlugin({})
+const hooks = await plugin.server({})
 await hooks.config({ agent: agents })
 console.log(JSON.stringify(Object.keys(agents).filter((k) => k.endsWith("-astra")).sort()))
 """ % (json.dumps(str(PLUGIN)), SOL, SOL)
@@ -48,7 +52,7 @@ class AstraReviewActors(unittest.TestCase):
     def test_verifier_uses_the_same_exclusion(self):
         pattern = r"(asi-)?review-(risk|resilience|readability|reliability|refuter|validator)"
         self.assertIn(pattern, PLUGIN.read_text(encoding="utf-8"))
-        self.assertIn(pattern, VERIFIER.read_text(encoding="utf-8"))
+        self.assertIn(pattern, verifier_text())
 
 
 if __name__ == "__main__":

@@ -1,0 +1,22 @@
+# NOT INSTALLED. Detector for blocked permission prompts on the OpenCode V2 server (port 4097). The user installs it:
+#   cp systemd/opencode-perm-v2.service ~/.config/systemd/user/ && systemctl --user daemon-reload && systemctl --user enable --now opencode-perm-v2.service
+# It runs the same ~/.local/bin/opencode-perm as the V1 unit, in its opt-in V2 mode, with its own state directory so the two
+# detectors never share acknowledgements. It polls V2's API with the server password (read from the 0600 file) and never
+# answers a permission by itself.
+[Unit]
+Description=OpenCode V2 Blocking Permission Detector
+After=default.target secure-opencode-v2.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/opencode-perm watch
+Restart=on-failure
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+Environment=OPENCODE_PERMISSION_API=v2
+Environment=OPENCODE_PERMISSION_SERVER=http://127.0.0.1:4097
+Environment=OPENCODE_PERMISSION_STATE_DIR=%h/.local/state/opencode-permissions-v2
+Environment=OPENCODE_PERMISSION_PASSWORD_FILE=%h/.local/share/opencode-v2/server-password
+
+[Install]
+WantedBy=default.target

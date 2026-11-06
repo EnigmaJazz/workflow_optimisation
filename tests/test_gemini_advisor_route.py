@@ -25,6 +25,10 @@ import shutil
 import subprocess
 import unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 REPO = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO / "global-config" / "opencode.json"
@@ -33,6 +37,8 @@ SCRIPT = REPO / "verify-workflow.sh"
 
 ADVISORS = ("advisor-gemini-pre", "advisor-gemini-post")
 EVIDENCE = "advisor-gemini-evidence"
+# Owner decision 2026-10-31: the Argon pre-code seats gather through the same evidence agent, with exactly this task scope.
+EVIDENCE_USERS = ("advisor-design-pre", "advisor-security-pre", "advisor-spec-pre", "advisor-spec-post")
 ARGON = "google/gemini-4-argon"
 FLASH = "google/gemini-3.8-flash"
 DISPATCHERS = ("gentle-orchestrator", "pm-odd", "pm-systematic", "planner")
@@ -148,6 +154,10 @@ def dispatch_violations(data):
                 effective_advisor = task[advisor] if advisor in task else task.get("*")
                 if effective_advisor == "allow":
                     out.append((name, f"may dispatch {advisor} ({effective_advisor!r})"))
+        if name in EVIDENCE_USERS:
+            if task != {"*": "deny", EVIDENCE: "allow"}:
+                out.append((name, f"evidence scope {task!r}"))
+            continue
         effective = task[EVIDENCE] if EVIDENCE in task else task.get("*")
         if effective != "deny":
             out.append((name, f"may dispatch {EVIDENCE} ({effective!r})"))
@@ -207,7 +217,7 @@ def production_declarations(text):
 
 def run_verifier_block(agents, fallback):
     """Execute the extracted verifier block; return its failure list."""
-    text = SCRIPT.read_text(encoding="utf-8")
+    text = verifier_text()
     block = extract_block(text)
     if block is None:
         raise AssertionError("gemini-advisor-route block not found in verify-workflow.sh")
@@ -309,6 +319,22 @@ class PositiveControl(unittest.TestCase):
             f"GEMINI_EVIDENCE_DISPATCHABLE: pm-odd={json.dumps('allow')}",
             run_verifier_block(data["agent"], fallback),
         )
+
+    def test_argon_pre_seats_may_use_the_evidence_agent_only_with_the_exact_scope(self):
+        data, fallback = self.mutated()
+        self.assertEqual(dispatch_violations(data), [])
+        self.assertEqual(run_verifier_block(data["agent"], fallback), [])
+        data["agent"]["advisor-design-pre"]["permission"]["task"]["*"] = "allow"
+        self.assertEqual(dispatch_violations(data)[0][0], "advisor-design-pre")
+        self.assertTrue(any(f.startswith("GEMINI_EVIDENCE_USER_SCOPE_MISMATCH: advisor-design-pre=")
+                            for f in run_verifier_block(data["agent"], fallback)))
+
+    def test_a_seat_outside_the_argon_pair_still_cannot_use_the_evidence_agent(self):
+        data, fallback = self.mutated()
+        data["agent"]["advisor-testing-pre"].setdefault("permission", {})["task"] = {"*": "deny", EVIDENCE: "allow"}
+        self.assertIn(("advisor-testing-pre", f"may dispatch {EVIDENCE} ('allow')"), dispatch_violations(data))
+        self.assertIn(f"GEMINI_EVIDENCE_DISPATCHABLE: advisor-testing-pre={json.dumps('allow')}",
+                      run_verifier_block(data["agent"], fallback))
 
     def test_orchestrator_ask_default_reaching_the_evidence_agent_fails(self):
         data, fallback = self.mutated()

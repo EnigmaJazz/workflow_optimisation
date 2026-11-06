@@ -29,11 +29,12 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
    canonical MCP with a scoped `WORKFLOW.md` policy (Magic Context stays main memory).
 10. Deployment gating matrix (Q28): every workflow rule gets an enforcement point or an
     advisory-only record.
-11. gentle-ai v4 upgrade (planned; owner-triggered): decisions, then docs/agents/verifier/guard
+11. gentle-ai v4 upgrade (executed 2026-10-12/13; owner-triggered): decisions, then docs/agents/verifier/guard
     changes on one gated branch, then the runbook (queue Q29-Q39 and Q65-Q66).
 
-12. OpenCode V2 upgrade (planned; owner-triggered; after the gentle-ai v4 upgrade): probe side by
-    side, port plugins dual-mode, verifier V2 mode, change set and runbook (queue Q40-Q47).
+12. OpenCode V2 upgrade (executed 2026-10-31): probe side by side, port plugins dual-mode, verifier
+    V2 mode, change set and runbook (queue Q40-Q47). V2 2.2.5 is the live stack on port 4097 with V1
+    kept as rollback; the operating guide is `docs/upgrades/opencode-v2-operations.md`.
 13. Project-manager layer (owner, 2026-10-04; queue Q53-Q61): the orchestrator becomes the
     strategic front end and dispatches one route-specific project-manager subagent per work
     unit, which runs the route to completion. Q54 is done from the owner-relayed Handover A report;
@@ -181,7 +182,11 @@ The queue with statuses and prerequisites is `docs/TODO.md`. Its Phases block is
     Engram SDD change lacks an owner disposition: finish on 3.7.0 first, convert to ODD, or
     abandon.
 
-## OpenCode V2 upgrade path (planned, 2026-10-02)
+## OpenCode V2 upgrade path (executed 2026-10-31; V1 kept as rollback)
+- **State:** the path below was delivered. V2 2.2.5 runs as the live stack on port 4097 under
+  `secure-opencode-v2.service`, the derived config root is deployed, and V1 stays runnable as the
+  rollback. Operating guide: `docs/upgrades/opencode-v2-operations.md`; one-time cutover record:
+  `docs/upgrades/opencode-v2-cutover.md`; live state and open items: `HANDOFF.md`.
 - **Why:** OpenChamber 2.x requires OpenCode 2.0.15 or newer.
 - **Order:** gentle-ai v4 first (native review on V2 needs it), then a V2-compatible Systematic
   release (hard blocker), third-party plugin readiness (`~/ai-workspace/OPENCODE-V2-PLUGIN-TASKS.md`) and the agent-sandbox plugin port,

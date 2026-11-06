@@ -984,6 +984,8 @@
     "advisor-integration-post",
     "advisor-testing-post",
     "advisor-maintainability-post",
+    "advisor-spec-pre",
+    "advisor-spec-post",
     "advisor-gemini-pre",
     "advisor-gemini-post",
     "advisor-gemini-evidence"

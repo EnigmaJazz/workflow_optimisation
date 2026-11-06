@@ -1,0 +1,160 @@
+# --- 10. Optional behavioural parallel-dispatch probe ---
+echo "--- 10. Behavioural parallel dispatch ---"
+if [ "$RUN_BEHAVIOURAL" -ne 1 ]; then
+  echo "   skipped: run with --behavioral after workflow/OpenCode permission changes"
+elif [ "$FAIL" -ne 0 ]; then
+  fail "behavioural fan-out probe skipped because deterministic checks already failed"
+elif ! command_exists opencode; then
+  fail "opencode executable not found; behavioural fan-out probe skipped"
+else
+  PARALLEL_PROMPT='WORKFLOW HEALTH PROBE. Do not answer inline and do not inspect the repository. In your FIRST assistant tool-use step, emit exactly TWO native Task calls in the SAME assistant message before waiting for either result. Call subagent_type="explore" with prompt "Return exactly PARALLEL_SENTINEL_A and do not call any tools." Call subagent_type="general" with prompt "Return exactly PARALLEL_SENTINEL_B and do not call any tools." These tasks are independent. Do not call any other tool. After both Task results return, reply exactly PARALLEL_FANOUT_DONE.'
+
+  PARALLEL_STATUS=0
+  if command_exists timeout; then
+    (
+      cd "$PROBE_CWD" || exit 1
+      WORKFLOW_HEALTH_CHECK_PROBE=1 \
+      timeout 180s bash "$OC_PROBE" run --format json --agent gentle-orchestrator "$PARALLEL_PROMPT" \
+        >"$PARALLEL_EVENTS" 2>"$PARALLEL_STDERR"
+    ) || PARALLEL_STATUS=$?
+  else
+    (
+      cd "$PROBE_CWD" || exit 1
+      WORKFLOW_HEALTH_CHECK_PROBE=1 \
+      bash "$OC_PROBE" run --format json --agent gentle-orchestrator "$PARALLEL_PROMPT" \
+        >"$PARALLEL_EVENTS" 2>"$PARALLEL_STDERR"
+    ) || PARALLEL_STATUS=$?
+  fi
+
+  if [ "$PARALLEL_STATUS" -ne 0 ]; then
+    fail "behavioural fan-out probe failed (exit $PARALLEL_STATUS)"
+    if [ -s "$PARALLEL_STDERR" ]; then
+      echo "      probe stderr (tail):"
+      tail -16 "$PARALLEL_STDERR" | sed 's/^/      /'
+    fi
+  elif python3 "$PARALLEL_CHECKER" "$PARALLEL_EVENTS"; then
+    echo "   ok: native Task behavioural probe passed"
+  else
+    fail "behavioural parallel-dispatch contract failed"
+    echo "      retained diagnostic preview:"
+    grep -E '"type":"(tool_use|text|step_finish)"|"tool":"(task|subagent)"' "$PARALLEL_EVENTS" 2>/dev/null | tail -20 | sed 's/^/      /'
+    if [ -s "$PARALLEL_STDERR" ]; then
+      echo "      probe stderr (tail):"
+      tail -12 "$PARALLEL_STDERR" | sed 's/^/      /'
+    fi
+  fi
+fi
+
+# A second, read-only behavioural probe checks that the ODD authorization
+# boundary holds in an actual orchestrator turn. It runs only under the paid,
+# user-invoked --behavioral flag, in the same neutral temporary project.
+echo "--- 10a. Behavioural ODD read-only authorization ---"
+if [ "$RUN_BEHAVIOURAL" -ne 1 ]; then
+  echo "   skipped: run with --behavioral to test the ODD route"
+elif [ "$FAIL" -ne 0 ]; then
+  fail "ODD behavioural probe skipped because earlier health checks failed"
+else
+  ODD_PROMPT='WORKFLOW HEALTH READ-ONLY PROBE. This is a planning-only question. Briefly explain how you would approach adding a single text label to a hypothetical application. Do not implement, write or modify files, register a project, start review, or create task records. No source repository is provided.'
+  ODD_EVENTS="$TMP_DIR/odd-readonly-events.jsonl"
+  ODD_STDERR="$TMP_DIR/odd-readonly.stderr"
+  ODD_STATUS=0
+  (
+    cd "$PROBE_CWD" || exit 1
+    WORKFLOW_HEALTH_CHECK_PROBE=1 timeout 120s bash "$OC_PROBE" run --format json --agent gentle-orchestrator "$ODD_PROMPT" >"$ODD_EVENTS" 2>"$ODD_STDERR"
+  ) || ODD_STATUS=$?
+  if [ "$ODD_STATUS" -ne 0 ]; then
+    fail "ODD_READ_ONLY_PROBE_FAILED: opencode run exited $ODD_STATUS"
+    tail -10 "$ODD_STDERR" 2>/dev/null | sed 's/^/      /'
+  elif python3 - "$ODD_EVENTS" "$PROBE_CWD" <<'PY_ODD_READONLY'
+import json
+import os
+from pathlib import Path
+import re
+import sys
+
+events = Path(sys.argv[1])
+root = Path(sys.argv[2])
+loaded_router = False
+skill_calls = []
+answer_text = ""
+tool_events = 0
+for line in events.read_text(encoding="utf-8", errors="replace").splitlines():
+    try:
+        event = json.loads(line)
+    except json.JSONDecodeError:
+        continue
+    part = event.get("part")
+    if event.get("type") == "text" and isinstance(part, dict) and isinstance(part.get("text"), str):
+        answer_text += part["text"] + "\n"
+    if not isinstance(part, dict) and event.get("type") == "tool":
+        part = event  # V2 may emit the tool part itself rather than wrapping it
+    if not isinstance(part, dict):
+        continue
+    tool = part.get("tool") or (part.get("name") if part.get("type") == "tool" else None)  # V1: tool; V2 stored parts: name
+    if tool:
+        tool_events += 1
+    state = part.get("state") or {}
+    if not isinstance(state, dict):
+        state = {}
+    launch = state.get("input") or {}
+    if not isinstance(launch, dict):
+        launch = {}
+    skill_name = launch.get("name") if isinstance(launch.get("name"), str) else launch.get("id")  # V1 names the skill in input.name, V2 2.2.5 in input.id
+    if tool == "skill" and isinstance(skill_name, str):
+        skill_calls.append(skill_name)
+        if skill_name == "workflow-route":
+            loaded_router = True
+    if tool in {"sandbox_write","sandbox_edit","sandbox_apply_patch","sandbox_bash","sandbox_apply","write","edit","bash","shell","host_plan_append","host_review_start","host_register_project"} or (tool in {"task", "subagent"} and (launch.get("subagent_type") or launch.get("agent")) not in {"explore"}):
+        print(f"   !! ODD_READ_ONLY_MUTATION_OR_WRITER: tool={tool} agent={launch.get('subagent_type') or launch.get('agent')}")
+        raise SystemExit(1)
+if os.environ.get("OC_MAJOR") == "2" and tool_events == 0:
+    # The V2 `run --format json` tool-event shape has not been observed; an empty read must not pass as "no writer launched".
+    print("   !! ODD_V2_STREAM_UNRECOGNISED: no tool events were recognised in the V2 JSON stream; the event shape needs inspecting")
+    raise SystemExit(1)
+if not loaded_router:
+    print("   !! ODD_ROUTER_SKILL_NOT_LOADED: expected native skill(workflow-route) call")
+    raise SystemExit(1)
+route_skills = [name for name in skill_calls if name.startswith("workflow-") and name != "workflow-route"]
+assigned_route = "workflow-odd-secure"
+# The route skill loads the adapter for an ODD change and "only what the specific question requires" for a read-only answer, and
+# WORKFLOW.md makes a planning-only request read-only. So a turn whose ROUTE statement says read-only intent needs no adapter; any
+# other adapter still fails, and a turn with no ROUTE statement keeps the strict adapter checks below.
+plain_text = re.sub(r"[*`]", "", answer_text)  # the model sometimes bolds the statement or a field of it
+route_line = re.search(r"ROUTE:[^|\n]*\|\s*intent:\s*([^|\n]*)\|", plain_text)
+read_only_route = bool(route_line) and route_line.group(1).strip().lower().startswith("read-only")
+if read_only_route:
+    stray = [name for name in route_skills if name != assigned_route]
+    if stray:
+        print(f"   !! ODD_ROUTE_SKILL_UNEXPECTED: read-only turn loaded {stray!r}")
+        raise SystemExit(1)
+    if (root / "odd" / "tasks").exists():
+        print("   !! ODD_READ_ONLY_TRACKER_CREATED: odd/tasks exists in probe")
+        raise SystemExit(1)
+    print("   ok: planning-only request stated a read-only ROUTE, launched no writer and created no ODD tracker")
+    raise SystemExit(0)
+if not route_skills:
+    seen = plain_text[plain_text.find("ROUTE"):][:160].replace("\n", " ") if "ROUTE" in plain_text else "no ROUTE statement in the answer"
+    print("   !! ODD_ROUTE_SKILL_NOT_LOADED: expected the assigned workflow-odd-secure route adapter after workflow-route")
+    print(f"      not treated as a read-only route; saw: {seen!r}")
+    raise SystemExit(1)
+if assigned_route not in route_skills:
+    print(f"   !! ODD_ROUTE_SKILL_NOT_ASSIGNED: expected {assigned_route}, observed {route_skills!r}")
+    raise SystemExit(1)
+if skill_calls.index("workflow-route") > skill_calls.index(assigned_route):
+    print("   !! ODD_ROUTE_SKILL_ORDER: workflow-route must load before the assigned route adapter")
+    raise SystemExit(1)
+if route_skills != [assigned_route]:
+    print(f"   !! ODD_ROUTE_SKILL_UNEXPECTED: expected only {assigned_route}, observed {route_skills!r}")
+    raise SystemExit(1)
+if (root / "odd" / "tasks").exists():
+    print("   !! ODD_READ_ONLY_TRACKER_CREATED: odd/tasks exists in probe")
+    raise SystemExit(1)
+print("   ok: planning-only request launched no writer and created no ODD tracker")
+PY_ODD_READONLY
+  then
+    :
+  else
+    fail "ODD_READ_ONLY_AUTHORIZATION_FAILED"
+  fi
+fi
+

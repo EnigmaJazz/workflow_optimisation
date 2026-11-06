@@ -23,7 +23,7 @@ Project registration is environment bootstrap, not a task class. Run this gate *
 - **Local Git preparation:** initialize `main` if needed, fill missing Git identity, and attach an existing GitHub `origin` when discovered.
 - **Remote creation:** never implicit. `--create-remote`, visibility, and first push require explicit user instruction.
 - **Idempotence:** re-registration must be safe and should report existing/skipped entries rather than duplicate them.
-- **Activation:** after the tool returns, the user restarts `sandbox-broker.service` and `secure-opencode.service`; `openchamber-secure` does not require restart. Registration is pending until those restarts complete and the secure runtime can re-open the project.
+- **Activation:** after the tool returns, the user restarts `sandbox-broker.service` and the live OpenCode unit — `secure-opencode-v2.service` on V2, or `secure-opencode.service` on V1; `openchamber-secure` does not require restart. Registration is pending until those restarts complete and the secure runtime can re-open the project.
 
 Gentle AI v4 upgrade activation is a separate operation from project registration and is covered by the runbook `docs/upgrades/gentle-ai-v4.md`.
 
@@ -143,6 +143,8 @@ The one-shot permit is scoped to a Task dispatch whose `description` begins with
 - Work outside a selected route must not create that route's artifacts, attempts, or synthetic phase state.
 - Re-classification is allowed at planning boundaries with user confirmation.
 
+Coordinator selection is automatic: dispatch substantial ODD units to `pm-odd` and substantial Systematic units to `pm-systematic`; tiny fixes stay direct delegated-writer dispatches with no PM, and read-only requests start no coordinator; select by task class and the existing substantial-work test, never by whether the user asks for a PM.
+
 <!-- workflow:anchor workflow.execution-boundary:begin -->
 ## Orchestrator Execution Boundary
 
@@ -156,7 +158,7 @@ The `gentle-orchestrator` is a strictly read-only technical lead.
 - Provider-issued CLI-shaped lifecycle commands do not grant shell authority. Run them only through an available reviewed fixed/native integration or correctly authorized delegated executor; otherwise stop as blocked.
 - Named Systematic/frontend/review specialists take precedence over generic `explore`/`general`.
 - When no named specialist owns the work, use `explore` as the read-only researcher fallback and `general` as the sandbox worker fallback.
-- Keep primary code review independent of the writer's model family: the DeepSeek `gentle-orchestrator` reviews ordinary `general` (GPT-6 Luna) work, and `gentle-ai-verify-routine` (Claude Haiku 5.5, the default tier) or `gentle-ai-verify` (GPT-6 Sol, the high-risk tier) reviews `gentle-ai-worker` (DeepSeek) work. Provider changes within one family do not count as independence. If a live fallback makes the writer and reviewer share a family, dispatch an authorized independent review specialist before accepting the review; preserve the native review lifecycle rules.
+- Keep primary code review independent of the writer's model family: the DeepSeek `gentle-orchestrator` reviews ordinary `general` (GPT-6 Luna) work, and `gentle-ai-verify-routine` (Claude Haiku 5.5, the default tier) or `gentle-ai-verify` (Grok 4.7, the high-risk tier) reviews `gentle-ai-worker` (DeepSeek) work. Provider changes within one family do not count as independence. If a live fallback makes the writer and reviewer share a family, dispatch an authorized independent review specialist before accepting the review; preserve the native review lifecycle rules.
 - The orchestrator must not dispatch a writer that shares its own model family. A tiny-fix writer must also be independent of its dispatcher, and selection is per dispatcher: a direct orchestrator dispatch uses `general` (`openai/gpt-6-luna`), distinct from the configured DeepSeek orchestrator (`global-config/opencode.json:689`); a PM dispatch uses a DeepSeek-family writer (`odd-apply` or `gentle-ai-worker`), independent of the configured Muse PMs (`pm-odd` and `pm-systematic`: `global-config/opencode.json:2300,:2439`). The configured `odd-apply` and `gentle-ai-worker` models are `opencode-go/deepseek-v4.1-flash` (`global-config/opencode.json:2587,:418`). Never use `general` for a PM dispatch: the configured Muse PMs keep the named DeepSeek-writer policy, and independence is compared by model family, not provider prefix. Provider changes within one family do not count as independence. The historical CLOUD or LOCAL tier formulation is valid only if the selected writer is independent, provided its model family differs from the orchestrator's; it never overrides the per-dispatcher mapping above. An unrecognized model family is NOT proven independent and must fail closed; do not silently treat an unknown family as independent.
 - For a true docs/metadata unit whose actual diff is inside the simple-docs allowlist, the PM's factual/structural check plus an independent orchestrator Git/tracker readback replace the code-review independence pair; no docs verifier is dispatched. Any test/verifier reader makes the unit normative and the ordinary code-review rule applies. This exemption never lowers the budget of a code-changing unit.
 
@@ -213,7 +215,7 @@ active; it is not an immediate prerequisite to making the PM layer active and is
 
 The orchestrator may use the allowed `host_review_*` read operations for workflow state. The registered `host_review_*`, `host_git_*`, `host_gh_issue_create`, `host_plan_append`, and `host_register_project` mutations remain globally denied and explicitly `ask`-gated only for `gentle-orchestrator`; the plugin and broker enforce their own authorization as well. Eight retired v2 operations remain denied, even if an older host plugin still registers them. Use exact provider-returned operation arguments where the native lifecycle supplies them. A fixed host operation never grants ordinary host Bash, project file editing, or sandbox mutation to the orchestrator. The ten `host_system`/service/network/Docker inspection names in the handover remain unavailable until a registering plugin is implemented and reviewed.
 
-The six `asi-review-*` Task targets are the mandatory fixed-host relay lane for OpenCode V1 v8 review work while the installed transport is loaded. They have no tools, no memory writes, and no permission to delegate, inspect the worktree, or mutate. Map each provider-returned plain `review-*` name to its `asi-review-*` target while forwarding the provider-issued task line verbatim; never dispatch the plain name because two transports cannot own one Task. A reply that the required `GENTLE_AI_REVIEW_CONTEXT` block was not supplied is a transport-lane failure, not a review finding, and must be re-dispatched through the mapped relay without recording or adjudicating it. Never grant relay lanes to implementation workers or isolated reviewers. Never use fallback session replay for either set because replay bypasses Task prompt injection. If the mapped fallback plugin has not excluded all twelve, stop before launching a bound review. Add the two relay plugin files to the host installer and rollback lists, and keep the mapped fallback plugin source exclusions current.
+The six `asi-review-*` Task targets are the mandatory fixed-host relay lane for native RDD review work while the installed transport is loaded. They have no tools, no memory writes, and no permission to delegate, inspect the worktree, or mutate. Map each provider-returned plain `review-*` name to its `asi-review-*` target while forwarding the provider-issued task line verbatim; never dispatch the plain name because two transports cannot own one Task. A reply that the required `GENTLE_AI_REVIEW_CONTEXT` block was not supplied is a transport-lane failure, not a review finding, and must be re-dispatched through the mapped relay without recording or adjudicating it. Never grant relay lanes to implementation workers or isolated reviewers. Never use fallback session replay for either set because replay bypasses Task prompt injection. If the mapped fallback plugin has not excluded all twelve, stop before launching a bound review. Add the two relay plugin files to the host installer and rollback lists, and keep the mapped fallback plugin source exclusions current.
 
 <!-- workflow:anchor workflow.review-relay:end -->
 ### Current upstream review lifecycle
@@ -408,22 +410,22 @@ Loading a `workflow-*` skill mints a session-scoped routing key under `~/.local/
 
 A skill reload per turn inside a multi-turn ODD cycle is expected and acceptable: reloading injects instructions only and never resets cycle state, so the route artifacts, the task record and any approvals survive it. What is not acceptable is re-initialising the cycle per turn — a re-created task record or re-taken approvals — to satisfy a gate.
 
-Changes that deploy outside a git repo (OpenCode plugins, config, skills) use the in-repo source as the review candidate, then mirror exact reviewed bytes:
+Changes that deploy outside a git repo (OpenCode plugins, config, skills) use the in-repo source as the review candidate, then deploy exact reviewed bytes:
 
 1. **Source lives in the repo first** — the reviewed artifact's source copy goes under `global-config/` in this workspace (e.g., `global-config/plugins/`).
 2. **Native review checks source deliverables** — when RDD is enabled, run the native review transaction against the in-repo source candidate and complete exact approved acknowledgement. This produces review evidence, not delivery authority.
-3. **Deployment is a mirror** — model agents never edit the external copy in place. A delegated sandbox writer changes the in-repo source; the reviewed verifier-owned maintenance path re-mirrors only the exact approved deployment artifacts when they drift.
+3. **Deployment follows the runtime** — model agents never edit the external copy in place. A delegated sandbox writer changes the in-repo source. On V1 the reviewed verifier-owned maintenance path re-mirrors only the exact approved deployment artifacts when they drift. On V2 the verifier is read-only and reports `V2_CONFIG_ROOT_DRIFT`; the owner deploys with `python3 scripts/derive-v2-config.py --apply` and restarts `secure-opencode-v2.service`. `docs/upgrades/opencode-v2-operations.md` governs V2 deployment.
 4. **Log the task** — one row in ROUTER-LOG.md with the deploy target noted in the evidence reference.
 
 ### Health-check plugin lifecycle (digest pin — do NOT skip)
 
 The health-check plugin pins `verify-workflow.sh`'s sha256 and **refuses to execute a mismatched script** (fail-closed). Every edit to the script or its embedded heredocs REQUIRES the full re-pin cycle — forgetting it breaks the startup check with a FAILED banner in every session:
 
-1. Edit `verify-workflow.sh` in this workspace.
-2. Compute the new digest: `sha256sum verify-workflow.sh`.
-3. Update `VERIFY_SCRIPT_SHA256` in `global-config/plugins/workflow-health-check.ts` with the new value.
+1. Edit the verifier in this workspace. `verify-workflow.sh` is a thin entry; the checks live in `verify/NN-*.sh`, which the entry sources after verifying each module's sha256 against its manifest.
+2. Regenerate the manifest and compute the new entry digest: `python3 scripts/verifier_manifest.py update`.
+3. That command also updates `VERIFY_SCRIPT_SHA256` in `global-config/plugins/workflow-health-check.ts`; confirm with `python3 scripts/verifier_manifest.py check`. Never hand-edit the manifest or the pin.
 4. Run the native RDD review checkpoint on the plugin source when enabled, completing the exact approved acknowledgement (source → review evidence → mirror).
-5. Re-mirror the reviewed plugin: `bash verify-workflow.sh` (step 6 re-copies it) — verify `cmp` passes.
+5. Deploy the reviewed plugin: on V1 `bash verify-workflow.sh` re-copies it (verify `cmp` passes); on V2 the verifier is read-only, so the owner runs `python3 scripts/derive-v2-config.py --apply` and restarts `secure-opencode-v2.service`.
 6. Log the task with the commit and native review acknowledgement/evidence references.
 
 **Checklist trigger:** ANY edit to `verify-workflow.sh` (including doc-only heredoc text) starts this cycle — a text-only change still changes the digest and still breaks the pin.
@@ -508,6 +510,8 @@ bash verify-workflow.sh
 
 It re-verifies the global pieces updates can touch: RDD mode, the exact active Systematic install and bundled inventory (removing obsolete compatibility symlinks), the user-owned routing section in global OpenCode `AGENTS.md`, reviewed plugin mirrors, model/fallback policy, runtime capabilities, and the mandatory Magic Context memory adapter. Recovery preserves safe newer pins for the reviewed auto-updated plugin identities while restoring the user-owned security and routing overlays. Workspace files are safe because they live in this repo.
 
+On V2 the run is read-only: it reports drift and never repairs. A drift failure there means the owner must run `scripts/derive-v2-config.py --apply` and restart `secure-opencode-v2.service`; see `docs/upgrades/opencode-v2-operations.md`.
+
 ## Sandbox Integration Notes
 
 This machine runs the opencode sandbox stack (routing-guard + sandbox-tools
@@ -542,7 +546,7 @@ Verification and advice are finite. The unit's **actual diff** selects the budge
 | Documentation | zero pre-advice for simple docs; otherwise one pre-advice phase | zero post-advice for simple docs; otherwise one post-code check | zero `gentle-ai-verify` for simple docs; otherwise an explicit exception only |
 | Global tooling change | one pre-advice phase | one post-code check | one independent verifier |
 
-**Verifier tiers (owner, 2026-10-28).** The independent verifier has two seats on one read-only surface, dispatched only by the orchestrator and the PMs. `gentle-ai-verify-routine` (`opencode-go/claude-haiku-5-5`, `high`) is the default whenever the budget owes a verifier or the medium exception applies. When the unit's Risk line names a high-risk item (Task Size items 1-6) or a security boundary, use `gentle-ai-verify` (`openai/gpt-6.1-sol`, `high`) instead. The routine tier is a different family from the Planner, the DeepSeek writers and the orchestrator; Sol shares the Planner's family, so the Planner reads its raw output as evidence and never as a verdict.
+**Verifier tiers (owner, 2026-10-28).** The independent verifier has two seats on one read-only surface, dispatched only by the orchestrator and the PMs. `gentle-ai-verify-routine` (`opencode-go/claude-haiku-5-5`, `high`) is the default whenever the budget owes a verifier or the medium exception applies. When the unit's Risk line names a high-risk item (Task Size items 1-6) or a security boundary, use `gentle-ai-verify` (`opencode-go/grok-4.7`, `high`) instead. The routine tier is a different family from the Planner, the DeepSeek writers and the orchestrator; Sol shares the Planner's family, so the Planner reads its raw output as evidence and never as a verdict.
 
 A medium ordinary behaviour, test-only or command-changing-docs unit takes one pre-advice phase and one post-code check; `ce:review` substitutes for the post advisor when it runs, and the verifier is the explicit exception only for a security boundary, uncertainty, live fallback/independence, or an explicitly reduced small-model profile. A high normative contract/config/security/enforcement-test/dependency or plugin-pin change takes one pre-advice phase, one post-code check and one independent verifier. Generated inherits source. Counts are check phases, not numbers of baseline reviewers; the named `ce:review` baseline reviewers stay intact. The configured `opencode-go/deepseek-v4.1-flash` writer is NOT treated as a small/reduced profile merely because of the "flash" name (owner decision, 2026-10-21). The medium verifier exception must name the reduced profile and reason. The PM self-check and the independent orchestrator readback remain required.
 
@@ -576,8 +580,9 @@ The orchestrator routes and aggregates advisor findings mechanically. Because it
 
 | Advisor | Model |
 |---|---|
-| `advisor-design-pre` | `openai/gpt-6.1-sol` |
-| `advisor-security-pre` | `openai/gpt-6.1-sol` |
+| `advisor-design-pre` | `google/gemini-4-argon` |
+| `advisor-security-pre` | `google/gemini-4-argon` |
+| `advisor-spec-pre` | `google/gemini-4-argon` |
 | `advisor-integration-pre` | `opencode-go/mimo-v2.6-flash` |
 | `advisor-testing-pre` | `opencode-go/glm-5.3-flash` (`high`) |
 | `advisor-maintainability-pre` | `opencode-go/glm-5.3-flash` (`high`) |
@@ -591,6 +596,7 @@ The orchestrator routes and aggregates advisor findings mechanically. Because it
 | `advisor-testing-post` | `opencode-go/qwen3.8-flash` |
 | `advisor-security-post` | `opencode-go/qwen3.7-plus` |
 | `advisor-maintainability-post` | `opencode-go/ling-3.1-flash` |
+| `advisor-spec-post` | `google/gemini-4-argon` |
 
 **Gemini API advisors (external-lane substitute only)**
 

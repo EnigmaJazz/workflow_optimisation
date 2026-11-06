@@ -14,6 +14,10 @@ import shutil
 import subprocess
 import unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 REPO = Path(__file__).resolve().parent.parent
 CONFIG_PATH = REPO / "global-config" / "opencode.json"
@@ -50,12 +54,12 @@ ADVISOR_SEATS = (
     "advisor-security-post", "advisor-integration-pre", "advisor-integration-post",
     "advisor-testing-pre", "advisor-testing-post", "advisor-maintainability-pre",
     "advisor-maintainability-post", "advisor-gemini-pre", "advisor-gemini-post",
-    "advisor-gemini-evidence")
+    "advisor-gemini-evidence", "advisor-spec-pre", "advisor-spec-post")
 NORMAL_ADVISOR_ROWS = (
     "advisor-design-pre", "advisor-design-post", "advisor-security-pre",
     "advisor-security-post", "advisor-integration-pre", "advisor-integration-post",
     "advisor-testing-pre", "advisor-testing-post", "advisor-maintainability-pre",
-    "advisor-maintainability-post")
+    "advisor-maintainability-post", "advisor-spec-pre", "advisor-spec-post")
 
 
 def load(path):
@@ -260,7 +264,7 @@ def fallback_shape_failures(fallback):
 
 def fallback_helper_results(fallback, models):
     """Execute the verifier's own fallback helper functions against the input."""
-    text = SCRIPT.read_text(encoding="utf-8")
+    text = verifier_text()
     start = text.find("function modelString(value)")
     end = text.find("const refs=(Array.isArray(deployed.plugin)")
     if start < 0 or end <= start:

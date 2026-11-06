@@ -10,6 +10,10 @@ Run: python3 -m unittest discover -s tests -p test_model_variants.py -v
 
 import hashlib, json, re, shutil, subprocess, unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "verify-workflow.sh"
@@ -41,6 +45,9 @@ TARGETS = {
     "opencode-go/deepseek-v4-pro": ("high",),
     "opencode-go/claude-haiku-5-5": ("high",),
     "opencode-go/minimax-m3.1-flash": ("high", "xhigh"),
+    "claude-agent/sonnet": ("low", "medium", "high", "xhigh", "max"),
+    "claude-agent/opus": ("low", "medium", "high", "xhigh", "max"),
+    "claude-agent/haiku": ("low", "medium", "high", "xhigh", "max"),
     "opencode-go/ling-3.1-flash": (),
     "opencode-go/qwen3.8-flash": (),
     "opencode-go/qwen3.8-max": (),
@@ -55,7 +62,7 @@ ALL_NAMED = ("none", "low", "medium", "high", "xhigh", "max", "default")
 
 
 def extract_block(text=None):
-    text = SCRIPT.read_text(encoding="utf-8") if text is None else text
+    text = verifier_text() if text is None else text
     start, end = text.find(BEGIN), text.find(END)
     return None if start < 0 or end < 0 or end < start else text[start:end + len(END)]
 
@@ -203,7 +210,7 @@ class StagedValidator(unittest.TestCase):
 
 class MutationControls(unittest.TestCase):
     def test_missing_marker_is_detected(self):
-        text = SCRIPT.read_text(encoding="utf-8")
+        text = verifier_text()
         self.assertIsNone(extract_block(text.replace(BEGIN, "", 1)))
 
     def test_removed_function_is_detected(self):

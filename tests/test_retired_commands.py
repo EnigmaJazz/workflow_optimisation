@@ -21,6 +21,10 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "verify-workflow.sh"
@@ -109,7 +113,7 @@ def run_predicate(commands_dir, opencode_config_dir):
     against a stale copy of the logic. ``WORKFLOW_VERIFY_COMMANDS_DIR`` and
     ``OPENCODE_CONFIG_DIR`` are injected as environment overrides.
     """
-    text = SCRIPT.read_text(encoding="utf-8")
+    text = verifier_text()
     seam = extract_seam(text)
     block = extract_commands_block(text)
     if not seam or not block:
@@ -140,7 +144,7 @@ class RealScript(unittest.TestCase):
     def setUpClass(cls):
         if not SCRIPT.is_file():
             raise AssertionError(f"{SCRIPT} missing")
-        cls.text = SCRIPT.read_text(encoding="utf-8")
+        cls.text = verifier_text()
 
     def test_array_exists_nonempty_and_has_no_glob_row(self):
         body = array_body(self.text, ARRAY_NAME)

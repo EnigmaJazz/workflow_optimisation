@@ -35,7 +35,8 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   READY and PLANNED items in listed order (Q11, Q13, Q15-Q23).
 - **Phase 4, gentle-ai v4 upgrade (owner-triggered):** Q29, then Q30-Q33 and Q35-Q39 delivered as
   the Q36 change set, then Q34, plus Q65 and Q66. Q49 runs throughout.
-- **Phase 5, OpenCode V2 upgrade (owner-triggered, after Phase 4):** Q40-Q47.
+- **Phase 5, OpenCode V2 upgrade (owner-triggered, after Phase 4):** Q40-Q47, plus Q93 (V1-safe
+  auto-update prep).
 - **Project-manager layer (owner, 2026-10-04; runs alongside Phases 2 and 3):** Q53 and Q54 are
   complete as reports. Removal check (c) PASSED by a failed `pm-probe` Task dispatch. Checks (a)
   and (b) are PARTIALLY PASSED: permitted-operation broker authorization and the installed
@@ -54,13 +55,14 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   verification) belong to agent-sandbox-integration and are explicitly excluded here until
   separately authorized.
 
-Every source change needs the deploy step: verifier mirror, then restart. Q27 waits on an owner
-decision.
+Every source change needs the deploy step: verifier mirror, then restart (V1). On V2 the deploy step
+is `derive --apply`, then restart — see `docs/upgrades/opencode-v2-operations.md`. Q27 waits on an
+owner decision.
 
 **Previous working order (owner, 2026-10-01; superseded by the phases above):** Q35 (Claude Code side, once scope is confirmed) can run any time; Q03 (R2-001 + cross-route stage resolution) → Q25
 (handoff corrections) → Q26 (verifier prose coupling) → Q28 (deployment gating matrix) → the rest
 in listed order; then, when the owner decides to upgrade: Q29 → Q30–Q33 delivered as the Q36 change set, built late on stacked branches (Q48, Q49) (one feature branch,
-gated) → Q34. OpenCode V2 (Q40-Q47) follows the v4 upgrade. Every source change then needs the deploy step: verifier mirror, then restart. Q27
+gated) → Q34. OpenCode V2 (Q40-Q47) follows the v4 upgrade. Every source change then needs the deploy step: verifier mirror, then restart (V1; on V2 the sequence is `derive --apply` then restart, see `docs/upgrades/opencode-v2-operations.md`). Q27
 waits on an owner decision.
 
 ### Q01. Advisor layer close-out
@@ -146,7 +148,14 @@ waits on an owner decision.
   coherent fix unit for one file.
 
 ### Q04. Split `verify-workflow.sh` (old item 11)
-- **Status:** READY. Ordered before B3 because B3 adds verifier checks.
+- **Status:** STAGE 1 DONE at source (2026-10-29): 21 digest-bound modules in `verify/`, thin entry with a
+  loader that refuses any digest mismatch, missing or unlisted module; `scripts/verifier_manifest.py`
+  `check|update`; tests read the verifier through `tests/verifier_source.py`; reassembly proven
+  byte-identical to the former single file and its load-only output identical. STAGE 2 DONE at source (2026-10-29): the four embedded checkers
+  (runtime-agents 2,232 lines, systematic-resolution 374, parallel-dispatch 103, routing text 15) are
+  standalone files under `verify/checkers/`, digest-bound by the same manifest, installed by
+  `cat "$VERIFY_MODULE_DIR/checkers/<name>" > "$VAR"` (each proven byte-identical to its former
+  heredoc). Remaining heredocs inside the section modules are small and stay inline. Ordered before B3 because B3 adds verifier checks.
 - **Prerequisites:** none. Preserve check ordering, `fail` aggregation, TTY/`NO_COLOR` colour
   behaviour, the digest pinning contract and the `WORKFLOW_VERIFY_*` switches.
 - **Source:** `docs/PLAN.md` "11. Split `verify-workflow.sh`"; `docs/TODO-HISTORY.md` item 11.
@@ -540,7 +549,8 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
 - **Removal correction — check (c) FAILED:** A Task dispatch to `pm-probe` still succeeded, with
   its Q53 probe brief. The canonical→live mirror had not run since commit `8d40f97`, so
   `~/.config/opencode/opencode.json` still defined the agent; restart alone applies nothing. The
-  correct deployment sequence is verifier mirror → restart. Positively, the still-live `pm-probe`
+  correct deployment sequence is verifier mirror → restart (V1 only; on V2 it is `derive --apply` →
+  restart, see `docs/upgrades/opencode-v2-operations.md`). Positively, the still-live `pm-probe`
   refused an instruction shaped like a liveness beacon. Required services are
   `sandbox-broker.service` and `secure-opencode.service`. Related: Q50 (interface contract).
 - **Deployment verification (observed after commit `ae24a7f`):** Check (c) PASSES. A Task dispatch
@@ -808,11 +818,14 @@ One PM subagent session per work unit; the orchestrator dispatches only `explore
   work-unit commit (native review remains separate); and delegate bounded read-only investigation
   to `explore` agents.
 
-## gentle-ai v4 upgrade (PLANNED — implement when the owner decides to upgrade)
+## gentle-ai v4 upgrade (EXECUTED 2026-10-13; this group is history)
 
 Source for the whole group: `gh release view v4.0.0 -R Gentleman-Programming/gentle-ai` (released
-2026-10-01; repo docs at tag v4.0.0). Installed: 3.7.0 via Homebrew (`/home/linuxbrew/.linuxbrew/bin/gentle-ai`);
-OpenCode 1.18.33 (V1). Route proposal: `docs/PLAN.md` "Route for former-SDD work".
+2026-10-01; repo docs at tag v4.0.0). Installed at the time of writing: 3.7.0 via Homebrew
+(`/home/linuxbrew/.linuxbrew/bin/gentle-ai`); OpenCode 1.18.33 (V1). The upgrade itself ran
+2026-10-12/13 (3.7.0 -> 4.1.1, `ROUTER-LOG.md` "Q34 upgrade runbook EXECUTED"); the owner later
+reported 4.3.1, and OpenCode V2 2.2.5 is now live (see `docs/upgrades/opencode-v2-operations.md`).
+Route proposal: `docs/PLAN.md` "Route for former-SDD work".
 
 Release facts that drive the group:
 - SDD and OpenSpec are removed: no `/sdd-*`, profiles or phases. Removed subcommands:
@@ -1971,9 +1984,11 @@ After reviewing `gentle-ai sdd-status` against the live projects, the owner reco
   verifier: S1-S8 pass, no blockers. Path and service units installed in
   `~/.config/systemd/user/` and the path unit enabled.
 
-## OpenCode V2 upgrade (PLANNED — implement when the owner decides to upgrade)
+## OpenCode V2 upgrade (LIVE since 2026-10-31; V1 kept as rollback)
 Trigger: OpenChamber 2.x requires OpenCode 2.0.15 or newer (OpenChamber v2.0.0 release notes).
-Installed: OpenCode 1.18.33 (V1). Latest V2: `@opencode/cli` 2.0.21 (npm, 2026-10-01).
+Installed: OpenCode V2 2.2.5 is live on port 4097 (`secure-opencode-v2.service`), with V1 1.18.33
+kept as rollback. Operating guide: `docs/upgrades/opencode-v2-operations.md`; one-time cutover
+record: `docs/upgrades/opencode-v2-cutover.md`.
 
 Verified facts (sources: https://opencode.ai/v2/docs/migrate-v1/,
 https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
@@ -2000,7 +2015,10 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
     to 0.58.2; both have V2 support.
 
 ### Q40. V2 prerequisites and blockers
-- **Status:** BLOCKED.
+- **Status:** DONE (superseded 2026-10-31 by the executed cutover; V2 runs 2.2.5, not the 2.2.2
+  probe target). Every blocker this item tracked was cleared: gentle-ai v4, a V2-compatible
+  Systematic, the third-party plugin dispositions, the sandbox adapters (Q47) and the target
+  version. Live state and open items: `HANDOFF.md`.
 - **Prerequisites:**
   - gentle-ai v4 upgrade complete (Q29-Q39), because native review on V2 needs v4.
   - A V2-compatible Systematic release (external).
@@ -2028,7 +2046,12 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   Results feed Q42-Q45.
 
 ### Q42. Port this repo's plugins to dual-mode (V1 + V2)
-- **Status:** PLANNED.
+- **Status:** PARTIAL. Done at source and deployed: `workflow-health-check.ts`, `astra-sol-upgrade.ts`,
+  `systematic-routing-guard.ts`. Rate-limit fork: thin V2 adapter written and verified on isolated V2 2.2.0
+  (forced 429 recovers on the fallback model; next turn restores the original) on branch `feat/v2-adapter`
+  (`8bc84e9`) of `~/.config/opencode/plugins/opencode-rate-limit-fallback-mapped`; NOT merged or live (the live
+  checkout is on `feat/fallback-resilience`). Gaps vs V1: no replay, stall/loop/empty-stop detection, subagent
+  result hold or per-turn capability inference. The verifier reads only the fork's `src/config.ts` (`FALLBACK_EXCLUSION_SOURCE`) and the `plugin` entry path, and the branch leaves `config.ts` unchanged, so no verifier change is expected; re-run it after merging. The merge drops the named `RateLimitFallbackPlugin` export from `index.ts` (default `{id,setup,server}` only). `use-grep-tool.ts` (user-owned, outside the repo) is dual-mode as of 2026-10-29 (checks in `plugins/lib/use-grep-check.ts`, backup `use-grep-tool.ts.bak-20261029`, tests `tests/use-grep-tool`, verified on isolated V1 and V2).
 - **Prerequisites:** Q41.
 - **Description.** Each file exports `Plugin.define({id, setup})` plus `server()` with the
   current V1 hooks, so one file works before and after the switch:
@@ -2044,7 +2067,9 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - Tests: stage-table assertions (Q03) run against both entrypoints.
 
 ### Q43. Config for V2 (`global-config/opencode.json`, `tui.json` → `cli.json`)
-- **Status:** PLANNED.
+- **Status:** DONE (2026-10-29; deployed through `derive --apply`, which mirrors `cli.json` into the
+  derived root). Source: `global-config/opencode.json`, `global-config/cli.json`,
+  `tests/test_v2_config.py`. The cutover-time removals below belong to the Q46 change set.
 - **Prerequisites:** Q41, Q40 (plugin list).
 - **Description:**
   - Keep V1-compatible keys while dual-running (V2 normalises them in memory). Move to native
@@ -2055,9 +2080,43 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
     until #97 is fixed.
   - Add a canonical `global-config/cli.json` and retire `tui.json` handling once V2 is the
     runtime.
+  - Add the static orchestrator rule `{ action: "subagent", resource: "*-astra", effect: "allow" }` to
+    the V2 `gentle-orchestrator.permissions`: on V2 the astra plugin creates the `-astra` aliases but a
+    plugin cannot amend a config-defined agent's permissions (B1 follow-up, 2026-10-29).
+  - **Done (valid on V1 and V2 at once, verified on isolated V1 1.19.5 and V2 2.2.0):**
+    - `experimental.subagent_depth: 4` next to the top-level `subagent_depth: 4` (V1 ignores the new key and
+      keeps the old; V2 ignores the old and reads the new; the default is 1);
+    - `"*-astra": "allow"` last in `gentle-orchestrator.permission.task` (V2 maps it to the final
+      `subagent` rule; the Astra plugin only creates the aliases);
+    - a canonical `global-config/cli.json` with an empty `plugins` list.
+  - **Decisions:** keep the V1 `plugin` key (V2 normalises it; `plugins` plus the auto-update fork would be
+    rewritten back); keep `compaction.prune` (V2 ignores it with a warning); keep `external_directory`
+    as is (V2 default is allow; `ask` auto-rejects in a non-interactive `run`).
+  - **Cutover caveats (Q46):** (1) install `cli.json` BEFORE the first V2 TUI start: without it V2
+    migrates `tui.json` into `cli.json` and copies the V1-only TUI plugins (statusline 1.3.1,
+    gentle-logo, the auto-update local file, usage-total), which cannot load. (2) `tui.jsonc` is never
+    migrated: the herdr and aft entries living there are re-created with `herdr integration install
+    opencode`; magic-context/aft/systematic TUI parts load with their server plugin. (3) The V2 profile
+    drops the entries V2 cannot load: `opencode-usage-total`, the `file://` auto-update build and the
+    `file://` rate-limit-fallback fork (until ported).
+  - Review note (native review `review-380ebd5f6d64e80b`, approved): the `*-astra` wildcard authorises any
+    agent whose id ends in `-astra`, not only generated aliases. Accepted because aliases are the only
+    such agents today; re-check this if another plugin or config ever defines a `*-astra` agent.
+  - Open: nested subagent chains also need each dispatching agent to keep a `subagent` allow, which
+    `permission.task` already provides; re-check `general`, which V2's built-in default denies.
 
 ### Q44. Verifier V2 mode (`verify-workflow.sh`)
-- **Status:** PLANNED.
+- **Status:** DONE for engineering (2026-10-31); one proof outstanding. Everything from the 2026-10-29 partial (OC_MAJOR detection and
+  `oc-probe.sh`, the `debug agents` shim, the `cli.json` mirror, 9a/9b skipped) stands. Added and reviewed since: section 0 V2 mode
+  (`checkers/v2-config-check.py`: read-only derive dry-run check of the V2 config root, completion marker required, unparseable change lines
+  fail); sections 2/2b via `checkers/v2-plugin-resolve.py` (V2 npm cache `npm/<scope>/<name>@<range>/<epoch>/`, newest epoch only, `~`/`^`
+  ranges, entry file resolved like Node); 2c skipped; section 6 via `checkers/v2-sandbox-plugins-check.py` (the 19 hand-installed files
+  from `secure-launcher-v2.conf`, plus unlisted loadable files); 9b via `checkers/v2-github-mcp-check.py` (scoping from the V2 config,
+  liveness from `GET /api/mcp`); probes run with V2's XDG roots and overlay HOME; the shim derives the V1 `tools` map from permission
+  rules, maps `subagent` to `task` and carries the variant; section 10 parsers accept V2's tool-part shape. The retired auto-update
+  reference is not needed on V2 (the V1 recovery is not run there). **Outstanding:** the `run --format json` tool-event shape is unobserved
+  (no provider reachable in the probe), so section 10 on V2 is unproven; it fails loudly (`ODD_V2_STREAM_UNRECOGNISED`) rather than passing
+  blind. Prove it with one `--behavioral` run on V2.
 - **Prerequisites:** Q41, Q42, Q43; Q04 and Q26 strongly preferred.
 - **Description.** Select the mode by the `opencode --version` major.
   - Runtime probes `:4437` (`agent list`), `:4518` (`debug agent`) and `:4650`/`:4657`/`:4696`
@@ -2072,7 +2131,8 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - Re-pin the digest.
 
 ### Q45. Workflow documents for V2
-- **Status:** PLANNED.
+- **Status:** PLANNED; folded into Q96 (2026-11-01), which now carries the WORKFLOW.md and CLAUDE.md
+  V1-only wording. The scope below stays as the record of what was identified.
 - **Prerequisites:** Q41, gentle-ai v4 (Q29-Q39).
 - **Description:**
   - `WORKFLOW.md:142`, `:165` ("OpenCode V1 v8 review work"; "V2 native review remains
@@ -2083,7 +2143,25 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - Update the routing-guard and plugin-order notes for the refusal-skips-later-hooks limitation.
 
 ### Q46. OpenCode V2 change set and runbook (non-destructive, reversible)
-- **Status:** PLANNED.
+- **Status:** DONE at source (2026-10-31). The V2 config source is written: `scripts/derive-v2-config.py` derives the V2 config
+  root from `global-config/` (plugin list to `plugins` with `~x.y.z` ranges, the rate-limit fork as a directory entry under
+  `vendor/`, auto-update and `opencode-usage-total` dropped, file references resolved, the repo's dual-mode plugins and
+  prompts/skills copied, permissions left as V1 and checked for explicit rules). Dry-run by default; `--target ... --apply`
+  backs up differing files and never deletes; V1 roots refused. Verified on isolated V2 2.2.2 (99 agents, 7 plugins loaded).
+  Decided 2026-10-29: `opencode-usage-total` is retired on V2; the 3 live-only prompts now live in
+  `global-config/prompts/`; the vision bridge ships in `global-config/mcp/vision-bridge/` and runs from the V2 root with
+  V2-owned credential and log paths (`VISION_BRIDGE_AUTH_FILE`, `VISION_BRIDGE_LEG_LOG` in the MCP `environment`; verified:
+  it connects on isolated V2 2.2.2 and the `environment` key reaches the process). V2 needs its own OpenAI login for the
+  bridge (its token comes from the V2 data root, not the V1 `auth.json`). The V1 config still points at the live
+  `~/.config/opencode/mcp/vision-bridge` copy, which is unchanged.
+  **Update 2026-10-30:** the change set and runbook wrapper are written. `changesets/opencode-v2-units` carries the only
+  authorable content outside git (the V2 server unit, its GitHub-token drop-in and the `opencode-perm-v2` unit; the V2 config
+  root stays derived, per the v4 rule "do not invent a set"). `scripts/opencode-v2-preflight.py` is the read-only readiness
+  report and `docs/upgrades/opencode-v2-cutover.md` is the runbook. `host_review_start: allow` on gentle-orchestrator is
+  intended (owner, 2026-10-30) and no longer warned about. The 2.2.0 pin was superseded: V2 runs 2.2.5
+  with AFT 0.62.0 plus the `scripts/patch-aft-v2-schema.py` backport of cortexkit/aft#1144.
+  Still open: the section-10 paid proof (Q44) and the manual gates; live state and open items are in
+  `HANDOFF.md`. The operating guide is `docs/upgrades/opencode-v2-operations.md`.
 - **Prerequisites:** Q36 tool (reuse it with an `upgrade/opencode-v2/` profile); Q40-Q45.
 - **Description.** The same declarative operations, `expect_before`, write-ahead journal and
   drift-preserving revert as Q36.
@@ -2102,7 +2180,13 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - `cli.json` is left in place (V1 ignores it).
 
 ### Q47. Cross-project and out-of-repo plugin work for V2
-- **Status:** PLANNED, external.
+- **Status:** IN PROGRESS at source (2026-10-29), not installed. agent-sandbox-integration (branch
+  `refactor/p0-shared-tool-table`, unpushed) now has V2 adapters for `sandbox-tools`, the routing guard,
+  the reviewer relay, V2 config fragments, a nono profile, launcher, installer/rollback and a gated host
+  fixture, all verified on isolated V2 2.2.0 (details: its `docs/upgrades/opencode-v2.md`). Delivery is
+  manual (S17). Local plugins: `use-grep-tool` and the rate-limit fork are done (Q42); nono, codecast,
+  herdr, auto-update, gentle-logo and `sdd-task-result-artifacts` remain in
+  `~/ai-workspace/OPENCODE-V2-PLUGIN-TASKS.md`.
 - **Prerequisites:** none to file.
 - **Description:**
   - **agent-sandbox-integration owns** `sandbox-tools.ts` (about 40 `tool({...})` definitions →
@@ -2185,6 +2269,114 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   `systematic.jsonc`, `rate-limit-fallback.json`) to keep frontier models for native review only
   (spec D7). Moving the Planner off Sol is one outcome. Keep vendor-independence rules and the
   digest pin in mind when the config changes.
+### Q93. Auto-update propose-only rewrite and pin consumer (V1-safe; prepares Q43)
+- **Status:** IN PROGRESS. Fork rewrite DONE at source (fork commits `ff03f85`, `1ffc20e` on
+  `feat/propose-only`; tracker `odd/tasks/auto-update-propose-only.md`). Consumer
+  `scripts/plugin_pins.py` DONE at source. NOT DEPLOYED: the live fork `dist/` is still the old
+  apply-mode build; T4 (load check on a real V1 host, restart is the owner's action) is open.
+- **Prerequisites:** none for the consumer; the V2 load check waits on Q41.
+- **Source:** owner, 2026-10-28/29 (`~/ai-workspace/OPENCODE-V2-UPGRADE-PLAN.md` section 9).
+- **Description:**
+  - The plugin only proposes pin updates (`pending-updates.json`, host-compatibility gate); it no
+    longer installs packages or rewrites `opencode.json`/`tui.json`.
+  - `scripts/plugin_pins.py report|apply --approve NAME[=VERSION]` is the human-approved apply
+    step: it edits only `global-config/`; the verifier mirrors the reviewed source. The consumer
+    script does not touch the verifier (no digest re-pin for it); the separate Q42 load-check unit
+    does edit the verifier and re-pins the digest.
+  - Original A5 ("retire auto-update") is superseded: the old build is replaced by deploying the
+    propose-only build at the same reviewed path; removal from the V2 `plugins` list belongs to
+    Q43. Until the new build is deployed the old build still rewrites live pins.
+  - Open: show peer incompatibility for unpinned entries; a verifier advisory line for pending
+    proposals (needs a digest re-pin, deliberately deferred).
+
+### Q94. Claude Agent seat trial on V2 (spec advisors, Argon pre-code seats)
+- **Status:** Claude seats REVERTED at source (owner, 2026-11-01), uncommitted, NOT DEPLOYED. The trial was too
+  costly: opencode replays its history into a fresh Claude session when a `context`-hook plugin (Magic Context)
+  changes it, so the planner rewrote its whole conversation to the 1h cache on every call (Opus: 14 calls, 1.77M
+  written, 0.63M read, 26% hit; Sonnet orchestrator 92% hit but ~133k tokens per call). Reverted: orchestrator
+  `opencode-go/deepseek-v4.1-flash`, planner `openai/gpt-6.1-sol` high (its explore lane is `explore` again,
+  `planner-explore` removed), both PMs `opencode-go/muse-spark-1.3-contributor` (PM/writer independence
+  restored, waiver dropped), `gentle-ai-verify-routine` `opencode-go/claude-haiku-5-5`, the three `claude-agent`
+  fallback chains removed. KEPT: `advisor-spec-pre`/`-post` (Sol high, compulsory for the planner) with
+  `advisor-spec-evidence`, and the Argon pre-code seats. Open: derive `--apply`, owner restart, V2 verifier run.
+  Next: explore running Claude Code beside OpenCode (Orca) instead of the provider.
+  Sol de-concentration (owner, 2026-11-01): planner stays on Sol (the gate verdicts); `advisor-spec-pre`/`-post` moved
+  to `google/gemini-4-argon` (no tools, gather through `advisor-gemini-evidence`; `advisor-spec-evidence` removed);
+  `gentle-ai-verify` (high-risk tier) moved to `opencode-go/grok-4.7` high (same model as the native refuter). Side
+  effects: the Astra escalation alias for the verifier and spec advisors no longer derives (it follows Sol seats), and
+  the PM task maps still list `gentle-ai-verify-astra`, now a permission for an agent that does not exist. Spec
+  advisors now spend Google API credits on every code unit. Not deployed.
+  Original trial (2026-10-31): orchestrator `claude-agent/sonnet` medium, planner `claude-agent/opus` high,
+  `planner-explore` `claude-agent/haiku` low, PMs on DeepSeek, routine verifier on luna.
+- **Prerequisites:** the S17 sandbox patch installed by the owner (`docs/proposals-claude-agent-provider.patch`).
+- **Decisions:** model ids are the Claude Code aliases `claude-agent/sonnet|opus|haiku`, effort is the
+  variant (`low|medium|high|xhigh|max`); upstream docs `services/www/src/docs/content/claude-agent.mdx`.
+  The owner waives the advisor-subagent gate for this change (Claude Code advisor used instead) and
+  accepted the PM/writer independence loss on the DeepSeek PMs; reverted 2026-11-01 (usage), see Status.
+- **Verified 2026-11-01:** V2 accepts `claude-agent/<alias>` plus `variant` (stored session model
+  `{"id":"sonnet","providerID":"claude-agent","variant":"medium"}`; transcripts show `claude-sonnet-5-5`). The login
+  expired because the nono profile does not allow `platform.claude.com` (OAuth refresh).
+- **Known cost of the revert:** the planner and `advisor-spec-pre`/`-post` are all on Sol, which weakens the
+  spec advisors' independence; consider moving them to another family.
+
+### Q95. V2 documentation refresh and operations runbook
+- **Status:** DONE at source (2026-11-01); commit `6a81091` for this docs unit. Two commits make
+  up the work: `1b302ec` (the operations runbook, committed) and this stale-V1-text removal.
+- **Prerequisites:** none; the cutover is executed (`HANDOFF.md`).
+- **Description:** add the canonical operating guide `docs/upgrades/opencode-v2-operations.md` for the
+  live install, and remove the V1-era claims that contradict `HANDOFF.md` from
+  `docs/upgrades/opencode-v2-cutover.md`, `docs/PLAN.md`, `docs/ADVISOR-HANDOFF.md`, this queue and the
+  `host-sandbox-integration-v*.md` notes. V1 statements are kept where they remain true of V1 and now
+  point at the V2 step (`derive --apply`, then restart).
+- **Resolved sub-item:** `odd/tasks/opencode-v2-phase-a.md` T1 now records `eb4a633` as committed; the sandbox refuses plan-root edits (`PLAN_ROOT_PROTECTED`), so the one-line correction went through `host_plan_write` and is committed as `797b9ad`.
+- **Open after this unit:** the section-10 paid proof (Q44), the manual gates and the owner actions
+  listed in `HANDOFF.md` ("Not done").
+
+### Q96. WORKFLOW.md V2 wording (owner decision)
+- **Status:** DONE at source (2026-11-01; owner approved the exact wording); commit `2ec5e30`.
+- **Prerequisites:** an owner decision on the wording, native review of the change, and explicit
+  handling of the health-plugin digest pin (`scripts/verifier_manifest.py update`, then
+  `derive --apply`). `WORKFLOW.md` and `CLAUDE.md` are normative text: this item records the work, it
+  does not authorize the edits.
+- **Source:** this queue (Q45 folded here) and `docs/upgrades/opencode-v2-operations.md`
+  ("Older text in this repository describes the V1 deployment model").
+- **Description:** the V1-only normative text that the operations runbook already overrides for V2:
+  - `WORKFLOW.md:26` — the activation restart list names `sandbox-broker.service` and
+    `secure-opencode.service` but not `secure-opencode-v2.service`.
+  - `WORKFLOW.md:216` — the `asi-review-*` relay is described as the OpenCode V1 v8 transport.
+  - `WORKFLOW.md:411-429` and `:501-509` — deployment is described as the verifier mirror, which is
+    V1 only; V2 needs `derive --apply`.
+  - `CLAUDE.md:52-57`, `:96-98` — the mirror model, live paths and service units are V1 only. (`:75` is correct as written; see below.)
+  - Changed: WORKFLOW.md activation list, relay wording, deployment step 3, digest item 5, and after-updates note; CLAUDE.md source→deploy model, digest deployment, and restart units.
+  - `CLAUDE.md:75` was verified correct and left unchanged; `global-config/plugins/systematic-routing-guard.ts:232-238` confirms the routing-keys path is outside the V2 data root.
+
+### Q97. Trial Orca (Claude Code beside OpenCode V2) instead of the Claude Agent provider
+- **Status:** PLANNED (owner, 2026-11-01). Advisory work only for Claude Code; the trial is run by the owner.
+- **Why:** the Q94 provider cost too much usage (history replay into a fresh Claude session, 1h cache writes;
+  see Q94). Orca (stablyai/orca, onorca.dev, MIT) runs agents as CLI tools in terminals, one git worktree per
+  agent, with Claude and Codex usage tracking and SSH worktrees. Not verified: that the shared link is this
+  product, and every point below.
+- **Prerequisites:** Q94 revert deployed (`derive --apply`, restart, fresh sessions, OpenChamber default model
+  reset). Orca installed by the owner (AppImage or AUR); nothing in this repo installs it.
+- **Trial (one real, low-risk task):** open the repo in Orca, run a plain `claude` terminal in a worktree beside
+  OpenCode V2 on port 4097. Record: (1) cache hit rate and tokens per call from the Claude transcripts, against
+  the Q94 numbers; (2) whether `claude` uses the owner's normal `~/.claude` login and whether a separate
+  `CLAUDE_CONFIG_DIR` is possible (relevant to the nono profile, which denies `~/.claude`); (3) whether Orca
+  worktrees can sit under the home-directory path the CodeGraph rule requires, each with its own `.codegraph/`;
+  (4) whether Orca can attach to the nono-sandboxed `opencode2` server or only runs plain CLIs; (5) usage per
+  task against the same task done through OpenCode.
+- **Decision rule:** adopt only if Claude Code usage per task is clearly lower than Q94 and Orca does not widen
+  the sandbox (no new `~/.claude` grant, no new network allowlist entry beyond `platform.claude.com` if the
+  owner chooses to add it). Otherwise keep OpenCode non-Claude and use Claude Code in a separate terminal.
+- **Does not change:** Claude Code stays advisory in this repo; native review stays on the in-OpenCode
+  `asi-review-*` lanes.
+
+### Q100. host_plan_archive permission coverage
+- **Status:** DONE (owner-authorized, 2026-11-04); unit q100-host-plan-archive-permission-u1, T1; Gate 2 PASS; implementation commit `3992ba0`; host proof recorded.
+- **Prerequisites:** none.
+- **Source:** `odd/tasks/q100-host-plan-archive-permission.md` T1; owner decisions 2026-11-04.
+- **Description:** a new host tool shipped without a permission rule, so `derive-v2-config.py` refuses and the V2 root cannot be derived. Add global `deny` and `gentle-orchestrator` `allow`. Permission coverage only; no archive invocation or deployment.
+- **Deferred:** overlay authorization-text alignment is separate follow-up, not this implementation; routing-guard archive parity stays later work.
 
 ## Done
 

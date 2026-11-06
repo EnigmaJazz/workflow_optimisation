@@ -7,6 +7,7 @@ supersedes; the assembled output must be free of retired residue - and the
 residue check is proven non-vacuous by a planted positive control.
 """
 
+import copy
 import hashlib
 import json
 import re
@@ -15,6 +16,10 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+try:
+    from tests.verifier_source import verifier_text
+except ImportError:  # run as a script from tests/
+    from verifier_source import verifier_text
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -26,8 +31,12 @@ TEMPLATE = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstrea
 SECTIONS = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstream" / "odd-orchestrator-sections.md"
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
 CONFIG = ROOT / "global-config" / "opencode.json"
+WORKFLOW = ROOT / "WORKFLOW.md"
 
-CURRENT_PROMPT_SHA256 = "5a4e5f566e0ebb62edcd2e40e7f986687ebebea538b0dba1e4a32d3fcf61158b"
+CURRENT_PROMPT_SHA256 = "f8663344d715cf18da530a60e8d2059625224e0766bd9cfe658af27984087f24"
+# Pins the config tree with agent["gentle-orchestrator"].prompt removed.
+# The assembler regenerates the prompt; deliberate non-prompt changes must update this pin in the same commit.
+NONPROMPT_CONFIG_SHA256 = "67cf299feced08ac61ceebee07505cbb29b35f34d7665204053dcd7a4f791f1a"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
@@ -105,6 +114,16 @@ HOST_TOOL_PROMPT_FRAGMENTS = (
     "never arbitrary caller argv, pipes, redirects, or shell",
     "a failed or unavailable test run is evidence, never permission to widen authority",
     "`host_test_run` is not implemented in the current surface and remains inert until the host tool ships",
+)
+
+# Q98 canonical coordinator-selection rule. It must appear exactly once as a
+# standalone, unbulleted physical line in WORKFLOW.md and the overlay, and thus
+# exactly once in the real assembled stdout and the decoded embedded prompt.
+CANONICAL_COORDINATOR_RULE = (
+    "Coordinator selection is automatic: dispatch substantial ODD units to `pm-odd` and "
+    "substantial Systematic units to `pm-systematic`; tiny fixes stay direct delegated-writer "
+    "dispatches with no PM, and read-only requests start no coordinator; select by task class "
+    "and the existing substantial-work test, never by whether the user asks for a PM."
 )
 
 HEADING_RE = re.compile(r"^#{1,6} ")
@@ -284,6 +303,29 @@ def host_tool_prompt_errors(text):
         for fragment in HOST_TOOL_PROMPT_FRAGMENTS
         if fragment not in text
     ]
+
+
+def coordinator_rule_errors(text, surface):
+    """One shared exact-full-sentence checker; count 1 passes, 0 and 2+ fail."""
+    count = text.count(CANONICAL_COORDINATOR_RULE)
+    if count == 1:
+        return []
+    if count == 0:
+        return ["missing coordinator-selection rule in %s" % surface]
+    return ["duplicate coordinator-selection rule in %s (count=%d)" % (surface, count)]
+
+
+def coordinator_rule_surfaces():
+    """The four surfaces that must each carry the canonical rule exactly once."""
+    assembled = run_assembler()
+    assert assembled.returncode == 0, assembled.stderr
+    config = json.loads(CONFIG.read_text(encoding="utf-8"))
+    return {
+        "WORKFLOW.md": WORKFLOW.read_text(encoding="utf-8"),
+        "overlay.md": OVERLAY.read_text(encoding="utf-8"),
+        "assembled stdout": assembled.stdout,
+        "embedded prompt": config["agent"]["gentle-orchestrator"]["prompt"],
+    }
 
 
 class OrchestratorPromptSourceTests(unittest.TestCase):
@@ -750,7 +792,7 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
         self.assertIn("do not require or supply those values until that tool lands", assembled.stdout)
 
     def test_embedded_prompt_verifier_has_real_bidirectional_equality_control(self):
-        verifier = (ROOT / "verify-workflow.sh").read_text(encoding="utf-8")
+        verifier = verifier_text()
         check = verifier.split("check_embedded_orchestrator_prompt() {", 1)[1].split("\n}", 1)[0]
         self.assertIn("timeout=30", check)
         self.assertIn("mutated = assembled +", check)
@@ -771,7 +813,7 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_odd_readonly_probe_requires_route_skill_after_router(self):
-        verifier = (ROOT / "verify-workflow.sh").read_text(encoding="utf-8")
+        verifier = verifier_text()
         block = verifier.split("<<'PY_ODD_READONLY'\n", 1)[1].split("\nPY_ODD_READONLY", 1)[0]
 
         def run(events):
@@ -815,8 +857,7 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
     def test_verifier_script_pin_matches_its_own_regex(self):
         verifier = ROOT / "verify-workflow.sh"
         plugin = ROOT / "global-config" / "plugins" / "workflow-health-check.ts"
-        verifier_text = verifier.read_text(encoding="utf-8")
-        function = verifier_text.split("read_verify_script_pin() {", 1)[1].split("\n}", 1)[0]
+        function = verifier_text().split("read_verify_script_pin() {", 1)[1].split("\n}", 1)[0]
         regex_literal = re.search(r"r'''(.*?)'''", function, re.DOTALL)
         if regex_literal is None:
             raise AssertionError("read_verify_script_pin regex literal must be present")
@@ -910,6 +951,100 @@ class BackgroundDispatchRuleTests(unittest.TestCase):
         self.assertNotIn("as background subagents", base)
         self.assertNotIn("as background subagents", ODD_REFERENCE.read_text(encoding="utf-8"))
         self.assertIn("as background subagents", OVERLAY.read_text(encoding="utf-8"))
+class CoordinatorSelectionRuleTests(unittest.TestCase):
+    """Q98: the canonical coordinator-selection rule on all four surfaces."""
+
+    def test_canonical_rule_appears_exactly_once_on_all_four_surfaces(self):
+        for surface, text in coordinator_rule_surfaces().items():
+            with self.subTest(surface=surface):
+                self.assertEqual(coordinator_rule_errors(text, surface), [])
+
+    def test_rule_is_a_standalone_unbulleted_physical_line_in_both_sources(self):
+        for surface, text in coordinator_rule_surfaces().items():
+            if surface not in ("WORKFLOW.md", "overlay.md"):
+                continue
+            with self.subTest(surface=surface):
+                matching = [line for line in text.split("\n") if CANONICAL_COORDINATOR_RULE in line]
+                self.assertEqual(len(matching), 1, "rule must sit on exactly one physical line")
+                self.assertEqual(matching[0], CANONICAL_COORDINATOR_RULE,
+                                 "rule must be a standalone, unbulleted physical line")
+
+    def test_missing_and_duplicate_rule_are_rejected_on_every_surface(self):
+        for surface, text in coordinator_rule_surfaces().items():
+            with self.subTest(surface=surface, mutation="missing"):
+                missing = text.replace(CANONICAL_COORDINATOR_RULE, "")
+                self.assertNotEqual(missing, text, "missing-rule mutation must change the input")
+                self.assertIn("missing coordinator-selection rule in " + surface,
+                              coordinator_rule_errors(missing, surface))
+            with self.subTest(surface=surface, mutation="duplicate"):
+                duplicate = text.replace(
+                    CANONICAL_COORDINATOR_RULE,
+                    CANONICAL_COORDINATOR_RULE + "\n" + CANONICAL_COORDINATOR_RULE,
+                )
+                self.assertNotEqual(duplicate, text, "duplicate-rule mutation must change the input")
+                errors = coordinator_rule_errors(duplicate, surface)
+                self.assertTrue(
+                    any(error.startswith("duplicate coordinator-selection rule in " + surface) for error in errors),
+                    "duplicate must be rejected: %r" % errors,
+                )
+
+    def test_full_sentence_check_rejects_clause_corruption(self):
+        corrupted_phrase = "never by whether the user asks for a PM"
+        mutated_phrase = "sometimes by whether the user asks for a PM"
+        for surface, text in coordinator_rule_surfaces().items():
+            with self.subTest(surface=surface):
+                corrupted = text.replace(corrupted_phrase, mutated_phrase)
+                self.assertNotEqual(corrupted, text, "clause mutation must change the input")
+                self.assertIn("missing coordinator-selection rule in " + surface,
+                              coordinator_rule_errors(corrupted, surface))
+
+    def test_mutated_overlay_source_propagates_through_the_real_assembler(self):
+        overlay_text = OVERLAY.read_text(encoding="utf-8")
+        for label, mutated in (
+            ("missing", overlay_text.replace(CANONICAL_COORDINATOR_RULE, "")),
+            ("duplicate", overlay_text.replace(
+                CANONICAL_COORDINATOR_RULE,
+                CANONICAL_COORDINATOR_RULE + "\n" + CANONICAL_COORDINATOR_RULE,
+            )),
+        ):
+            with self.subTest(mutation=label):
+                self.assertNotEqual(mutated, overlay_text, "overlay mutation must change the source")
+                with tempfile.TemporaryDirectory() as tmp:
+                    path = Path(tmp) / "overlay.md"
+                    path.write_text(mutated, encoding="utf-8")
+                    result = run_assembler(("--overlay", str(path)))
+                self.assertEqual(result.returncode, 0, result.stderr)
+                errors = coordinator_rule_errors(result.stdout, "assembled stdout")
+                self.assertTrue(
+                    any(error.startswith("%s coordinator-selection rule in assembled stdout" % label) for error in errors),
+                    "%s rule must be reported: %r" % (label, errors),
+                )
+
+    def test_assembler_is_deterministic(self):
+        first = run_assembler()
+        second = run_assembler()
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertEqual(first.stdout, second.stdout, "two assembler runs must be byte-identical")
+
+    def test_nonprompt_config_tree_matches_the_pinned_digest(self):
+        tree = json.loads(CONFIG.read_text(encoding="utf-8"))
+        del tree["agent"]["gentle-orchestrator"]["prompt"]
+        serialised = json.dumps(tree, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        digest = hashlib.sha256(serialised.encode("utf-8")).hexdigest()
+        self.assertEqual(digest, NONPROMPT_CONFIG_SHA256,
+                         "nonprompt config tree must match its pinned sha256")
+
+        mutated_tree = copy.deepcopy(tree)
+        mutated_tree["agent"]["explore"]["permission"]["edit"] = "allow"
+        mutated_serialised = json.dumps(
+            mutated_tree, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        )
+        mutated_digest = hashlib.sha256(mutated_serialised.encode("utf-8")).hexdigest()
+        self.assertNotEqual(
+            mutated_digest, digest,
+            "positive control: changing a nested deny permission must change the digest",
+        )
 
 
 if __name__ == "__main__":
