@@ -52,6 +52,7 @@ for every seat, and any implementation.
 | D27 | The independent spec-check agent (D22) is the existing `advisor-spec-pre` and `advisor-spec-post` seats. Their models are set by the full OpenCode model assignment review (D15), with the family differing from the Planner and the writers. | Owner, 2026-11-05 |
 | D28 | The allowed-paths source for the deterministic scope check is the plan's `## Allowed edit surfaces` section. | Owner, 2026-11-06 |
 | D29 | A gate checkpoint that cannot affect routing is dead code. The plan-vs-spec checkpoint must therefore have real deterministic checks the broker can derive, so it can route to a recorded pass, back to the Planner, or to the spec-check agent. | Owner, 2026-11-06 |
+| D30 | Test evidence for the implementation-vs-spec gate is produced by running the configured test runners inside the worker sandbox at stage finish, on exactly the stage content, and binding the result to the stage commit. No stage content runs on the host. | Owner, 2026-11-06 |
 
 ## 3. Tier contracts
 
