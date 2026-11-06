@@ -29,15 +29,11 @@ other agents (D12).
 
 ## Feedback
 
-A launcher cannot read a Codex final message unless it is routed back, so the brief tells Codex how
-to report:
-
-- Launch with `--surface terminal`; a structured chat session cannot be read with `orca terminal`.
-- Dispatch through the `orchestration` tooling so completion arrives as an event (`worker_done`),
-  with the report in its payload. The launcher does not poll.
-- Without that tooling, the brief names an absolute report path outside the repository (for example
-  the launcher's scratchpad). Codex writes the complete report there, and the launcher reads that file.
-- Codex ends with one line giving where the report is, and states anything it could not verify.
+Follow the shared reporting rule in `roles/README.md` ("Reporting back"). For Codex, which has a shell,
+the report is `orca orchestration send --type worker_done` to the dispatching terminal; when it has
+no dispatch, it names an absolute report path outside the repository in the brief and writes the
+report there. Launch with `--surface terminal`; a structured chat session cannot be read with
+`orca terminal`.
 
 ## Minimality
 
