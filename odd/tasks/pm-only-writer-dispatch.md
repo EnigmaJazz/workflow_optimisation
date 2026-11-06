@@ -93,3 +93,6 @@ Mirror: no mirror write is claimed. Closure must record actual deterministic mir
 
 ## Revisions
 - r1 2026-11-06T22:58:35Z planner: Finalize T1 planning-only scope and future requirements; omit broker-owned log sections.
+
+## Gates
+- T1 PASS 2026-11-06T22:58:52Z planner ref=Gate 1 only: tracker r1 read back; doc-only exemption, local-worker and exact-phrase safeguards retained. Plan tool auto-committed 4adc76a8 before Gate 2; closure needs PM reconciliation.
