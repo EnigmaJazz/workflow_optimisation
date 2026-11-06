@@ -2861,7 +2861,14 @@
     "host_review_capture_refuter": "deny",
     "host_review_capture_validation": "deny",
     "host_review_validate": "deny",
-    "host_review_recover": "deny"
+    "host_review_recover": "deny",
+    "host_stage_list": "deny",
+    "host_stage_show": "deny",
+    "host_stage_approve": "deny",
+    "host_stage_reject": "deny",
+    "host_stage_apply": "deny",
+    "host_stage_reconcile": "deny",
+    "host_gate_verdict_auto": "deny"
   },
   "plugin": [
     "@fro.bot/systematic@3.29.0",
