@@ -33,10 +33,10 @@ ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemb
 CONFIG = ROOT / "global-config" / "opencode.json"
 WORKFLOW = ROOT / "WORKFLOW.md"
 
-CURRENT_PROMPT_SHA256 = "f8663344d715cf18da530a60e8d2059625224e0766bd9cfe658af27984087f24"
+CURRENT_PROMPT_SHA256 = "bdddcb8476e38576346426c1dbca79b8525a12e34f02c5edaba6e298ea936b82"
 # Pins the config tree with agent["gentle-orchestrator"].prompt removed.
 # The assembler regenerates the prompt; deliberate non-prompt changes must update this pin in the same commit.
-NONPROMPT_CONFIG_SHA256 = "67cf299feced08ac61ceebee07505cbb29b35f34d7665204053dcd7a4f791f1a"
+NONPROMPT_CONFIG_SHA256 = "9d53aa1a31054d6d71d96ef36e0f93d7823246d8fb27a7e8f4f66db0f3183bd6"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",

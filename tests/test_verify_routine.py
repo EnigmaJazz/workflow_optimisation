@@ -19,10 +19,10 @@ AGENTS = CONFIG["agent"]
 
 
 class RoutineVerifier(unittest.TestCase):
-    def test_seat_is_haiku_high_and_hidden(self):
+    def test_seat_is_haiku_high_and_listed(self):
         seat = AGENTS[ROUTINE]
         self.assertEqual((seat["model"], seat.get("variant")), ("opencode-go/claude-haiku-5-5", "high"))
-        self.assertIs(seat["hidden"], True)
+        self.assertIs(seat["hidden"], False)
         self.assertEqual(seat["mode"], "subagent")
 
     def test_surface_is_identical_to_the_high_risk_verifier(self):

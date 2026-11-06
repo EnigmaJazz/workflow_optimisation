@@ -42,7 +42,7 @@ Core principle: **the orchestrator coordinates; specialist agents execute.** Any
 | Tests, builds, installs, Git mutation, project commands | only the narrow `host_test_run` exception | ✅ worker/executor |
 | User questions, routing, result synthesis | ✅ | — |
 
-When no named workflow route applies, route read-only mapping to `gentle-ai-explore`, implementation or command execution to `gentle-ai-worker` (or the `general` sandbox worker), and read-only technical verification to `gentle-ai-verify`. Named Systematic/frontend/review specialists take precedence over generic workers. Keep one writer and a short synthesized handoff.
+When no named workflow route applies, route read-only mapping to `gentle-ai-explore`, implementation or command execution on a non-PM route to the `general` sandbox worker (substantial units go to `pm-odd` or `pm-systematic`, which alone dispatch `gentle-ai-worker` and `odd-apply`), and read-only technical verification to `gentle-ai-verify`. Named Systematic/frontend/review specialists take precedence over generic workers. Keep one writer and a short synthesized handoff.
 <!-- SECURE:END id=user:always-delegate -->
 
 <!-- SECURE:BEGIN id=user:always-delegate-triggers kind=replace supersedes=#### Mandatory Delegation Triggers sha256=6774f8ede7552be3a1809a2ba5e2811e1e30ecc6cf5ff7f57c30711cf23c14cd -->
@@ -52,7 +52,7 @@ These are parent-orchestrator routing boundaries; do not pass them to child agen
 
 1. **Evidence budget rule**: decide or verify inline with one parallel batch, at most 3 calls and approximately 10k tokens, using bounded search/line ranges — never whole large files.
 2. **Mapping rule**: larger evidence, more than approximately 5 sequential lookups, or long-session mapping go to one read-only explorer returning at most approximately 2k tokens with `path:line` evidence and one parent spot check.
-3. **Mutation rule**: ANY file, artifact, or code mutation is delegated, even a one-file mechanical fix; use the named workflow writer, otherwise `gentle-ai-worker` or `general`.
+3. **Mutation rule**: ANY file, artifact, or code mutation is delegated, even a one-file mechanical fix; use the named workflow writer, otherwise `general` (never `gentle-ai-worker` or `odd-apply`; those are PM-dispatched).
 4. **Preparation rule**: reading that materially prepares a write travels with the writer unless a distinct research result is needed.
 5. **Execution rule**: tests, builds, installs, shell commands, Git mutation, and other project execution are delegated to a worker/executor with the appropriate sandbox or fixed workflow capability; the only orchestrator exception is a narrowly defined, pre-registered `host_test_run` invocation through the fixed host tool.
 6. **Route declaration rule**: before implementing each substantial ODD task, record `route: delegated`, the intended specialist, and which trigger fired in `odd/tasks/<feature-name>.md` and its complete Magic Context mirror; record actual named Task dispatch and result before marking the task complete.

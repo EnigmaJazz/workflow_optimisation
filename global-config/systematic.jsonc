@@ -13,7 +13,7 @@
   "categories": {
     "workflow": {
       "model": "opencode-go/deepseek-v4.1-flash",
-      "variant": "default",
+      "variant": "high",
       "temperature": 0.1,
       "steps": 40,
       "permission": {
@@ -34,7 +34,7 @@
     },
     "research": {
       "model": "opencode-go/deepseek-v4.1-flash",
-      "variant": "medium",
+      "variant": "high",
       "temperature": 0.1,
       "steps": 20,
       "permission": {
@@ -55,7 +55,7 @@
     },
     "review": {
       "model": "opencode-go/deepseek-v4.1-flash",
-      "variant": "medium",
+      "variant": "high",
       "temperature": 0.1,
       "steps": 12,
       "permission": {
@@ -76,7 +76,7 @@
     },
     "document-review": {
       "model": "opencode-go/deepseek-v4.1-flash",
-      "variant": "medium",
+      "variant": "high",
       "temperature": 0.1,
       "steps": 12,
       "permission": {
@@ -119,7 +119,7 @@
   "agents": {
     "systematic-implementer": {
       "model": "opencode-go/deepseek-v4.1-flash",
-      "variant": "max",
+      "variant": "high",
       "temperature": 0.1,
       "steps": 50,
       "permission": {
@@ -139,7 +139,7 @@
       }
     },
     "pr-comment-resolver": {
-      "model": "opencode-go/deepseek-v4.1-flash", "variant": "default", "temperature": 0.1, "steps": 35,
+      "model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 35,
       "permission": {
         "edit": "deny", "write": "deny", "bash": "deny",
         "sandbox_read": "allow", "sandbox_list": "allow", "sandbox_grep": "allow", "sandbox_diff": "allow",
@@ -147,14 +147,14 @@
         "sandbox_apply": "ask", "sandbox_copy_in": "ask", "sandbox_copy_out": "ask", "sandbox_discard": "ask", "sandbox_finish": "ask"
       }
     },
-    "spec-flow-analyzer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "default", "temperature": 0.1, "steps": 20},
-    "repo-research-analyst": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "default", "temperature": 0.1, "steps": 30},
-    "git-history-analyzer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 25},
-    "best-practices-researcher": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 18},
-    "framework-docs-researcher": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 18},
-    "issue-intelligence-analyst": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "medium", "temperature": 0.1, "steps": 18},
-    "learnings-researcher": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "low", "temperature": 0.1, "steps": 10},
-    "slack-researcher": {"model": "openai/gpt-6-luna", "variant": "low", "temperature": 0.1, "steps": 15},
+    "spec-flow-analyzer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 20},
+    "repo-research-analyst": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 30},
+    "git-history-analyzer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 25},
+    "best-practices-researcher": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 18},
+    "framework-docs-researcher": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 18},
+    "issue-intelligence-analyst": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 18},
+    "learnings-researcher": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 10},
+    "slack-researcher": {"model": "openai/gpt-6-luna", "variant": "high", "temperature": 0.1, "steps": 15},
     "correctness-reviewer": {"model": "opencode-go/qwen3.7-plus", "temperature": 0.1, "steps": 16},
     "testing-reviewer": {"model": "opencode-go/glm-5.3-flash", "variant": "high", "temperature": 0.1, "steps": 14},
     "maintainability-reviewer": {"model": "opencode-go/minimax-m3.1-flash", "variant": "high", "temperature": 0.1, "steps": 10},
@@ -168,14 +168,14 @@
     "data-migrations-reviewer": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 20},
     "deployment-verification-agent": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 20},
     "performance-reviewer": {"model": "opencode-go/minimax-m3.1-flash", "variant": "high", "temperature": 0.1, "steps": 16},
-    "previous-comments-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "low", "temperature": 0.1, "steps": 10},
+    "previous-comments-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 10},
     "cli-readiness-reviewer": {"model": "opencode-go/glm-5.3-flash", "variant": "high", "temperature": 0.1, "steps": 12},
-    "code-simplicity-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "low", "temperature": 0.1, "steps": 10},
+    "code-simplicity-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 10},
     "pattern-recognition-specialist": {"model": "opencode-go/minimax-m3.1-flash", "variant": "high", "temperature": 0.1, "steps": 12},
     "kieran-typescript-reviewer": {"model": "opencode-go/glm-5.3-flash", "variant": "high", "temperature": 0.1, "steps": 14},
     "coherence-reviewer": {"model": "opencode-go/glm-5.3-flash", "variant": "high", "temperature": 0.1, "steps": 12},
     "feasibility-reviewer": {"model": "opencode-go/glm-5.3-flash", "temperature": 0.1, "steps": 18},
-    "scope-guardian-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "low", "temperature": 0.1, "steps": 12},
+    "scope-guardian-reviewer": {"model": "opencode-go/deepseek-v4.1-flash", "variant": "high", "temperature": 0.1, "steps": 12},
     "design-lens-reviewer": {"model": "opencode-go/glm-5.3-flash", "variant": "high", "temperature": 0.1, "steps": 14},
     "product-lens-reviewer": {"model": "opencode-go/glm-5.3-flash", "variant": "high", "temperature": 0.1, "steps": 16},
     "security-lens-reviewer": {"model": "openai/gpt-6.1-sol", "variant": "high", "temperature": 0.1, "steps": 22},

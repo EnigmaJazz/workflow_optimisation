@@ -1680,7 +1680,7 @@ function plannerHandoffFailures(agents,gp) {
     if (evidence.mode!=="subagent") failures.push(`PLANNER_EVIDENCE_MODE_MISMATCH: ${show(evidence.mode)}`)
     if (evidence.hidden!==true) failures.push("PLANNER_EVIDENCE_NOT_HIDDEN")
     if (evidence.model!=="openai/gpt-6-luna") failures.push(`PLANNER_EVIDENCE_MODEL_MISMATCH: ${show(evidence.model)}`)
-    if (evidence.variant!=="medium") failures.push(`PLANNER_EVIDENCE_VARIANT_MISMATCH: ${show(evidence.variant)}`)
+    if (evidence.variant!=="high") failures.push(`PLANNER_EVIDENCE_VARIANT_MISMATCH: ${show(evidence.variant)}`)
     readSurface("planner-evidence",evidence)
     if (cfgTool(evidence,"task")!==false || !sameMap(evidence?.permission?.task,{"*":"deny"})) failures.push("PLANNER_EVIDENCE_TASK_EXPOSED")
     for (const tool of mutationTools) {

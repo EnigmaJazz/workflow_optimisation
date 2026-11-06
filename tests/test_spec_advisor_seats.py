@@ -149,7 +149,7 @@ class SeatsRevertedFromClaudeAgent(unittest.TestCase):
         return AGENTS[name]["model"], AGENTS[name].get("variant")
 
     def test_orchestrator_planner_and_pms_are_back_on_their_pre_trial_seats(self):
-        self.assertEqual(self.seat("gentle-orchestrator"), ("opencode-go/deepseek-v4.1-flash", "default"))
+        self.assertEqual(self.seat("gentle-orchestrator"), ("opencode-go/deepseek-v4.1-flash", "high"))
         self.assertEqual(self.seat("planner"), ("openai/gpt-6.1-sol", "high"))
         for name in ("pm-odd", "pm-systematic"):
             self.assertEqual(self.seat(name), ("opencode-go/muse-spark-1.3-contributor", None), name)
