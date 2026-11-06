@@ -27,7 +27,7 @@ SECTIONS = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstrea
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
 CONFIG = ROOT / "global-config" / "opencode.json"
 
-CURRENT_PROMPT_SHA256 = "5134e9b35e5e64bc722f483c3abbd8281e63d6733983954ba7493b99a319ce5c"
+CURRENT_PROMPT_SHA256 = "5a4e5f566e0ebb62edcd2e40e7f986687ebebea538b0dba1e4a32d3fcf61158b"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
@@ -883,6 +883,33 @@ class ParallelWritersRuleTests(unittest.TestCase):
     def test_positive_control_the_old_sentences_are_detectable(self):
         # Without this the absence assertions above could pass vacuously.
         self.assertIn(OLD_SINGLE_WRITER, BASE.read_text(encoding="utf-8"))  # base.md is upstream and still carries it
+
+
+BACKGROUND_RULE_MARKERS = ("as background subagents", "end your turn", "never poll")
+
+
+class BackgroundDispatchRuleTests(unittest.TestCase):
+    """Q102 unit B (D32): independent Tasks are dispatched in the background and the parent never polls."""
+
+    def test_overlay_carries_the_background_dispatch_rule(self):
+        overlay = OVERLAY.read_text(encoding="utf-8")
+        for marker in BACKGROUND_RULE_MARKERS:
+            self.assertIn(marker, overlay)
+
+    def test_assembled_prompt_and_embedded_prompt_follow_the_overlay(self):
+        assembled = run_assembler()
+        self.assertEqual(assembled.returncode, 0, assembled.stderr)
+        embedded = json.loads(CONFIG.read_text(encoding="utf-8"))["agent"]["gentle-orchestrator"]["prompt"]
+        for text in (assembled.stdout, embedded):
+            for marker in BACKGROUND_RULE_MARKERS:
+                self.assertIn(marker, text)
+
+    def test_positive_control_the_rule_is_not_in_the_upstream_base_or_the_skill_reference(self):
+        # base.md is upstream and has no such rule, so the needles discriminate; the skill points at the overlay.
+        base = BASE.read_text(encoding="utf-8")
+        self.assertNotIn("as background subagents", base)
+        self.assertNotIn("as background subagents", ODD_REFERENCE.read_text(encoding="utf-8"))
+        self.assertIn("as background subagents", OVERLAY.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
