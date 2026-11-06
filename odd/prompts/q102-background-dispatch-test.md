@@ -20,8 +20,9 @@ not run verify-workflow.sh. Use no sandbox write worker.
    - background launch supported: yes/no, with the tool or parameter you used
    - A and B overlapped in time: yes/no, with the evidence (start and finish order)
    - you polled: yes/no
-   - files changed: run `git status --short` and report its exact output.
+   - files changed: the orchestrator has no shell, so report only that you wrote nothing; the owner runs
+     `git status --short` in the checkout before and after.
 
-Pass: background supported = yes, overlapped = yes, polled = no, and git status output is unchanged from
-before the probe.
+Pass: background supported = yes, overlapped = yes, polled = no, and the owner's `git status --short` is
+unchanged. A missing directory (the session sees another checkout) reports count 0, not an empty directory.
 ```
