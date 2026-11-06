@@ -16,11 +16,13 @@ increments it. Wording marked `pending owner review` is not in force until the o
 A session launched with a plain `orca agent launch` has no channel back to its launcher. To get a
 result without polling:
 
-- Start the worker with `orca orchestration worker-start`, so the dispatch has a task id and a
-  dispatch id, and put its coordinator terminal handle, task id and dispatch id in the brief.
+- Start the worker with `orca orchestration worker-start` inside a Run (`orca orchestration
+  run-create` first; without a bound Run it fails with `consumer_fenced`), so the dispatch has a task
+  id and a dispatch id.
 - A sandboxed OpenCode agent has no shell. It finishes with `host_orca_report` (`type: worker_done`,
-  with `subject`, `body` and `outcome`), passing the terminal, task and dispatch ids from the brief.
-  The broker checks the dispatch is live first, and the recipient is only that terminal. Only
+  with `subject`, `body` and `outcome`), passing its task and dispatch ids and its OWN terminal handle
+  (the dispatch assignee, not the coordinator's; the broker refuses any other handle). The broker
+  checks the dispatch is live first, and the report goes to the coordinator the dispatch names. Only
   `gentle-orchestrator` has this tool allowed; it is denied globally.
 - A session with a shell (Codex) uses `orca orchestration send --type worker_done` instead.
 - The read-only OpenCode orchestrator and its workers can write only inside the project root, so a
