@@ -78,7 +78,7 @@ class RealConfig(unittest.TestCase):
                          ("openai/gpt-6.1-sol", "high", "subagent", True))
         self.assertEqual((self.agents[EVIDENCE]["model"], self.agents[EVIDENCE]["variant"],
                           self.agents[EVIDENCE]["mode"], self.agents[EVIDENCE]["hidden"]),
-                         ("openai/gpt-6-luna", "medium", "subagent", True))
+                         ("openai/gpt-6-luna", "high", "subagent", True))
         for name in (PLANNER, EVIDENCE):
             for tool_id in READ_TOOLS:
                 self.assertIs(self.agents[name]["tools"].get(tool_id), True, (name, tool_id))
