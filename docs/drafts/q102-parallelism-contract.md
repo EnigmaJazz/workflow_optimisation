@@ -1,6 +1,8 @@
 # DRAFT: Q102 parallel implementation contract edits (D31, D32, OPEN-20)
 
-Status: DRAFT. Nothing here is applied to `global-config/` or `docs/specs/`. It waits for the owner to take it
+Status: DRAFT, revised after advice (odd/advice/q102-parallelism-contract.md). It is three separate units: A (section 1, no prerequisite), B (section 3, gated on OpenCode V2; live is 1.19.5, so V1 wording must be same-message fan-out), C (section 2, gated on staging chains being merged, deployed and signed off, U5 pending). Corrections from the advice: section 2's baseline is the newest pinned attempt of stage n-1 (not `stage/<n>`), read by the orchestrator from `chainStatus` and put in the brief, and units outside a chain keep the feature-branch HEAD; per-unit tracker FILES only (no sections), or the parent owns tracker writes; DONE must be redefined for chain mode (nothing commits to the host until the owner applies); do not edit `base.md` (the overlay marker replaces that section; check what its sha pins) and check whether the `opencode.json` orchestrator prompt is a second hand-kept copy; re-grep found more single-writer wording (`base.md:109,115,125,197`, the `opencode.json` prompt). Original text follows and is superseded where it disagrees.
+
+Status (original): Nothing here is applied to `global-config/` or `docs/specs/`. It waits for the owner to take it
 through the `advisor-*` subagents in the OpenCode TUI (WORKFLOW.md makes advice mandatory), then it is applied as
 a normal routed work unit with the verifier and tests below. Edits change contracts the live OpenCode setup
 consumes (high-risk item 3).
