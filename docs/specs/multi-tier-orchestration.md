@@ -54,6 +54,8 @@ for every seat, and any implementation.
 | D29 | A gate checkpoint that cannot affect routing is dead code. The plan-vs-spec checkpoint must therefore have real deterministic checks the broker can derive, so it can route to a recorded pass, back to the Planner, or to the spec-check agent. | Owner, 2026-11-06 |
 | D30 | Test evidence for the implementation-vs-spec gate is produced by running the configured test runners inside the worker sandbox at stage finish, on exactly the stage content, and binding the result to the stage commit. No stage content runs on the host. | Owner, 2026-11-06 |
 | D31 | Parallel implementation of non-overlapping units is desirable in OpenCode, as demonstrated in this Claude Code session. Investigation (2026-11-06) found the causes mainly in prompting and contract, not the model: the orchestrator prompt and the ODD skill say to use a single writer thread, and the PM unit contract (one work unit, a tracker/HEAD anchor, PMs commit themselves) serialises PMs by construction. | Owner, 2026-11-06 |
+| D32 | OpenCode 2 allows background subagents. The mechanical capability for non-blocking parallel dispatch exists and should be used by the narrowed orchestrator contract. | Owner, 2026-11-06 |
+| D33 | Secure OpenCode needs a host tool to create a new git branch; today there is none. It belongs with the planned host git tools (`agent-sandbox-integration/odd/tasks/host-git-tools.md`, gate A passed, T1-T5 pending), whose mutation tier lists checkout/switch but not branch creation. | Owner, 2026-11-06 |
 
 ## 3. Tier contracts
 
@@ -291,7 +293,7 @@ No numeric budget is set here; it must come from a measured baseline.
 | OPEN-17 | **Resolved (D23).** |
 | OPEN-18 | **Resolved (D24).** It changes the plan decided on 2026-10-12, so `agent-sandbox-integration/docs/staging/plan.md` needs a matching note. |
 | OPEN-19 | **Resolved (D27).** |
-| OPEN-20 | How do parallel PMs avoid invalidating each other's `unit_start_anchor`? **Owner raised (2026-11-06) that staging already defers host git**: workers build on pinned refs, and the host branch `HEAD` moves only at the owner's apply, so the `HEAD` half of the anchor stays valid during an unattended run. Remaining collisions: the tracker half (task marks and gate verdicts still write the host tracker through the plan-doc lock) and the serial order inside a chain (stage n baselines on stage n-1). Revised recommendation, pending owner confirmation: re-base the anchor on the stage's pinned baseline commit instead of the feature-branch `HEAD`, make the tracker component per-unit (that unit's own lines), take parallelism from separate chains (feature and fix lanes) and from disjoint writers inside one stage, and leave host commits to the owner's apply and review. The earlier "parent owns git" option is largely moot for code. |
+| OPEN-20 | **Resolved (owner confirmed, 2026-11-06):** re-base the PM `unit_start_anchor` on the stage's pinned baseline commit instead of the feature-branch `HEAD`; make the tracker component per-unit; take parallelism from separate chains (feature and fix lanes) and from disjoint writers inside one stage; host commits happen at the owner's apply and review. First step in Q102: check what else relies on the whole-branch anchor (the PM DONE re-check in `docs/specs/pm-handoff.md`). |
 
 ## 12. Proving the design before building
 
