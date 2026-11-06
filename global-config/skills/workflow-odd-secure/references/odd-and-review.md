@@ -80,7 +80,7 @@ When two or more delegated tasks are independent at launch time, dispatch them c
 - Do not serialize independent reviewers, researchers, advisors, judges, or mappers merely because they were considered one at a time.
 - `ce:review` must fan out all independently applicable reviewers selected from the candidate in one launch wave. Conditional reviewers whose applicability is already known belong in that same wave.
 - Research/advisory workflows follow the same rule: independent specialists fan out; a later round is sequential only when it genuinely consumes first-round results.
-- Keep mutating writers serialized unless the workflow explicitly isolates them in independent worktrees or otherwise proves non-overlapping state.
+- Mutating writers run in parallel only with disjoint edit surfaces, under the rule in the orchestrator contract (Secure Cost and Context Balance); writers that need the same file run one after another or in isolated worktrees.
 - Absence of a `subagent_type` enum does not make Task unavailable. Current OpenCode resolves the supplied agent name dynamically; use the exact specialist named by the active workflow.
 
 ### Adaptive fan-out under provider pressure

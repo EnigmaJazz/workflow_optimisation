@@ -27,7 +27,7 @@ SECTIONS = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "upstrea
 ASSEMBLER = ROOT / "global-config" / "prompts" / "gentle-orchestrator" / "assemble-orchestrator-prompt.py"
 CONFIG = ROOT / "global-config" / "opencode.json"
 
-CURRENT_PROMPT_SHA256 = "0cf8da259010ca402320756ef19aaa148b9706d8c93f31a535cd97684b767838"
+CURRENT_PROMPT_SHA256 = "5134e9b35e5e64bc722f483c3abbd8281e63d6733983954ba7493b99a319ce5c"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
@@ -848,6 +848,41 @@ class OrchestratorPromptSourceTests(unittest.TestCase):
             )
             self.assertTrue(destination and destination not in ("-", "n/a"),
                             "ledger row lacks a destination: %r" % cells[:4])
+
+
+ODD_REFERENCE = ROOT / "global-config" / "skills" / "workflow-odd-secure" / "references" / "odd-and-review.md"
+OLD_SINGLE_WRITER = "Use a single writer thread for implementation"
+OLD_SERIALIZED = "Keep mutating writers serialized unless"
+PARALLEL_RULE_MARKERS = ("Run independent implementation units in parallel", "edit surfaces are disjoint", "one seam check")
+
+
+class ParallelWritersRuleTests(unittest.TestCase):
+    """Q102 unit A (D31): the single-writer rule is replaced by a disjoint-edit-surface rule, in one place."""
+
+    def test_overlay_carries_the_parallel_rule_and_not_the_single_writer_rule(self):
+        overlay = OVERLAY.read_text(encoding="utf-8")
+        self.assertNotIn(OLD_SINGLE_WRITER, overlay)
+        for marker in PARALLEL_RULE_MARKERS:
+            self.assertIn(marker, overlay)
+
+    def test_assembled_prompt_and_embedded_prompt_follow_the_overlay(self):
+        assembled = run_assembler()
+        self.assertEqual(assembled.returncode, 0, assembled.stderr)
+        embedded = json.loads(CONFIG.read_text(encoding="utf-8"))["agent"]["gentle-orchestrator"]["prompt"]
+        for text in (assembled.stdout, embedded):
+            self.assertNotIn("do not run parallel writers unless isolated worktrees", text)
+            for marker in PARALLEL_RULE_MARKERS:
+                self.assertIn(marker, text)
+
+    def test_skill_reference_points_to_the_orchestrator_rule_instead_of_restating_it(self):
+        reference = ODD_REFERENCE.read_text(encoding="utf-8")
+        self.assertNotIn(OLD_SERIALIZED, reference)
+        self.assertIn("disjoint edit surfaces", reference)
+        self.assertNotIn("one seam check", reference)  # stated once, in the orchestrator contract
+
+    def test_positive_control_the_old_sentences_are_detectable(self):
+        # Without this the absence assertions above could pass vacuously.
+        self.assertIn(OLD_SINGLE_WRITER, BASE.read_text(encoding="utf-8"))  # base.md is upstream and still carries it
 
 
 if __name__ == "__main__":
