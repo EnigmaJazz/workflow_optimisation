@@ -6,3 +6,4 @@ backups/
 # Python bytecode
 __pycache__/
 *.pyc
+nohup.out
