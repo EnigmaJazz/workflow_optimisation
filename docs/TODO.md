@@ -2172,6 +2172,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - nono profile probes: Engram reachability and the Paperclip attach path (spec OPEN-10, OPEN-11);
   - allow read-only Engram in OpenCode and amend `WORKFLOW.md:204` (spec D23, OPEN-4), after OPEN-11 passes.
   - apply the minimality principles to the OpenCode seats' instructions (spec D19, section 14).
+  - enable parallel implementation of non-overlapping units (spec D31, OPEN-20): replace the "single writer thread" rule (`global-config/prompts/gentle-orchestrator/overlay.md:66`, `base.md:161`, `skills/workflow-odd-secure/references/odd-and-review.md:83`) with a disjoint-edit-surface rule where the parent owns git and one seam check runs at the end; move writer fan-out guidance out of the skill reference into the orchestrator contract; resolve the PM `unit_start_anchor` serialisation (`docs/specs/pm-handoff.md:7,200`); test first by dispatching two disjoint writers and checking whether `host_sandbox_result_install` accepts both.
 
 ### Q103. Full OpenCode model assignment review
 - **Status:** PLANNED.

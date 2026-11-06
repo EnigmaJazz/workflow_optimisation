@@ -53,6 +53,7 @@ for every seat, and any implementation.
 | D28 | The allowed-paths source for the deterministic scope check is the plan's `## Allowed edit surfaces` section. | Owner, 2026-11-06 |
 | D29 | A gate checkpoint that cannot affect routing is dead code. The plan-vs-spec checkpoint must therefore have real deterministic checks the broker can derive, so it can route to a recorded pass, back to the Planner, or to the spec-check agent. | Owner, 2026-11-06 |
 | D30 | Test evidence for the implementation-vs-spec gate is produced by running the configured test runners inside the worker sandbox at stage finish, on exactly the stage content, and binding the result to the stage commit. No stage content runs on the host. | Owner, 2026-11-06 |
+| D31 | Parallel implementation of non-overlapping units is desirable in OpenCode, as demonstrated in this Claude Code session. Investigation (2026-11-06) found the causes mainly in prompting and contract, not the model: the orchestrator prompt and the ODD skill say to use a single writer thread, and the PM unit contract (one work unit, a tracker/HEAD anchor, PMs commit themselves) serialises PMs by construction. | Owner, 2026-11-06 |
 
 ## 3. Tier contracts
 
@@ -290,6 +291,7 @@ No numeric budget is set here; it must come from a measured baseline.
 | OPEN-17 | **Resolved (D23).** |
 | OPEN-18 | **Resolved (D24).** It changes the plan decided on 2026-10-12, so `agent-sandbox-integration/docs/staging/plan.md` needs a matching note. |
 | OPEN-19 | **Resolved (D27).** |
+| OPEN-20 | How do parallel PMs avoid invalidating each other's `unit_start_anchor`? Options: the orchestrator (parent) owns all git and commits after each PM returns; or each PM works on its own branch or worktree; or the anchor is made per-unit (tracker lines for that unit only). Needs an owner decision before Q102 changes the PM contract. |
 
 ## 12. Proving the design before building
 
