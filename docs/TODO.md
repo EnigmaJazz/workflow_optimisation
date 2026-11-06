@@ -2250,6 +2250,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - Planner contract and plan-per-stage handling in `agent-sandbox-integration`;
   - staging build at the spec D24 scope (P0-P2, reduced P4, P6 kept, P5 if needed, P3 deferred),
     starting with the P0 native-review spike (spec OPEN-1);
+  - staging completion without the owner as the manual step (owner, 2026-11-06): a staged result is reviewed in the sandbox (Codex, native review), and an approving recorded verdict lets the broker install and commit it; S17 becomes "protected paths need a recorded approving verdict", not "a human commits". Owner-only paths stay owner-installed even with a verdict: credentials and secrets, and the nono profiles. The owner sees only exceptions (reject, STALE, high-risk item, blocked). Workers end in one explicit state: `staged-awaiting-review`, `approved-installed`, `rejected`, `stale` or `blocked`, and the orchestrator routes on it (record the states in `roles/README.md`). Until staging exists, Tier 2 commits an approved result as a stopgap.
   - gate routing: code records a clear-match verdict, a clear fail goes back to the Planner, an unsure
     result goes to an independent spec-check agent (spec D22, OPEN-16, OPEN-19). This changes who may
     author `host_gate_verdict`, so it is its own commit with an independent verifier;
