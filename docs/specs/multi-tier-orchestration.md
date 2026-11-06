@@ -56,6 +56,7 @@ for every seat, and any implementation.
 | D31 | Parallel implementation of non-overlapping units is desirable in OpenCode, as demonstrated in this Claude Code session. Investigation (2026-11-06) found the causes mainly in prompting and contract, not the model: the orchestrator prompt and the ODD skill say to use a single writer thread, and the PM unit contract (one work unit, a tracker/HEAD anchor, PMs commit themselves) serialises PMs by construction. | Owner, 2026-11-06 |
 | D32 | OpenCode 2 allows background subagents. The mechanical capability for non-blocking parallel dispatch exists and should be used by the narrowed orchestrator contract. | Owner, 2026-11-06 |
 | D33 | Secure OpenCode needs a host tool to create a new git branch; today there is none. It belongs with the planned host git tools (`agent-sandbox-integration/odd/tasks/host-git-tools.md`, gate A passed, T1-T5 pending), whose mutation tier lists checkout/switch but not branch creation. | Owner, 2026-11-06 |
+| D34 | Tier 5 is launched only through Orca's agent launch with the `opencode2` agent id (`orca agent launch --agent opencode2 --worktree <selector> --prompt <brief>`, or `orca worktree create --agent opencode2`). That command starts OpenCode V2 against the secure server and handles its authentication. The `opencode` agent id starts V1, which has no background subagents. Hand-built `opencode2 --server` commands fail on the server password, and Tier 1 and Tier 2 never read credentials to work around it. | Owner, 2026-11-06 |
 
 ## 3. Tier contracts
 

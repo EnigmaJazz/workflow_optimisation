@@ -11,7 +11,7 @@ sits above the OpenCode PM layer, which keeps its context-management and contrac
 ## May
 
 - Explore the repository with Haiku subagents.
-- Delegate to Tier 4 (Codex) and Tier 5 (OpenCode gentle orchestrator).
+- Delegate to Tier 4 (Codex) and Tier 5 (OpenCode gentle orchestrator). Launch Tier 5 only with `orca agent launch --agent opencode2 --worktree <selector> --prompt <brief>` (or `orca worktree create --agent opencode2`), never the `opencode` agent id (V1, no background subagents) and never a hand-built `opencode2 --server` command (D34).
 - Draft the Tier 3 prompt and open its TUI; the owner enters it (D12).
 - Use the advisor to review the final plan before delegating and to judge between competing plans (D18).
 - Make the first evaluation of returned work.

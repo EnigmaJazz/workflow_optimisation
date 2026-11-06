@@ -10,7 +10,7 @@ before delegation (D18).
 ## May
 
 - Sequence work across repositories and write the day plan and cross-repo briefs.
-- Delegate to Tier 2 sessions and read their summaries.
+- Delegate to Tier 2 sessions and read their summaries. When Tier 1 delegates Tier 5 work directly, it uses the Tier 2 launch rule: `orca agent launch --agent opencode2` only (D34).
 - Write Engram strategic memory (Tier 2 owns all Engram writes, D23; Tier 1 writes through it).
 
 ## Must not
