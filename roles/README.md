@@ -10,3 +10,19 @@ increments it. Wording marked `pending owner review` is not in force until the o
 | `tier-2.md` | 2 | Claude Code, one session per repository |
 | `tier-2s.md` | 2s | Claude Code tech support |
 | `tier-4.md` | 4 | Codex, specification and result review |
+
+## Reporting back
+
+A session launched with a plain `orca agent launch` has no channel back to its launcher. To get a
+result without polling:
+
+- Start the worker with `orca orchestration worker-start`, so the dispatch has a task id and a
+  dispatch id, and put its coordinator terminal handle, task id and dispatch id in the brief.
+- A sandboxed OpenCode agent has no shell. It finishes with `host_orca_report` (`type: worker_done`,
+  with `subject`, `body` and `outcome`), passing the terminal, task and dispatch ids from the brief.
+  The broker checks the dispatch is live first, and the recipient is only that terminal. Only
+  `gentle-orchestrator` has this tool allowed; it is denied globally.
+- A session with a shell (Codex) uses `orca orchestration send --type worker_done` instead.
+- The read-only OpenCode orchestrator and its workers can write only inside the project root, so a
+  report file outside the repository fails. Use `host_orca_report`, or the final message.
+
