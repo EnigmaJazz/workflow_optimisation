@@ -27,6 +27,18 @@ other agents (D12).
 
 - The specification; the review verdict.
 
+## Feedback
+
+A launcher cannot read a Codex final message unless it is routed back, so the brief tells Codex how
+to report:
+
+- Launch with `--surface terminal`; a structured chat session cannot be read with `orca terminal`.
+- Dispatch through the `orchestration` tooling so completion arrives as an event (`worker_done`),
+  with the report in its payload. The launcher does not poll.
+- Without that tooling, the brief names an absolute report path outside the repository (for example
+  the launcher's scratchpad). Codex writes the complete report there, and the launcher reads that file.
+- Codex ends with one line giving where the report is, and states anything it could not verify.
+
 ## Minimality
 
 Pending owner review. Specification: only the criteria the owner asked for, assumptions marked as
