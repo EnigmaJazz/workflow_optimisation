@@ -291,7 +291,7 @@ No numeric budget is set here; it must come from a measured baseline.
 | OPEN-17 | **Resolved (D23).** |
 | OPEN-18 | **Resolved (D24).** It changes the plan decided on 2026-10-12, so `agent-sandbox-integration/docs/staging/plan.md` needs a matching note. |
 | OPEN-19 | **Resolved (D27).** |
-| OPEN-20 | How do parallel PMs avoid invalidating each other's `unit_start_anchor`? Options: the orchestrator (parent) owns all git and commits after each PM returns; or each PM works on its own branch or worktree; or the anchor is made per-unit (tracker lines for that unit only). Needs an owner decision before Q102 changes the PM contract. |
+| OPEN-20 | How do parallel PMs avoid invalidating each other's `unit_start_anchor`? **Owner raised (2026-11-06) that staging already defers host git**: workers build on pinned refs, and the host branch `HEAD` moves only at the owner's apply, so the `HEAD` half of the anchor stays valid during an unattended run. Remaining collisions: the tracker half (task marks and gate verdicts still write the host tracker through the plan-doc lock) and the serial order inside a chain (stage n baselines on stage n-1). Revised recommendation, pending owner confirmation: re-base the anchor on the stage's pinned baseline commit instead of the feature-branch `HEAD`, make the tracker component per-unit (that unit's own lines), take parallelism from separate chains (feature and fix lanes) and from disjoint writers inside one stage, and leave host commits to the owner's apply and review. The earlier "parent owns git" option is largely moot for code. |
 
 ## 12. Proving the design before building
 
