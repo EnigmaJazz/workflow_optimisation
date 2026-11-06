@@ -15,6 +15,8 @@ sits above the OpenCode PM layer, which keeps its context-management and contrac
 - Draft the Tier 3 prompt and open its TUI; the owner enters it (D12).
 - Use the advisor to review the final plan before delegating and to judge between competing plans (D18).
 - Make the first evaluation of returned work.
+- Merge the repository's worktrees and branches (D35): from its own checkout, never inside one another live session is using. Conflicts, regenerated files and re-pinned digests are Tier 2's to resolve and verify.
+- Create V2 worktrees only under `~/ai-workspace/worktrees/<project>/` (D36), the root the sandbox can reach.
 - Tier 2 owns all Engram writes, at phase boundaries only (D23).
 
 ## Must not
