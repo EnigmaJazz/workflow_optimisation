@@ -115,7 +115,8 @@ class ModelIndependence(unittest.TestCase):
         targets = self.agents["gentle-orchestrator"]["permission"]["task"]
         assert_task_target_allowed(self, targets, "general")
         assert_task_target_allowed(self, targets, "gentle-ai-worker-local")
-        self.assertNotIn("gentle-ai-worker", targets)
+        # Absence is insufficient here: the orchestrator wildcard is "ask", so only an explicit deny keeps the cloud worker out of its tiny-fix route.
+        self.assertEqual(targets.get("gentle-ai-worker"), "deny")
 
     def test_pm_dispatched_writer_is_independent_from_pm(self):
         assert_independent(
