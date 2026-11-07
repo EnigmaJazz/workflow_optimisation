@@ -793,6 +793,8 @@
           "gentle-ai-verify": "allow",
           "gentle-ai-verify-routine": "allow",
           "gentle-ai-worker-local": "allow",
+          "odd-apply": "deny",
+          "gentle-ai-worker": "deny",
           "adversarial-document-reviewer": "allow",
           "adversarial-reviewer": "allow",
           "agent-native-reviewer": "allow",
@@ -1448,6 +1450,8 @@
       "permission": {
         "task": {
           "*": "ask",
+          "odd-apply": "deny",
+          "gentle-ai-worker": "deny",
           "frontend-apply": "allow",
           "frontend-apply-local": "allow",
           "vision": "allow",

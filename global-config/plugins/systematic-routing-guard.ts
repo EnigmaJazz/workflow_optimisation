@@ -48,6 +48,7 @@ import {
   READ_ONLY_SPECIALIST_PATTERNS,
   hasTinyFixDispatchMarker,
   isCoordinator,
+  isPmOnlyWriter,
   pmRequiredRouteSkill,
   stageMarkerNames,
   taskWriteFile,
@@ -1146,14 +1147,27 @@ Tiny-fix escalation constants include TINY_FIX_MAX_AUTHORED_CHANGED_LINES, TINY_
       if (mode !== "off" && isWriterDispatch && !tinyFix) {
         try {
           const boundAgent = await readLatestMessageAgent(sessionID)
+          const validRouteKey = (await getWorkflowKeyStatus(sessionID)) === "valid"
           if (
             boundAgent === "gentle-orchestrator" &&
-            (await getWorkflowKeyStatus(sessionID)) === "valid"
+            validRouteKey
           ) {
             await warn(
               "task",
               sessionID,
               `orchestrator dispatched writing specialist ${dispatchedType}; orchestrator must delegate through the route coordinator`,
+            )
+          }
+          if (
+            validRouteKey &&
+            dispatchedType &&
+            isPmOnlyWriter(dispatchedType) &&
+            !(boundAgent && isCoordinator(boundAgent))
+          ) {
+            await warn(
+              "task",
+              sessionID,
+              `non-PM dispatcher ${boundAgent ?? "unbound"} dispatched PM-only writer ${dispatchedType}; only pm-odd and pm-systematic may dispatch odd-apply or gentle-ai-worker (routing guard is warning-only; the permission layer refuses)`,
             )
           }
 

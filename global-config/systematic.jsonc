@@ -8,6 +8,10 @@
 // whose base model is Sol, preserving live Systematic prompts and permissions.
 // The aliases are selectable per project/session and never include code-writing
 // implementation routes.
+// PM-only writer dispatch is enforced by the permission layer in opencode.json:
+// only pm-odd and pm-systematic grant `odd-apply`/`gentle-ai-worker`; every other
+// dispatcher denies them, while `gentle-ai-worker-local` stays allowed. This file
+// intentionally carries no `task` key: the Systematic schema has none for it.
 {
   "$schema": "https://fro.bot/systematic/schemas/v3/systematic-config.schema.json",
   "categories": {
