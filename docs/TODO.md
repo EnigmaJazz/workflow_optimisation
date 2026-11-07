@@ -2435,6 +2435,19 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - **Report binding.** Dispatches carry the Run (`--run`) so `worker_done` and questions reach the watcher; a
     session started with `orca agent launch` is not bound to the Run.
 
+### Q112. Cost learning, estimation and cross-project prioritisation (owner, 2026-11-07)
+- **Status:** PLANNED. **Prerequisites:** the usage ledger (Q101, D25), Q111 (master per repo). Design item first; no code before the owner approves the shape.
+- **Description:**
+  - **Cost record per task.** Every dispatch records wall time, tokens and usage budget per tier and model, by task class, route and size, so the ledger holds actuals next to the estimate made at dispatch.
+  - **Learning loop.** Tier 2 estimates a task from past actuals of the same class (median and spread), records the estimate, and compares it with the actual at close; the error feeds the next estimate. Report estimate error per class so it visibly improves.
+  - **Priority across projects.** Each queued unit carries a priority, a deadline if any, and a cost estimate. Tier 2 allocates against the limits that actually bind: remaining usage budget per subscription for the period, wall-clock time, and the worker cap (4 concurrent workers, to be confirmed against Orca and the subscriptions). Under tight limits it runs the highest-priority work that fits and says what was deferred and why.
+  - **Plan for a period.** Given a window (a day, a week), produce the allocation: what fits, what is deferred, what the estimate error range is. The owner reviews it in the daily session.
+  - **Open:** confirm the worker cap; decide where the ledger and estimates live (spec D25 says `workflow_optimisation`); decide the priority scale with the owner.
+
+### Q113. Need-to-know information per agent, and a blocking routing guard
+- **Status:** PLANNED (owner, 2026-11-07). **Prerequisites:** Q104, Q111; extends Q102 (D10, D11).
+- **Description:** once the architecture is built: (1) tighten what each agent is shown to what its one purpose needs, with each PM delegation starting from a fresh, narrow context and the master keeping the long context through Magic Context; (2) finish the routing guard and switch it from warning-only to blocking, so the OpenCode 2 workflow must be followed (today it is warning-only apart from one generic-task block). Do (2) only after (1) and the role contracts are in place, with a documented list of what it blocks and a rollback.
+
 ### Q107. The reviewer relay must accept a new worktree root without a broker restart
 - **Status:** PLANNED (sandbox repo `agent-sandbox-integration` work unit).
 - **Prerequisites:** none. Blocks unattended native review of any unit built in a new worktree or clone.
