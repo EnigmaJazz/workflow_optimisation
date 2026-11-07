@@ -2452,6 +2452,33 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Status:** PLANNED (owner, 2026-11-07). **Prerequisites:** Q104, Q111; extends Q102 (D10, D11).
 - **Description:** once the architecture is built: (1) tighten what each agent is shown to what its one purpose needs, with each PM delegation starting from a fresh, narrow context and the master keeping the long context through Magic Context; (2) finish the routing guard and switch it from warning-only to blocking, so the OpenCode 2 workflow must be followed (today it is warning-only apart from one generic-task block). Do (2) only after (1) and the role contracts are in place, with a documented list of what it blocks and a rollback.
 
+### Q114. Free sandbox workers when their work ends; size the worker cap from measured use
+- **Status:** PLANNED (sandbox repo work unit; broker is S17, owner reviews and restarts). **Source:** owner, 2026-11-07.
+- **Evidence (broker journal, 2026-11-07 15:00-17:46, `maxWorkers: 4`):** three `ensureWorker` calls failed with
+  `queued ... timed out after 600000ms` (17:29, 17:39, 17:41); two others waited 576 s and 77 s. Each wait ended
+  only when the reaper logged `reaped_result_ready`. `sweepIdle` releases a `RESULT_READY` worker only after
+  `reapIdleMs` (default 3,600,000 ms, `broker/src/config.ts:510`), although the result is already host-side
+  (`reaper.ts` comment). With `sandbox_apply` unused, a finished worker holds a slot for up to an hour.
+  `d65518b` already releases workers on terminal states, so this is a different path: not yet confirmed which
+  states held the slots; the first step is to log it.
+- **Resources (sampled 17:45):** 16 cores, load 1.4; 29 GiB RAM with 6.5 GiB available (23 GiB used, of which the
+  CPU llama-server is 2 GiB and the OpenCode 2 server 0.9 GiB). Live sandbox VMs were 139-458 MiB each, so four
+  workers are about 0.6-1.8 GiB idle. Memory and CPU do not bind the cap at idle; per-worker PEAK under test
+  runners is unmeasured.
+- **Description:**
+  - Release the worker as soon as the result is host-side (`RESULT_READY`), keeping the state so
+    apply/preview/retain/discard still work; do not wait for `reapIdleMs`. Same for a result that is committed
+    through `host_git_commit`.
+  - Pressure-aware sweep: when the pool queue is non-empty, release idle `RESULT_READY` and idle clean
+    `SANDBOX_ACTIVE` workers at once, never one with unexported edits.
+  - Log pool occupancy (held by session, state, age, queue depth) on every wait and timeout, so the cause of a
+    wait is visible.
+  - Measure per-worker peak CPU and memory during real runs (bun test, builds), then set `maxWorkers`: it is a
+    function of free RAM at peak, cores, and how many PM sessions run in parallel (Q111), not a constant.
+  - Do NOT shorten `BROKER_REAP_IDLE_MS` as a stopgap: it also closes idle `SANDBOX_ACTIVE` sessions as
+    `FAILED_CLOSED`.
+  - Workers that queue for 600 s should surface a clear `blocked` report to the delegating Tier 2 (Q111).
+
 ### Q107. The reviewer relay must accept a new worktree root without a broker restart
 - **Status:** PLANNED (sandbox repo `agent-sandbox-integration` work unit).
 - **Prerequisites:** none. Blocks unattended native review of any unit built in a new worktree or clone.
