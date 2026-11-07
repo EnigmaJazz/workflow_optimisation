@@ -59,6 +59,7 @@ for every seat, and any implementation.
 | D34 | Tier 5 is launched only through Orca's agent launch with the `opencode2` agent id (`orca agent launch --agent opencode2 --worktree <selector> --prompt <brief>`, or `orca worktree create --agent opencode2`). That command starts OpenCode V2 against the secure server and handles its authentication. The `opencode` agent id starts V1, which has no background subagents. Hand-built `opencode2 --server` commands fail on the server password, and Tier 1 and Tier 2 never read credentials to work around it. | Owner, 2026-11-06 |
 | D35 | Merging worktrees and branches is a Tier 2 duty. Tier 2 integrates the branches of a repository (resolving conflicts, re-assembling generated files, re-pinning digests, re-running the suites) from a checkout of its own; Tier 5 never merges and Tier 2 never merges inside a checkout another live session is using. | Owner, 2026-11-06 |
 | D36 | Worktrees that secure OpenCode V2 agents work in live under `~/ai-workspace/worktrees/<project>/`, a root registered once with the sandbox (read grant, `BROKER_PROJECTS`, launcher root), so no per-worktree registration or stack restart is needed. `host_register_project` (and `scripts/register-project.ts`) is to be extended with a worktree-root mode that creates `<root>/<project>/` and registers the root without `git init`, `.atl` or `.codegraph` creation, as a sandbox unit (see Q102). The broker treats the whole root as one project (`BROKER_PROJECTS` holds the root, not each subdirectory); the sandbox unit must verify that stage, apply and review flows resolve a worktree path under that root. | Owner, 2026-11-06 |
+| D37 | Native review never runs autonomously: its consent is per candidate and only the owner grants it. It moves out of the Tier 5 phase and runs in the daily review (phase 6) on the staged changes, with the owner present to grant consent. Tier 5 runs `gentle-ai review assess` and reports `review_due` and the candidate; it does not start a review. Resolves OPEN-1 for the unapplied flow. | Owner, 2026-11-07 |
 
 ## 3. Tier contracts
 
@@ -112,7 +113,7 @@ mechanism, but the cost lesson is why section 10 is a hard requirement.
 5. **Staged implementation (Tier 5).** Per stage: a plan (Planner, D3), the Jev plan-vs-spec check,
    implementation in the sandbox, the Jev implementation-vs-spec check. Stages stay **unapplied**.
 6. **Review with the owner.** The owner and a review agent step through the staged changes. Native
-   review runs, ideally inside the sandbox. See OPEN-1.
+   review runs here, on the staged changes, with the owner present to grant consent (D37).
 7. **Apply to the host.** Only after phase 6, per the staging apply rules.
 8. **Evaluation.** The result returns to Tier 2 (first evaluation), then to Tier 4 (does the final
    change meet the spec; identify flaws), as a structured `PASS` or `FLAWS_FOUND` verdict. Defects open a new stage or a new spec revision.
@@ -277,7 +278,7 @@ No numeric budget is set here; it must come from a measured baseline.
 
 | ID | Question |
 |---|---|
-| OPEN-1 | The staging plan prefers review before apply and accepts native review after apply as a fallback. The owner wants native review in the sandbox before apply. Is in-sandbox native review feasible, or is the fallback the reality? |
+| OPEN-1 | **Resolved (D37):** native review runs in the daily review on staged changes, because consent is per candidate and owner-only; whether the lenses run before apply in the sandbox still depends on the reviewer relay accepting the stage root (Q107). |
 | OPEN-2 | **Resolved (D9):** Tier 2 sits above the existing OpenCode setup; the PM layer stays for context management and contract following. Remaining work: narrow the orchestrator contract to simple repeated steps (D10), and run the need-to-know pass over each phase's instructions (D11). |
 | OPEN-3 | Tier 2s has no agent today. Define it as a role over the "Global Tooling Changes" procedure. |
 | OPEN-4 | Allow read-only Engram (search and read, no `mem_save`) in OpenCode and amend `WORKFLOW.md:204` and the matching write ban (D23). |
