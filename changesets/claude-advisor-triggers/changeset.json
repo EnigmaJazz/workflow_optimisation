@@ -1,0 +1,18 @@
+{
+  "schema": "workflow-changeset/v1",
+  "id": "claude-advisor-triggers",
+  "description": "Global Claude rule: concrete advisor triggers for blockers that do not resolve easily.",
+  "ops": [
+    {
+      "op": "file_remove",
+      "file": "~/.claude/rules/advisor.md",
+      "expect_sha256": "3f132f4d761678f510930db2bd3f664fb0daedbd7321d58e6e2772c5ab5dff98"
+    },
+    {
+      "op": "file_create",
+      "file": "~/.claude/rules/advisor.md",
+      "content_file": "advisor.md",
+      "mode": "0644"
+    }
+  ]
+}
