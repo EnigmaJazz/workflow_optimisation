@@ -132,7 +132,7 @@ class RealConfig(unittest.TestCase):
         mirrored = derive.ACCESS_MIRRORS
         got = json.loads((self.out / "opencode.json").read_text())
         expected = json.loads(json.dumps(self.src))
-        derive.apply_v2_grep_policy(expected)  # intended difference: V2's grep policy (global deny, orchestrator ask)
+        derive.apply_v2_grep_policy(expected)  # intended difference: V2's grep policy (global deny, orchestrator allow)
         derive.apply_v2_secret_read_policy(expected)  # secret-file denies re-applied after agent-level read allows
         derive.add_v2_astra_aliases(expected)  # the Astra aliases of config-defined agents
         derive.drop_v2_unsupported(expected)  # and keys V2 reports as unsupported and ignores
@@ -154,7 +154,7 @@ class RealConfig(unittest.TestCase):
         self.assertNotIn("plugin", got)
         # What the run must have removed, asserted on the derived file itself and not through the function under test.
         self.assertEqual(got["permission"]["grep"], "deny")  # asserted on the derived file, not through the function under test
-        self.assertEqual(got["agent"]["gentle-orchestrator"]["permission"]["grep"], "ask")
+        self.assertEqual(got["agent"]["gentle-orchestrator"]["permission"]["grep"], "allow")
         self.assertTrue(all(a.get("permission", {}).get("grep") in (None, "deny") for n, a in got["agent"].items() if n != "gentle-orchestrator"))
         self.assertNotIn("subagent_depth", got)
         self.assertEqual(got["experimental"]["subagent_depth"], self.src.get("experimental", {}).get("subagent_depth", self.src.get("subagent_depth")))
@@ -447,7 +447,7 @@ class V2PluginVersions(unittest.TestCase):
 
 
 class V2GrepPolicy(unittest.TestCase):
-    """Native grep: orchestrator ask, everything else deny. V2 applies the last matching rule, so the global rule must not be ask."""
+    """Native grep: orchestrator allow, everything else deny. V2 applies the last matching rule, so the global rule must not be allow."""
 
     def setUp(self):
         self.m = load()
@@ -455,11 +455,11 @@ class V2GrepPolicy(unittest.TestCase):
     def config(self, **extra):
         return {"permission": {"grep": "ask", "ctx_memory": "deny"}, "agent": {"gentle-orchestrator": {"mode": "primary"}, "general": {"permission": {"grep": "deny"}}}, **extra}
 
-    def test_global_becomes_deny_and_the_orchestrator_carries_the_ask(self):
+    def test_global_becomes_deny_and_the_orchestrator_carries_the_allow(self):
         config = self.config()
         notes = self.m.apply_v2_grep_policy(config)
         self.assertEqual(config["permission"]["grep"], "deny")
-        self.assertEqual(config["agent"]["gentle-orchestrator"]["permission"], {"grep": "ask"})
+        self.assertEqual(config["agent"]["gentle-orchestrator"]["permission"], {"grep": "allow"})
         self.assertEqual(config["agent"]["general"]["permission"], {"grep": "deny"})
         self.assertEqual(config["permission"]["ctx_memory"], "deny")  # nothing else is touched
         self.assertEqual(len(notes), 1)
@@ -468,7 +468,7 @@ class V2GrepPolicy(unittest.TestCase):
         config = self.config()
         config["agent"]["gentle-orchestrator"]["permission"] = {"host_git_commit": "ask", "grep": "allow"}
         self.m.apply_v2_grep_policy(config)
-        self.assertEqual(config["agent"]["gentle-orchestrator"]["permission"], {"host_git_commit": "ask", "grep": "ask"})
+        self.assertEqual(config["agent"]["gentle-orchestrator"]["permission"], {"host_git_commit": "ask", "grep": "allow"})
 
     def test_it_is_idempotent_and_ignores_a_config_whose_global_grep_is_not_ask(self):
         config = self.config()

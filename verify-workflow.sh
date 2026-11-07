@@ -63,7 +63,7 @@
 #     deliberately tool-less immutable reviewers remain exempt
 #   - context-dependent fixed host-control tools are authorization-checked from
 #     resolved permission rules; neutral debug-tool absence is diagnostic only
-#   - native/AFT grep remains ask-gated because it returns content without
+#   - native/AFT grep is allowed only for the orchestrator because it returns content without
 #     inheriting protected read-path rules; glob is allowed for path discovery only
 #   - an active secure-opencode.service is bound to a certified content-hash
 #     generation; startup-time rewrites do not create a false restart loop
@@ -103,17 +103,19 @@ VERIFY_MODULES=(
   "55-section-3-skills.sh 9d7ff4416ae7a1c8565258a60e1b3e284217e02063daa8a3b35973f54854933f"
   "56-section-4-5-agents-registry.sh 2b66b463ddd9942fba8c065fa7e94689217add64a39a717f62547424d68951f8"
   "57-section-6-plugin-mirrors.sh 476d73263f419f0d413655d07d4c9f29ef7b531fa30e6d970effcdcd152a2622"
-  "58-section-7-recipe.sh 9f02d1b88bd2dd08ee2aacf1f8619f2c149dcc383b66a4ed6f808da74f4e8502"
+  "57b-section-6b-tool-decisions.sh 793aa16c003fc93d36166158ea92e6a50940042b234137b153f9639445d568b0"
+  "58-section-7-recipe.sh ca63ac3b085b5205b44f6684749894a7fad5a10cc689554f892d58819e7e96c6"
   "59-section-8-9-config-runtime.sh 463351d95746a5a6642b7f2b085a232e2014fb78017bd60ed86f279eb849422e"
   "60-section-9a-9b-secure-service.sh 2579654362fa71ab3938da3bb858f053aeaa796272033c7e408d8c9675986d87"
   "61-section-10-behavioural.sh 24a31e750fcbfeaea7e18e6801a14547e596910103ecd1ca7d16db9b9425d134"
   "62-section-11-summary.sh 5df415a1b7f63144822d2bb62c2300df4f2de8ea36cc0dc7ee5d4138c477ea76"
   "checkers/check-parallel-dispatch.py d970c748791710131a667b6cc1cd08ea280494c021d9b2bde520b1620208447e"
-  "checkers/check-runtime-agents.cjs f0c29088ee97c80bfa229f478d41ec9ba1aa13dde87d07352b89ecddde9de792"
+  "checkers/check-runtime-agents.cjs 43a893ec5798d4b0f5b0b30d75698481bd660be9aff5f19dd66b7f9b805b891d"
   "checkers/check-systematic-resolution.cjs ec8997e05b9b5cc390529abc62bb7608e11cf8885155ef7ea0606ac47bd16499"
   "checkers/oc-probe.sh e5b2ba64cad39b90ef5702dfb00c527bd67a275799b9f5542c5c9f25af117301"
   "checkers/recover-cli-config.py 5dc9e7af0c465f3ba237ba14c03a7b5b702f0e613445828b617189e56e05295f"
-  "checkers/routing-canonical.md 23c0c9ab507e96b04966a4e1e2b5419771859dfd87eef1efb2d3191e52c559e4"
+  "checkers/routing-canonical.md 2da6e80c476ee3f910611cdd57d68a22aeb1ed8c96c8eafcb8be72bd16467c97"
+  "checkers/sandbox-tool-decisions.py 5a3854496b40a049f57a434db1b7d496bfbf6525ba93867f428514782366cb3f"
   "checkers/v2-agents-shim.cjs 93e716e96f9cc7cdcfaa73ecf7e64bed42bbbab70a04240b6433108353cf11e6"
   "checkers/v2-config-check.py d1b3df3161a7b9b18f21d42610dcabff6951886d171ebc5caccadd39aebd79ae"
   "checkers/v2-github-mcp-check.py fa24359ddfcf24c21d52f4cfc2948a5813167116fb2574cc98b82f2edce9d386"

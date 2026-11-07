@@ -217,10 +217,10 @@ V2_DEAD_MODEL_FLAGS = ("temperature", "reasoning", "attachment")
 
 
 def apply_v2_grep_policy(config, orchestrator="gentle-orchestrator"):
-    """Native grep is the orchestrator's alone, and only with an ask; everyone else uses the sandbox tools.
+    """Native grep is allowed for the orchestrator alone; everyone else uses the sandbox tools.
     V1 expresses that as a global `grep: ask` with `deny` on each agent, because an agent rule beats the global one. V2 uses the
     last matching rule and puts plugin-owned agents (the Systematic ones, which have no entry here) under the global rule only, so
-    a global ask would expose native grep to them. On V2 the global rule is therefore `deny` and the orchestrator carries the ask."""
+    a global allow would expose native grep to them. On V2 the global rule is therefore `deny` and the orchestrator carries the allow."""
     permission = config.get("permission")
     if not isinstance(permission, dict) or permission.get("grep") != "ask":
         return []
@@ -228,15 +228,15 @@ def apply_v2_grep_policy(config, orchestrator="gentle-orchestrator"):
     # Refuse rather than leave the global ask: on V2 that would hand native grep to every plugin-owned agent, and a note nobody reads
     # is not a safeguard.
     if not isinstance(agent, dict):
-        raise DeriveError(f"native grep policy: there is no {orchestrator} agent to carry the ask, and the global ask would expose grep to plugin-owned agents")
+        raise DeriveError(f"native grep policy: there is no {orchestrator} agent to carry the allow, and the global rule would expose grep to plugin-owned agents")
     agent_permission = agent.get("permission")
     if agent_permission is None:
         agent_permission = agent["permission"] = {}
     if not isinstance(agent_permission, dict):
-        raise DeriveError(f"native grep policy: {orchestrator}.permission is not an object, so it cannot carry the ask")
+        raise DeriveError(f"native grep policy: {orchestrator}.permission is not an object, so it cannot carry the allow")
     permission["grep"] = "deny"
-    agent_permission["grep"] = "ask"
-    return [f"native grep: global policy deny and {orchestrator} ask on V2 (V2 uses the last matching rule, so a global ask would expose it to plugin-owned agents)"]
+    agent_permission["grep"] = "allow"
+    return [f"native grep: global policy deny and {orchestrator} allow on V2 (V2 uses the last matching rule, so a global allow would expose it to plugin-owned agents)"]
 
 
 def apply_v2_secret_read_policy(config):

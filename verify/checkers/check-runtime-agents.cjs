@@ -1010,10 +1010,23 @@ const gatedHostMutations=["host_review_diff_read","host_git_commit","host_git_pu
 const retiredHostOperations=["host_sdd_verify_validate","host_sdd_attempt_status","host_sdd_attempt_acquire","host_sdd_attempt_begin","host_sdd_attempt_rescope","host_sdd_attempt_finish","host_sdd_attempt_reset","host_sdd_attempt_settle","host_sdd_attempt_grant","host_sdd_archive_compose","host_sdd_status","host_sdd_continue","host_sdd_task_result"]
 for (const name of registeredHostReads) if (gp[name]!=="allow") fail(`HOST_READ_PERMISSION_MISMATCH: ${name}`)
 for (const name of [...gatedHostMutations,...retiredHostOperations]) if (gp[name]!=="deny") fail(`HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY: ${name}`)
+function hostReviewAcknowledgeAllowFailures(agent) {
+  const permission=agent?.permission
+  if (!permission || typeof permission!=="object" || Array.isArray(permission) || !Object.prototype.hasOwnProperty.call(permission,"host_review_acknowledge_approved") || permission.host_review_acknowledge_approved!=="allow") return [`HOST_REVIEW_ACKNOWLEDGE_APPROVED_NOT_ALLOW: ${show(permission?.host_review_acknowledge_approved)}`]
+  return []
+}
+const acknowledgeAskProbe=hostReviewAcknowledgeAllowFailures({permission:{host_review_acknowledge_approved:"ask"}})
+if (!acknowledgeAskProbe.some(failure=>failure.includes("HOST_REVIEW_ACKNOWLEDGE_APPROVED_NOT_ALLOW"))) fail("HOST_REVIEW_ACKNOWLEDGE_APPROVED_ASK_POSITIVE_CONTROL_FAILED")
 for (const name of ["host_system","host_service_status","host_service_logs","host_tailscale_status","host_memory","host_disk_usage","host_network_listeners","host_process_list","host_docker_list","host_docker_logs"]) if (gp[name]==="allow") fail(`UNREGISTERED_HOST_INSPECTION_ADVERTISED: ${name}`)
 
 function cfgTool(agent,t) { return agent?.tools && typeof agent.tools==="object" ? agent.tools[t] : undefined }
 function cfgPerm(agent,t) { return agent?.permission && typeof agent.permission==="object" ? agent.permission[t] : undefined }
+function orchestratorGrepFailures(agent) {
+  const failures=[]
+  if (cfgPerm(agent,"grep")!=="allow") failures.push(`ORCHESTRATOR_GREP_NOT_ALLOW: ${show(cfgPerm(agent,"grep"))}`)
+  if (cfgTool(agent,"grep")===false) failures.push("ORCHESTRATOR_GREP_TOOL_DISABLED")
+  return failures
+}
 // Q90 T3a1: the orchestrator-only fixed-tool surface. Plan drafting is ask-gated;
 // the narrowly defined pre-registered test runner is allow-gated. Neither is a
 // generic shell/edit authority, and no other agent may receive either grant.
@@ -1088,6 +1101,46 @@ function hostReviewDiffReadFailures(name,agent) {
 // Orchestrator-only checks below keep fixed-host, tiny-fix and registration names.
 const pmAgents=["pm-odd","pm-systematic"]
 const coordinatorAgents=["gentle-orchestrator",...pmAgents]
+for (const name of coordinatorAgents) {
+  const agent=deployedAgents[name]
+  for (const failure of hostReviewAcknowledgeAllowFailures(agent)) fail(`COORDINATOR_${failure}`)
+}
+const acknowledgeMissingProbe=hostReviewAcknowledgeAllowFailures({permission:{}})
+if (!acknowledgeMissingProbe.length) fail("COORDINATOR_ACKNOWLEDGE_OMITTED_POSITIVE_CONTROL_FAILED")
+const acknowledgeWrongProbe=hostReviewAcknowledgeAllowFailures({permission:{host_review_acknowledge_approved:"ask"}})
+if (!acknowledgeWrongProbe.length) fail("COORDINATOR_ACKNOWLEDGE_MISMATCH_POSITIVE_CONTROL_FAILED")
+function pmGitAccessFailures(name,agent) {
+  const failures=[]
+  for (const [tool,permission] of [["host_git_branch","ask"],["host_git_head","allow"]]) {
+    if (cfgPerm(agent,tool)!==permission) failures.push(`PM_GIT_PERMISSION_MISMATCH: ${name}.${tool} expected ${permission}, got ${show(cfgPerm(agent,tool))}`)
+    if (cfgTool(agent,tool)!==true) failures.push(`PM_GIT_TOOL_NOT_ENABLED: ${name}.${tool}`)
+  }
+  return failures
+}
+for (const name of pmAgents) for (const failure of pmGitAccessFailures(name,deployedAgents[name])) fail(failure)
+function pmGitAccessOutsideAllowlistFailures(agents) {
+  const failures=[]
+  for (const [agentName,agent] of Object.entries(agents??{})) {
+    if (pmAgents.includes(agentName)) continue
+    const tools=agent?.tools && typeof agent.tools==="object" ? agent.tools : {}
+    const permissions=agent?.permission && typeof agent.permission==="object" ? agent.permission : {}
+    for (const tool of ["host_git_branch","host_git_head"]) {
+      const hasTool=Object.prototype.hasOwnProperty.call(tools,tool)
+      const hasPermission=Object.prototype.hasOwnProperty.call(permissions,tool)
+      if ((hasTool && tools[tool]!==false) || (hasPermission && permissions[tool]!=="deny")) {
+        failures.push(`PM_GIT_ACCESS_OUTSIDE_ALLOWLIST: ${agentName}.${tool}`)
+      }
+    }
+  }
+  return failures
+}
+for (const failure of pmGitAccessOutsideAllowlistFailures(deployedAgents)) fail(failure)
+const pmGitMissingProbe=pmGitAccessFailures("synthetic-pm",{tools:{},permission:{}})
+if (pmGitMissingProbe.length!==4) fail("PM_GIT_OMITTED_POSITIVE_CONTROL_FAILED")
+const pmGitWrongProbe=pmGitAccessFailures("synthetic-pm",{tools:{host_git_branch:true,host_git_head:true},permission:{host_git_branch:"allow",host_git_head:"ask"}})
+if (pmGitWrongProbe.length!==2) fail("PM_GIT_WRONG_VALUE_POSITIVE_CONTROL_FAILED")
+const pmGitSweepProbe={"synthetic-third-agent":{tools:{host_git_branch:"ask"}}}
+if (!pmGitAccessOutsideAllowlistFailures(pmGitSweepProbe).some((failure)=>failure==="PM_GIT_ACCESS_OUTSIDE_ALLOWLIST: synthetic-third-agent.host_git_branch")) fail("PM_GIT_NEGATIVE_SWEEP_POSITIVE_CONTROL_FAILED")
 // The Planner is a plan writer and advisor dispatcher, but not a review coordinator.
 // Keeping it out of coordinatorAgents avoids requiring the PM/review host grants and
 // avoids treating its narrow task map as coordinator deep-dispatch authority.
@@ -1913,7 +1966,13 @@ else {
   if (!configuredOrchestratorVariant) fail(`ORCHESTRATOR_VARIANT_NOT_EXPLICIT: ${show(orch.variant)}`)
   if (cfgPerm(orch,"edit")!=="deny" || cfgPerm(orch,"write")!=="deny") fail("ORCHESTRATOR_HOST_WRITE_NOT_DENIED")
   if (cfgPerm(orch,"bash")!=="deny") fail("ORCHESTRATOR_HOST_BASH_NOT_DENIED")
-  for (const name of gatedHostMutations) if (name!=="host_review_start" && name!=="host_review_materialize" && name!=="host_review_pipeline_run" && name!=="host_review_diff_read" && cfgPerm(orch,name)!=="ask") fail(`ORCHESTRATOR_HOST_TOOL_NOT_ASK: ${name}`)
+   for (const failure of orchestratorGrepFailures(orch)) fail(failure)
+   if (!orchestratorGrepFailures({permission:{},tools:{}}).some(failure=>failure.includes("ORCHESTRATOR_GREP_NOT_ALLOW"))) fail("ORCHESTRATOR_GREP_OMITTED_POSITIVE_CONTROL_FAILED")
+   if (!orchestratorGrepFailures({permission:{grep:"ask"},tools:{grep:true}}).some(failure=>failure.includes("ORCHESTRATOR_GREP_NOT_ALLOW"))) fail("ORCHESTRATOR_GREP_ASK_POSITIVE_CONTROL_FAILED")
+  for (const name of gatedHostMutations) if (name!=="host_review_start" && name!=="host_review_materialize" && name!=="host_review_pipeline_run" && name!=="host_review_diff_read" && name!=="host_review_acknowledge_approved" && cfgPerm(orch,name)!=="ask") fail(`ORCHESTRATOR_HOST_TOOL_NOT_ASK: ${name}`)
+   for (const failure of hostReviewAcknowledgeAllowFailures(orch)) fail(failure)
+   const acknowledgeOmitted=hostReviewAcknowledgeAllowFailures({permission:{}})
+   if (!acknowledgeOmitted.length) fail("HOST_REVIEW_ACKNOWLEDGE_APPROVED_OMITTED_POSITIVE_CONTROL_FAILED")
   if (cfgPerm(orch,"host_review_start")!=="allow") fail(`ORCHESTRATOR_HOST_REVIEW_START_NOT_ALLOW: ${show(cfgPerm(orch,"host_review_start"))}`)
   for (const failure of hostReviewMaterializeExceptionFailures(gatedHostMutations,orch)) fail(failure)
   for (const failure of hostReviewPipelineRunExceptionFailures(gatedHostMutations,orch)) fail(failure)
@@ -2193,8 +2252,8 @@ if (orchRuntime) {
   }
 
   assertPermissionFullyDenied(orchRuntime, "edit", "ORCHESTRATOR_HOST_EDIT_NOT_DENIED")
-  if (permissionActionForWildcard(orchRuntime,"grep")!=="ask") {
-    fail(`ORCHESTRATOR_NATIVE_GREP_NOT_ASK: ${show(permissionActionForWildcard(orchRuntime,"grep"))}`)
+  if (permissionActionForWildcard(orchRuntime,"grep")!=="allow") {
+    fail(`ORCHESTRATOR_NATIVE_GREP_NOT_ALLOW: ${show(permissionActionForWildcard(orchRuntime,"grep"))}`)
   }
   if (tool(orchRuntime,"bash")!==false && permissionActionForWildcard(orchRuntime,"bash")!=="deny") {
     fail("ORCHESTRATOR_HOST_BASH_NOT_DENIED_RUNTIME")
