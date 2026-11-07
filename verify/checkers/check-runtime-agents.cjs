@@ -1021,6 +1021,41 @@ for (const name of ["host_system","host_service_status","host_service_logs","hos
 
 function cfgTool(agent,t) { return agent?.tools && typeof agent.tools==="object" ? agent.tools[t] : undefined }
 function cfgPerm(agent,t) { return agent?.permission && typeof agent.permission==="object" ? agent.permission[t] : undefined }
+// Q106 fix: resolve a permission through ordered wildcard keys (last matching
+// key wins), then sweep every non-coordinator for an acknowledge allow.
+function globPatternMatches(pattern, name) {
+  if (pattern === name) return true
+  if (typeof pattern !== "string" || (!pattern.includes("*") && !pattern.includes("?"))) return false
+  let source = "^"
+  for (const char of pattern) {
+    if (char === "*") source += ".*"
+    else if (char === "?") source += "."
+    else source += char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  }
+  return new RegExp(source + "$").test(name)
+}
+function resolvedPermissionValue(agent, tool) {
+  const permission = agent?.permission
+  if (typeof permission === "string") return permission
+  if (!permission || typeof permission !== "object" || Array.isArray(permission)) return undefined
+  let resolved
+  for (const [pattern, value] of Object.entries(permission)) {
+    if (typeof value !== "string") continue
+    if (globPatternMatches(pattern, tool)) resolved = value
+  }
+  return resolved
+}
+function acknowledgeAllowSweepFailures(agents, allowedAgents) {
+  const failures = []
+  const allowed = new Set(allowedAgents ?? [])
+  for (const [name, agent] of Object.entries(agents ?? {})) {
+    if (allowed.has(name)) continue
+    if (resolvedPermissionValue(agent, "host_review_acknowledge_approved") === "allow") {
+      failures.push(`HOST_REVIEW_ACKNOWLEDGE_ALLOW_OUTSIDE_COORDINATORS: ${name}`)
+    }
+  }
+  return failures
+}
 function orchestratorGrepFailures(agent) {
   const failures=[]
   if (cfgPerm(agent,"grep")!=="allow") failures.push(`ORCHESTRATOR_GREP_NOT_ALLOW: ${show(cfgPerm(agent,"grep"))}`)
@@ -1109,6 +1144,15 @@ const acknowledgeMissingProbe=hostReviewAcknowledgeAllowFailures({permission:{}}
 if (!acknowledgeMissingProbe.length) fail("COORDINATOR_ACKNOWLEDGE_OMITTED_POSITIVE_CONTROL_FAILED")
 const acknowledgeWrongProbe=hostReviewAcknowledgeAllowFailures({permission:{host_review_acknowledge_approved:"ask"}})
 if (!acknowledgeWrongProbe.length) fail("COORDINATOR_ACKNOWLEDGE_MISMATCH_POSITIVE_CONTROL_FAILED")
+for (const failure of acknowledgeAllowSweepFailures(deployedAgents, coordinatorAgents)) fail(failure)
+const acknowledgeExactAllowProbe = acknowledgeAllowSweepFailures({"synthetic-exact-allow":{permission:{host_review_acknowledge_approved:"allow"}}}, coordinatorAgents)
+if (!acknowledgeExactAllowProbe.includes("HOST_REVIEW_ACKNOWLEDGE_ALLOW_OUTSIDE_COORDINATORS: synthetic-exact-allow")) fail("HOST_REVIEW_ACKNOWLEDGE_ALLOW_SWEEP_EXACT_POSITIVE_CONTROL_FAILED")
+const acknowledgeGlobAllowProbe = acknowledgeAllowSweepFailures({"synthetic-glob-allow":{permission:{"host_review_*":"allow"}}}, coordinatorAgents)
+if (!acknowledgeGlobAllowProbe.includes("HOST_REVIEW_ACKNOWLEDGE_ALLOW_OUTSIDE_COORDINATORS: synthetic-glob-allow")) fail("HOST_REVIEW_ACKNOWLEDGE_ALLOW_SWEEP_GLOB_POSITIVE_CONTROL_FAILED")
+const acknowledgeGlobThenDenyProbe = acknowledgeAllowSweepFailures({"synthetic-ordered-deny":{permission:{"host_review_*":"allow",host_review_acknowledge_approved:"deny"}}}, coordinatorAgents)
+if (acknowledgeGlobThenDenyProbe.length !== 0) fail("HOST_REVIEW_ACKNOWLEDGE_ALLOW_SWEEP_ORDER_NEGATIVE_CONTROL_FAILED")
+const acknowledgeDenyProbe = acknowledgeAllowSweepFailures({"synthetic-deny":{permission:{host_review_acknowledge_approved:"deny"}}}, coordinatorAgents)
+if (acknowledgeDenyProbe.length !== 0) fail("HOST_REVIEW_ACKNOWLEDGE_ALLOW_SWEEP_DENY_NEGATIVE_CONTROL_FAILED")
 function pmGitAccessFailures(name,agent) {
   const failures=[]
   for (const [tool,permission] of [["host_git_branch","ask"],["host_git_head","allow"]]) {

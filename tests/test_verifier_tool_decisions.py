@@ -54,6 +54,42 @@ class ToolDecisionCoverageTests(unittest.TestCase):
         self.assertEqual(status, "error")
         self.assertIn("worker.sandbox_read", detail)
 
+    def test_prefix_glob_enables_fixture_tool(self):
+        fixture = {"tools": [{"name": "host_git_head"}]}
+        config = {
+            "permission": {"host_git_head": "deny"},
+            "agent": {"worker": {"tools": {"host_*": True}, "permission": {}}},
+        }
+        status, detail = check(config, fixture)
+        self.assertEqual(status, "error")
+        self.assertIn("worker.host_git_head", detail)
+        config["agent"]["worker"]["permission"]["host_git_head"] = "deny"
+        self.assertEqual(check(config, fixture)[0], "clean")
+
+    def test_prefix_glob_false_disables_under_allow_all(self):
+        fixture = {"tools": [{"name": "host_git_head"}]}
+        config = {
+            "permission": {"host_git_head": "deny"},
+            "agent": {"worker": {"tools": {"*": True, "host_*": False}, "permission": {}}},
+        }
+        self.assertEqual(check(config, fixture)[0], "clean")
+        config["agent"]["worker"]["tools"] = {"*": True, "host_*": True}
+        status, detail = check(config, fixture)
+        self.assertEqual(status, "error")
+        self.assertIn("worker.host_git_head", detail)
+
+    def test_glob_order_is_last_match_wins(self):
+        fixture = {"tools": [{"name": "host_git_head"}]}
+        config = {
+            "permission": {"host_git_head": "deny"},
+            "agent": {"worker": {"tools": {"host_*": False, "host_git_head": True}, "permission": {}}},
+        }
+        status, detail = check(config, fixture)
+        self.assertEqual(status, "error")
+        self.assertIn("worker.host_git_head", detail)
+        config["agent"]["worker"]["tools"] = {"host_git_head": True, "host_*": False}
+        self.assertEqual(check(config, fixture)[0], "clean")
+
     def test_duplicate_fixture_tool_names_are_rejected(self):
         fixture = {"tools": [{"name": "read"}, {"name": "read"}]}
         status, detail = check(self.config, fixture)

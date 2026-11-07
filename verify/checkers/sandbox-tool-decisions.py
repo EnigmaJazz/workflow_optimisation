@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check explicit permission decisions for the sandbox tool surface fixture."""
 
+import fnmatch
 import json
 import sys
 from pathlib import Path
@@ -10,10 +11,24 @@ DECISIONS = {"allow", "ask", "deny"}
 
 
 def enabled_tools(agent, name):
+    """Resolve a tool's enablement with ordered wildcard semantics.
+
+    `tools` keys may be exact names or glob patterns (`*`, `host_*`), and, as in
+    the config's permission rules, the LAST matching key decides. A key whose
+    value is not literally `true` disables the tool, so a later `host_*: false`
+    overrides an earlier `*: true` and a later exact `true` overrides an earlier
+    glob false.
+    """
     tools = agent.get("tools")
     if not isinstance(tools, dict):
         return False
-    return tools.get(name) is True or (tools.get("*") is True and tools.get(name) is not False)
+    enabled = False
+    for pattern, value in tools.items():
+        if not isinstance(pattern, str):
+            continue
+        if fnmatch.fnmatchcase(name, pattern):
+            enabled = value is True
+    return enabled
 
 
 def check(config, fixture):
