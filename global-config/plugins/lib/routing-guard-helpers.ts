@@ -29,6 +29,21 @@ export const isCoordinator = (name: string): boolean =>
   COORDINATOR_PATTERNS.some((pattern) => pattern.test(name))
 
 /**
+ * Writers reserved for PM coordinators. `odd-apply` and `gentle-ai-worker` may be
+ * dispatched only by `pm-odd` or `pm-systematic`; every other agent, including the
+ * orchestrator and `planner`, must deny them. `gentle-ai-worker-local` is NOT
+ * PM-only and stays dispatchable on the orchestrator route.
+ *
+ * This table is guard input for warning-only stage guidance. The authoritative
+ * refusal is the permission layer in `global-config/opencode.json`; a routing
+ * warning never substitutes for that deny.
+ */
+export const PM_ONLY_WRITERS: readonly string[] = ["odd-apply", "gentle-ai-worker"]
+
+/** True when a writer is reserved for PM-coordinator dispatch. */
+export const isPmOnlyWriter = (name: string): boolean => PM_ONLY_WRITERS.includes(name)
+
+/**
  * PM sessions must hold their own route's adapter key before gated host mutations and the
  * native review lifecycle. Declarative agent → adapter-skill map; a guardrail input, not an
  * authentication boundary or an identity source.
@@ -75,6 +90,12 @@ export function stageMarkerNames(
   return names
 }
 
+/**
+ * Stage tables produce WARNING-only routing guidance (bootstrap/ordering). They
+ * are not an authorization boundary: the authoritative refusal for PM-only
+ * writers is the permission layer in `global-config/opencode.json`, which denies
+ * `odd-apply` and `gentle-ai-worker` to every non-PM dispatcher.
+ */
 export const ROUTE_STAGES: Record<string, readonly RouteStage[]> = {
   "workflow-odd-secure": [
     {

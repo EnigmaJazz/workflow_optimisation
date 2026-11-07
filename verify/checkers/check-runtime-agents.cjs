@@ -1274,6 +1274,136 @@ function pmIdentityFailures(agents,handoff) {
   if (typeof orchestratorPrompt!=="string" || !orchestratorPrompt.includes("pm-unit-brief/v1") || !orchestratorPrompt.includes("docs/specs/pm-handoff.md")) failures.push("ORCHESTRATOR_BRIEF_CONTRACT_POINTER_MISSING")
   return failures
 }
+// PM-only writer dispatch: `odd-apply` and `gentle-ai-worker` may be dispatched
+// only by the two PM coordinators. The permission layer is the refusal; the
+// routing guard only warns. Local-worker dispatch is never PM-only.
+const PM_ONLY_WRITERS=["odd-apply","gentle-ai-worker"]
+function pmOnlyWriterDispatchFailures(agents) {
+  const failures=[]
+  const taskOf=(name)=>agents?.[name]?.permission?.task
+  const pmRequired={"pm-odd":["odd-apply","gentle-ai-worker"],"pm-systematic":["gentle-ai-worker"]}
+  for (const [pm,required] of Object.entries(pmRequired)) {
+    const task=taskOf(pm)
+    if (!task || typeof task!=="object" || Array.isArray(task)) {
+      failures.push(`PM_ONLY_WRITER_PM_TASK_MAP_MISSING: ${pm}`)
+      continue
+    }
+    for (const writer of required) {
+      if (task[writer]!=="allow") failures.push(`PM_ONLY_WRITER_PM_GRANT_MISSING: ${pm}.${writer}`)
+    }
+  }
+  for (const [name,agent] of Object.entries(agents??{})) {
+    if (pmAgents.includes(name)) continue
+    // SEC-1: a non-PM entry that is not a non-null object cannot carry a task
+    // map. Fail closed instead of letting optional chaining skip it silently.
+    if (!agent || typeof agent!=="object" || Array.isArray(agent)) {
+      failures.push(`PM_ONLY_WRITER_AGENT_MALFORMED: ${name}`)
+      continue
+    }
+    const task=agent.permission?.task
+    // An absent task map grants nothing, so it remains a legitimate pass.
+    if (task===undefined) continue
+    // SEC-1: null, arrays and non-string primitives are not task maps. A string
+    // keeps the historical allow/ask wildcard-leak detection. Only the bare
+    // "deny" string is a legitimate pass; every other string fails closed
+    // instead of being silently tolerated.
+    if (task===null || typeof task!=="object" || Array.isArray(task)) {
+      if (typeof task==="string") {
+        if (task==="allow" || task==="ask") {
+          for (const writer of PM_ONLY_WRITERS) failures.push(`PM_ONLY_WRITER_WILDCARD_GRANT_OUTSIDE_PM: ${name}.${writer}`)
+        } else if (task!=="deny") {
+          failures.push(`PM_ONLY_WRITER_TASK_MAP_MALFORMED: ${name}`)
+        }
+        continue
+      }
+      failures.push(`PM_ONLY_WRITER_TASK_MAP_MALFORMED: ${name}`)
+      continue
+    }
+    for (const writer of PM_ONLY_WRITERS) {
+      const value=task[writer]
+      if (value!=="deny" && value!==false) {
+        if (value==="allow" || value==="ask") failures.push(`PM_ONLY_WRITER_GRANTED_OUTSIDE_PM: ${name}.${writer}`)
+        else {
+          const wildcard=task["*"]
+          if (wildcard==="allow" || wildcard==="ask") failures.push(`PM_ONLY_WRITER_WILDCARD_GRANT_OUTSIDE_PM: ${name}.${writer}`)
+        }
+      }
+      // SEC-2: partial globs are a leak surface separate from the exact key and
+      // the "*" fallback above. Any other key containing "*" that glob-matches
+      // this writer and grants allow/ask fails. "*" itself stays covered by the
+      // existing wildcard check; this covers patterns like "odd-*".
+      for (const key of Object.keys(task)) {
+        if (key==="*" || key===writer || !key.includes("*")) continue
+        if (!wildcardMatch(writer,key)) continue
+        const globValue=task[key]
+        if (globValue==="allow" || globValue==="ask") failures.push(`PM_ONLY_WRITER_GLOB_GRANT_OUTSIDE_PM: ${name}.${writer}`)
+      }
+    }
+  }
+  return failures
+}
+const pmOnlyWriterAllowProbe=pmOnlyWriterDispatchFailures({
+  "pm-odd":{permission:{task:{"*":"deny","odd-apply":"allow","gentle-ai-worker":"allow"}}},
+  "pm-systematic":{permission:{task:{"*":"deny","gentle-ai-worker":"allow"}}},
+  "synthetic-allow":{permission:{task:{"odd-apply":"allow"}}},
+  "synthetic-wildcard":{permission:{task:{"*":"ask"}}},
+  "synthetic-deny":{permission:{task:{"*":"ask","odd-apply":"deny","gentle-ai-worker":"deny"}}},
+})
+if (!pmOnlyWriterAllowProbe.includes("PM_ONLY_WRITER_GRANTED_OUTSIDE_PM: synthetic-allow.odd-apply")) fail("PM_ONLY_WRITER_ALLOW_POSITIVE_CONTROL_FAILED")
+if (!pmOnlyWriterAllowProbe.includes("PM_ONLY_WRITER_WILDCARD_GRANT_OUTSIDE_PM: synthetic-wildcard.gentle-ai-worker")) fail("PM_ONLY_WRITER_WILDCARD_POSITIVE_CONTROL_FAILED")
+if (pmOnlyWriterAllowProbe.some((failure)=>failure.includes("synthetic-deny"))) fail("PM_ONLY_WRITER_DENY_POSITIVE_CONTROL_FAILED")
+const pmOnlyWriterMissingProbe=pmOnlyWriterDispatchFailures({
+  "pm-odd":{permission:{task:{"*":"deny","gentle-ai-worker":"allow"}}},
+  "pm-systematic":{permission:{task:{"*":"deny","gentle-ai-worker":"allow"}}},
+})
+if (!pmOnlyWriterMissingProbe.includes("PM_ONLY_WRITER_PM_GRANT_MISSING: pm-odd.odd-apply")) fail("PM_ONLY_WRITER_PM_GRANT_POSITIVE_CONTROL_FAILED")
+// SEC-1 positive controls: malformed non-PM shapes must fail closed, and an
+// absent task map must still pass because it grants nothing.
+const pmOnlyWriterMalformedProbe=pmOnlyWriterDispatchFailures({
+  "pm-odd":{permission:{task:{"*":"deny","odd-apply":"allow","gentle-ai-worker":"allow"}}},
+  "pm-systematic":{permission:{task:{"*":"deny","gentle-ai-worker":"allow"}}},
+  "synthetic-agent-scalar":"allow",
+  "synthetic-agent-array":[],
+  "synthetic-task-null":{permission:{task:null}},
+  "synthetic-task-array":{permission:{task:[]}},
+  "synthetic-task-number":{permission:{task:7}},
+  "synthetic-task-absent":{permission:{}},
+})
+for (const name of ["synthetic-agent-scalar","synthetic-agent-array"]) {
+  if (!pmOnlyWriterMalformedProbe.includes(`PM_ONLY_WRITER_AGENT_MALFORMED: ${name}`)) fail(`PM_ONLY_WRITER_AGENT_MALFORMED_POSITIVE_CONTROL_FAILED: ${name}`)
+}
+for (const name of ["synthetic-task-null","synthetic-task-array","synthetic-task-number"]) {
+  if (!pmOnlyWriterMalformedProbe.includes(`PM_ONLY_WRITER_TASK_MAP_MALFORMED: ${name}`)) fail(`PM_ONLY_WRITER_TASK_MAP_MALFORMED_POSITIVE_CONTROL_FAILED: ${name}`)
+}
+if (pmOnlyWriterMalformedProbe.some((failure)=>failure.includes("synthetic-task-absent"))) fail("PM_ONLY_WRITER_ABSENT_TASK_MAP_POSITIVE_CONTROL_FAILED")
+const pmOnlyWriterStringProbe=pmOnlyWriterDispatchFailures({
+  "pm-odd":{permission:{task:{"*":"deny","odd-apply":"allow","gentle-ai-worker":"allow"}}},
+  "pm-systematic":{permission:{task:{"*":"deny","gentle-ai-worker":"allow"}}},
+  "synthetic-string-allow":{permission:{task:"allow"}},
+  "synthetic-string-deny":{permission:{task:"deny"}},
+  "synthetic-string-bogus":{permission:{task:"grant-everything"}},
+})
+for (const writer of PM_ONLY_WRITERS) {
+  if (!pmOnlyWriterStringProbe.includes(`PM_ONLY_WRITER_WILDCARD_GRANT_OUTSIDE_PM: synthetic-string-allow.${writer}`)) fail(`PM_ONLY_WRITER_STRING_ALLOW_POSITIVE_CONTROL_FAILED: ${writer}`)
+}
+if (pmOnlyWriterStringProbe.some((failure)=>failure.includes("synthetic-string-deny"))) fail("PM_ONLY_WRITER_STRING_DENY_POSITIVE_CONTROL_FAILED")
+if (!pmOnlyWriterStringProbe.includes("PM_ONLY_WRITER_TASK_MAP_MALFORMED: synthetic-string-bogus")) fail("PM_ONLY_WRITER_STRING_BOGUS_POSITIVE_CONTROL_FAILED")
+// SEC-2 positive controls: exact and glob denies pass; a partial glob allow/ask
+// leaks; and the local worker is not a PM-only writer.
+const pmOnlyWriterGlobProbe=pmOnlyWriterDispatchFailures({
+  "pm-odd":{permission:{task:{"*":"deny","odd-apply":"allow","gentle-ai-worker":"allow"}}},
+  "pm-systematic":{permission:{task:{"*":"deny","gentle-ai-worker":"allow"}}},
+  "synthetic-exact-deny":{permission:{task:{"*":"deny","odd-apply":"deny"}}},
+  "synthetic-glob-deny":{permission:{task:{"*":"deny","odd-*":"deny"}}},
+  "synthetic-glob-leak":{permission:{task:{"*":"deny","odd-*":"allow"}}},
+  "synthetic-glob-ask":{permission:{task:{"gentle-ai-*":"ask"}}},
+  "synthetic-local":{permission:{task:{"gentle-ai-worker-local":"allow"}}},
+})
+if (!pmOnlyWriterGlobProbe.includes("PM_ONLY_WRITER_GLOB_GRANT_OUTSIDE_PM: synthetic-glob-leak.odd-apply")) fail("PM_ONLY_WRITER_GLOB_LEAK_POSITIVE_CONTROL_FAILED")
+if (!pmOnlyWriterGlobProbe.includes("PM_ONLY_WRITER_GLOB_GRANT_OUTSIDE_PM: synthetic-glob-ask.gentle-ai-worker")) fail("PM_ONLY_WRITER_GLOB_ASK_POSITIVE_CONTROL_FAILED")
+if (pmOnlyWriterGlobProbe.some((failure)=>failure.includes("synthetic-exact-deny"))) fail("PM_ONLY_WRITER_GLOB_EXACT_DENY_POSITIVE_CONTROL_FAILED")
+if (pmOnlyWriterGlobProbe.some((failure)=>failure.includes("synthetic-glob-deny"))) fail("PM_ONLY_WRITER_GLOB_DENY_POSITIVE_CONTROL_FAILED")
+if (pmOnlyWriterGlobProbe.some((failure)=>failure.includes("synthetic-local"))) fail("PM_ONLY_WRITER_LOCAL_NON_MATCH_POSITIVE_CONTROL_FAILED")
 {
   let handoffText=""
   if (!workspaceRootAvailable) fail("PM_HANDOFF_CONTRACT_UNREADABLE: workspace root unavailable")
@@ -1283,6 +1413,7 @@ function pmIdentityFailures(agents,handoff) {
   }
   for (const failure of pmIdentityFailures(deployedAgents,handoffText)) fail(failure)
   for (const failure of coordinatorTaskGraphFailures(deployedAgents)) fail(failure)
+  for (const failure of pmOnlyWriterDispatchFailures(deployedAgents)) fail(failure)
   for (const failure of promptBudgetFailures(deployedAgents)) fail(failure)
 }
 function coordinatorTaskGraphFailures(agents) {
