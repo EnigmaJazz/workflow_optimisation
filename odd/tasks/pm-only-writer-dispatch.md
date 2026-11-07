@@ -96,3 +96,4 @@ Mirror: no mirror write is claimed. Closure must record actual deterministic mir
 
 ## Gates
 - T1 PASS 2026-11-06T22:58:52Z planner ref=Gate 1 only: tracker r1 read back; doc-only exemption, local-worker and exact-phrase safeguards retained. Plan tool auto-committed 4adc76a8 before Gate 2; closure needs PM reconciliation.
+- T2 PASS 2026-11-07T00:02:36Z planner ref=Gate 1 T2: three raw advisors read; finalized scoped plan in Planner continuation. Ordered exact orchestrator denies; RED/GREEN, PM/local controls, V2 parity; source-only, no schema/live changes.
