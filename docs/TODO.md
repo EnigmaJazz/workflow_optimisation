@@ -2310,6 +2310,15 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
     code-level planning and implementation of each phase. Record the rhythm in the spec (section 5) and
     list the second review agent as an open decision.
 
+- **Q107 outcome and accepted limit (owner, 2026-11-07).** Implemented in the sandbox repo on
+  `feat/q107-relay-roots` and corrected after the Tier 4 review (F1 FIFO hang, F2 canonical root in
+  `register-project`, vacuous backlink fixture); Codex rechecked all three: PASS. Accepted as a documented limit:
+  the relay trusts worktree back-link and `commondir` metadata that lives in a `.git` the sandbox can write, and
+  whether `gentle-ai` binds the review to the target tree bytes independently of the session root could not be
+  proven from this repository (Codex: NOT_VERIFIABLE). Compensating controls the owner counted: the Planner and
+  advisors, the verifier, the Tier 4 Codex review (twice) and, in the daily review, native review with the owner's
+  per-candidate consent. Protected-path commits are the owner's.
+
 ### Q108. Native review moves to the daily review of staged changes (D37)
 - **Status:** PLANNED. **Prerequisites:** Q107 (relay accepts the stage root), staging chain at D24 scope.
 - **Source:** owner, 2026-11-07. Consent is per candidate and owner-only, so review cannot run inside an
