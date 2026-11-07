@@ -2432,6 +2432,10 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
     (advice is evidence, not approval), and holds for the owner only when it needs a product or consent decision.
     The channel must be one that works (`ask` timed out on the broker, Q104a), so choose it with Q104a. Until
     then Tier 2 reads blocked terminals itself (`orca terminal read`).
+  - **Report back (found 2026-11-07).** The Q107 session finished and told nobody: no role prompt tells an
+    OpenCode 2 orchestrator to report to Orca (`host_orca_report` `worker_done`, once, at the terminal state), and a
+    session started with `orca agent launch` has no Run to report to. Put the report step in the orchestrator
+    contract (Q104) and make every dispatch Run-bound (below); until then Tier 2 reads terminals after launch.
   - **Report binding.** Dispatches carry the Run (`--run`) so `worker_done` and questions reach the watcher; a
     session started with `orca agent launch` is not bound to the Run.
 
