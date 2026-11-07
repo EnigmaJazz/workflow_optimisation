@@ -2488,6 +2488,32 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
     `FAILED_CLOSED`.
   - Workers that queue for 600 s should surface a clear `blocked` report to the delegating Tier 2 (Q111).
 
+### Q115. V2-mode verifier reads V1 paths and the main checkout
+- **Status:** PLANNED (global-tooling change; verifier digest re-pin applies). **Source:** owner V2 deploy run, 2026-11-07.
+- **Evidence:** with V2 first on `PATH` the verifier still resolves several inputs from V1 or fixed paths:
+  - `WORKSPACE` is fixed to `~/ai-workspace/workflow_optimisation` (`verify/10-env.sh:33`), the main checkout, which can be
+    on any branch. On `chore/coordinator-selection` it reported five failures from pre-merge source (old health-plugin
+    pin, no `host_git_*` decisions, grep drift, derive refusal). `WORKFLOW_VERIFY_WORKSPACE=<worktree>` cleared them.
+  - `AGENTS_FILE` comes from `OPENCODE_CONFIG_DIR`, default `~/.config/opencode` (`verify/10-env.sh:34,44`), so
+    `AGENTS_BOUNDED_BLOCK_DRIFT` compares the V1 copy with source even in V2 mode. The V2 root copy is byte-identical.
+  - Section 9 runtime-agent checks assume V1 shapes. Pointing the V1 variable at the derived V2 root produced about 20
+    failures (grep deny by design, `plugins` not `plugin`, generated Astra aliases), so there is no supported way to
+    run section 9 against V2 today. The one failure seen under the supported invocation was not diagnosed.
+  - `GITHUB_RO` needed a retry (attempt 1 of 3 failed, then connected).
+- **Description:** in V2 mode derive the active config dir, AGENTS path and workspace from `V2_CONFIG_ROOT` and the
+  script's own checkout; make section 9 V2-aware or skip it with an explicit reason; keep positive controls so a V1-only
+  pass cannot hide a V2 gap. Document the V2 invocation next to the cutover verify step.
+
+### Q116. Do V2 sessions have the work-unit-commits and chained-pr skills?
+- **Status:** PLANNED (investigate first). **Source:** owner V2 deploy run, 2026-11-07.
+- **Evidence:** `GENTLE_AI_V4_ODD_SKILL_MISSING` fires for `work-unit-commits` and `chained-pr` when the skills path is
+  the V2 root. They exist in `~/.config/opencode/skills` (V1, gentle-ai-managed) and not in `global-config/skills`,
+  so `derive` never copies them; the derived `opencode.json` has no skills entry. Unknown whether V2 finds them on
+  another skill root.
+- **Description:** probe the V2 runtime for both skills by name. If absent, decide the delivery path (derive copies
+  them, or a V2 skill root), and point the verifier check at the V2 location. Impact if absent: V2 ODD sessions lose
+  the work-unit commit and chained-PR discipline.
+
 ### Q107. The reviewer relay must accept a new worktree root without a broker restart
 - **Status:** PLANNED (sandbox repo `agent-sandbox-integration` work unit).
 - **Prerequisites:** none. Blocks unattended native review of any unit built in a new worktree or clone.
