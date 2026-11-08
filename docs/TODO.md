@@ -2514,6 +2514,27 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   them, or a V2 skill root), and point the verifier check at the V2 location. Impact if absent: V2 ODD sessions lose
   the work-unit commit and chained-PR discipline.
 
+### Q117. Run the V2 plugin auto-update timer from a stable checkout of main
+- **Status:** PLANNED (owner approved 2026-11-08). **Source:** Tier 2 deploy review, 2026-11-07.
+- **Evidence:** `v2-plugin-autoupdate.service` runs `scripts/v2-plugin-autoupdate.py` from
+  `~/ai-workspace/workflow_optimisation` (`docs/systemd/v2-plugin-autoupdate.service.template:15`), the owner's working
+  checkout. That checkout is on `chore/coordinator-selection`, not `main`, and carries unpushed or uncommitted edits, so the
+  script version the timer runs depends on whichever branch is checked out.
+- **Description:** point the unit at a dedicated checkout that only ever tracks `main` (a read-only worktree or clone, fast-forwarded
+  by the deploy step), update the template and the installed unit, and make the preflight report which checkout and commit the
+  timer would run. The owner installs the unit; no repo script does.
+
+### Q118. Orchestrators cannot create or move to a worktree
+- **Status:** PLANNED (owner approved 2026-11-08). **Source:** plugin-pin bump, 2026-11-07.
+- **Evidence:** the retained OpenCode 2 orchestrator could not start work in a fresh worktree: the Code Mode `execute` tool is denied
+  by broker admission (`UNCLASSIFIED_TOOL_DENIED`), so `opencode.worktree_create` and `session_move` are unreachable; host git tools
+  are commit, push and clear-intent only; `host_git_branch` is granted to the PMs, not the orchestrator. It asked Tier 2 three
+  times (two worktree questions, one stale-state question) and the branch switch had to be done on the host. Related: Q111, Q114.
+- **Description:** give the delegation chain one supported route to a clean branch or worktree from a named base, without widening
+  the sandbox: for example the orchestrator delegates branch creation to a PM that holds `host_git_branch`, or a broker tool creates
+  a worktree under the registered `worktrees` root. Include a check that a session sees the new HEAD (it read the git HEAD file
+  before the switch landed) and have Tier 2 briefs state the worktree up front.
+
 ### Q107. The reviewer relay must accept a new worktree root without a broker restart
 - **Status:** PLANNED (sandbox repo `agent-sandbox-integration` work unit).
 - **Prerequisites:** none. Blocks unattended native review of any unit built in a new worktree or clone.
