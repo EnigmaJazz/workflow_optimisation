@@ -1785,6 +1785,7 @@ function advisorModelPolicyFailures(agents, fallbackConfig=advisorFallbackConfig
   const advisorDispatchers=new Set(["gentle-orchestrator","pm-odd","pm-systematic","planner"])
   const evidenceDispatchers=new Set(toollessSeats)
   const advisorNames=entries.map(([name])=>name).filter((name)=>name.startsWith("advisor-") && /-(pre|post)$/.test(name))
+  const memoryDenied=(agent,key)=>agent?.tools?.[key]!==true && (agent?.permission?.[key]==="deny" || agent?.tools?.[key]===false || agent?.tools?.["*"]===false)
   const resolvedTask=(agent,target)=>{
     const rules=agent?.permission?.task
     if (!rules || typeof rules!=="object" || Array.isArray(rules)) return undefined
@@ -1815,11 +1816,11 @@ function advisorModelPolicyFailures(agents, fallbackConfig=advisorFallbackConfig
       if (permission!=="task" && action!=="deny") failures.push(`ADVISOR_TOOLLESS_PERMISSION_GRANT: ${name}.${permission}=${JSON.stringify(action)}`)
     }
     if (agent.tools?.task!==true) failures.push(`ADVISOR_TOOLLESS_TASK_TOOL_DISABLED: ${name}`)
+    if (!memoryDenied(agent,"ctx_memory")) {
+      failures.push(`ADVISOR_TOOLLESS_MEMORY_NOT_DENIED: ${name}`)
+    }
     for (const [tool,enabled] of Object.entries(agent.tools??{})) {
       if (tool!=="task" && enabled===true) failures.push(`ADVISOR_TOOLLESS_TOOL_ENABLED: ${name}.${tool}`)
-    }
-    if (agent.tools?.ctx_memory!==false || agent.permission?.ctx_memory!=="deny") {
-      failures.push(`ADVISOR_TOOLLESS_MEMORY_NOT_DENIED: ${name}`)
     }
   }
   const evidence=agents?.["advisor-evidence"]
@@ -1828,7 +1829,7 @@ function advisorModelPolicyFailures(agents, fallbackConfig=advisorFallbackConfig
     if (evidence.model!=="opencode-go/qwen3.8-flash") failures.push(`ADVISOR_EVIDENCE_MODEL_MISMATCH: ${JSON.stringify(evidence.model)}`)
     if (JSON.stringify(evidence.permission?.task)!==JSON.stringify({"*":"deny"})) failures.push("ADVISOR_EVIDENCE_TASK_NOT_DENY_ALL")
     if (evidence.tools?.task!==false) failures.push("ADVISOR_EVIDENCE_TASK_TOOL_NOT_DISABLED")
-    if (evidence.tools?.ctx_memory!==false || evidence.permission?.ctx_memory!=="deny") failures.push("ADVISOR_EVIDENCE_MEMORY_NOT_DENIED")
+    if (!memoryDenied(evidence,"ctx_memory")) failures.push("ADVISOR_EVIDENCE_MEMORY_NOT_DENIED")
     for (const route of evidenceHosts) {
       if (evidence.tools?.[route]!==false || evidence.permission?.[route]!=="deny") {
         failures.push(`ADVISOR_EVIDENCE_HOST_ROUTE_EXPOSED: ${route}`)
@@ -1836,9 +1837,14 @@ function advisorModelPolicyFailures(agents, fallbackConfig=advisorFallbackConfig
     }
   }
   for (const [name,agent] of entries) {
-    for (const target of [...advisorNames,"advisor-evidence"]) {
+    const taskRules=agent?.permission?.task
+    if (taskRules && typeof taskRules==="object" && !Array.isArray(taskRules) && !evidenceDispatchers.has(name)) {
+      const action=resolvedTask(agent,"advisor-evidence")
+      if (action!=="deny") failures.push(`ADVISOR_EVIDENCE_DISPATCH_NOT_DENIED: ${name}=${JSON.stringify(action)}`)
+    }
+    for (const target of advisorNames) {
       const allowed=resolvedTask(agent,target)==="allow"
-      const permitted=target==="advisor-evidence" ? evidenceDispatchers.has(name) : advisorDispatchers.has(name)
+      const permitted=advisorDispatchers.has(name)
       if (allowed && !permitted) failures.push(`ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: ${name}->${target}`)
     }
   }

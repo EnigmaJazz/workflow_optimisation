@@ -598,7 +598,7 @@ The orchestrator routes and aggregates advisor findings mechanically. Because it
 | `advisor-maintainability-post` | `opencode-go/ling-3.1-flash` |
 | `advisor-spec-post` | `opencode-go/glm-5.3-flash` |
 
-The spec, design and security advisors run on the OpenCode Go models named in these tables. Their permissions deny file, search and shell tools; they gather facts through `advisor-evidence`, which keeps the sandbox-only advisor surface.
+The tool-less seats are `advisor-design-pre`, `advisor-security-pre`, `advisor-spec-pre` and `advisor-spec-post`: they deny file, search and shell tools and every sandbox route, with `task` limited to `advisor-evidence`. `advisor-design-post` and `advisor-security-post` retain read/CodeGraph and sandbox inspection tools; the integration, testing and maintainability pre/post seats retain the sandbox advisor surface.
 
 ### External lane (PLANNED — activated by B3)
 

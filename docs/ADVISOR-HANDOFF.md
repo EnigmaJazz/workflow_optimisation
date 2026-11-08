@@ -6,9 +6,11 @@ This handoff records the current advisor setup and its verified capability bound
 
 Twelve split advisors are registered; all use `"hidden": true` and `"mode": "subagent"`. Their
 `variant` fields follow this table. `WORKFLOW.md` ("Pre-code advisors" and "Post-code advisors") owns
-the assignment; this table follows it. The spec, design and security advisors run on the OpenCode Go
-models named here; their permissions deny file, search and shell tools, and they gather facts through
-`advisor-evidence`, which keeps the sandbox-only advisor surface.
+the assignment; this table follows it. The four tool-less seats are `advisor-design-pre`,
+`advisor-security-pre`, `advisor-spec-pre` and `advisor-spec-post`; they deny file, search and shell
+tools and every sandbox route, while `task` is limited to `advisor-evidence`. `advisor-design-post`
+and `advisor-security-post` retain read/CodeGraph and sandbox inspection tools. The integration,
+testing and maintainability pre/post seats retain the sandbox advisor surface.
 
 ### Pre-code
 
@@ -34,17 +36,13 @@ models named here; their permissions deny file, search and shell tools, and they
 
 ## Current permissions
 
-**Read tools:** `read`, `sandbox_read`, `sandbox_list`, `sandbox_grep`, `sandbox_diff`, `codegraph_codegraph_explore`.
+**Tool-bearing advisors:** `advisor-design-post` and `advisor-security-post` retain `read`, `codegraph_codegraph_explore` and sandbox inspection tools; the integration, testing and maintainability pre/post seats retain the sandbox advisor surface. All these tool-bearing advisors have `sandbox_bash`, `sandbox_edit`, `sandbox_write` and `sandbox_apply_patch` for workspace-local work, but not `sandbox_apply`, `sandbox_copy_in`, `sandbox_copy_out`, `sandbox_discard` or `sandbox_finish`. Native `bash`, `edit` and `write`, and `grep`, are denied.
 
-**Read-tool precondition:** `sandbox_read`, `sandbox_list`, `sandbox_grep`, and `sandbox_diff` require an active worker and fail before activation. A read cannot be the first sandbox call.
+**Read-tool precondition:** `sandbox_read`, `sandbox_list`, `sandbox_grep` and `sandbox_diff` require an active worker and fail before activation. A read cannot be the first sandbox call.
 
-**Workspace-local mutation and execution (granted):** `sandbox_write`, `sandbox_edit`, `sandbox_apply_patch`, `sandbox_bash`.
+**Four tool-less seats:** `advisor-design-pre`, `advisor-security-pre`, `advisor-spec-pre` and `advisor-spec-post` deny `read`, `grep`, `bash` and every sandbox route. Their only enabled task route is `advisor-evidence` (`permission.task` denies `*` and allows only that target). `ctx_memory` is denied.
 
-**Not registered on the advisor tool surface:** `sandbox_finish`, `sandbox_apply`, `sandbox_copy_out`, and `sandbox_copy_in`. These are unavailable capabilities, not permission-denied calls. Native `edit`, `write`, and `bash` are denied.
-
-**Also denied:** `grep`, `task` (advisors cannot delegate), and `ctx_memory` (no shared-memory writes).
-
-All twelve split advisors are in the orchestrator's `permission.task`; the orchestrator dispatches them and they dispatch nothing.
+All twelve split advisors are dispatched through the orchestrator's task permissions; their own task permissions are limited to the explicit routes described above.
 
 ## Available testing tools today
 
