@@ -2512,7 +2512,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Description:** once the architecture is built: (1) tighten what each agent is shown to what its one purpose needs, with each PM delegation starting from a fresh, narrow context and the master keeping the long context through Magic Context; (2) finish the routing guard and switch it from warning-only to blocking, so the OpenCode 2 workflow must be followed (today it is warning-only apart from one generic-task block). Do (2) only after (1) and the role contracts are in place, with a documented list of what it blocks and a rollback.
 
 ### Q114. Free sandbox workers when their work ends; size the worker cap from measured use
-- **Status:** PLANNED (sandbox repo work unit; broker is S17, owner reviews and restarts). **Source:** owner, 2026-11-07.
+- **Status:** IMPLEMENTED, NOT COMMITTABLE (2026-11-08; installed uncommitted in the sandbox worktree; Codex FLAWS_FOUND: F1 apply/diff fail after release, F2 continuation loses the result, F3 unexported local commits removed, F4 write/removal race, F5 queue cap bypass). Correction dispatched `ctx_(see Run)` through the full Planner handoff; then Codex recheck of F1-F5, then owner review and commit (S17), then broker restart.
 - **Evidence (broker journal, 2026-11-07 15:00-17:46, `maxWorkers: 4`):** three `ensureWorker` calls failed with
   `queued ... timed out after 600000ms` (17:29, 17:39, 17:41); two others waited 576 s and 77 s. Each wait ended
   only when the reaper logged `reaped_result_ready`. `sweepIdle` releases a `RESULT_READY` worker only after
@@ -2539,7 +2539,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - Workers that queue for 600 s should surface a clear `blocked` report to the delegating Tier 2 (Q111).
 
 ### Q115. V2-mode verifier reads V1 paths and the main checkout
-- **Status:** IMPLEMENTED, NOT MERGED (2026-11-08; `chore/q115-v2-verifier` `90ccb14`, `96a2d50`; spot check: manifest ok, tests pass without stray bytecode). Open: native review due at tier high (owner-only consent), live V2 `--behavioral` run, and the S17 patch to `scripts/verifier_manifest.py` to ignore `__pycache__` (owner commits).
+- **Status:** IMPLEMENTED, NOT MERGED (2026-11-08; `chore/q115-v2-verifier` `90ccb14`, `96a2d50`). Codex FLAWS_FOUND: section 9 rejects derived `-astra` aliases and Systematic mirrors; new env overrides change V1 trust. Fix dispatched (`ctx_4a92e0a167a6`); then native review (owner consent), merge, live V2 `--behavioral` run, S17 `verifier_manifest.py` `__pycache__` patch (owner).
 - **Evidence:** with V2 first on `PATH` the verifier still resolves several inputs from V1 or fixed paths:
   - `WORKSPACE` is fixed to `~/ai-workspace/workflow_optimisation` (`verify/10-env.sh:33`), the main checkout, which can be
     on any branch. On `chore/coordinator-selection` it reported five failures from pre-merge source (old health-plugin
