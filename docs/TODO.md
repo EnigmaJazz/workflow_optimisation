@@ -30,7 +30,7 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
 - **Phase 1, guard and handoff fixes:** Q01 close-out, then Q03 (absorbs the overlapping Q20 and
   Q21 findings), then Q25. Q35 can run at any time.
 - **Phase 2, verifier and gating foundations:** Q26, then Q28, then Q04, plus Q48 (rule now; lint
-  after Q26).
+  after Q26) and Q99 (guard the verifier seat against Grok).
 - **Phase 3, recipe and policy:** Q05, Q09, the Q10 items, Q12, Q14, Q24, Q50, then the remaining
   READY and PLANNED items in listed order (Q11, Q13, Q15-Q23).
 - **Phase 4, gentle-ai v4 upgrade (owner-triggered):** Q29, then Q30-Q33 and Q35-Q39 delivered as
@@ -2726,6 +2726,16 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   owner chooses to add it). Otherwise keep OpenCode non-Claude and use Claude Code in a separate terminal.
 - **Does not change:** Claude Code stays advisory in this repo; native review stays on the in-OpenCode
   `asi-review-*` lanes.
+
+### Q99. Guard the verifier seat against Grok (owner, 2026-11-02)
+- **Status:** PLANNED. Needs tests first, `advisor-*` advice and a digest re-pin, so OpenCode agents build it.
+- **Prerequisites:** none.
+- **Source:** owner, 2026-11-02. One `gentle-ai-verify` run on `opencode-go/grok-4.7` used 10% of the weekly allowance.
+- **Description:**
+  - Cause (observed): commit `9d33338` on the unmerged `chore/coordinator-selection` branch ("Reapply ... API-credit carrier") restored a stale `opencode.json` that puts Grok on `gentle-ai-verify`. The live V2 config was derived from it on 2026-11-01 20:48.
+  - Live V2 file restored to `openai/gpt-6.1-sol` via change set `verifier-off-grok-v2` (journal under `backups/changesets/`). Deployment is UNVERIFIED until the owner restarts the V2 server and a probe reads the model.
+  - Branch fixed (2026-11-02): `chore/coordinator-selection` commit `7599b56` puts `gentle-ai-verify` back on Sol and pins it with a test. That commit also swept in another session's uncommitted Luna → Haiku edits to `tests/test_verify_routine.py`.
+  - Add a verifier check and a test: Grok may appear only on `review-refuter` and `asi-review-refuter`, in V1 and in the derived V2 config. Include a positive control.
 
 ### Q100. host_plan_archive permission coverage
 - **Status:** DONE (owner-authorized, 2026-11-04); unit q100-host-plan-archive-permission-u1, T1; Gate 2 PASS; implementation commit `3992ba0`; host proof recorded.
