@@ -2268,6 +2268,15 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Status:** PLANNED. **Prerequisites:** none. **Source:** owner, 2026-11-08 ("the tracker must be kept up to date").
 - **Description:** A tracker-drift check Tier 2 runs at each unit boundary: every merged unit's Q-item has a DONE status, every commit routed under a Q-number is reflected in `docs/TODO.md`. Q110 covers Engram state and HANDOFF regeneration; this item is the TODO.md half.
 
+### Q126. CodeGraph is read-only in worktree sessions (nono profile grants per-project `.codegraph` only)
+- **Status:** PLANNED (owner-only: nono profile; sandbox repo `nono/profile`). **Source:** owner, 2026-11-08; evidence from the Q114 session ("CodeGraph is unavailable (read-only DB), so I used AFT/read").
+- **Evidence:** every worktree has a `.codegraph/` (made by `scripts/codegraph-ensure.sh`) and the MCP shows Connected, but `~/.config/nono/profiles/opencode-v2-secure.json` lists write grants per project `.codegraph` (lines 34-58) and none under `~/ai-workspace/worktrees/`. The tool exists (`codegraph_codegraph_explore`); the sandbox makes its SQLite DB read-only.
+- **Description:** grant write on `.codegraph` under the worktree root in both nono profiles (check whether nono accepts a glob or needs `register-project` worktree-root mode, D36), then prove with a worktree session that `codegraph_codegraph_explore` answers. Add a verifier check that fails when the worktree root has no `.codegraph` grant.
+
+### Q127. Review session transcripts for contract non-adherence (owner, 2026-11-08)
+- **Status:** PLANNED. **Prerequisites:** none; feeds Q104, Q111, Q113. **Source:** owner, 2026-11-08.
+- **Description:** Read the Run's OpenCode 2 transcripts and classify each deviation from the role contract by cause: brief gave code-level instructions instead of the outcome; skill or handover not found or not read (V2 skills root lacks `work-unit-commits` and `chained-pr`, Q116); tool unavailable (Q126); prompt silent or ambiguous. Output: a table of deviations with the prompt or AGENTS.md line that should change. The OpenCode 2 `AGENTS.md` and each agent's system prompt must then say explicitly where to find skills and handovers and which tool does which job. Q113 carries the rewrite.
+
 ### Q102. Multi-tier orchestration, Track B: OpenCode workflow narrowing and sandbox changes
 - **Status:** PLANNED.
 - **Prerequisites:** none to start. Lands `agent-sandbox-integration` first, then `workflow_optimisation`
