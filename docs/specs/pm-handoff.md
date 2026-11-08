@@ -1,7 +1,7 @@
 # Project-manager unit handoff contract
 
 **Status:** normative contract for the project-manager layer (Q55 / tracker T3).
-**Deployment:** this contract is mirrored verbatim as the `pm-handoff` global skill (`global-config/skills/pm-handoff/SKILL.md`) so it loads from any repository; edit both in one commit (a test pins the mirror).
+**Deployment:** this contract's text is mirrored verbatim, beneath the skill frontmatter, as the `pm-handoff` global skill (`global-config/skills/pm-handoff/SKILL.md`) so it loads from any repository; edit both in one commit (a test pins the mirror).
 
 ## Brief-in fields
 
