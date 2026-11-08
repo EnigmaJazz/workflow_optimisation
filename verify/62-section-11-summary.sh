@@ -35,6 +35,7 @@ elif [ "${#SKIPPED_MESSAGES[@]}" -gt 0 ]; then
     idx=$((idx + 1))
     printf '   %s. %s\n' "$idx" "$message"
   done
+  exit 3
 else
   if [ "$AUTO_REPAIRED" -eq 1 ]; then
     echo "== All checks passed — workflow setup intact (self-repairs applied) =="

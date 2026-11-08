@@ -89,7 +89,7 @@ const VERIFY_TIMEOUT_MS = 300_000
 // Pinned sha256 digest of the reviewed verify-workflow.sh. Keep this assignment
 // on one line: verify-workflow.sh deliberately parses this source line to confirm
 // that the reviewed plugin and verifier are bound to one another.
-const VERIFY_SCRIPT_SHA256 = "570d083825a86e6a7ee8aa9e390d2e8e93d6edeeddc14a663f2f05719a38f737";
+const VERIFY_SCRIPT_SHA256 = "00a0a8a7dfac24398d66d1262b265a6874390102054e54ca134355d9a3ba6b9c";
 
 type HealthState = "clean" | "repaired" | "incomplete" | "failed"
 
@@ -172,6 +172,15 @@ async function runHealthCheck(): Promise<void> {
     }
 
     const detail = [e.stdout ?? "", e.stderr ?? ""].filter(Boolean).join("\n")
+    if (e.code === 3) {
+      health = {
+        state: "incomplete",
+        tail: tailLines(detail),
+      }
+      console.warn("[workflow-health-check] VERIFICATION_INCOMPLETE — one or more required checks were skipped")
+      return
+    }
+
     const fallback = [
       e.message ?? String(err),
       e.code !== undefined ? `exit/code: ${String(e.code)}` : "",

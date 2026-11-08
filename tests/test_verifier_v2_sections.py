@@ -76,7 +76,7 @@ class VerifierSkipBehavior(unittest.TestCase):
 
     def test_summary_skips_only_are_incomplete_without_approval(self):
         result = self.run_summary('0', '("sample skip")')
-        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.returncode, 3)
         self.assertIn("VERIFICATION_INCOMPLETE", result.stdout)
         self.assertNotIn("All checks passed", result.stdout)
         self.assertNotIn("CACHE_PRUNE_APPROVED", result.stdout)
@@ -85,6 +85,17 @@ class VerifierSkipBehavior(unittest.TestCase):
         result = self.run_summary('0', '()')
         self.assertEqual(result.returncode, 0)
         self.assertIn("== All checks passed — workflow setup intact ==", result.stdout)
+
+    def test_health_plugin_classifies_exit_three_as_incomplete(self):
+        source = (REPO / "global-config/plugins/workflow-health-check.ts").read_text()
+        start = source.index("  } catch (err) {")
+        end = source.index("\n  }\n}", start) + 5
+        catch_block = source[start:end]
+        self.assertIn("if (e.code === 3)", catch_block)
+        self.assertIn('state: "incomplete"', catch_block)
+        self.assertIn("VERIFICATION_INCOMPLETE", catch_block)
+        self.assertNotIn('state: "failed"', catch_block[:catch_block.index("const fallback")])
+        self.assertIn("state: \"failed\"", catch_block[catch_block.index("const fallback"):])
 
     def run_summary(self, fail, skips):
         source = (REPO / "verify/62-section-11-summary.sh").read_text()
