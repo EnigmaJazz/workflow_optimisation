@@ -2,8 +2,9 @@
 
 ## Current outcome
 
-V2 mode skips section 9's V1 checker with a named line, and the run reports an
-explicit incomplete status rather than success. V1 behaviour is unchanged.
+V2 mode skips section 9's V1 checker with a named line, reports an explicit
+incomplete status (exit 3), and V1 behaviour is unchanged. Native review
+approved the candidate and the receipt was acknowledged.
 
 ## Commits on `chore/q115-v2-verifier`
 
@@ -15,89 +16,91 @@ explicit incomplete status rather than success. V1 behaviour is unchanged.
   `VERIFICATION_INCOMPLETE`.
 - `a9d1805` — `SKIPPED_MESSAGES` initialization for `set -u`.
 - `108c519` — distinct exit status 3 for an incomplete run.
+- `f0906e1` — native review R3-001: restore the V1 cache-prune message.
+
+## Native review (2026-11-08)
+
+- Assessment: `high` risk (`process_boundary`, `shell_source` on
+  `verify-workflow.sh`), base `5beff94`, 14 paths / 574 lines.
+- Lineage `review-63500602d1322b81`, initial target
+  `sha256:f5d7f77d`, base tree `8f823f41`.
+- Lenses: `review-risk`, `review-resilience`, `review-reliability`
+  (risk and resilience for the shell/security boundary, reliability for the
+  incomplete-versus-failed status contract).
+- Refuter: `correction_required` with one CRITICAL, `R3-001`.
+
+### R3-001 (CRITICAL, corrected)
+
+Splitting the cache-prune gate on skips had reworded the shared message, so a
+V1 failure-only run claimed "or required checks were skipped" — a false cause
+and an unrequested change to V1 output. Fixed in `f0906e1`: failures print the
+original V1 text byte-for-byte, skip-only prints its own line, and a run with
+both reports the failure. Three cases pinned by tests.
+
+### Advisory findings (non-blocking, informational)
+
+- `R3-002` — `WORKFLOW_VERIFY_AGENTS_FILE` / `..._RUNTIME_CONFIG_FILE` are
+  silently ignored in V1; documented V2 scope, but an operator gets no notice.
+- `R3-003` — V2 derivation tests inject `VERIFY_ENTRY_PATH`; the `$0` fallback
+  the entry actually uses is untested.
+- `R3-004` — the section-9 V2 control builds its script with `str.replace`, which
+  would silently no-op if the production fragments drift.
+- `R3-005` — node `EACCES` converts to a skip, so an environment without node
+  reports skipped rather than failed coverage.
+- `R3-006` — `detect()` returns only the last stdout line, hiding extra output.
+- `R4-001` — bare-name invocation via `PATH` makes `dirname` yield `.` and can
+  point the workspace at the caller's directory.
+- `R4-002` — the derivation failure exits 2, outside the documented 0/1/3
+  contract.
+- `R4-003` — the plugin's success-path `VERIFICATION_INCOMPLETE` branch is
+  unreachable under the new contract.
+
+### Outcome
+
+`state: approved`; acknowledgement accepted with
+`consumed_revision sha256:54010f00…`, target `sha256:2aac4014…`, authority
+burned. No follow-up correction was opened.
 
 ## Exit-code contract
 
 | Run state | Status | Banner |
 | --- | --- | --- |
-| clean | 0 | `== All checks passed — workflow setup intact ==` (or the self-repairs variant) |
-| incomplete (section 9 skipped) | **3** | `VERIFICATION_INCOMPLETE` |
-| any failure (with or without skips) | 1 | `Some checks failed` + failed list |
+| clean | 0 | `== All checks passed — workflow setup intact ==` |
+| incomplete (section 9 skipped) | 3 | `VERIFICATION_INCOMPLETE` |
+| any failure | 1 | `Some checks failed` + list |
 
-`verify-workflow.sh` is a 157-line loader that sources `verify/NN-*.sh` in
-manifest order and `62-section-11-summary.sh` runs last, so the summary's exit
-status is the script's. A skip-only run previously fell off the end with 0, so
-`verify-workflow.sh && next_step` accepted an incomplete verification; the
-summary now exits 3 and the cutover step warns callers not to read 3 as
-success.
-
-`workflow-health-check.ts` catches `e.code === 3` (execFileAsync rejects on any
-non-zero status) and sets the `incomplete` state with the existing
-`VERIFICATION_INCOMPLETE` warning instead of `failed`.
-
-An incomplete run still withholds the cache-prune approval, so
-`prune-opencode-plugin-cache.py` refuses on the missing approval, not on the
-exit status — no change needed there.
+`verify-workflow.sh` is a 157-line loader; `62-section-11-summary.sh` runs last,
+so its exit status is the script's.
 
 ## Section 9 behaviour
 
-- V2: runs the standalone invariant validator, prints one
-  `SKIPPED (V2: SECTION_9_RUNTIME_AGENT_CHECKER_NOT_RUN; ...)` line, never
-  invokes `check-runtime-agents.cjs`, never prints the pass line.
-- V1: unchanged — same checker argv and messages.
-- Section 9a probes and 9b `github_ro` stay active and fatal.
-
-## Retained V2 invariants
-
-One scoped `@cortexkit/opencode-magic-context@~x.y.z` pin (unscoped rejected);
-one fallback fork ref naming its directory or `/index.ts`; global
-`permission.grep=deny` plus orchestrator `allow`; `mcp.github_ro` present and
-`tools["github_ro_*"] === false`. The adapter emits no stdout and reads nothing
-under `scripts/`.
-
-## Recorded advice
-
-`adversarial-reviewer` (verifier-contract surface) returned GAPS and required
-the incomplete state, the fails-over-skips rule, section 9b staying fatal, and
-rejecting unscoped pins. Its list of coverage now explicitly absent (model/tool/
-GGA fallback, custom-agent grants, PM model drift, live fallback policy) is
-deferred to Q130 and reported as incomplete, never as verified.
-
-`security-reviewer` (earlier round) returned DESIGN GAPS on projection:
-name-based exemptions and rule ordering, which is part of why projection was
-abandoned for the skip branch.
-
-## Planner handoff — structurally blocked
-
-`docs/specs/pm-handoff.md:74` mandates `BLOCKED` when a worktree's HEAD lives
-under `.git/worktrees/`, which is this checkout. Work ran as direct bounded
-`general` writer dispatches with advisor input.
+V2 runs the standalone invariant validator, prints one
+`SKIPPED (V2: SECTION_9_RUNTIME_AGENT_CHECKER_NOT_RUN; ...)` line, and never
+invokes `check-runtime-agents.cjs`; V1 is unchanged; 9a probes and 9b
+`github_ro` stay fatal.
 
 ## Checks observed
 
-- `tests/test_verifier_v2_sections.py` → 13 passed; controls assert skip-only
-  exit 3, failures+skips exit 1, clean exit 0 with the unchanged banner, the
-  plugin's exit-3 catch, and no cache-prune approval on incomplete.
+- `tests/test_verifier_v2_sections.py` → 14 passed after `f0906e1`.
 - `python3 scripts/verifier_manifest.py check` → `ok: manifest and pin are
   current`; no `__pycache__`/`.pyc` row.
-- `bash -n` on `verify-workflow.sh` and `verify/62-section-11-summary.sh` →
-  exit 0.
-- Not run: live `--behavioral` verifier, native review, reviewers (excluded).
+- `bash -n` clean on the entry and every changed module.
+- Not run: live `--behavioral` run (Tier 2).
 
 ## Open items
 
-- **Native review due, not started** — `5beff94..90ccb14` assessed `high`
-  (lineage `review-e460198a780543cd`); later commits not re-assessed.
 - **Protected-path follow-up (owner).** `scripts/verifier_manifest.py` (S17)
   filters only `is_file()`, so `__pycache__` under `verify/checkers` becomes a
   required module despite `.gitignore`. Patch both comprehensions with
   `"__pycache__" not in p.relative_to(base).parts and p.suffix != ".pyc"`.
 - **Q130** owns the V2 runtime-agent sweep.
+- Advisory findings above are separate later work, not reasons to re-run review
+  on this candidate.
 
 ## Next step
 
-Tier 2: live V2 run, expecting exit 3, the named skip, and section 10 reached.
-Owner: `verifier_manifest.py` bytecode filter.
+Tier 2: live V2 run expecting exit 3 with the named skip. Owner: the
+`verifier_manifest.py` bytecode filter.
 
 
 ## Revisions
@@ -107,3 +110,4 @@ Owner: `verifier_manifest.py` bytecode filter.
 - r4 2026-11-08T11:16:26Z gentle-orchestrator: Record a5e3ada, the advisor's DESIGN GAPS advice, the blocked Planner handoff, and observed checks
 - r5 2026-11-08T14:38:31Z gentle-orchestrator: Record narrowed skip scope, 88b296a + a9d1805, advisor GAPS advice, planner block and observed checks
 - r6 2026-11-08T14:59:02Z gentle-orchestrator: Record 108c519, the exit-code contract, plugin exit-3 handling and observed controls
+- r7 2026-11-08T15:22:33Z gentle-orchestrator: Record native review lineage, R3-001 correction f0906e1, advisory findings and acknowledgement
