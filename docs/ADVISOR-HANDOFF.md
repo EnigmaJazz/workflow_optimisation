@@ -6,15 +6,17 @@ This handoff records the current advisor setup and its verified capability bound
 
 Twelve split advisors are registered; all use `"hidden": true` and `"mode": "subagent"`. Their
 `variant` fields follow this table. `WORKFLOW.md` ("Pre-code advisors" and "Post-code advisors") owns
-the assignment; this table follows it.
+the assignment; this table follows it. The spec, design and security advisors run on the OpenCode Go
+models named here; their permissions deny file, search and shell tools, and they gather facts through
+`advisor-evidence`, which keeps the sandbox-only advisor surface.
 
 ### Pre-code
 
 | Advisor | Model |
 |---|---|
-| `advisor-design-pre` | `google/gemini-4-argon` |
-| `advisor-security-pre` | `google/gemini-4-argon` |
-| `advisor-spec-pre` | `openai/gpt-6.1-sol` (`high`) |
+| `advisor-design-pre` | `opencode-go/glm-5.3-flash` |
+| `advisor-security-pre` | `opencode-go/glm-5.3-flash` |
+| `advisor-spec-pre` | `opencode-go/qwen3.7-plus` |
 | `advisor-integration-pre` | `opencode-go/mimo-v2.6-flash` |
 | `advisor-testing-pre` | `opencode-go/glm-5.3-flash` (`high`) |
 | `advisor-maintainability-pre` | `opencode-go/glm-5.3-flash` (`high`) |
@@ -28,7 +30,7 @@ the assignment; this table follows it.
 | `advisor-testing-post` | `opencode-go/qwen3.8-flash` |
 | `advisor-security-post` | `opencode-go/qwen3.7-plus` |
 | `advisor-maintainability-post` | `opencode-go/ling-3.1-flash` |
-| `advisor-spec-post` | `openai/gpt-6.1-sol` (`high`) |
+| `advisor-spec-post` | `opencode-go/glm-5.3-flash` |
 
 ## Current permissions
 

@@ -1,5 +1,6 @@
 """Advisor model policy: no Google agents and independent pre/post seats."""
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -28,6 +29,44 @@ def advisor_model_violations(agents: dict) -> list[str]:
     return violations
 
 
+def advisor_variant_violations(markdown: str, agents: dict) -> list[str]:
+    """Return advisor table rows whose effort annotation disagrees with config."""
+    violations = []
+    for heading in ("**Pre-code advisors**", "**Post-code advisors**"):
+        if heading not in markdown:
+            violations.append(f"missing advisor table heading {heading}")
+            continue
+        section = markdown.split(heading, 1)[1]
+        table = re.search(
+            r"(?m)^\| Advisor \| Model \|\n^\|---\|---\|\n(?P<rows>(?:^\|.*\|\n?)+)",
+            section,
+        )
+        if table is None:
+            violations.append(f"missing advisor table after {heading}")
+            continue
+        for row in table.group("rows").splitlines():
+            cells = [cell.strip() for cell in row.strip().strip("|").split("|")]
+            if len(cells) != 2:
+                continue
+            name_match = re.fullmatch(r"`([^`]+)`", cells[0])
+            if name_match is None:
+                continue
+            name = name_match.group(1)
+            annotation_match = re.search(r"\(([^()]*)\)\s*$", cells[1])
+            annotation = (
+                annotation_match.group(1).strip().strip("`")
+                if annotation_match is not None
+                else None
+            )
+            agent = agents.get(name)
+            configured = agent.get("variant") if isinstance(agent, dict) else None
+            if annotation != configured:
+                violations.append(
+                    f"{name} table variant {annotation!r} does not match config {configured!r}"
+                )
+    return violations
+
+
 class AdvisorModelPolicy(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -36,6 +75,29 @@ class AdvisorModelPolicy(unittest.TestCase):
 
     def test_real_agent_inventory_satisfies_model_policy(self):
         self.assertEqual(advisor_model_violations(self.agents), [])
+
+    def test_workflow_advisor_table_variants_match_agent_config(self):
+        workflow = (REPO / "WORKFLOW.md").read_text(encoding="utf-8")
+        self.assertEqual(advisor_variant_violations(workflow, self.agents), [])
+
+    def test_variant_positive_control_rejects_annotation_without_config_variant(self):
+        synthetic = """**Pre-code advisors**
+
+| Advisor | Model |
+|---|---|
+| `advisor-design-pre` | `opencode-go/glm-5.3-flash` (`high`) |
+
+**Post-code advisors**
+
+| Advisor | Model |
+|---|---|
+| `advisor-spec-post` | `opencode-go/glm-5.3-flash` |
+"""
+        violations = advisor_variant_violations(synthetic, self.agents)
+        self.assertEqual(
+            violations,
+            ["advisor-design-pre table variant 'high' does not match config None"],
+        )
 
     def test_google_model_positive_control_names_agent(self):
         self.assertEqual(

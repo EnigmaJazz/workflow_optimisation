@@ -2746,6 +2746,18 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Description:** a new host tool shipped without a permission rule, so `derive-v2-config.py` refuses and the V2 root cannot be derived. Add global `deny` and `gentle-orchestrator` `allow`. Permission coverage only; no archive invocation or deployment.
 - **Deferred:** overlay authorization-text alignment is separate follow-up, not this implementation; routing-guard archive parity stays later work.
 
+### Q131. Advisors off Google models (owner, 2026-11-08)
+- **Status:** DONE at source in this branch; code slice `d0c4a76`, with this docs/manifest slice following in the same branch; not deployed (no `derive --apply`, no restart).
+- **Prerequisites:** none.
+- **Source:** `d0c4a76`; `tests/test_advisor_models_off_google.py`.
+- **Description:** no agent uses a `google/` model; all six advisor pre/post pairs differ and are pinned by `tests/test_advisor_models_off_google.py` with positive controls; `advisor-gemini-pre`/`-post` removed and `advisor-gemini-evidence` renamed to `advisor-evidence` (`opencode-go/qwen3.8-flash`); Planner-prompt and task permissions, `rate-limit-fallback.json`, `verify/30-recover-config.sh`, `verify/checkers/check-runtime-agents.cjs` and the verifier manifest updated. Open follow-up: `chore/q128-pm-handoff-skill` also re-pins the manifest, so after rebasing on it `python3 scripts/verifier_manifest.py update` must be re-run.
+
+### Q132. Trial a no-tool Gemini model as a review lens (owner, 2026-11-08)
+- **Status:** PLANNED; not part of Q131 and must not widen it.
+- **Prerequisites:** Google API quota restored; AND a verified (not assumed) answer to how the `asi-review-*` lanes receive the immutable candidate tree, confirming a lens can be fed the frozen candidate context without file tools.
+- **Source:** owner direction, 2026-11-08.
+- **Description:** a no-tool lens would consume less quota; investigate that transport question first and do not assume the frozen candidate is reachable without tools; it must not displace the tool-bearing in-OpenCode lenses where file access is required.
+
 ## Done
 
 - Review follow-up on the plugin load check (old items 1–2): `71a2eb3` (`d85ca4a` introduced the
