@@ -2544,7 +2544,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - Workers that queue for 600 s should surface a clear `blocked` report to the delegating Tier 2 (Q111).
 
 ### Q115. V2-mode verifier reads V1 paths and the main checkout
-- **Status:** NARROWED BY OWNER (2026-11-08): section 9 is skipped in V2 with a named reason; the projection into the V1 checker and the by-path import of `derive-v2-config.py` are removed. Narrowed fix dispatched; then Codex recheck, native review (owner consent), merge, live V2 `--behavioral` run, S17 `verifier_manifest.py` `__pycache__` patch (owner). The V2 section-9 sweep moves to Q130.
+- **Status:** MERGED LOCALLY (2026-11-08, fast-forward to `main` at 33c47ed in `merge-main-q106`; not pushed). Narrowed to a named V2 skip of section 9 (exit 3 = incomplete, 0 clean, 1 failures win); Codex PASS at 108c519; native review approved and acknowledged (lineage review-63500602d1322b81, R3-001 fixed in f0906e1). Open: owner commit of the S17 `verifier_manifest.py` bytecode filter, live V2 `--behavioral` run (expects exit 3 until Q130), push of `main`, and eight advisories (R4-001 bare-name `dirname` workspace, R3-003 untested `$0` fallback, R4-002 derivation failure exit 2 outside 0/1/3, R3-004 `str.replace` control can silently no-op; four more in the review record).
 - **Evidence:** with V2 first on `PATH` the verifier still resolves several inputs from V1 or fixed paths:
   - `WORKSPACE` is fixed to `~/ai-workspace/workflow_optimisation` (`verify/10-env.sh:33`), the main checkout, which can be
     on any branch. On `chore/coordinator-selection` it reported five failures from pre-merge source (old health-plugin
