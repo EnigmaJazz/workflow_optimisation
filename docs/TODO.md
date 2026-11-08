@@ -47,7 +47,7 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   Then Q57-Q60 and Q61. Q62 (retired-model list and seat-assignment reconciliation) is independently
   planned.
 - **Multi-tier orchestration (owner, 2026-11-04; spec `docs/specs/multi-tier-orchestration.md`):** two
-  independent tracks that can run at the same time. Track A (above OpenCode, Tiers 1-4): Q101.
+  independent tracks that can run at the same time. Track A (above OpenCode, Tiers 1-4): Q101 (umbrella), split into Q119-Q125 (Paperclip spike, usage ledger, Tier 3 flow, Jev gates, minimality wording, Codex spec role, tracker-drift check); Track A runs in parallel with all OpenCode 2 work.
   Track B (OpenCode side): Q102, then Q103. Order inside Track B follows spec section 13. Q104 (role
   contracts wired into the deployed prompts, and the daily rhythm) follows Q102 and spans both tracks.
   Q105 (Planner and advisors callable) is a prerequisite of any Gate 2 and goes first; Q106 (sandbox tools bring their permissions) goes with the D33 rules.
@@ -2228,7 +2228,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
     the verifier.
 
 ### Q101. Multi-tier orchestration, Track A: tiers above OpenCode (Tiers 1-4)
-- **Status:** PLANNED.
+- **Status:** PARTIAL (2026-11-08). Done: role definitions in `roles/` (OPEN-13), the `CLAUDE.md` role rewrite (OPEN-7), the Claude rules for advisor, delegation, watcher and session lifecycle (changesets applied). Open work is split into Q119-Q125 below; Q101 stays as the umbrella and closes when they do.
 - **Prerequisites:** none. Independent of the sandbox and of OpenCode workflow changes (spec D16).
 - **Source:** owner, 2026-11-04.
 - **Description:** Build the tiers above OpenCode, per `docs/specs/multi-tier-orchestration.md`:
@@ -2240,6 +2240,33 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - the Jev input-size check (spec section 9);
   - the Jev plan-comparison gate and the advisor step before delegation (spec D17, D18, section 9);
   - the per-role wording of the minimality principles (spec D19, section 14).
+
+### Q119. Paperclip spike through REST API and UI only (Track A; spec section 12 item 1)
+- **Status:** PLANNED. **Prerequisites:** none. Runs in parallel with all OpenCode 2 work. **Source:** owner, 2026-11-08.
+- **Description:** Download Paperclip, review its README (D13), disable its local CLI adapters (D21, OPEN-10) and record tickets and cost-events for one real task across two repos with Orca launching every agent. Define the Paperclip issue fields and who keeps them in step with the repo trackers (D14, OPEN-5). Confirms or kills spec sections 7 and 10. Read-only on the repos; the install location and the Paperclip attach path need an owner decision before any nono change.
+
+### Q120. Usage ledger and one-day baseline per subscription (Track A; D6, D25, OPEN-14)
+- **Status:** PLANNED. **Prerequisites:** none. **Source:** owner, 2026-11-08.
+- **Description:** Metering first (D6 makes feasibility a gate). Build the ledger in `workflow_optimisation`, capture a one-day baseline per subscription, and feed the numbers to Q103 and Q112.
+
+### Q121. Tier 3 prompt flow (Track A; D12)
+- **Status:** PLANNED. **Prerequisites:** Q120 (baseline) for sizing; the role files in `roles/` already exist. **Source:** owner, 2026-11-08.
+- **Description:** Tier 2 drafts, the owner reviews and pastes. Define the draft format, where drafts are stored, and how the result returns to Tier 2.
+
+### Q122. Jev input-size check, plan-comparison gate and advisor step before delegation (Track A; D17, D18, section 9)
+- **Status:** PLANNED (partly delivered: the advisor triggers in `~/.claude/rules/advisor.md`). **Prerequisites:** none for the input-size check; the calibration run (spec section 12 item 5) sets thresholds. **Source:** owner, 2026-11-08.
+- **Description:** Add the Jev input-size check and the plan-comparison gate to Tier 2; verify the advisor step is in the delegation path; run the calibration on past stages.
+
+### Q123. Per-role wording of the minimality principles (Track A; D19, section 14)
+- **Status:** PLANNED. **Prerequisites:** none. **Source:** owner, 2026-11-08.
+- **Description:** Apply the minimality principles to `roles/tier-1.md`, `tier-2.md`, `tier-2s.md`, `tier-4.md`. The OpenCode seats' wording is covered in Q102 and Q113.
+
+### Q124. Tier 4 Codex spec role and result review (Track A; spec D22, section 13)
+- **Status:** PARTIAL: `roles/tier-4.md` and `roles/codex-commands.md` exist and Codex has reviewed Q106 and Q107 work. Open: Codex writes the spec for a stage (section 12 item 4), and the tier-4 spec-review section is still marked pending owner review. **Source:** owner, 2026-11-08.
+
+### Q125. Tier 2 state, handover and tracker-drift check (Track A; extends Q110)
+- **Status:** PLANNED. **Prerequisites:** none. **Source:** owner, 2026-11-08 ("the tracker must be kept up to date").
+- **Description:** A tracker-drift check Tier 2 runs at each unit boundary: every merged unit's Q-item has a DONE status, every commit routed under a Q-number is reflected in `docs/TODO.md`. Q110 covers Engram state and HANDOFF regeneration; this item is the TODO.md half.
 
 ### Q102. Multi-tier orchestration, Track B: OpenCode workflow narrowing and sandbox changes
 - **Status:** PLANNED.
@@ -2366,7 +2393,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   Gate 2.
 
 ### Q106. A new sandbox tool must bring its permissions into this repo's config
-- **Status:** PLANNED.
+- **Status:** DONE (2026-11-07; `workflow_optimisation` `2a1dc36`, `0b67b5e`, merged to `main` as `16f26f4`; Codex PASS on recheck).
 - **Prerequisites:** none. Companion of the D33 permission rules (host_git_branch, host_git_head).
 - **Source:** owner, 2026-11-07.
 - **Description:** Adding a tool in `agent-sandbox-integration` (a broker op plus its plugin tool spec
@@ -2387,7 +2414,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   tests and the verifier checker in the same commit.
 
 ### Q109. Fix the PM-only contradiction in `workflow-odd-secure` (quick follow-up)
-- **Status:** READY. **Prerequisites:** the PM-only unit merged to `main` (2026-11-07).
+- **Status:** DONE (2026-11-07; `4e55464`, merged to `main` as `16f26f4`).
 - **Source:** native review R3-001 of the PM-only unit, owner, 2026-11-07.
 - **Description:** `global-config/skills/workflow-odd-secure/SKILL.md:18` now says the orchestrator
   never dispatches `odd-apply` or `gentle-ai-worker` (PM-only), while the unchanged bullet that follows
@@ -2536,7 +2563,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   before the switch landed) and have Tier 2 briefs state the worktree up front.
 
 ### Q107. The reviewer relay must accept a new worktree root without a broker restart
-- **Status:** PLANNED (sandbox repo `agent-sandbox-integration` work unit).
+- **Status:** DONE (2026-11-08; sandbox `master` `0479721`; native review APPROVED, range `4d32ff7..5bc893c`, non-blocking advisories: resilience 3, reliability 6; installed on V2).
 - **Prerequisites:** none. Blocks unattended native review of any unit built in a new worktree or clone.
 - **Source:** owner, 2026-11-07.
 - **Description:** `selectCanonicalSessionRoot` (`opencode/plugins/lib/reviewer-relay-core.ts`) requires the
