@@ -717,27 +717,6 @@
         ]
       }
     ],
-    "google/gemini-4-argon": [
-      {
-        "providerID": "openrouter",
-        "modelID": "~google/gemini-flash-latest",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      },
-      {
-        "providerID": "openai",
-        "modelID": "gpt-6-luna",
-        "variant": "high",
-        "capabilities": [
-          "files",
-          "tools",
-          "vision"
-        ]
-      }
-    ],
     "opencode-go/minimax-m3.1-flash": [
       {
         "providerID": "deepseek",
@@ -986,9 +965,7 @@
     "advisor-maintainability-post",
     "advisor-spec-pre",
     "advisor-spec-post",
-    "advisor-gemini-pre",
-    "advisor-gemini-post",
-    "advisor-gemini-evidence"
+    "advisor-evidence"
   ],
   "logging": true
 }

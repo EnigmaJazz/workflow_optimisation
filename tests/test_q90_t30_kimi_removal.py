@@ -53,13 +53,11 @@ ADVISOR_SEATS = (
     "advisor-design-pre", "advisor-design-post", "advisor-security-pre",
     "advisor-security-post", "advisor-integration-pre", "advisor-integration-post",
     "advisor-testing-pre", "advisor-testing-post", "advisor-maintainability-pre",
-    "advisor-maintainability-post", "advisor-gemini-pre", "advisor-gemini-post",
-    "advisor-gemini-evidence", "advisor-spec-pre", "advisor-spec-post")
+    "advisor-maintainability-post", "advisor-evidence", "advisor-spec-pre", "advisor-spec-post")
 NORMAL_ADVISOR_ROWS = (
-    "advisor-design-pre", "advisor-design-post", "advisor-security-pre",
-    "advisor-security-post", "advisor-integration-pre", "advisor-integration-post",
+    "advisor-integration-pre", "advisor-integration-post",
     "advisor-testing-pre", "advisor-testing-post", "advisor-maintainability-pre",
-    "advisor-maintainability-post", "advisor-spec-pre", "advisor-spec-post")
+    "advisor-maintainability-post")
 
 
 def load(path):
@@ -452,14 +450,14 @@ class DetectorControls(unittest.TestCase):
         rows = workflow_advisor_rows(WORKFLOW_PATH.read_text(encoding="utf-8"))
         self.assertEqual(advisor_row_failures(self.config["agent"], rows), [])
         for seat, row in (
-                ("advisor-design-pre", ("opencode-go/other-model", None)),
+                ("advisor-integration-pre", ("opencode-go/other-model", None)),
                 ("advisor-testing-pre", ("opencode-go/glm-5.3-flash", "low"))):
             mutated = dict(rows)
             mutated[seat] = row
             failures = advisor_row_failures(self.config["agent"], mutated)
             self.assertTrue(any(failure.startswith(f"{seat}: config")
                                 for failure in failures), (seat, failures))
-        for seat, field in (("advisor-design-post", "model"),
+        for seat, field in (("advisor-maintainability-post", "model"),
                             ("advisor-integration-pre", "variant")):
             agents = copy.deepcopy(self.config["agent"])
             agents[seat][field] = "opencode-go/other-model" if field == "model" else "low"

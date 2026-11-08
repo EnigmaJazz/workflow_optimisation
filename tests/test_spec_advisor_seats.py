@@ -1,9 +1,7 @@
-"""Specification advisors, the planner's own explore, and the Argon pre-code seats (owner decision 2026-10-31).
+"""Specification advisors, the planner's own explore, and independent pre/post model seats.
 
-The planner calls `advisor-spec-pre` before Gate 1 and `advisor-spec-post` before Gate 2 on every code unit. They run on the
-Sol model with their own luna evidence agent, so Sol advises the plan instead of writing it. `advisor-design-pre` and
-`advisor-security-pre` move to Gemini 4 Argon with the existing Gemini 3.8 Flash evidence agent, so no two advisor seats of one
-lens share a model before and after.
+The planner calls `advisor-spec-pre` before Gate 1 and `advisor-spec-post` before Gate 2 on every code unit. Specification,
+design and security advisors use distinct OpenCode Go models and gather missing facts through the shared evidence agent.
 
 Run: python3 -m unittest tests/test_spec_advisor_seats.py -v
 """
@@ -16,7 +14,8 @@ CONFIG = json.loads((REPO / "global-config" / "opencode.json").read_text(encodin
 FALLBACK = json.loads((REPO / "global-config" / "rate-limit-fallback.json").read_text(encoding="utf-8"))
 AGENTS = CONFIG["agent"]
 
-SOL, LUNA, ARGON = "openai/gpt-6.1-sol", "openai/gpt-6-luna", "google/gemini-4-argon"
+SOL, LUNA = "openai/gpt-6.1-sol", "openai/gpt-6-luna"
+EVIDENCE_MODEL = "opencode-go/qwen3.8-flash"
 MUTATION = ("edit", "write", "bash", "sandbox_apply", "sandbox_copy_in", "sandbox_copy_out", "sandbox_discard", "sandbox_finish",
             "host_plan_write", "host_gate_verdict", "host_task_mark", "ctx_memory")
 
@@ -27,17 +26,21 @@ def allowed_mutations(name):
 
 
 class SpecAdvisors(unittest.TestCase):
-    def test_pre_and_post_run_on_argon_with_the_gemini_evidence_agent(self):
-        # Owner decision 2026-11-01: the planner stays on Sol, so its spec checkers run on a different family.
-        for name in ("advisor-spec-pre", "advisor-spec-post"):
+    def test_specification_advisors_use_distinct_go_models_and_shared_evidence(self):
+        expected = {"advisor-spec-pre": "opencode-go/qwen3.7-plus",
+                    "advisor-spec-post": "opencode-go/glm-5.3-flash"}
+        for name, model in expected.items():
             with self.subTest(name=name):
                 seat = AGENTS[name]
-                self.assertEqual((seat["model"], seat.get("variant"), seat["mode"], seat["hidden"]), (ARGON, None, "subagent", True))
-                self.assertEqual(seat["permission"]["task"], {"*": "deny", "advisor-gemini-evidence": "allow"})
+                self.assertEqual((seat["model"], seat.get("variant"), seat["mode"], seat["hidden"]), (model, None, "subagent", True))
+                self.assertEqual(seat["permission"]["task"], {"*": "deny", "advisor-evidence": "allow"})
                 self.assertIs(seat["tools"]["task"], True)
                 self.assertEqual(allowed_mutations(name), [])
                 for tool in ("read", "sandbox_bash", "sandbox_read", "sandbox_grep"):
                     self.assertEqual(seat["permission"].get(tool), "deny", (name, tool))
+
+    def test_shared_evidence_agent_uses_qwen_flash(self):
+        self.assertEqual(AGENTS["advisor-evidence"]["model"], EVIDENCE_MODEL)
 
     def test_the_old_sol_evidence_agent_is_gone(self):
         self.assertNotIn("advisor-spec-evidence", AGENTS)
@@ -48,7 +51,7 @@ class SpecAdvisors(unittest.TestCase):
             self.assertIn("specification", prompt)
             self.assertIn("edge case", prompt)
             self.assertIn(timing, prompt)
-            self.assertIn("advisor-gemini-evidence", prompt)
+            self.assertIn("advisor-evidence", prompt)
             self.assertIn("at most 2", prompt)
             self.assertIn("Advice is evidence, never approval", prompt)
 
@@ -94,53 +97,52 @@ class PlannerWiring(unittest.TestCase):
         self.assertIn("before Gate 2", prompt)
         self.assertIn("For your own broad reading use `explore`", prompt)
 
-    def test_planner_prompt_names_the_api_credit_carrier_when_the_lane_is_inactive(self):
-        # Q99: the compulsory spec advice keeps a carrier while the Antigravity lane is inactive.
+    def test_planner_prompt_uses_current_advisors_and_shared_gathering_lane(self):
         prompt = AGENTS["planner"]["prompt"]
-        self.assertIn("When the Antigravity lane is inactive", prompt)
-        self.assertIn("`advisor-gemini-pre` carries that same compulsory specification advice "
-                      "in place of `advisor-spec-pre`", prompt)
-        self.assertIn("`advisor-gemini-post` replaces `advisor-spec-post` at the post position", prompt)
-        self.assertEqual(prompt.count("dispatch exactly one carrier per position, never both"), 1)
-        self.assertEqual(prompt.count("When the Antigravity lane is inactive"), 1)
-        self.assertEqual(prompt.count("Subscription Gemini advisors run only when the external lane is active"), 1)
-        self.assertIn("The registered API-credit carriers `advisor-gemini-pre` and `advisor-gemini-post` "
-                      "are exempt from that restriction", prompt)
+        self.assertIn("`advisor-spec-pre` is compulsory", prompt)
+        self.assertIn("`advisor-spec-post` is compulsory", prompt)
+        self.assertIn("OpenCode Go models", prompt)
+        self.assertIn("advisor-evidence", prompt)
+        self.assertNotIn("Gemini", prompt)
+        self.assertNotIn("Argon", prompt)
 
 
-class ArgonPreSeats(unittest.TestCase):
-    def test_design_and_security_pre_run_on_argon_with_the_gemini_evidence_agent(self):
+class OpenCodeGoPreSeats(unittest.TestCase):
+    def test_design_and_security_pre_use_glm_and_shared_evidence(self):
         for name in ("advisor-design-pre", "advisor-security-pre"):
             with self.subTest(name=name):
                 seat = AGENTS[name]
-                self.assertEqual(seat["model"], ARGON)
+                self.assertEqual(seat["model"], "opencode-go/glm-5.3-flash")
                 self.assertNotIn("variant", seat)
-                self.assertEqual(seat["permission"]["task"], {"*": "deny", "advisor-gemini-evidence": "allow"})
+                self.assertEqual(seat["permission"]["task"], {"*": "deny", "advisor-evidence": "allow"})
                 self.assertIs(seat["tools"]["task"], True)
                 self.assertEqual(allowed_mutations(name), [])
                 for tool in ("read", "sandbox_bash", "sandbox_read", "sandbox_grep"):
                     self.assertEqual(seat["permission"].get(tool), "deny", (name, tool))
-                self.assertIn("advisor-gemini-evidence", seat["prompt"])
+                self.assertIn("advisor-evidence", seat["prompt"])
                 self.assertIn("at most 2", seat["prompt"])
 
     def test_scope_lines_survive_the_move(self):
         self.assertIn("Design scope", AGENTS["advisor-design-pre"]["prompt"])
         self.assertIn("Security scope", AGENTS["advisor-security-pre"]["prompt"])
 
-    def test_post_seats_stay_where_they_were_so_pre_and_post_differ(self):
-        self.assertEqual(AGENTS["advisor-design-post"]["model"], "opencode-go/qwen3.7-plus")
-        self.assertEqual(AGENTS["advisor-security-post"]["model"], "opencode-go/qwen3.7-plus")
-        for lens in ("design", "security"):
-            self.assertNotEqual(AGENTS[f"advisor-{lens}-pre"]["model"], AGENTS[f"advisor-{lens}-post"]["model"])
+    def test_every_advisor_pre_post_pair_uses_distinct_models(self):
+        expected = {
+            "spec": ("opencode-go/qwen3.7-plus", "opencode-go/glm-5.3-flash"),
+            "design": ("opencode-go/glm-5.3-flash", "opencode-go/qwen3.7-plus"),
+            "security": ("opencode-go/glm-5.3-flash", "opencode-go/qwen3.7-plus"),
+            "integration": ("opencode-go/mimo-v2.6-flash", "opencode-go/glm-5.3-flash"),
+            "testing": ("opencode-go/glm-5.3-flash", "opencode-go/qwen3.8-flash"),
+            "maintainability": ("opencode-go/glm-5.3-flash", "opencode-go/ling-3.1-flash"),
+        }
+        for lens, (pre, post) in expected.items():
+            with self.subTest(lens=lens):
+                self.assertEqual(AGENTS[f"advisor-{lens}-pre"]["model"], pre)
+                self.assertEqual(AGENTS[f"advisor-{lens}-post"]["model"], post)
+                self.assertNotEqual(pre, post)
 
     def test_the_spec_advisor_and_the_argon_seats_are_different_families(self):
         self.assertNotEqual(AGENTS["advisor-spec-pre"]["model"].split("/")[0], AGENTS["planner"]["model"].split("/")[0])
-
-    def test_the_unused_external_pair_is_untouched(self):
-        for name in ("advisor-gemini-pre", "advisor-gemini-post"):
-            self.assertEqual(AGENTS[name]["model"], ARGON)
-            self.assertEqual(AGENTS[name]["permission"]["task"], {"*": "deny", "advisor-gemini-evidence": "allow"})
-
 
 class SeatsRevertedFromClaudeAgent(unittest.TestCase):
     """Owner decision 2026-11-01: the Q94 Claude Agent seat trial is reverted (usage cost); spec advisors and Argon seats stay."""

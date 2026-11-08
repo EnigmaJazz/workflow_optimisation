@@ -149,7 +149,6 @@ const SUPPORTED_VARIANT_TARGETS = Object.freeze({
   "opencode-go/kimi-k2.7-code": Object.freeze([]),
   "opencode-go/mimo-v2.6-flash": Object.freeze([]),
   "google/gemini-flash-latest": Object.freeze([]),
-  "google/gemini-4-argon": Object.freeze([]),
 })
 function variantValueType(value) {
   if (value === null) return "null"
@@ -1523,7 +1522,7 @@ function coordinatorTaskGraphFailures(agents) {
   // its value is "deny"; only the declared named lanes may appear at all.
   const pmMaximum={
     "pm-odd":new Set([
-      "*","advisor-design-post","advisor-design-pre","advisor-gemini-post","advisor-gemini-pre",
+      "*","advisor-design-post","advisor-design-pre",
       "advisor-integration-post","advisor-integration-pre","advisor-maintainability-post",
       "advisor-maintainability-pre","advisor-security-post","advisor-security-pre",
       "advisor-testing-post","advisor-testing-pre","explore","gentle-ai-worker",
@@ -1531,7 +1530,7 @@ function coordinatorTaskGraphFailures(agents) {
       "planner",
     ]),
     "pm-systematic":new Set([
-      "*","advisor-design-post","advisor-design-pre","advisor-gemini-post","advisor-gemini-pre",
+      "*","advisor-design-post","advisor-design-pre",
       "advisor-integration-post","advisor-integration-pre","advisor-maintainability-post",
       "advisor-maintainability-pre","advisor-security-post","advisor-security-pre",
       "advisor-testing-post","advisor-testing-pre","bug-reproduction-validator",
@@ -1771,76 +1770,37 @@ else {
   if (orchestratorTask?.["odd-apply"]==="allow") fail("ODD_APPLY_ALLOWED_TO_ORCHESTRATOR")
 }
 
-// gemini-advisor-route:begin
+// advisor-model-policy:begin
 // Q76: the Argon advisors may only delegate to the Flash evidence gatherer, which keeps the
 // shared sandbox-only advisor surface. Only the orchestrator, the PMs, and the Planner dispatch
 // the advisors; no other agent may reach the gatherer. None of them may fall back to another model.
 // The coordinator set is passed in so tests can execute this block in isolation.
-function geminiAdvisorRouteFailures(agents,fallback,coordinatorAgents) {
-  const out=[]
-  const advisors=["advisor-gemini-pre","advisor-gemini-post"]
-  const evidence="advisor-gemini-evidence"
-  const evidenceUsers=["advisor-design-pre","advisor-security-pre","advisor-spec-pre","advisor-spec-post"]
-  const grants=new Set(["allow","ask"])
-  const hostRoutes=["edit","write","bash","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]
-  const asMap=(value)=>value && typeof value==="object" && !Array.isArray(value) ? value : {}
-  const sameMap=(value,expected)=>{
-    const actual=asMap(value)
-    return Object.keys(actual).length===Object.keys(expected).length && Object.entries(expected).every(([k,v])=>actual[k]===v)
-  }
-  for (const name of advisors) {
-    const a=agents?.[name]
-    if (!a || typeof a!=="object") { out.push(`GEMINI_ADVISOR_MISSING: ${name}`); continue }
-    if (a.model!=="google/gemini-4-argon") out.push(`GEMINI_ADVISOR_MODEL_MISMATCH: ${name}=${JSON.stringify(a.model)}`)
-    const tools=asMap(a.tools), perms=asMap(a.permission)
-    if (tools["*"]!==false || tools.task!==true) out.push(`GEMINI_ADVISOR_TOOL_SURFACE_MISMATCH: ${name}`)
-    for (const [t,v] of Object.entries(tools)) if (v===true && t!=="task") out.push(`GEMINI_ADVISOR_TOOL_EXPOSED: ${name}.${t}`)
-    for (const [t,v] of Object.entries(perms)) if (t!=="task" && grants.has(v)) out.push(`GEMINI_ADVISOR_TOOL_EXPOSED: ${name}.${t}`)
-    if (!sameMap(perms.task,{"*":"deny",[evidence]:"allow"})) out.push(`GEMINI_ADVISOR_TASK_SCOPE_MISMATCH: ${name}=${JSON.stringify(perms.task)}`)
-    if (perms.ctx_memory!=="deny") out.push(`GEMINI_ADVISOR_MEMORY_EXPOSED: ${name}`)
-  }
-  const gatherer=agents?.[evidence]
-  if (!gatherer || typeof gatherer!=="object") out.push(`GEMINI_EVIDENCE_MISSING: ${evidence}`)
-  else {
-    if (gatherer.model!=="google/gemini-3.8-flash") out.push(`GEMINI_EVIDENCE_MODEL_MISMATCH: ${evidence}=${JSON.stringify(gatherer.model)}`)
-    const tools=asMap(gatherer.tools), perms=asMap(gatherer.permission)
-    for (const t of hostRoutes) if (tools[t]===true || perms[t]!=="deny") out.push(`GEMINI_EVIDENCE_HOST_ROUTE_EXPOSED: ${evidence}.${t}`)
-    if (tools.task!==false || !sameMap(perms.task,{"*":"deny"})) out.push(`GEMINI_EVIDENCE_TASK_NOT_DENIED: ${evidence}`)
-    if (perms.ctx_memory!=="deny") out.push(`GEMINI_EVIDENCE_MEMORY_EXPOSED: ${evidence}`)
-  }
-  for (const dispatcher of coordinatorAgents) {
-    const task=asMap(asMap(agents?.[dispatcher]?.permission).task)
-    for (const name of advisors) if (task[name]!=="allow") out.push(`GEMINI_ADVISOR_NOT_DISPATCHABLE: ${dispatcher}.${name}`)
-  }
-  for (const [name,a] of Object.entries(asMap(agents))) {
-    if (advisors.includes(name)) continue
-    const task=a?.permission?.task
-    if (!task || typeof task!=="object" || Array.isArray(task)) continue
-    if (!coordinatorAgents.includes(name)) {
-      for (const advisor of advisors) {
-        const effectiveAdvisor=Object.prototype.hasOwnProperty.call(task,advisor) ? task[advisor] : task["*"]
-        if (effectiveAdvisor==="allow") out.push(`GEMINI_ADVISOR_DISPATCHABLE: ${name}.${advisor}='allow'`)
-      }
+function advisorModelPolicyFailures(agents) {
+  const failures=[]
+  const pairs=new Map()
+  for (const [name,agent] of Object.entries(agents??{})) {
+    if (typeof agent?.model==="string" && agent.model.startsWith("google/")) {
+      failures.push(`GOOGLE_AGENT_MODEL_FORBIDDEN: ${name}=${JSON.stringify(agent.model)}`)
     }
-    // Owner decision 2026-10-31 (spec seats added 2026-11-01): the Argon design, security and spec seats gather through the same evidence agent, with exactly this scope.
-    if (evidenceUsers.includes(name)) {
-      if (!sameMap(task,{"*":"deny",[evidence]:"allow"})) out.push(`GEMINI_EVIDENCE_USER_SCOPE_MISMATCH: ${name}=${JSON.stringify(task)}`)
-      continue
-    }
-    const effective=Object.prototype.hasOwnProperty.call(task,evidence) ? task[evidence] : task["*"]
-    if (effective!=="deny") out.push(`GEMINI_EVIDENCE_DISPATCHABLE: ${name}=${JSON.stringify(effective)}`)
+    if (!name.startsWith("advisor-")) continue
+    if (name.endsWith("-pre")) pairs.set(name.slice(0,-4),{...(pairs.get(name.slice(0,-4))??{}),pre:agent?.model})
+    if (name.endsWith("-post")) pairs.set(name.slice(0,-5),{...(pairs.get(name.slice(0,-5))??{}),post:agent?.model})
   }
-  const noFallback=Array.isArray(fallback?.noFallbackAgents) ? fallback.noFallbackAgents : []
-  for (const name of [...advisors,evidence]) if (!noFallback.includes(name)) out.push(`GEMINI_ADVISOR_FALLBACK_ALLOWED: ${name}`)
-  return out
+  for (const [name,pair] of pairs) {
+    if (Object.prototype.hasOwnProperty.call(pair,"pre") && Object.prototype.hasOwnProperty.call(pair,"post") && pair.pre===pair.post) {
+      failures.push(`ADVISOR_PAIR_MODELS_NOT_DISTINCT: ${name}`)
+    }
+  }
+  const evidence=agents?.["advisor-evidence"]
+  if (!evidence || typeof evidence!=="object") failures.push("ADVISOR_EVIDENCE_AGENT_MISSING")
+  else if (evidence.model!=="opencode-go/qwen3.8-flash") failures.push(`ADVISOR_EVIDENCE_MODEL_MISMATCH: ${JSON.stringify(evidence.model)}`)
+  return failures
 }
-// gemini-advisor-route:end
+// advisor-model-policy:end
 {
-  let geminiFallback
-  try { geminiFallback=parseJsonc(fallbackPolicySourcePath) } catch { geminiFallback=undefined }
-  for (const failure of geminiAdvisorRouteFailures(deployedAgents,geminiFallback,advisorDispatchAgents)) fail(failure)
-  const controlFailures=geminiAdvisorRouteFailures({},{},coordinatorAgents)
-  if (!controlFailures.includes("GEMINI_ADVISOR_MISSING: advisor-gemini-pre") || !controlFailures.includes("GEMINI_EVIDENCE_MISSING: advisor-gemini-evidence")) {
+  for (const failure of advisorModelPolicyFailures(deployedAgents)) fail(failure)
+  const controlFailures=advisorModelPolicyFailures({})
+  if (!controlFailures.includes("ADVISOR_EVIDENCE_AGENT_MISSING")) {
     fail(`GEMINI_ADVISOR_ROUTE_POSITIVE_CONTROL_FAILED: ${JSON.stringify(controlFailures)}`)
   } else {
     console.log("   ok: Gemini advisor route shape, dispatch scope and no-fallback policy")
@@ -1856,7 +1816,7 @@ function plannerHandoffFailures(agents,gp) {
     "advisor-design-pre","advisor-integration-pre","advisor-testing-pre","advisor-security-pre",
     "advisor-maintainability-pre","advisor-design-post","advisor-integration-post",
     "advisor-testing-post","advisor-security-post","advisor-maintainability-post",
-    "advisor-gemini-pre","advisor-gemini-post","advisor-spec-pre","advisor-spec-post",
+    "advisor-spec-pre","advisor-spec-post",
   ]
   const writers=["odd-apply","gentle-ai-worker","gentle-ai-worker-local","gentle-ai-verify","gentle-ai-verify-routine","general","frontend-apply","frontend-apply-local","frontend-dev","systematic-implementer"]
   const readTools=["read","codegraph_codegraph_explore","ast_grep_search","aft_outline","aft_zoom","aft_search","aft_callgraph","aft_inspect","sandbox_read","sandbox_list","sandbox_grep","sandbox_diff"]
@@ -1954,7 +1914,7 @@ const isolatedMemoryAgents=new Set([
   "advisor-security-pre","advisor-maintainability-pre",
   "advisor-design-post","advisor-integration-post","advisor-testing-post",
   "advisor-security-post","advisor-maintainability-post",
-  "advisor-gemini-pre","advisor-gemini-post","advisor-gemini-evidence",
+  "advisor-evidence",
   "planner","planner-evidence",
   "advisor-spec-pre","advisor-spec-post",
   "asi-review-risk","asi-review-resilience","asi-review-readability",
