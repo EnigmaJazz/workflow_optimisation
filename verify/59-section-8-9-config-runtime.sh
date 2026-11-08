@@ -161,12 +161,26 @@ else
 
     if [ "$PROBE_FAILURE" -ne 0 ]; then
       fail "one or more per-agent runtime probes failed"
-    elif SYSTEMATIC_NODE_MODULES="$SYSTEMATIC_NODE_MODULES" "$JS_RUNTIME" "$RUNTIME_AGENT_CHECKER" \
-      "$SYSTEMATIC_CONFIG" "$ACTIVE_AGENTS" "$AGENT_LIST_OUT" "$DEBUG_AGENT_DIR" "$OPENCODE_CONFIG_FILE" \
-      "$FALLBACK_POLICY_SOURCE" "$WORKSPACE"; then
-      echo "   ok: runtime agent registration/model/tool and GGA fallback checks passed"
     else
-      fail "OpenCode runtime agent registration/model/tool or GGA fallback policy check failed"
+      RUNTIME_CHECK_CONFIG="$RUNTIME_CONFIG_FILE"
+      if [ "${OC_MAJOR:-0}" = "2" ]; then
+        RUNTIME_CHECK_CONFIG="$TMP_DIR/opencode-v2-runtime-projection.json"
+        if ! python3 "$VERIFY_MODULE_DIR/checkers/v2-runtime-config.py" "$RUNTIME_CONFIG_FILE" >"$RUNTIME_CHECK_CONFIG" 2>"$TMP_DIR/v2-runtime-config-notes"; then
+          sed 's/^/   info: /' "$TMP_DIR/v2-runtime-config-notes"
+          fail "V2_RUNTIME_CONFIG_PROJECTION_FAILED"
+          RUNTIME_CHECK_CONFIG=""
+        else
+          sed 's/^/   info: /' "$TMP_DIR/v2-runtime-config-notes"
+          echo "   info: non-projected items are reported as skipped (V2): <reason>"
+        fi
+      fi
+      if [ -n "$RUNTIME_CHECK_CONFIG" ] && SYSTEMATIC_NODE_MODULES="$SYSTEMATIC_NODE_MODULES" "$JS_RUNTIME" "$RUNTIME_AGENT_CHECKER" \
+      "$SYSTEMATIC_CONFIG" "$ACTIVE_AGENTS" "$AGENT_LIST_OUT" "$DEBUG_AGENT_DIR" "$RUNTIME_CHECK_CONFIG" \
+      "$FALLBACK_POLICY_SOURCE" "$WORKSPACE"; then
+        echo "   ok: runtime agent registration/model/tool and GGA fallback checks passed"
+      else
+        fail "OpenCode runtime agent registration/model/tool or GGA fallback policy check failed"
+      fi
     fi
   fi
 fi

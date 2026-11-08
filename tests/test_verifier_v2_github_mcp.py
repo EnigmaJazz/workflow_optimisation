@@ -132,7 +132,8 @@ class Wiring(unittest.TestCase):
         self.assertEqual(subprocess.run(["bash", "-n", str(SECTION)]).returncode, 0)
         v2, _, v1 = text.partition("# --- 9b.")[2].partition('elif [ "${OC_MAJOR:-0}" = "2" ]; then')[2].partition("\nelse\n")
         self.assertIn("v2-github-mcp-check.py", v2)
-        self.assertIn("GITHUB_RO_RUNTIME_INACTIVE_OR_UNSCOPED", v2)
+        self.assertIn("classify_github_mcp_result", v2)
+        self.assertIn("GITHUB_RO_RUNTIME_INACTIVE_OR_UNSCOPED", text)
         self.assertIn("http://127.0.0.1:4096/mcp", v1)
 
 

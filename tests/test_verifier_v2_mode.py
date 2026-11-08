@@ -50,7 +50,7 @@ def detect(version_output=None, env_major=None):
             env["WORKFLOW_VERIFY_OPENCODE_MAJOR"] = env_major
         script = f'VERIFY_MODULE_DIR="{MODULES}"\nsource "{VERSION_MODULE}"\necho "MAJOR=$OC_MAJOR"\n'
         r = subprocess.run([shutil.which("bash"), "-c", script], capture_output=True, text=True, env=env, stdin=subprocess.DEVNULL)
-        return r.returncode, r.stdout.strip(), r.stderr
+        return r.returncode, r.stdout.strip().splitlines()[-1], r.stderr
     finally:
         if stub:
             stub.close()
@@ -84,6 +84,34 @@ def probe(major, version="1.19.5", stdin_data=b"piped-input", args=("run", "--fo
         return r.returncode, stub.calls()
     finally:
         stub.close()
+
+
+class WorkspaceDerivation(unittest.TestCase):
+    def run_derivation(self, major, script_dir, **extra):
+        env = {**os.environ, "WORKFLOW_VERIFY_OPENCODE_MAJOR": major, "VERIFY_ENTRY_PATH": str(Path(script_dir) / "verify-workflow.sh"),
+               "VERIFY_MODULE_DIR": str(MODULES), **extra}
+        if "WORKFLOW_VERIFY_WORKSPACE" not in extra:
+            env.pop("WORKFLOW_VERIFY_WORKSPACE", None)
+        script = f'source "{MODULES / "10-env.sh"}"; source "{VERSION_MODULE}"; printf "RESULT=%s|%s|%s|%s\\n" "$WORKSPACE" "$AGENTS_FILE" "$RUNTIME_CONFIG_FILE" "$SKILLS_DIR"'
+        return subprocess.run(["bash", "-c", script], capture_output=True, text=True, env=env, stdin=subprocess.DEVNULL)
+
+    def test_v2_uses_script_checkout_for_workspace_and_v2_runtime_paths(self):
+        with tempfile.TemporaryDirectory() as checkout:
+            result = self.run_derivation("2", checkout, WORKFLOW_VERIFY_V2_CONFIG_ROOT="/v2/config/opencode")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(f"RESULT={checkout}|/v2/config/opencode/AGENTS.md|/v2/config/opencode/opencode.json|/home/james/.config/opencode/skills", result.stdout)
+        self.assertIn("info: V2 workspace=", result.stdout)
+
+    def test_v2_fails_with_named_error_when_workspace_cannot_be_derived(self):
+        result = self.run_derivation("2", "/path/that/does/not/exist")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("V2_WORKSPACE_DERIVATION_FAILED", result.stderr)
+
+    def test_v1_keeps_legacy_workspace_and_config_paths(self):
+        result = self.run_derivation("1", "/unused", WORKFLOW_VERIFY_WORKSPACE="/legacy/workspace")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("RESULT=/legacy/workspace|/home/james/.config/opencode/AGENTS.md|/home/james/.config/opencode/opencode.json|/home/james/.config/opencode/skills", result.stdout)
+        self.assertNotIn("info: V2 workspace=", result.stdout)
 
 
 class ProbeWrapper(unittest.TestCase):

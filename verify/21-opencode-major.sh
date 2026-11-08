@@ -24,6 +24,20 @@ detect_opencode_major() {
 }
 OC_MAJOR=$(detect_opencode_major)
 export OC_MAJOR
+if [ "$OC_MAJOR" = "2" ]; then
+  if [ -z "${WORKFLOW_VERIFY_WORKSPACE:-}" ]; then
+    VERIFY_SCRIPT_PATH="${VERIFY_ENTRY_PATH:-$0}"
+    WORKSPACE="$(cd "$(dirname "$VERIFY_SCRIPT_PATH")" 2>/dev/null && pwd)"
+    if [ -z "$WORKSPACE" ]; then
+      echo "V2_WORKSPACE_DERIVATION_FAILED: cannot resolve verifier entry directory: $VERIFY_SCRIPT_PATH" >&2
+      exit 2
+    fi
+    derive_workspace_paths
+  fi
+  AGENTS_FILE="${WORKFLOW_VERIFY_AGENTS_FILE:-$V2_CONFIG_ROOT/AGENTS.md}"
+  RUNTIME_CONFIG_FILE="${WORKFLOW_VERIFY_RUNTIME_CONFIG_FILE:-$V2_CONFIG_ROOT/opencode.json}"
+  echo "   info: V2 workspace=$WORKSPACE agents=$AGENTS_FILE runtime-config=$RUNTIME_CONFIG_FILE"
+fi
 # V2 loads Systematic's config from the overlay under its own HOME, not from ~/.config/opencode. Point the static validation at it
 # (an explicit WORKFLOW_VERIFY override still wins).
 if [ "$OC_MAJOR" = "2" ] && [ -z "${WORKFLOW_VERIFY_SYSTEMATIC_CONFIG:-}" ]; then
