@@ -54,6 +54,7 @@ PM_ANCHOR_NEEDLES = (
     "feature-branch HEAD commit SHA",
     "working-tree tracker",
     "does not establish that the tracker contents are committed",
+    "host_git_head",
 )
 PM_PLANNING_SKIP_NEEDLE = "Planning creation skips the anchor comparison"
 PM_OLD_HASH_WORDING = "tracker_sha256"
@@ -333,6 +334,16 @@ class PositiveControl(unittest.TestCase):
         self.assertIn(
             ("pm-systematic", "named writer instruction occurs 0 times, not exactly once"),
             gaps,
+        )
+
+    def test_removed_host_git_head_mechanism_is_reported(self):
+        data = self._synthetic()
+        prompt = data["agent"]["pm-odd"]["prompt"]
+        assert prompt is not None
+        data["agent"]["pm-odd"]["prompt"] = prompt.replace("host_git_head", "host-git-head")
+        self.assertIn(
+            ("pm-odd", "host_git_head", "prompt does not contain the needle"),
+            missing_prompt_needles(data),
         )
 
     def test_removed_anchor_needles_are_reported(self):
