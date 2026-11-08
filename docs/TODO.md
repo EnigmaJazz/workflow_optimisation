@@ -2539,7 +2539,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - Workers that queue for 600 s should surface a clear `blocked` report to the delegating Tier 2 (Q111).
 
 ### Q115. V2-mode verifier reads V1 paths and the main checkout
-- **Status:** PLANNED (global-tooling change; verifier digest re-pin applies). **Source:** owner V2 deploy run, 2026-11-07.
+- **Status:** IMPLEMENTED, NOT MERGED (2026-11-08; `chore/q115-v2-verifier` `90ccb14`, `96a2d50`; spot check: manifest ok, tests pass without stray bytecode). Open: native review due at tier high (owner-only consent), live V2 `--behavioral` run, and the S17 patch to `scripts/verifier_manifest.py` to ignore `__pycache__` (owner commits).
 - **Evidence:** with V2 first on `PATH` the verifier still resolves several inputs from V1 or fixed paths:
   - `WORKSPACE` is fixed to `~/ai-workspace/workflow_optimisation` (`verify/10-env.sh:33`), the main checkout, which can be
     on any branch. On `chore/coordinator-selection` it reported five failures from pre-merge source (old health-plugin
