@@ -65,18 +65,29 @@ class VerifierSkipBehavior(unittest.TestCase):
         result = subprocess.run(["bash", "-c", v1], capture_output=True, text=True, cwd=REPO)
         self.assertIn("CHECKER_INVOKED", result.stdout); self.assertNotIn("SKIPPED (V2:", result.stdout)
 
-    def test_summary_failures_and_skips_report_failure_and_incomplete_without_approval(self):
+    def test_summary_failure_only_preserves_exact_v1_prune_message(self):
+        result = self.run_summary('1', '()')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("   skipped: workflow health has failures; no cleanup approval issued", result.stdout)
+        self.assertNotIn("required checks were skipped; no cleanup approval issued", result.stdout)
+        self.assertNotIn("CACHE_PRUNE_APPROVED", result.stdout)
+
+    def test_summary_failures_and_skips_report_failure_as_dominant_without_approval(self):
         result = self.run_summary('1', '("sample skip")')
         self.assertEqual(result.returncode, 1)
         self.assertIn("Failed checks (1):", result.stdout)
         self.assertIn("sample failure", result.stdout)
         self.assertIn("VERIFICATION_INCOMPLETE", result.stdout)
+        self.assertIn("   skipped: workflow health has failures; no cleanup approval issued", result.stdout)
+        self.assertNotIn("required checks were skipped; no cleanup approval issued", result.stdout)
         self.assertNotIn("All checks passed", result.stdout)
         self.assertNotIn("CACHE_PRUNE_APPROVED", result.stdout)
 
     def test_summary_skips_only_are_incomplete_without_approval(self):
         result = self.run_summary('0', '("sample skip")')
         self.assertEqual(result.returncode, 3)
+        self.assertIn("   skipped: required checks were skipped; no cleanup approval issued", result.stdout)
+        self.assertNotIn("workflow health has failures; no cleanup approval issued", result.stdout)
         self.assertIn("VERIFICATION_INCOMPLETE", result.stdout)
         self.assertNotIn("All checks passed", result.stdout)
         self.assertNotIn("CACHE_PRUNE_APPROVED", result.stdout)

@@ -1,6 +1,9 @@
 echo "--- 11. Cache-prune safety approval ---"
-if [ "$FAIL" -ne 0 ] || [ "${#SKIPPED_MESSAGES[@]}" -gt 0 ]; then
-  echo "   skipped: workflow health has failures or required checks were skipped; no cleanup approval issued"
+# Failure-only runs retain exact V1 wording; failures dominate when skips also occurred.
+if [ "$FAIL" -ne 0 ]; then
+  echo "   skipped: workflow health has failures; no cleanup approval issued"
+elif [ "${#SKIPPED_MESSAGES[@]}" -gt 0 ]; then
+  echo "   skipped: required checks were skipped; no cleanup approval issued"
 elif [ "$AUTO_REPAIRED" -ne 0 ]; then
   echo "   skipped: configuration was repaired; rerun after restart before cleanup is approved"
 elif write_cache_prune_approval; then
