@@ -5,113 +5,92 @@
 With OpenCode V2 first on `PATH`, `verify-workflow.sh` must derive its config
 surface and workspace from V2 and from the checkout that contains the script,
 must not fail on V1-only shapes in section 9, must classify the `github_ro`
-probe correctly, and must therefore reach section 10 with no failures from
-these items. Acceptance remains Tier 2's live host run with the V2 server.
+probe correctly, and must reach section 10 with no failures from these items.
+Acceptance remains Tier 2's live host run with the V2 server.
 
-## Result
-
-Branch `chore/q115-v2-verifier`:
+## Commits on `chore/q115-v2-verifier`
 
 - `90ccb14` — V2-aware env derivation, section 9 projection, `github_ro` fix,
-  docs, tests (9 files).
-- `96a2d50` — regenerated verifier manifest without the bytecode row (2 files).
+  docs, tests.
+- `96a2d50` — regenerated verifier manifest without the bytecode row.
+- `63d2b0d` — Tier 4 findings F1 and F2 (V2 agent constructs, V1 override
+  surface).
 
-Combined candidate: 12 paths, 443 changed lines, native risk `high`
-(`process_boundary` + `shell_source` on `verify-workflow.sh`).
+## F1 (HIGH) — section 9 vs the real derived config
 
-## Problem (owner-supplied evidence, 2026-11-08)
+Resolved. `derive-v2-config.py:291-309` materialises `-astra` aliases and
+`:197-213` inserts Systematic access mirrors; `check-runtime-agents.cjs:376-380`
+rejects both, so section 9 failed on any real derived config.
 
-1. `WORKSPACE` was fixed to `~/ai-workspace/workflow_optimisation`
-   (`verify/10-env.sh:33`); the main checkout may be on any branch.
-2. `AGENTS_FILE` derived from `OPENCODE_CONFIG_DIR`, so
-   `AGENTS_BOUNDED_BLOCK_DRIFT` compared the stale V1 copy in V2 mode.
-3. Section 9 runtime-agent checks assumed V1 config shapes.
-4. `GITHUB_RO_RUNTIME_INACTIVE_OR_UNSCOPED` was recorded although the checker
-   printed `clean`. Root cause: `2>&1` merged stderr retry lines ahead of
-   `clean`, so the anchored `case` could not match.
-5. `GENTLE_AI_V4_ODD_SKILL_MISSING` is Q116 and is out of scope.
-6. Behavioural probes are gated on `FAIL -ne 0`.
+- `v2-runtime-config.py` validates the alias invariant (base exists, hidden,
+  model present, `permission`/`tools` identical to base) and the mirror
+  invariant (only `sandbox_`/`host_` rules, only mirror fields, at least one
+  rule), then removes only validated entries from the projection and reports
+  each removal with its real reason.
+- Mirror detection is purely structural: a mixed entry such as the real
+  `gentle-ai-worker` (`opencode.json:414`, `sandbox_write` plus
+  `bash`/`read`/`grep`) is NOT a mirror, so it keeps full checker coverage; a
+  Systematic agent pinned with real rules still reaches the checker and trips
+  `SYSTEMATIC_AGENT_SHADOWED`.
+- The literal `<reason>` template at `59:174` is gone; adapter notes are
+  printed as `info:`.
+- `verify/checkers/check-runtime-agents.cjs` was not modified.
 
-## What changed
+`-astra` removal is safe because the equivalent checks now run in the adapter,
+not because the entries were dropped.
 
-- `verify/10-env.sh`: all `WORKSPACE`-derived paths moved into
-  `derive_workspace_paths`, preserving every `WORKFLOW_VERIFY_*` override;
-  adds `AGENTS_FILE` and `RUNTIME_CONFIG_FILE` overrides. V1 defaults
-  unchanged.
-- `verify/21-opencode-major.sh`: in V2 mode, when
-  `WORKFLOW_VERIFY_WORKSPACE` is unset, `WORKSPACE` becomes the verifier
-  entry's own directory, paths are re-derived, `AGENTS_FILE` and
-  `RUNTIME_CONFIG_FILE` default to `V2_CONFIG_ROOT`, and an unresolvable
-  entry fails as `V2_WORKSPACE_DERIVATION_FAILED` (no silent `/global-config`
-  paths). One `info:` line names the effective values.
-- `verify/checkers/v2-runtime-config.py` (new): validates V2-only invariants
-  (exactly one scoped Magic Context `@~pin`, exactly one fallback fork ref as
-  vendor directory or `/index.ts`, global `permission.grep=deny` plus
-  orchestrator `allow`, `mcp.github_ro` present, `tools["github_ro_*"]` false)
-  and emits a V1-shaped projection for the unchanged checker. `check-runwar
-  -agents.cjs` was deliberately not edited.
-- `verify/59-section-8-9-config-runtime.sh`: runs the projection in V2 mode,
-  fails with `V2_RUNTIME_CONFIG_PROJECTION_FAILED`, and prints checker notes.
-- `verify/60-section-9a-9b-secure-service.sh`: `classify_github_mcp_result`
-  plus stdout-only capture with stderr surfaced as `info:`.
-- `docs/upgrades/opencode-v2-cutover.md` step 6: exact V2 invocation and
-  overrides.
-- Tests: `test_verifier_v2_sections.py` (new), `test_verifier_v2_mode.py`,
-  `test_verifier_v2_github_mcp.py`.
+## F2 (MEDIUM) — unconditional overrides widened the executable surface
 
-## Scope held
-
-`OPENCODE_CONFIG_DIR` and therefore `SKILLS_DIR` unchanged, so Q116 is
-neither fixed nor regressed. V1 branch untouched. No deployment, no push.
+Resolved. `derive_workspace_paths` now assigns every source as a plain
+`$WORKSPACE`-anchored value, keeping only the two overrides that predate this
+unit (`SECURE_RUNTIME_WITNESS`, `CACHE_PRUNE_APPROVAL`). This removes
+`WORKFLOW_VERIFY_PLUGIN_CACHE_INTEGRITY_HELPER`, whose target is executed by
+`30-recover-config.sh:156-157` and `54-section-2c-package-integrity.sh:31-35`
+outside the module manifest, and `WORKFLOW_VERIFY_AGENTS_FILE`, which
+redirected the V1 recovery target in `31-recover-skills-agents.sh:76`.
+`AGENTS_FILE` and `RUNTIME_CONFIG_FILE` are plain again in `10-env.sh`; their
+overrides apply only in the V2 branch of `21-opencode-major.sh`.
 
 ## Checks observed
 
+- `python3 -m pytest tests/test_verifier_v2_sections.py -q -rs` →
+  `9 passed, 1 skipped`; skip reason `node could not be spawned: [Errno 13]
+  Permission denied: 'node'`.
+- Combined requested suite → `51 passed, 15 skipped`, no failures. Skip causes
+  are the sandbox's inability to spawn `node`; `/usr/bin/node` exists on the
+  host.
 - `python3 scripts/verifier_manifest.py check` → `ok: manifest and pin are
-  current` (after the clean regeneration on the host).
+  current`; no `__pycache__`/`.pyc` row in `VERIFY_MODULES`.
 - `bash -n` on the entry and changed modules → exit 0.
-- pytest: `30 passed, 2 failed` on the pre-regeneration tree; the two
-  failures were `ManifestHasNoBytecode` (caused by the `.pyc` manifest row,
-  since removed) and `Manifest.test_checkers_are_valid_scripts`
-  (`PermissionError: node`). Sandbox `node` cannot spawn; `/usr/bin/node`
-  exists on the host, so the node failures are environmental.
-- Not run: the live `verify-workflow.sh --behavioral` V2 acceptance run.
-  It needs the live V2 server and is Tier 2's gate.
+- Adapter over a real-derived fixture → exit 0, dropping
+  `gentle-ai-worker-astra` plus the four access mirrors and keeping
+  `gentle-ai-worker` with unchanged rules.
+- Not run: live `verify-workflow.sh --behavioral` (needs the live V2 server),
+  native review, and reviewers — all excluded by the dispatch.
 
 ## Open items
 
-- **Native review due, not started.** `review assess` returned `high`,
-  `review_due: true`, lineage `review-e460198a780543cd`, target
-  `sha256:7c6c9b33…`. The dispatch instructed not to run reviewers, so the
-  review was deliberately not started.
+- **Native review due, not started** — earlier assessment: `high`, lineage
+  `review-e460198a780543cd`, target for `5beff94..90ccb14`. Not re-assessed
+  for `63d2b0d`, per the "do not run native review" constraint.
 - **Protected-path follow-up (owner).** `scripts/verifier_manifest.py` is S17.
-  `render()` and `drift()` both do `rglob("*")` filtered only by `is_file()`,
-  so any `__pycache__` under `verify/checkers` becomes a required verifier
-  module even though `.gitignore` excludes bytecode. Patch both comprehensions
-  with `"__pycache__" not in p.relative_to(base).parts and p.suffix != ".pyc"`.
-  This caused two bad manifest regenerations during the unit.
-- Multi-tier note: PM dispatch is structurally impossible in this worktree.
-  `.git` is a file, so `docs/specs/pm-handoff.md` mandates `BLOCKED` for a
-  worktree whose HEAD lives under `.git/worktrees/`. This unit ran as direct
-  bounded `general` writer dispatches instead.
-
-## Progress
-
-- 2026-11-08: unit opened; tracker created (revision 1, `d5ad8de`).
-- 2026-11-08: writer 1 implemented; parent readback found the adapter rejected
-  the real V2 refs and the manifest had absorbed a `.pyc` row.
-- 2026-11-08: writer 2 produced an unlandable result (protected path, diverged
-  baseline); its functional delta was re-applied by writer 3.
-- 2026-11-08: writer 4/5 hit sandbox worker-setup timeouts; writer 5's session
-  was resumed and applied the clean manifest.
-- 2026-11-08: committed `90ccb14` + `96a2d50`; review assessment `high`.
+  `render()` and `drift()` filter only by `is_file()`, so `__pycache__` under
+  `verify/checkers` becomes a required module even though `.gitignore` excludes
+  bytecode. Patch both comprehensions with `"__pycache__" not in
+  p.relative_to(base).parts and p.suffix != ".pyc"`.
+- **Residual:** mirror detection is structural, so a real agent declaring only
+  `sandbox_`/`host_` rules would be classified as a mirror and dropped from the
+  projection. No such agent exists in the current config.
+- PM dispatch remains impossible in this worktree (`.git` is a file, so
+  `docs/specs/pm-handoff.md` mandates BLOCKED); work ran as direct `general`
+  writer dispatches.
 
 ## Next step
 
-Tier 2: run the live V2 acceptance command, and decide whether to start native
-review for target `sha256:7c6c9b33…`. Owner: apply the
-`scripts/verifier_manifest.py` bytecode filter.
+Tier 2: live V2 acceptance run. Owner: `verifier_manifest.py` bytecode filter.
 
 
 ## Revisions
 - r1 2026-11-08T07:04:51Z gentle-orchestrator: Open Q115 unit: V2-mode verifier derivation, section 9 adapter, github_ro classification
 - r2 2026-11-08T08:34:43Z gentle-orchestrator: Record Q115 commits 90ccb14 + 96a2d50, observed checks, review-due state and the protected-path follow-up
+- r3 2026-11-08T10:38:50Z gentle-orchestrator: Record 63d2b0d and the F1/F2 resolution, checks, and residual risks
