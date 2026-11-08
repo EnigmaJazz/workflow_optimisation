@@ -120,6 +120,7 @@ else
 fi
 # fail() messages, printed as a summary before exit 1.
 FAIL_MESSAGES=()
+SKIPPED_MESSAGES=()
 AUTO_REPAIRED=0
 CAN_RUNTIME_PROBE=1
 STATIC_SYSTEMATIC_OK=1
