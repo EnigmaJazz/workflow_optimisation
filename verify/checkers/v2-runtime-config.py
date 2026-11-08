@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Validate V2-only runtime invariants and project the config for the V1 checker; derived refs use the scoped Magic Context pin and the fallback vendor directory."""
+"""Validate V2-only runtime invariants and project the config for the V1 checker; derived refs use the scoped Magic Context pin and the fallback vendor directory.
+
+A removed entry holds no grant absent from its still-projected reference agent or alias base, in the same rule order, so projection hides no authority. Any deviation from the real derivation remains visible to every checker sweep.
+"""
+import importlib.util
 import json
 import re
 import sys
@@ -9,6 +13,23 @@ from pathlib import Path
 def error(message):
     print(f"V2_RUNTIME_CONFIG_INVALID: {message}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def load_derivation():
+    derive_path = Path(__file__).resolve().parents[2] / "scripts" / "derive-v2-config.py"
+    try:
+        spec = importlib.util.spec_from_file_location("derive_v2_config", derive_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"cannot create module spec for {derive_path}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    except Exception as exc:
+        error(f"cannot load V2 config derivation {derive_path}: {exc}")
+
+
+def ordered_json(value):
+    return json.dumps(value, ensure_ascii=False, sort_keys=False)
 
 
 def main(path):
@@ -47,50 +68,44 @@ def main(path):
     if agents is not None and not isinstance(agents, dict):
         error("agent inventory must be an object")
     agents = agents or {}
+    derive = load_derivation()
     aliases = {}
     for name, entry in agents.items():
-        if not name.endswith("-astra"):
+        if not name.endswith(derive.ASTRA_SUFFIX):
             continue
-        base_name = name[:-6]
+        base_name = name[:-len(derive.ASTRA_SUFFIX)]
         base = agents.get(base_name)
-        if not isinstance(base, dict):
-            error(f"Astra alias {name} has no base agent {base_name}")
-        if not isinstance(entry, dict) or entry.get("hidden") is not True or not entry.get("model"):
-            error(f"Astra alias {name} must be hidden and have a model")
-        for field in ("permission", "tools"):
-            if entry.get(field) != base.get(field):
-                error(f"Astra alias {name} {field} differs from base agent {base_name}")
-        aliases[name] = entry
+        if not isinstance(base, dict) or not isinstance(entry, dict):
+            continue
+        if not derive.astra_alias_wanted(base_name, base):
+            continue
+        expected = json.loads(json.dumps(base))
+        expected.update({
+            "description": f"{base.get('description') or base_name} — selectable Astra upgrade",
+            "hidden": True,
+            "model": derive.ASTRA_MODEL,
+            "variant": derive.ASTRA_VARIANT,
+        })
+        if ordered_json(entry) == ordered_json(expected):
+            aliases[name] = base_name
 
     mirrors = {}
-    prefix_fields = ("permission", "tools")
-    # The derivation copies no other agent metadata beyond optional descriptive/model fields.
-    mirror_fields = {"permission", "tools", "description", "model"}
-    for name, entry in agents.items():
-        if not isinstance(entry, dict):
+    for name, reference in derive.ACCESS_MIRRORS.items():
+        entry = agents.get(name)
+        ref = agents.get(reference)
+        if not isinstance(entry, dict) or not isinstance(ref, dict):
             continue
-        rule_maps = [entry.get(field) for field in prefix_fields if field in entry]
-        is_mirror = bool(rule_maps) and all(
-            isinstance(rules, dict) and all(
-                isinstance(key, str) and key.startswith(("sandbox_", "host_")) for key in rules
-            ) for rules in rule_maps
-        )
-        if not is_mirror:
-            continue
-        if set(entry) - mirror_fields:
-            error(f"access mirror {name} has unsupported fields: {', '.join(sorted(set(entry) - mirror_fields))}")
-        rule_count = 0
-        for field in prefix_fields:
-            rules = entry.get(field, {})
-            if not isinstance(rules, dict):
-                error(f"access mirror {name} {field} must be an object")
-            invalid = [key for key in rules if not isinstance(key, str) or not key.startswith(("sandbox_", "host_"))]
-            if invalid:
-                error(f"access mirror {name} {field} keys must use sandbox_/host_ prefixes: {', '.join(map(str, invalid))}")
-            rule_count += len(rules)
-        if not rule_count:
-            error(f"access mirror {name} must contain at least one rule")
-        mirrors[name] = entry
+        expected = {}
+        for field in ("permission", "tools"):
+            ref_rules = ref.get(field) or {}
+            if not isinstance(ref_rules, dict):
+                continue
+            rules = {key: value for key, value in ref_rules.items()
+                     if isinstance(key, str) and key.startswith(derive.MIRRORED_PREFIXES)}
+            if rules:
+                expected[field] = rules
+        if expected and ordered_json(entry) == ordered_json(expected):
+            mirrors[name] = reference
 
     projected = dict(config)
     projected["agent"] = {name: entry for name, entry in agents.items() if name not in aliases and name not in mirrors}
@@ -105,12 +120,10 @@ def main(path):
     projected["permission"] = dict(permission)
     projected["permission"]["grep"] = "ask"
     print(json.dumps(projected, ensure_ascii=False))
-    if aliases:
-        names = ", ".join(sorted(aliases))
-        print(f"skipped (V2): Astra aliases ({len(aliases)}): {names}; their alias invariants were validated before projecting for the V1 checker", file=sys.stderr)
-    if mirrors:
-        names = ", ".join(sorted(mirrors))
-        print(f"skipped (V2): Systematic access mirrors ({len(mirrors)}): {names}; their sandbox_/host_ access rules were validated before projecting for the V1 checker", file=sys.stderr)
+    for name, base_name in aliases.items():
+        print(f"skipped (V2): {name} = Astra alias of {base_name}", file=sys.stderr)
+    for name, reference in mirrors.items():
+        print(f"skipped (V2): {name} = mirror of {reference}", file=sys.stderr)
     print("V2 runtime invariants passed; projected V2 plugin and grep shapes for the V1 checker", file=sys.stderr)
 
 

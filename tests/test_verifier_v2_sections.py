@@ -1,4 +1,5 @@
 import json
+import importlib.util
 import os
 import subprocess
 import sys
@@ -8,6 +9,10 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 ADAPTER = REPO / "verify" / "checkers" / "v2-runtime-config.py"
+DERIVE = REPO / "scripts" / "derive-v2-config.py"
+SPEC = importlib.util.spec_from_file_location("derive_v2_config", DERIVE)
+DERIVATION = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(DERIVATION)
 
 
 GOOD = {
@@ -42,45 +47,18 @@ class RuntimeProjection(unittest.TestCase):
         self.assertEqual(projected["agent"]["gentle-orchestrator"]["permission"]["grep"], "allow")
 
     def test_real_derived_worker_and_access_mirrors_project_without_dropping_base(self):
-        source = json.loads((REPO / "global-config" / "opencode.json").read_text())
-        worker = source["agent"]["gentle-ai-worker"]
-        access_mirrors = {
-            "systematic-implementer": "gentle-ai-worker",
-            "bug-reproduction-validator": "gentle-ai-worker",
-            "pr-comment-resolver": "gentle-ai-worker",
-            "design-iterator": "gentle-ai-worker",
-        }
-        config = json.loads(json.dumps(GOOD))
-        agents = {"gentle-ai-worker": json.loads(json.dumps(worker))}
-        for target, reference in access_mirrors.items():
-            ref = agents[reference]
-            mirror = {}
-            for field in ("permission", "tools"):
-                rules = {key: value for key, value in (ref.get(field) or {}).items()
-                         if key.startswith(("sandbox_", "host_"))}
-                if rules:
-                    mirror[field] = rules
-            agents[target] = mirror
-        alias = json.loads(json.dumps(worker))
-        alias.update({
-            "description": f"{worker.get('description') or 'gentle-ai-worker'} — selectable Astra upgrade",
-            "hidden": True,
-            "model": "openai/gpt-6-astra",
-            "variant": "high",
-        })
-        agents["gentle-ai-worker-astra"] = alias
-        agents["gentle-orchestrator"] = config["agent"]["gentle-orchestrator"]
-        config["agent"] = agents
-
+        config = self.derived_agent_inventory()
+        worker = config["agent"]["gentle-ai-worker"]
         result = self.run_adapter(config)
         self.assertEqual(result.returncode, 0, result.stderr)
-        projected = json.loads(result.stdout)
-        projected_agents = projected["agent"]
+        projected_agents = json.loads(result.stdout)["agent"]
         self.assertIn("gentle-ai-worker", projected_agents)
-        for target in access_mirrors:
-            self.assertNotIn(target, projected_agents)
-        self.assertNotIn("gentle-ai-worker-astra", projected_agents)
         self.assertEqual(projected_agents["gentle-ai-worker"], worker)
+        for target in DERIVATION.ACCESS_MIRRORS:
+            self.assertNotIn(target, projected_agents)
+        for name in config["agent"]:
+            if name.endswith(DERIVATION.ASTRA_SUFFIX):
+                self.assertNotIn(name, projected_agents)
 
     def test_real_derived_plugin_refs_project_to_v1_shapes(self):
         source = json.loads((REPO / "global-config" / "opencode.json").read_text())
@@ -124,49 +102,96 @@ class RuntimeProjection(unittest.TestCase):
 
 
     def derived_agent_inventory(self):
+        source = json.loads((REPO / "global-config" / "opencode.json").read_text())
         config = json.loads(json.dumps(GOOD))
-        config["agent"].update({
-            "worker": {"model": "openai/gpt-6.1-sol", "permission": {"read": "allow"}, "tools": {"read": True}},
-            "worker-astra": {"hidden": True, "model": "openai/gpt-6-astra", "permission": {"read": "allow"}, "tools": {"read": True}},
-            "systematic-implementer": {"description": "V2 access mirror", "permission": {"sandbox_read": "allow", "host_review_status": "deny"}, "tools": {"sandbox_read": True, "host_review_status": False}},
-            "systematic-pinned": {"permission": {"read": "allow"}, "tools": {"read": True}},
-        })
+        agents = {"gentle-orchestrator": config["agent"]["gentle-orchestrator"]}
+        agents.update({name: json.loads(json.dumps(entry)) for name, entry in source["agent"].items()})
+        derived = {"agent": agents}
+        DERIVATION.mirror_agent_access(derived)
+        DERIVATION.add_v2_astra_aliases(derived)
+        config["agent"] = agents
         return config
 
-    def test_complete_derived_agent_inventory_is_projected_without_v2_only_entries(self):
-        result = self.run_adapter(self.derived_agent_inventory())
-        self.assertEqual(result.returncode, 0, result.stderr)
-        agents = json.loads(result.stdout)["agent"]
-        self.assertIn("worker", agents)
-        self.assertIn("systematic-pinned", agents)
-        self.assertNotIn("worker-astra", agents)
-        self.assertNotIn("systematic-implementer", agents)
-        self.assertIn("skipped (V2): Astra aliases (1): worker-astra", result.stderr)
-        self.assertIn("skipped (V2): Systematic access mirrors (1): systematic-implementer", result.stderr)
-
-    def test_mirror_shaped_entry_with_nonprefixed_rule_stays_in_projection(self):
-        config = self.derived_agent_inventory()
-        config["agent"]["systematic-implementer"]["tools"]["read"] = True
+    def assert_stays_projected(self, config, name):
         result = self.run_adapter(config)
         self.assertEqual(result.returncode, 0, result.stderr)
-        projected = json.loads(result.stdout)
-        self.assertIn("systematic-implementer", projected["agent"])
-        self.assertTrue(projected["agent"]["systematic-implementer"]["tools"]["read"])
+        self.assertIn(name, json.loads(result.stdout)["agent"])
 
-    def test_invalid_v2_agent_constructs_fail_with_named_errors(self):
-        mutations = (
-            (lambda c: c["agent"].__setitem__("orphan-astra", {"hidden": True, "model": "m", "permission": {}, "tools": {}}), "base agent"),
-            (lambda c: c["agent"]["worker-astra"]["permission"].update(read="deny"), "permission"),
-            (lambda c: c["agent"]["systematic-implementer"].update(permission={}, tools={}), "at least one rule"),
-        )
-        for mutate, detail in mutations:
-            with self.subTest(detail=detail):
-                config = self.derived_agent_inventory()
-                mutate(config)
-                result = self.run_adapter(config)
-                self.assertNotEqual(result.returncode, 0)
-                self.assertEqual(result.stdout, "")
-                self.assertIn("V2_RUNTIME_CONFIG_INVALID:", result.stderr)
+    def test_prefix_only_reported_host_review_grant_nonmirror_stays_projected(self):
+        """Non-mirror host_review_acknowledge_approved grant must reach the checker."""
+        config = json.loads(json.dumps(GOOD))
+        config["agent"]["correctness-reviewer"] = {
+            "permission": {"host_review_acknowledge_approved": "allow"},
+            "tools": {"host_review_acknowledge_approved": True},
+        }
+        self.assert_stays_projected(config, "correctness-reviewer")
+
+    def test_other_nonmirror_grant_and_mirror_added_host_grant_stay_projected(self):
+        """Non-mirror host_plan_write and extended mirror grants remain visible."""
+        config = self.derived_agent_inventory()
+        config["agent"]["custom-reviewer"] = {"permission": {"host_plan_write": "allow"}}
+        config["agent"]["systematic-implementer"]["permission"]["host_review_acknowledge_approved"] = "allow"
+        self.assert_stays_projected(config, "custom-reviewer")
+        self.assert_stays_projected(config, "systematic-implementer")
+
+    def test_altered_mirror_grant_value_stays_projected(self):
+        """A mirror-named entry that changes sandbox_write authority remains visible."""
+        config = self.derived_agent_inventory()
+        config["agent"]["systematic-implementer"]["permission"]["sandbox_write"] = "deny"
+        self.assert_stays_projected(config, "systematic-implementer")
+
+    def test_reordered_permission_map_stays_projected(self):
+        """Set-equal reordered mirror rules remain visible because last-match wins."""
+        config = self.derived_agent_inventory()
+        reference = config["agent"]["gentle-ai-worker"]
+        reference["permission"]["host_review_acknowledge_*"] = "allow"
+        reference["permission"]["host_review_acknowledge_approved"] = "deny"
+        rules = {key: value for key, value in reference["permission"].items()
+                 if key.startswith(DERIVATION.MIRRORED_PREFIXES)}
+        config["agent"]["systematic-implementer"]["permission"] = dict(reversed(list(rules.items())))
+        self.assert_stays_projected(config, "systematic-implementer")
+
+    def test_ineligible_and_altered_astra_aliases_stay_projected(self):
+        """Primary-mode bases and aliases with changed model/variant/hidden are not derivations."""
+        config = self.derived_agent_inventory()
+        base = json.loads(json.dumps(config["agent"]["gentle-ai-worker"]))
+        base.update({"model": DERIVATION.ASTRA_SOL_MODEL, "mode": "primary"})
+        config["agent"]["primary-base"] = base
+        config["agent"]["primary-base-astra"] = {"model": DERIVATION.ASTRA_MODEL, "hidden": True}
+        alias_name = next(name for name in config["agent"] if name.endswith(DERIVATION.ASTRA_SUFFIX))
+        self.assert_stays_projected(config, "primary-base-astra")
+        for field, value in (("model", "altered/model"), ("variant", "altered"), ("hidden", False)):
+            altered = json.loads(json.dumps(config))
+            altered["agent"][alias_name][field] = value
+            self.assert_stays_projected(altered, alias_name)
+
+    def test_real_derived_mirror_and_alias_are_removed_with_bases_unchanged(self):
+        """Exact real derivation entries are removed while their source agents remain."""
+        config = self.derived_agent_inventory()
+        originals = json.loads(json.dumps(config["agent"]))
+        result = self.run_adapter(config)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        projected = json.loads(result.stdout)["agent"]
+        for name, reference in DERIVATION.ACCESS_MIRRORS.items():
+            self.assertNotIn(name, projected)
+            self.assertEqual(projected[reference], originals[reference])
+            self.assertIn(f"skipped (V2): {name} = mirror of {reference}", result.stderr)
+        aliases = [name for name in originals if name.endswith(DERIVATION.ASTRA_SUFFIX)]
+        self.assertTrue(aliases)
+        for name in aliases:
+            self.assertNotIn(name, projected)
+            base = name[:-len(DERIVATION.ASTRA_SUFFIX)]
+            self.assertEqual(projected[base], originals[base])
+            self.assertIn(f"skipped (V2): {name} = Astra alias of {base}", result.stderr)
+
+    def test_malformed_astra_and_mirror_candidates_stay_visible(self):
+        """Non-derived alias and mirror-shaped entries remain visible instead of being dropped."""
+        config = self.derived_agent_inventory()
+        config["agent"]["systematic-implementer"].update(permission={}, tools={})
+        result = self.run_adapter(config)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        agents = json.loads(result.stdout)["agent"]
+        self.assertIn("systematic-implementer", agents)
 
     def test_real_runtime_checker_retains_pinned_systematic_positive_control_when_node_can_spawn(self):
         config = self.derived_agent_inventory()

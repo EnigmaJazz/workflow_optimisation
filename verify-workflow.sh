@@ -120,7 +120,7 @@ VERIFY_MODULES=(
   "checkers/v2-config-check.py d1b3df3161a7b9b18f21d42610dcabff6951886d171ebc5caccadd39aebd79ae"
   "checkers/v2-github-mcp-check.py fa24359ddfcf24c21d52f4cfc2948a5813167116fb2574cc98b82f2edce9d386"
   "checkers/v2-plugin-resolve.py 5792db1b5ddf8b3bc72f03546d2046946a6b3a6404843aafa52d2e51cd4a0bbd"
-  "checkers/v2-runtime-config.py 8f8191fbb7a811e28d221272e1f1fcf04f91fd6c702ea07b48ed436c768000a5"
+  "checkers/v2-runtime-config.py dcf88098262a81236925a350d712288be22ff955481c60ce74d52c9da3db9950"
   "checkers/v2-sandbox-plugins-check.py a26e2b97a6fcc668a2aa2f457877542ec780eb304380082c7634a1adafd6e3bd"
 )
 # END VERIFY_MODULES
