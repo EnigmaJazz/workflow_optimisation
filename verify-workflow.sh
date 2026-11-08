@@ -86,8 +86,8 @@ set -uo pipefail
 
 # BEGIN VERIFY_MODULES
 VERIFY_MODULES=(
-  "10-env.sh c86b9943541739a1be5ce99cae383faf9b94e86bc9217c7b9b21cbea80a398ad"
-  "20-helpers.sh b88837e9368b62a7175ef768881f1b51595935ec62cb82f24eb5f0fecaddbaf5"
+  "10-env.sh c386f045b23c8b45f77340ea4c8066fbf181fa4374a2ea0a7be8bbfcfbfe3033"
+  "20-helpers.sh fe168fd43faa3cb142ccce26ed314007912b72f91238696b8d5662d6c3775380"
   "21-opencode-major.sh 7b1a02443e8650e4f16c92f74b05fa815e4ac337592136e7db0522edc52f891c"
   "30-recover-config.sh 70b478ced6f0478c67756bb221a3dc827c6463575cea8d852ea859762a6c38af"
   "31-recover-skills-agents.sh 7c646795f905093f1582dca0ea6f4badee906264fc1051df9f3d46a6ffb1cf38"
@@ -105,10 +105,10 @@ VERIFY_MODULES=(
   "57-section-6-plugin-mirrors.sh 476d73263f419f0d413655d07d4c9f29ef7b531fa30e6d970effcdcd152a2622"
   "57b-section-6b-tool-decisions.sh 793aa16c003fc93d36166158ea92e6a50940042b234137b153f9639445d568b0"
   "58-section-7-recipe.sh ca63ac3b085b5205b44f6684749894a7fad5a10cc689554f892d58819e7e96c6"
-  "59-section-8-9-config-runtime.sh 90f179a2bbc012aa8d948a1220db6a5b9215a7e4e693b602416c63764443632f"
+  "59-section-8-9-config-runtime.sh 56028b26aa2fc51be73be255e45979f76d7510c76e6ce0911d2b2a7b49a7cbbd"
   "60-section-9a-9b-secure-service.sh 4d6526fefddb88b8a3593809f05443c9b6bdeb1c2ba0575cf783fe9296a3f76f"
   "61-section-10-behavioural.sh 24a31e750fcbfeaea7e18e6801a14547e596910103ecd1ca7d16db9b9425d134"
-  "62-section-11-summary.sh 5df415a1b7f63144822d2bb62c2300df4f2de8ea36cc0dc7ee5d4138c477ea76"
+  "62-section-11-summary.sh dc8ef4f40b0329f7191838aa22f978db6b9e0bb6f54c60fecbfe095e0d42038d"
   "checkers/check-parallel-dispatch.py d970c748791710131a667b6cc1cd08ea280494c021d9b2bde520b1620208447e"
   "checkers/check-runtime-agents.cjs fa5a92a657f6778ac150bdce05a27f99087e8cc9d843e00c7548f1b31bed4ca1"
   "checkers/check-systematic-resolution.cjs ec8997e05b9b5cc390529abc62bb7608e11cf8885155ef7ea0606ac47bd16499"
@@ -120,7 +120,7 @@ VERIFY_MODULES=(
   "checkers/v2-config-check.py d1b3df3161a7b9b18f21d42610dcabff6951886d171ebc5caccadd39aebd79ae"
   "checkers/v2-github-mcp-check.py fa24359ddfcf24c21d52f4cfc2948a5813167116fb2574cc98b82f2edce9d386"
   "checkers/v2-plugin-resolve.py 5792db1b5ddf8b3bc72f03546d2046946a6b3a6404843aafa52d2e51cd4a0bbd"
-  "checkers/v2-runtime-config.py dcf88098262a81236925a350d712288be22ff955481c60ce74d52c9da3db9950"
+  "checkers/v2-runtime-config.py e9d3d26c388d2b4533db3c89b3dddfc9cdc89c9b3f3483abc61b178a5189ed6d"
   "checkers/v2-sandbox-plugins-check.py a26e2b97a6fcc668a2aa2f457877542ec780eb304380082c7634a1adafd6e3bd"
 )
 # END VERIFY_MODULES

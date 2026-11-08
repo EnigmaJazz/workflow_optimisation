@@ -89,9 +89,9 @@ const VERIFY_TIMEOUT_MS = 300_000
 // Pinned sha256 digest of the reviewed verify-workflow.sh. Keep this assignment
 // on one line: verify-workflow.sh deliberately parses this source line to confirm
 // that the reviewed plugin and verifier are bound to one another.
-const VERIFY_SCRIPT_SHA256 = "9a499f99a55268ccdcf6cd9ef6161dec655e3b78d5bbe1092bfb80cde4dbdf36";
+const VERIFY_SCRIPT_SHA256 = "570d083825a86e6a7ee8aa9e390d2e8e93d6edeeddc14a663f2f05719a38f737";
 
-type HealthState = "clean" | "repaired" | "failed"
+type HealthState = "clean" | "repaired" | "incomplete" | "failed"
 
 interface HealthResult {
   state: HealthState
@@ -143,16 +143,19 @@ async function runHealthCheck(): Promise<void> {
     // distinguish a clean startup from a repaired one without coupling to the
     // individual repair messages.
     const output = [stdout, stderr].filter(Boolean).join("\n").trim()
+    const incomplete = output.includes("VERIFICATION_INCOMPLETE")
     const repaired = output.includes(
       "== All checks passed — workflow setup intact (self-repairs applied) ==",
     )
 
     health = {
-      state: repaired ? "repaired" : "clean",
+      state: incomplete ? "incomplete" : repaired ? "repaired" : "clean",
       tail: tailLines(output),
     }
 
-    if (repaired) {
+    if (incomplete) {
+      console.warn("[workflow-health-check] VERIFICATION_INCOMPLETE — one or more required checks were skipped")
+    } else if (repaired) {
       console.warn(
         "[workflow-health-check] checks passed after self-repair; restart OpenCode to load any repaired plugin/skill state",
       )
@@ -230,6 +233,17 @@ function startHealthCheckOnce(): void {
 function healthNotice(): string | undefined {
   const current = testHealthOverride() ?? health
   if (!current || current.state === "clean") return undefined
+
+  if (current.state === "incomplete") {
+    return [
+      "## Workflow health check INCOMPLETE",
+      "The verifier completed but skipped one or more required checks, so the workflow cannot be classified as clean.",
+      "Verifier tail:",
+      "```",
+      current.tail,
+      "```",
+    ].join("\n")
+  }
 
   if (current.state === "repaired") {
     return [
