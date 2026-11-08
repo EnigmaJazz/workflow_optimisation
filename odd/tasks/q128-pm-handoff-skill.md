@@ -1,189 +1,131 @@
 # Q128 — `pm-handoff` and every prompt-named skill must resolve from any repo
 
 **Task ID:** q128-pm-handoff-skill (stable)
-**Branch:** `chore/q128-pm-handoff-skill` (from `main` 2c591b0)
+**Branch:** `chore/q128-pm-handoff-skill`
 **Task class:** Global tooling change (normative contract + prompts + verifier + derive)
-**Route:** delegated (direct bounded `general` writer; PM layer structurally blocked — see Constraints)
+**Route:** delegated (direct bounded `general` writer per slice)
 
 ## Objective
 
 Any PM or orchestrator prompt that names a handover or a skill resolves it from ANY repository, not
-only from this checkout. Today a `pm-odd` session in a worktree read
-`docs/specs/pm-handoff.md`, got "file not found", and lost the contract.
+only from this checkout.
 
-## Problem (observed evidence)
+## Result
 
-- `docs/TODO.md:2500` (Q128): "`pm-odd` read `docs/specs/pm-handoff.md` in the worktree and got 'file
-  not found'". `docs/TODO.md:2279(c)` records the same failure as the Q127 finding.
-- `docs/TODO.md:2304` (Q102 C4/C5/C6): the `host_git_head` broker half is merged on
-  `agent-sandbox-integration` master (observed: `broker/src/service.ts:4448-4482` returns
-  `{ branch: string|null, detached: boolean, head: string }`; `opencode/plugins/lib/tool-specs-host-ops.ts:113`
-  registers the tool). Remaining there: C4 migrate the PM anchor off `.git/HEAD`, C5 explicit grants
-  with a merged-config readback, C6 ship `pm-handoff.md` as a global skill.
-- C5 grants already landed in this repo (`global-config/opencode.json:2411,2489,2554,2641` `true`/`allow`;
-  global `:2859` `deny`). The readback is what is missing: nothing asserts the *derived V2* merged
-  config keeps them, and nothing pins the `-astra` aliases.
-- `docs/TODO.md:2562-2570` (Q116): `GENTLE_AI_V4_ODD_SKILL_MISSING` fires for `work-unit-commits` and
-  `chained-pr` when the skills path is the V2 root. Observed: the live V2 root
-  (`~/.local/share/opencode-v2/config/opencode/skills/`) contains only `workflow-route`,
-  `workflow-odd-secure`, `workflow-systematic`; `global-config/skills/` contains the same three, so
-  derive copies neither ODD delivery skill. The V1 tree is not readable from a secure session
-  (os error 13 on `~/.config/opencode/skills/*/SKILL.md`), so the content can only be carried at
-  deploy time, never re-authored into the repo.
-- The verifier never inspects the V2 skills root: `verify/10-env.sh:37` sets
-  `SKILLS_DIR=$OPENCODE_CONFIG_DIR/skills` and V2 mode (`verify/21-opencode-major.sh:27-40`) redirects
-  only `AGENTS_FILE` and `RUNTIME_CONFIG_FILE`. `tests/test_verifier_v2_mode.py:102` pins that
-  V2 keeps the V1 skills path, so the check that matters is skipped by construction.
+| Task | Status | Evidence |
+|---|---|---|
+| T1 C4 anchor mechanism | DONE (commit `5f618c0`) | `docs/specs/pm-handoff.md` five sites + both PM prompts use `host_git_head` (`branch`, `detached`, `head`); linked worktree supported; detached/mismatch/unresolvable/error/unavailable BLOCKED. `tests.test_pm_handoff_spec`, `tests.test_pm_layer_prompts` 52 OK. Re-pin of `NONPROMPT_CONFIG_SHA256` in `b48d9a7`. |
+| T2 C5 merged-config readback | DONE (`cf17e4f`, file `tests/test_pm_git_head_grants.py`) | Real `derive_config` + `add_v2_astra_aliases` over `global-config/opencode.json`: both PMs keep `tools.host_git_head: true` and `permission: "allow"`, global `deny`; no PM `-astra` alias exists today because the alias rule is Sol-only; a synthetic Sol PM does get an alias that keeps the grant. 5 tests, negative controls for removed permission, false tool, global allow, dropped alias grant. |
+| T3 C6 `pm-handoff` skill | DONE (`cf17e4f`, wording `f764b16`) | `global-config/skills/pm-handoff/SKILL.md` = frontmatter + `docs/specs/pm-handoff.md` byte for byte, pinned by `tests/test_pm_handoff_skill.py` with a drift control; PM prompts and the orchestrator PM-brief section name the skill and keep the in-repo path literal; `verify/31` mirrors the fourth skill; manifest + plugin pin regenerated. |
+| T3b orchestrator prompt precision | DONE (`cf17e4f` content, `fb0c055` test literal) | The PM-brief section no longer claims `read`-only observation and names the skill; embedded prompt = assembler output (sha256 `ef3e750a…`, 62,734 bytes). |
+| T4 Q116 V2 delivery | DONE in the working tree, NOT committed | `derive-v2-config.py` carries `work-unit-commits` and `chained-pr` from the live V1 root into the V2 skills root (materialising symlinks) and REFUSES derivation when a required skill is absent from both; `verify/21-opencode-major.sh` points `SKILLS_DIR` at `$V2_CONFIG_ROOT/skills` in V2 mode (explicit override wins). `tests.test_derive_v2_config` 76 OK, `tests.test_verifier_v2_mode` OK. |
+| T5 referenced-skill verifier check | DONE in the working tree, NOT committed | `verify/checkers/check-prompt-references.py` resolves six prompt-named skills from the installed skills root while `os.chdir`-ed into a foreign temp repository, refuses when that repository is this one, and reports cwd; `verify/55b-section-3b-prompt-references.sh` fails when the skills root is absent and runs a required-failure probe. `tests.test_prompt_references` 9 OK. |
+| T6 record | DONE (`0a2f439`) | `docs/TODO.md` Q128, Q102 C4-C6 and Q116 carry the delivered state and the owner action. |
 
-## Risk line
+## Commits
 
-Risk: item 2 (grants on a contract others consume) and item 3 (prompts and contracts others consume)
-and item 5 (verifier digest). Item 3 is the widest surface: `docs/specs/pm-handoff.md` is consumed by
-`WORKFLOW.md`, `roles/tier-5.md`, the orchestrator overlay, the two PM prompts, and three test files.
+`c6327fa` (r1 tracker) · `5f618c0` C4 mechanism · `b48d9a7` non-prompt digest re-pin ·
+`cf17e4f` skill + prompts + mirror + manifest · `fb0c055` orchestrator prompt literal ·
+`0a2f439` TODO · `f764b16` mirror wording.
 
-## Scope
+Commit note: `cf17e4f` also carries the four T3b corrections, because `host_git_commit` stages from
+the working tree at commit time; `fb0c055` then carries only the one-file test literal. Content is
+correct and the tree is green; the message split is slightly imprecise.
 
-In scope:
+## Owner commit required (environment constraint)
 
-1. C6/Q128 — ship `pm-handoff` as a global skill under `global-config/skills/pm-handoff/SKILL.md`, so
-   `derive-v2-config.py` (which copies `global-config/skills`) delivers it to the V2 skills root and
-   the reviewed-skill mirror delivers it to V1. Body is a byte-identical mirror of
-   `docs/specs/pm-handoff.md`; the spec stays the normative in-repo source. A test pins the mirror.
-2. C4 — migrate the `unit_start_anchor` mechanism in `docs/specs/pm-handoff.md` and both PM prompts
-   from reading `.git/HEAD` / `.git/refs/heads/<branch>` to the read-only `host_git_head` tool.
-3. C5 — merged-config readback: a test proves the *derived* V2 config keeps `host_git_head`
-   (`tools: true`, `permission: allow`) for `pm-odd`, `pm-systematic`, and both `-astra` aliases,
-   with the global rule `deny`.
-4. Q116 — deliver `work-unit-commits` and `chained-pr` to the V2 skills root and point the verifier's
-   V2 skills check at that root.
-5. A verifier check that a referenced handover/skill resolves from a repository other than this one,
-   with an in-verifier positive control that makes a deliberately unresolvable reference fail.
+`scripts/**` is an apply-protected security path (`broker/src/config.ts` `DEFAULT_PROTECTED_SECURITY_FILES`),
+so `sandbox_apply` refuses any result that touches `scripts/derive-v2-config.py`, and
+`host_git_commit` cannot commit a result that was never applied. These nine paths are therefore
+installed in the working tree and uncommitted, and must be committed together (their digests are
+mutually bound):
 
-Non-goals: native review, merge, `derive --apply`, service restarts, the live `--behavioral` verifier,
-and any change to `scripts/verifier_manifest.py` itself.
+```
+scripts/derive-v2-config.py
+verify/21-opencode-major.sh
+verify/checkers/check-prompt-references.py
+verify/55b-section-3b-prompt-references.sh
+tests/test_derive_v2_config.py
+tests/test_verifier_v2_mode.py
+tests/test_prompt_references.py
+verify-workflow.sh
+global-config/plugins/workflow-health-check.ts
+```
 
-## Tasks
+Suggested message: `feat(verify): deliver the ODD skills to the V2 root and check prompt references`.
 
-### T1 — C4 mechanism migration (normative contract + PM prompts)
+## Checks observed
 
-Acceptance criteria:
+- `tests.test_pm_handoff_skill` 3 OK; `tests.test_pm_handoff_spec` + `tests.test_pm_layer_prompts` 52 OK;
+  `tests.test_orchestrator_prompt_source` 44 OK; `tests.test_pm_git_head_grants` 5 OK;
+  `tests.test_prompt_references` 9 OK; `tests.test_derive_v2_config` 76 OK (9 skipped);
+  `tests.test_verifier_v2_mode` + `_v2_config` + `_v2_sections` 97 OK (19 skipped).
+- `python3 scripts/verifier_manifest.py check` → `ok: manifest and pin are current` (working tree).
+- `bash -n verify-workflow.sh` and `bash -n verify/55b-section-3b-prompt-references.sh` clean.
+- Probe: `check-prompt-references.py /tmp <v2 skills> --probe q128-deliberately-unresolvable` prints
+  `error` naming the probe (the in-verifier positive control).
+- Full discovery: `Ran 913 tests`, `FAILED (failures=18, errors=18, skipped=56)`. All 36 are in
+  modules untouched by this unit (`test_opencode_v2_db_swap` and `test_opencode_v2_preflight`:
+  `sqlite3` CLI absent / `/nonexistent`; `test_codegraph_ensure`: `/nonexistent`;
+  `test_verifier_split.Manifest.test_checkers_are_valid_scripts`: `node` execution denied;
+  `test_cli_config_mirror.Prune` ×3: fixture `AttributeError`, not re-run against the base).
+  The run before this unit had 37 failures; the fixed one is
+  `test_orchestrator_prompt_source…test_nonprompt_config_tree_matches_the_pinned_digest`.
 
-- `docs/specs/pm-handoff.md` names the read-only `host_git_head` host tool and its result shape
-  (`branch`, `detached`, `head`) as the unit-start branch/HEAD mechanism at all five sites
-  (brief field ~:7, route validation ~:74, ordered step ~:78, anchor paragraph ~:87, envelope
-  `method` ~:171). No `.git/HEAD` or `.git/refs/heads/<branch>` mechanism reference remains in the
-  anchor contract.
-- The PASS condition compares `branch` with the brief's `feature_branch` exactly and requires a
-  40-hex `head`; a linked worktree is explicitly NOT a blocker (the tool supports it); `branch: null`,
-  a different branch, an unresolvable HEAD (unborn branch, rebase/merge in progress), a tool error,
-  truncation, or an unavailable tool each return `BLOCKED`.
-- Both PM prompts in `global-config/opencode.json` name `host_git_head`; no prompt reads
-  `.git/refs/heads/<feature_branch>`; each prompt stays under the 6,000-character cap
-  (`tests/test_pm_layer_prompts.py:272-279`).
-- `tests/test_pm_handoff_spec.py` and `tests/test_pm_layer_prompts.py` assert the new mechanism and
-  keep a positive control proving a missing `host_git_head` mention fails.
+## Reviewability receipts
 
-### T2 — C5 merged-config readback
+| Unit | authored_changed_lines | authored_patch_bytes |
+|---|---|---|
+| T1 (`5f618c0`) | 36 | 36,561 |
+| T1 re-pin (`b48d9a7`) | 2 | ~small |
+| T3 (`cf17e4f`, 11 files) | ~297 (282 ins / 15 del) | ~36 KiB, dominated by the 29,537-byte mirror |
+| T3b (`fb0c055`) | 10 | 6,684 |
+| T6 (`0a2f439`) | 8 | small |
+| T4/T5 working tree | 99 + 23 + 85 + 86 + 83 + 2 | not captured by the workers |
 
-Acceptance criteria:
+## Advice gap (recorded, unchanged)
 
-- A new test loads the real `global-config/opencode.json`, runs the real `derive_config` and
-  `add_v2_astra_aliases` from `scripts/derive-v2-config.py`, and asserts for `pm-odd`,
-  `pm-systematic`, `pm-odd-astra`, `pm-systematic-astra`: `tools.host_git_head is True` and
-  `permission.host_git_head == "allow"`; and for the top-level `permission`: `"deny"`.
-- Negative control: removing the grant from one agent makes the check report it.
+The registered `advisor-*-pre`/`-post` agents are not materialized in this runtime's subagent
+catalog, so no pre-code or post-code advisory phase ran. No advisor opinion exists for this unit and
+none is claimed. Compensating control: test-first slices plus one independent
+`gentle-ai-verify` pass on the final candidate.
 
-### T3 — C6 `pm-handoff` global skill
+## Independent verifier (post-code) and dispositions
 
-Acceptance criteria:
+Verdict `REFINE`; one correction round used (`correction_rounds_used: 1`).
 
-- `global-config/skills/pm-handoff/SKILL.md` exists with valid frontmatter (`name: pm-handoff`, a
-  one-line `description:`), and its bytes are exactly the frontmatter block plus
-  `docs/specs/pm-handoff.md` verbatim.
-- A test pins that mirror equality and proves drift fails (positive control).
-- `verify/31-recover-skills-agents.sh` mirrors the fourth skill to V1 (manifest entry + wording), and
-  the PM/orchestrator prompts name the `pm-handoff` skill while keeping the literal
-  `docs/specs/pm-handoff.md` pointer the existing pins require.
-- Editing `global-config/prompts/gentle-orchestrator/overlay.md` regenerates the embedded orchestrator
-  prompt with `global-config/prompts/gentle-orchestrator/assemble-orchestrator-prompt.py` and updates
-  `CURRENT_PROMPT_SHA256` and the normative-ledger citation.
+- **V1 skill not byte-identical** — rejected as a misreading (a skill needs frontmatter) but the
+  wording was tightened in both files (`f764b16`).
+- **V2 the check did not prove cross-repository resolution** — ACCEPTED: the checker now
+  `os.chdir`s into the foreign repository, resolves the skills root to an absolute path first, and
+  reports the process cwd; tests assert both.
+- **V3 derive failed open on a missing required skill** — ACCEPTED: it now raises `DeriveError` naming
+  the skill, both paths and the remedy.
+- **V4 an absent skills root skipped the check** — ACCEPTED: it now fails with
+  `PROMPT_REFERENCE_SKILLS_ROOT_MISSING`.
 
-### T4 — Q116 ODD delivery skills in the V2 root
+## Residual gaps
 
-Acceptance criteria:
-
-- `scripts/derive-v2-config.py` delivers `work-unit-commits` and `chained-pr` to the staging skills
-  dir: from `global-config/skills/<name>` when present, otherwise copied from the live V1 root with a
-  reported note, otherwise a reported WARNING naming the missing skill (never a silent pass).
-- V2 mode points `SKILLS_DIR` at `$V2_CONFIG_ROOT/skills` (an explicit `WORKFLOW_VERIFY_SKILLS_DIR`
-  still wins), and `tests/test_verifier_v2_mode.py` pins the new default.
-- Tests cover: carried-from-V1, no-V1-source warning, and the V2 skills-dir default.
-
-### T5 — Verifier check: referenced skill/handover resolves from another repo
-
-Acceptance criteria:
-
-- `verify/checkers/check-prompt-references.py <foreign-repo> <skills-root>` resolves every prompt-named
-  skill from `<skills-root>` only, and never from `<foreign-repo>`; it fails naming the missing
-  reference and the root it searched.
-- The verifier module runs it from a freshly created temp directory (a repo other than this one) and
-  then runs it again with a deliberately unresolvable probe reference, which MUST fail (positive
-  control). A run where the control passes is itself an error.
-- A test asserts the inventory matches the skill names the prompts actually reference, so the table
-  cannot drift silently.
-
-### T6 — Tracker, TODO status and manifest re-pin
-
-Acceptance criteria: `docs/TODO.md` Q128 (and the Q102/Q116 status lines) reflect the delivered state;
-`python3 scripts/verifier_manifest.py update` was run and `check` is clean; full
-`python3 -m unittest discover -s tests` is green with no `__pycache__`.
-
-## Constraints
-
-- Process: test-first for every behaviour change; PYTHONDONTWRITEBYTECODE=1; no `__pycache__`.
-- Do NOT run native review, do NOT merge, do NOT run `derive --apply`, do NOT restart services, do NOT
-  run the live `--behavioral` verifier. The owner applies the derived config.
-- Never edit `scripts/verifier_manifest.py`; only run it.
-- Commits in slices under about 400 authored changed lines, Conventional Commits, no AI attribution.
-- Binding environment facts: `host_git_head` returns `{ branch, detached, head }`; `docs/specs/**` and
-  `global-config/**` are never simple docs; `odd/tasks/**` is plan-root protected, so only the
-  orchestrator's `host_plan_write` touches this tracker.
-
-## Route evidence
-
-`ROUTE: global tooling change | intent: authorized change | route: workflow-odd-secure / delegated-slices | specialist: general (bounded direct writer) | basis: WORKFLOW.md Task Classes row "Global tooling change"`
-
-Trigger: writer/mutation delegation (secure policy) — this orchestrator is read-only; every mutation is
-a delegated sandbox writer. PM layer unavailable in this worktree (`docs/specs/pm-handoff.md:74` returns
-`BLOCKED` for a HEAD under `.git/worktrees/`, confirmed: `.git` here is the pointer file
-`gitdir: /home/james/ai-workspace/workflow_optimisation/.git/worktrees/q128-pm-handoff-skill`), so the
-unit uses direct bounded `general` dispatches, one slice each, instead of a PM.
-
-## Advice gap (recorded)
-
-The pre-code advice phase could not run: the registered `advisor-*-pre` agents
-(`advisor-design-pre`, `advisor-integration-pre`, `advisor-maintainability-pre`, `advisor-security-pre`,
-`advisor-testing-pre`, `advisor-gemini-pre`) are not materialized in this runtime's subagent
-delegation catalog — the live catalog enumerates `general`, `explore`, `correctness-reviewer`,
-`project-standards-reviewer`, `planner`, … and none of the `advisor-*` names. `planner` is also
-structurally blocked here for the reason above. This matches the known runtime gap recorded for the
-pm-only-clone session. The pre-code advice phase is therefore recorded as **unavailable**, not passed;
-no advisor opinion exists for this unit and none is claimed. Post-code: the same absence applies, so
-the compensating control is test-first plus an independent verifier dispatch at the end of the unit.
-
-## Progress
-
-- [ ] T1 C4 mechanism migration
-- [ ] T2 C5 merged-config readback
-- [ ] T3 C6 `pm-handoff` global skill
-- [ ] T4 Q116 V2 ODD delivery skills
-- [ ] T5 referenced-skill resolution check
-- [ ] T6 tracker/TODO/manifest re-pin
+1. Live deployment unverified: the V2 root does not yet contain `pm-handoff`, `work-unit-commits` or
+   `chained-pr`. The owner must run `python3 scripts/derive-v2-config.py --source global-config
+   --sandbox-repo /home/james/agent-sandbox-integration --target ~/.local/share/opencode-v2/config/opencode`
+   (dry run, then `--apply`). Until then the V2 verifier reports `V2_CONFIG_ROOT_DRIFT` and
+   `GENTLE_AI_V4_ODD_SKILL_MISSING`, which is the intended signal, not a regression.
+2. No live cross-repository skill load was executed: no second registered repository and no shell were
+   available to this session.
+3. Native review was deliberately not run (owner instruction). RDD is on (`global`, via
+   `host_review_mode_status`), so every commit above is an unassessed RDD candidate awaiting the
+   orchestrator's assessment.
+4. Untracked `ses_*.bundle` transport artifacts remain at the repo root (one per applied sandbox
+   session). They block an untracked-inventory declaration for native review and should be removed by
+   the owner (`rm ses_*.bundle`).
 
 ## Next step
 
-Dispatch the T1 writer with the exact acceptance criteria and checks above.
+Owner: commit the nine uncommitted paths as one unit, then run the derive dry run and `--apply`, then
+the verifier. Orchestrator: assess the committed candidates for native review per RDD.
 
 
 ## Revisions
 - r1 2026-11-08T19:02:03Z gentle-orchestrator: Create the Q128 tracker before the first source edit.
+- r2 2026-11-08T23:20:48Z gentle-orchestrator: Record delivered slices, the accepted verifier findings, and the owner commit/deploy actions.
