@@ -36,7 +36,7 @@ WORKFLOW = ROOT / "WORKFLOW.md"
 CURRENT_PROMPT_SHA256 = "6fd686e48d62c8230b7cfa02546c61587010e5e546218e23e10fbad984e5682d"
 # Pins the config tree with agent["gentle-orchestrator"].prompt removed.
 # The assembler regenerates the prompt; deliberate non-prompt changes must update this pin in the same commit.
-NONPROMPT_CONFIG_SHA256 = "533bc3deb8b4d0f78d745027d1784d5503db4285c64e10c4bfd8189ca35fbd3f"
+NONPROMPT_CONFIG_SHA256 = "448625f30c4744abeb764898608f6bf18e43f1260458468f684173a46e4cf70f"
 
 REQUIRED_IDS = (
     "user:read-only-boundary",
