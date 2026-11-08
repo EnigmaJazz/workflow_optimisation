@@ -92,7 +92,7 @@ class WorkspaceDerivation(unittest.TestCase):
                "VERIFY_MODULE_DIR": str(MODULES), **extra}
         if "WORKFLOW_VERIFY_WORKSPACE" not in extra:
             env.pop("WORKFLOW_VERIFY_WORKSPACE", None)
-        script = f'source "{MODULES / "10-env.sh"}"; source "{VERSION_MODULE}"; printf "RESULT=%s|%s|%s|%s\\n" "$WORKSPACE" "$AGENTS_FILE" "$RUNTIME_CONFIG_FILE" "$SKILLS_DIR"'
+        script = f'source "{MODULES / "10-env.sh"}"; source "{VERSION_MODULE}"; printf "RESULT=%s|%s|%s|%s|%s\\n" "$WORKSPACE" "$AGENTS_FILE" "$RUNTIME_CONFIG_FILE" "$SKILLS_DIR" "$ROUTER_SKILLS_SOURCE|$OPENCODE_CONFIG_SOURCE|$TUI_CONFIG_SOURCE|$CLI_CONFIG_SOURCE|$AGENTS_SOURCE|$RECOVERY_BACKUP_ROOT|$SYSTEMATIC_CONFIG_SOURCE|$FALLBACK_POLICY_SOURCE|$HEALTH_PLUGIN_SOURCE|$ROUTING_GUARD_SOURCE|$ASTRA_PLUGIN_SOURCE|$PLUGIN_CACHE_INTEGRITY_HELPER|$PLUGIN_QUARANTINE_DIR|$SECURE_RUNTIME_WITNESS|$CACHE_PRUNE_APPROVAL|$WORKFLOW|$REQS"'
         return subprocess.run(["bash", "-c", script], capture_output=True, text=True, env=env, stdin=subprocess.DEVNULL)
 
     def test_v2_uses_script_checkout_for_workspace_and_v2_runtime_paths(self):
@@ -112,6 +112,57 @@ class WorkspaceDerivation(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("RESULT=/legacy/workspace|/home/james/.config/opencode/AGENTS.md|/home/james/.config/opencode/opencode.json|/home/james/.config/opencode/skills", result.stdout)
         self.assertNotIn("info: V2 workspace=", result.stdout)
+
+    def test_v1_ignores_untrusted_runtime_source_and_helper_overrides(self):
+        source_overrides = {name: f"/evil/{name.lower()}" for name in (
+            "ROUTER_SKILLS_SOURCE", "OPENCODE_CONFIG_SOURCE", "TUI_CONFIG_SOURCE", "CLI_CONFIG_SOURCE",
+            "AGENTS_SOURCE", "RECOVERY_BACKUP_ROOT", "SYSTEMATIC_CONFIG_SOURCE", "FALLBACK_POLICY_SOURCE",
+            "HEALTH_PLUGIN_SOURCE", "ROUTING_GUARD_SOURCE", "ASTRA_PLUGIN_SOURCE",
+            "PLUGIN_CACHE_INTEGRITY_HELPER", "PLUGIN_QUARANTINE_DIR", "WORKFLOW", "REQS",
+        )}
+        result = self.run_derivation("1", "/unused", WORKFLOW_VERIFY_AGENTS_FILE="/evil/AGENTS.md",
+                                     WORKFLOW_VERIFY_RUNTIME_CONFIG_FILE="/evil/opencode.json", **{
+                                         f"WORKFLOW_VERIFY_{name}": value for name, value in source_overrides.items()
+                                     })
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("RESULT=/home/james/ai-workspace/workflow_optimisation|/home/james/.config/opencode/AGENTS.md|/home/james/.config/opencode/opencode.json", result.stdout)
+        workspace = "/home/james/ai-workspace/workflow_optimisation"
+        for relative in (
+            "global-config/skills", "global-config/opencode.json", "global-config/tui.json", "global-config/cli.json",
+            "global-config/AGENTS.md", "backups/workflow-recovery", "global-config/systematic.jsonc",
+            "global-config/rate-limit-fallback.json", "global-config/plugins/workflow-health-check.ts",
+            "global-config/plugins/systematic-routing-guard.ts", "global-config/plugins/astra-sol-upgrade.ts",
+            "scripts/plugin-cache-integrity.py", "backups/plugin-quarantine", "WORKFLOW.md",
+            "docs/brainstorms/2026-08-10-workflow-routing-requirements.md",
+        ):
+            self.assertIn(workspace + "/" + relative, result.stdout)
+        self.assertNotIn("/evil/", result.stdout)
+
+    def test_v2_honours_runtime_overrides_but_rederives_sources_from_workspace(self):
+        source_overrides = {name: f"/evil/{name.lower()}" for name in (
+            "ROUTER_SKILLS_SOURCE", "OPENCODE_CONFIG_SOURCE", "TUI_CONFIG_SOURCE", "CLI_CONFIG_SOURCE",
+            "AGENTS_SOURCE", "RECOVERY_BACKUP_ROOT", "SYSTEMATIC_CONFIG_SOURCE", "FALLBACK_POLICY_SOURCE",
+            "HEALTH_PLUGIN_SOURCE", "ROUTING_GUARD_SOURCE", "ASTRA_PLUGIN_SOURCE",
+            "PLUGIN_CACHE_INTEGRITY_HELPER", "PLUGIN_QUARANTINE_DIR", "WORKFLOW", "REQS",
+        )}
+        with tempfile.TemporaryDirectory() as checkout:
+            result = self.run_derivation("2", checkout, WORKFLOW_VERIFY_V2_CONFIG_ROOT="/v2/config/opencode",
+                                         WORKFLOW_VERIFY_AGENTS_FILE="/custom/AGENTS.md",
+                                         WORKFLOW_VERIFY_RUNTIME_CONFIG_FILE="/custom/opencode.json", **{
+                                             f"WORKFLOW_VERIFY_{name}": value for name, value in source_overrides.items()
+                                         })
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("RESULT=" + checkout + "|/custom/AGENTS.md|/custom/opencode.json", result.stdout)
+        for relative in (
+            "global-config/skills", "global-config/opencode.json", "global-config/tui.json", "global-config/cli.json",
+            "global-config/AGENTS.md", "backups/workflow-recovery", "global-config/systematic.jsonc",
+            "global-config/rate-limit-fallback.json", "global-config/plugins/workflow-health-check.ts",
+            "global-config/plugins/systematic-routing-guard.ts", "global-config/plugins/astra-sol-upgrade.ts",
+            "scripts/plugin-cache-integrity.py", "backups/plugin-quarantine", "WORKFLOW.md",
+            "docs/brainstorms/2026-08-10-workflow-routing-requirements.md",
+        ):
+            self.assertIn(checkout + "/" + relative, result.stdout)
+        self.assertNotIn("/evil/", result.stdout)
 
 
 class ProbeWrapper(unittest.TestCase):
@@ -199,9 +250,14 @@ def run_shim(payload, stdin_text=None):
     import json
     out = Path(tempfile.mkdtemp())
     listing, debug_dir = out / "list.txt", out / "debug"
-    r = subprocess.run(["node", str(SHIM), str(listing), str(debug_dir)],
-                       input=stdin_text if stdin_text is not None else json.dumps(payload),
-                       capture_output=True, text=True)
+    try:
+        r = subprocess.run(["node", str(SHIM), str(listing), str(debug_dir)],
+                           input=stdin_text if stdin_text is not None else json.dumps(payload),
+                           capture_output=True, text=True)
+    except PermissionError as exc:
+        if exc.errno == 13:
+            raise unittest.SkipTest(f"node could not be spawned: {exc}") from exc
+        raise
     return r, listing, debug_dir
 
 
@@ -327,8 +383,13 @@ class AgentsShim(unittest.TestCase):
         out = Path(tempfile.mkdtemp())
         blocker = out / "debug"
         blocker.write_text("a file where the directory should go")
-        r = subprocess.run(["node", str(SHIM), str(out / "list.txt"), str(blocker)],
-                           input=json.dumps(V2_AGENTS), capture_output=True, text=True)
+        try:
+            r = subprocess.run(["node", str(SHIM), str(out / "list.txt"), str(blocker)],
+                               input=json.dumps(V2_AGENTS), capture_output=True, text=True)
+        except PermissionError as exc:
+            if exc.errno == 13:
+                self.skipTest(f"node could not be spawned: {exc}")
+            raise
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("v2-agents-shim: cannot write", r.stderr)
         self.assertNotIn("    at ", r.stderr)

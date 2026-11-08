@@ -171,7 +171,6 @@ else
           RUNTIME_CHECK_CONFIG=""
         else
           sed 's/^/   info: /' "$TMP_DIR/v2-runtime-config-notes"
-          echo "   info: non-projected items are reported as skipped (V2): <reason>"
         fi
       fi
       if [ -n "$RUNTIME_CHECK_CONFIG" ] && SYSTEMATIC_NODE_MODULES="$SYSTEMATIC_NODE_MODULES" "$JS_RUNTIME" "$RUNTIME_AGENT_CHECKER" \

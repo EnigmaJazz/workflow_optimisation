@@ -43,7 +43,57 @@ def main(path):
     if not isinstance(config.get("tools"), dict) or config["tools"].get("github_ro_*") is not False:
         error('tools["github_ro_*"] must be false')
 
+    agents = config.get("agent")
+    if agents is not None and not isinstance(agents, dict):
+        error("agent inventory must be an object")
+    agents = agents or {}
+    aliases = {}
+    for name, entry in agents.items():
+        if not name.endswith("-astra"):
+            continue
+        base_name = name[:-6]
+        base = agents.get(base_name)
+        if not isinstance(base, dict):
+            error(f"Astra alias {name} has no base agent {base_name}")
+        if not isinstance(entry, dict) or entry.get("hidden") is not True or not entry.get("model"):
+            error(f"Astra alias {name} must be hidden and have a model")
+        for field in ("permission", "tools"):
+            if entry.get(field) != base.get(field):
+                error(f"Astra alias {name} {field} differs from base agent {base_name}")
+        aliases[name] = entry
+
+    mirrors = {}
+    prefix_fields = ("permission", "tools")
+    # The derivation copies no other agent metadata beyond optional descriptive/model fields.
+    mirror_fields = {"permission", "tools", "description", "model"}
+    for name, entry in agents.items():
+        if not isinstance(entry, dict):
+            continue
+        rule_maps = [entry.get(field) for field in prefix_fields if field in entry]
+        is_mirror = bool(rule_maps) and all(
+            isinstance(rules, dict) and all(
+                isinstance(key, str) and key.startswith(("sandbox_", "host_")) for key in rules
+            ) for rules in rule_maps
+        )
+        if not is_mirror:
+            continue
+        if set(entry) - mirror_fields:
+            error(f"access mirror {name} has unsupported fields: {', '.join(sorted(set(entry) - mirror_fields))}")
+        rule_count = 0
+        for field in prefix_fields:
+            rules = entry.get(field, {})
+            if not isinstance(rules, dict):
+                error(f"access mirror {name} {field} must be an object")
+            invalid = [key for key in rules if not isinstance(key, str) or not key.startswith(("sandbox_", "host_"))]
+            if invalid:
+                error(f"access mirror {name} {field} keys must use sandbox_/host_ prefixes: {', '.join(map(str, invalid))}")
+            rule_count += len(rules)
+        if not rule_count:
+            error(f"access mirror {name} must contain at least one rule")
+        mirrors[name] = entry
+
     projected = dict(config)
+    projected["agent"] = {name: entry for name, entry in agents.items() if name not in aliases and name not in mirrors}
     projected.pop("plugins", None)
     projected["plugin"] = [item[1:] if item.startswith("~") else item for item in plugins]
     projected["plugin"] = [item.replace("@~", "@", 1) for item in projected["plugin"]]
@@ -55,6 +105,12 @@ def main(path):
     projected["permission"] = dict(permission)
     projected["permission"]["grep"] = "ask"
     print(json.dumps(projected, ensure_ascii=False))
+    if aliases:
+        names = ", ".join(sorted(aliases))
+        print(f"skipped (V2): Astra aliases ({len(aliases)}): {names}; their alias invariants were validated before projecting for the V1 checker", file=sys.stderr)
+    if mirrors:
+        names = ", ".join(sorted(mirrors))
+        print(f"skipped (V2): Systematic access mirrors ({len(mirrors)}): {names}; their sandbox_/host_ access rules were validated before projecting for the V1 checker", file=sys.stderr)
     print("V2 runtime invariants passed; projected V2 plugin and grep shapes for the V1 checker", file=sys.stderr)
 
 
