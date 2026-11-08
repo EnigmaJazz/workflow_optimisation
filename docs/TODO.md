@@ -2569,7 +2569,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Description:** probe the V2 runtime for both skills by name. If absent, decide the delivery path (derive copies
   them, or a V2 skill root), and point the verifier check at the V2 location. Impact if absent: V2 ODD sessions lose
   the work-unit commit and chained-PR discipline.
-- **Delivery:** `derive-v2-config.py` carries `work-unit-commits` and `chained-pr` from the live V1 root (the repo cannot read or re-author their bytes) and warns when absent, and V2 mode of the verifier now checks `$V2_CONFIG_ROOT/skills` instead of the V1 root.
+- **Delivery:** `derive-v2-config.py` carries `work-unit-commits` and `chained-pr` from the live V1 root (the repo cannot read or re-author their bytes) and fails derivation when either is absent from both that root and `global-config/skills`, and V2 mode of the verifier now checks `$V2_CONFIG_ROOT/skills` instead of the V1 root.
 
 ### Q117. Run the V2 plugin auto-update timer from a stable checkout of main
 - **Status:** PLANNED (owner approved 2026-11-08). **Source:** Tier 2 deploy review, 2026-11-07.
