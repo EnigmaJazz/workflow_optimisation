@@ -30,13 +30,25 @@ def advisor_model_violations(agents: dict) -> list[str]:
 
 
 def advisor_variant_violations(markdown: str, agents: dict) -> list[str]:
-    """Return advisor table rows whose effort annotation disagrees with config."""
+    """Return malformed advisor tables and rows that disagree with config."""
     violations = []
-    for heading in ("**Pre-code advisors**", "**Post-code advisors**"):
+    expected = {
+        "pre": {name for name in agents if name.startswith("advisor-") and name.endswith("-pre")},
+        "post": {name for name in agents if name.startswith("advisor-") and name.endswith("-post")},
+    }
+    headings = (("**Pre-code advisors**", "pre", "**Post-code advisors**"),
+                ("**Post-code advisors**", "post", None))
+    for heading, suffix, next_heading in headings:
         if heading not in markdown:
             violations.append(f"missing advisor table heading {heading}")
             continue
         section = markdown.split(heading, 1)[1]
+        if next_heading is not None:
+            section = section.split(next_heading, 1)[0]
+        else:
+            next_heading_match = re.search(r"(?m)^\*\*.+\*\*\s*$", section)
+            if next_heading_match is not None:
+                section = section[:next_heading_match.start()]
         table = re.search(
             r"(?m)^\| Advisor \| Model \|\n^\|---\|---\|\n(?P<rows>(?:^\|.*\|\n?)+)",
             section,
@@ -44,14 +56,24 @@ def advisor_variant_violations(markdown: str, agents: dict) -> list[str]:
         if table is None:
             violations.append(f"missing advisor table after {heading}")
             continue
+        observed = set()
         for row in table.group("rows").splitlines():
             cells = [cell.strip() for cell in row.strip().strip("|").split("|")]
             if len(cells) != 2:
+                violations.append(f"malformed advisor row in {heading}: {row}")
                 continue
             name_match = re.fullmatch(r"`([^`]+)`", cells[0])
             if name_match is None:
+                violations.append(f"advisor row name must be a single backticked name: {cells[0]}")
                 continue
             name = name_match.group(1)
+            if name not in expected[suffix]:
+                violations.append(f"unknown {suffix} advisor table name {name}")
+                continue
+            if name in observed:
+                violations.append(f"duplicate {suffix} advisor table row {name}")
+                continue
+            observed.add(name)
             annotation_match = re.search(r"\(([^()]*)\)\s*$", cells[1])
             annotation = (
                 annotation_match.group(1).strip().strip("`")
@@ -64,6 +86,10 @@ def advisor_variant_violations(markdown: str, agents: dict) -> list[str]:
                 violations.append(
                     f"{name} table variant {annotation!r} does not match config {configured!r}"
                 )
+        for name in sorted(expected[suffix] - observed):
+            violations.append(f"missing {suffix} advisor table row {name}")
+        for name in sorted(observed - expected[suffix]):
+            violations.append(f"unexpected {suffix} advisor table row {name}")
     return violations
 
 
@@ -80,24 +106,32 @@ class AdvisorModelPolicy(unittest.TestCase):
         workflow = (REPO / "WORKFLOW.md").read_text(encoding="utf-8")
         self.assertEqual(advisor_variant_violations(workflow, self.agents), [])
 
-    def test_variant_positive_control_rejects_annotation_without_config_variant(self):
-        synthetic = """**Pre-code advisors**
+    def test_variant_positive_control_rejects_wrong_annotation(self):
+        workflow = (REPO / "WORKFLOW.md").read_text(encoding="utf-8")
+        row = re.search(r"(?m)^\| `([^`]+-pre)` \| ([^|]+) \|$", workflow)
+        self.assertIsNotNone(row)
+        name = row.group(1)
+        configured = self.agents[name].get("variant")
+        wrong = "wrong-variant" if configured is None else "wrong-variant"
+        mutated = workflow[:row.start()] + row.group(0).replace(
+            row.group(2), f"{row.group(2).rstrip()} (`{wrong}`) "
+        ) + workflow[row.end():]
+        self.assertTrue(any(name in issue and "table variant" in issue
+                            for issue in advisor_variant_violations(mutated, self.agents)))
 
-| Advisor | Model |
-|---|---|
-| `advisor-design-pre` | `opencode-go/glm-5.3-flash` (`high`) |
+    def test_variant_controls_reject_missing_heading_dropped_backtick_and_unknown_name(self):
+        workflow = (REPO / "WORKFLOW.md").read_text(encoding="utf-8")
+        missing_heading = workflow.replace("**Pre-code advisors**", "**Pre-code review**", 1)
+        self.assertTrue(any("missing advisor table heading" in issue
+                            for issue in advisor_variant_violations(missing_heading, self.agents)))
 
-**Post-code advisors**
+        dropped_backtick = workflow.replace("`advisor-design-pre`", "advisor-design-pre", 1)
+        self.assertTrue(any("single backticked name" in issue
+                            for issue in advisor_variant_violations(dropped_backtick, self.agents)))
 
-| Advisor | Model |
-|---|---|
-| `advisor-spec-post` | `opencode-go/glm-5.3-flash` |
-"""
-        violations = advisor_variant_violations(synthetic, self.agents)
-        self.assertEqual(
-            violations,
-            ["advisor-design-pre table variant 'high' does not match config None"],
-        )
+        unknown_name = workflow.replace("`advisor-design-pre`", "`advisor-unknown-pre`", 1)
+        self.assertTrue(any("unknown pre advisor table name advisor-unknown-pre" in issue
+                            for issue in advisor_variant_violations(unknown_name, self.agents)))
 
     def test_google_model_positive_control_names_agent(self):
         self.assertEqual(

@@ -1770,15 +1770,29 @@ else {
   if (orchestratorTask?.["odd-apply"]==="allow") fail("ODD_APPLY_ALLOWED_TO_ORCHESTRATOR")
 }
 
+let advisorFallbackConfig
 // advisor-model-policy:begin
-// Q76: the Argon advisors may only delegate to the Flash evidence gatherer, which keeps the
-// shared sandbox-only advisor surface. Only the orchestrator, the PMs, and the Planner dispatch
-// the advisors; no other agent may reach the gatherer. None of them may fall back to another model.
-// The coordinator set is passed in so tests can execute this block in isolation.
-function advisorModelPolicyFailures(agents) {
+// Advisor seats have a narrow delegation boundary: only the fixed coordinator set can dispatch
+// advisors, and only four tool-less seats can dispatch the facts-only evidence gatherer.
+// Keep the function self-contained so its boundary probes exercise real policy decisions.
+function advisorModelPolicyFailures(agents, fallbackConfig=advisorFallbackConfig) {
   const failures=[]
+  const entries=Object.entries(agents??{})
   const pairs=new Map()
-  for (const [name,agent] of Object.entries(agents??{})) {
+  const toollessSeats=["advisor-design-pre","advisor-security-pre","advisor-spec-pre","advisor-spec-post"]
+  const expectedTask={"*":"deny","advisor-evidence":"allow"}
+  const evidenceHosts=["edit","write","bash","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]
+  const advisorDispatchers=new Set(["gentle-orchestrator","pm-odd","pm-systematic","planner"])
+  const evidenceDispatchers=new Set(toollessSeats)
+  const advisorNames=entries.map(([name])=>name).filter((name)=>name.startsWith("advisor-") && /-(pre|post)$/.test(name))
+  const resolvedTask=(agent,target)=>{
+    const rules=agent?.permission?.task
+    if (!rules || typeof rules!=="object" || Array.isArray(rules)) return undefined
+    let action
+    for (const [pattern,value] of Object.entries(rules)) if (wildcardMatch(target,pattern)) action=value
+    return action
+  }
+  for (const [name,agent] of entries) {
     if (typeof agent?.model==="string" && agent.model.startsWith("google/")) {
       failures.push(`GOOGLE_AGENT_MODEL_FORBIDDEN: ${name}=${JSON.stringify(agent.model)}`)
     }
@@ -1791,20 +1805,68 @@ function advisorModelPolicyFailures(agents) {
       failures.push(`ADVISOR_PAIR_MODELS_NOT_DISTINCT: ${name}`)
     }
   }
+  for (const name of toollessSeats) {
+    const agent=agents?.[name]
+    if (!agent || typeof agent!=="object") { failures.push(`ADVISOR_TOOLLESS_SEAT_MISSING: ${name}`); continue }
+    if (JSON.stringify(agent.permission?.task)!==JSON.stringify(expectedTask)) {
+      failures.push(`ADVISOR_TOOLLESS_TASK_SCOPE_MISMATCH: ${name}`)
+    }
+    for (const [permission,action] of Object.entries(agent.permission??{})) {
+      if (permission!=="task" && action!=="deny") failures.push(`ADVISOR_TOOLLESS_PERMISSION_GRANT: ${name}.${permission}=${JSON.stringify(action)}`)
+    }
+    if (agent.tools?.task!==true) failures.push(`ADVISOR_TOOLLESS_TASK_TOOL_DISABLED: ${name}`)
+    for (const [tool,enabled] of Object.entries(agent.tools??{})) {
+      if (tool!=="task" && enabled===true) failures.push(`ADVISOR_TOOLLESS_TOOL_ENABLED: ${name}.${tool}`)
+    }
+    if (agent.tools?.ctx_memory!==false || agent.permission?.ctx_memory!=="deny") {
+      failures.push(`ADVISOR_TOOLLESS_MEMORY_NOT_DENIED: ${name}`)
+    }
+  }
   const evidence=agents?.["advisor-evidence"]
   if (!evidence || typeof evidence!=="object") failures.push("ADVISOR_EVIDENCE_AGENT_MISSING")
-  else if (evidence.model!=="opencode-go/qwen3.8-flash") failures.push(`ADVISOR_EVIDENCE_MODEL_MISMATCH: ${JSON.stringify(evidence.model)}`)
+  else {
+    if (evidence.model!=="opencode-go/qwen3.8-flash") failures.push(`ADVISOR_EVIDENCE_MODEL_MISMATCH: ${JSON.stringify(evidence.model)}`)
+    if (JSON.stringify(evidence.permission?.task)!==JSON.stringify({"*":"deny"})) failures.push("ADVISOR_EVIDENCE_TASK_NOT_DENY_ALL")
+    if (evidence.tools?.task!==false) failures.push("ADVISOR_EVIDENCE_TASK_TOOL_NOT_DISABLED")
+    if (evidence.tools?.ctx_memory!==false || evidence.permission?.ctx_memory!=="deny") failures.push("ADVISOR_EVIDENCE_MEMORY_NOT_DENIED")
+    for (const route of evidenceHosts) {
+      if (evidence.tools?.[route]!==false || evidence.permission?.[route]!=="deny") {
+        failures.push(`ADVISOR_EVIDENCE_HOST_ROUTE_EXPOSED: ${route}`)
+      }
+    }
+  }
+  for (const [name,agent] of entries) {
+    for (const target of [...advisorNames,"advisor-evidence"]) {
+      const allowed=resolvedTask(agent,target)==="allow"
+      const permitted=target==="advisor-evidence" ? evidenceDispatchers.has(name) : advisorDispatchers.has(name)
+      if (allowed && !permitted) failures.push(`ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: ${name}->${target}`)
+    }
+  }
+  const noFallback=new Set(Array.isArray(fallbackConfig?.noFallbackAgents)?fallbackConfig.noFallbackAgents:[])
+  if (!fallbackConfig || !Array.isArray(fallbackConfig.noFallbackAgents)) failures.push("ADVISOR_NO_FALLBACK_POLICY_MISSING")
+  for (const name of [...advisorNames,"advisor-evidence"]) {
+    if (!noFallback.has(name)) failures.push(`ADVISOR_FALLBACK_NOT_DISABLED: ${name}`)
+  }
   return failures
 }
 // advisor-model-policy:end
 {
-  for (const failure of advisorModelPolicyFailures(deployedAgents)) fail(failure)
-  const controlFailures=advisorModelPolicyFailures({})
-  if (!controlFailures.includes("ADVISOR_EVIDENCE_AGENT_MISSING")) {
-    fail(`GEMINI_ADVISOR_ROUTE_POSITIVE_CONTROL_FAILED: ${JSON.stringify(controlFailures)}`)
-  } else {
-    console.log("   ok: Gemini advisor route shape, dispatch scope and no-fallback policy")
+  try { advisorFallbackConfig=parseJsonc(fallbackPolicySourcePath) }
+  catch (error) { fail(`ADVISOR_FALLBACK_POLICY_UNREADABLE: ${error.message}`) }
+  const advisorFailures=advisorModelPolicyFailures(deployedAgents)
+  for (const failure of advisorFailures) fail(failure)
+  const controls={...deployedAgents}
+  controls["advisor-evidence"]={...deployedAgents["advisor-evidence"],tools:{...deployedAgents["advisor-evidence"]?.tools,sandbox_finish:true}}
+  const hostRouteFailures=advisorModelPolicyFailures(controls)
+  if (!hostRouteFailures.includes("ADVISOR_EVIDENCE_HOST_ROUTE_EXPOSED: sandbox_finish")) {
+    fail(`ADVISOR_EVIDENCE_HOST_ROUTE_POSITIVE_CONTROL_FAILED: ${JSON.stringify(hostRouteFailures)}`)
   }
+  const dispatchProbe={...deployedAgents,"synthetic-unlisted-agent":{permission:{task:{"*":"deny","advisor-evidence":"allow"}}}}
+  const dispatchFailures=advisorModelPolicyFailures(dispatchProbe)
+  if (!dispatchFailures.includes("ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: synthetic-unlisted-agent->advisor-evidence")) {
+    fail(`ADVISOR_DISPATCH_SCOPE_POSITIVE_CONTROL_FAILED: ${JSON.stringify(dispatchFailures)}`)
+  }
+  if (advisorFailures.length===0) console.log("   ok: advisor model, seat isolation, dispatch boundaries and no-fallback policy")
 }
 
 // planner-handoff:begin
