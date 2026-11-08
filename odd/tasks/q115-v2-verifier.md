@@ -1,19 +1,9 @@
 # Q115 — V2-mode verifier: named section 9 skip
 
-## Outcome (current)
+## Current outcome
 
-V2 mode no longer projects the derived config into the V1 section-9 checker.
-Section 9 reports a named skip, and the run reports `VERIFICATION_INCOMPLETE`
-rather than all-passed. V1 mode output is unchanged.
-
-## Owner narrowing (2026-11-08)
-
-After the correction bound was reached, the owner chose the SKIP branch:
-"make section 9 V2-aware or skip it with an explicit reason; keep positive
-controls so a V1-only pass cannot hide a V2 gap." Projection was dropped
-because removing entries before identity-keyed sweeps loses identity, and
-because the by-path import of `scripts/derive-v2-config.py` executed a file
-outside the digest manifest.
+V2 mode skips section 9's V1 checker with a named line, and the run reports an
+explicit incomplete status rather than success. V1 behaviour is unchanged.
 
 ## Commits on `chore/q115-v2-verifier`
 
@@ -21,92 +11,93 @@ outside the digest manifest.
 - `96a2d50` — manifest regenerated without the bytecode row.
 - `63d2b0d` — Tier 4 F1/F2 (V2 agent constructs, V1 override surface).
 - `a5e3ada` — Tier 4 F1 recheck (derivation-exact projection).
-- `88b296a` — **narrowed scope**: projection removed, named skip,
-  `VERIFICATION_INCOMPLETE` state.
+- `88b296a` — narrowed scope: projection removed, named skip,
+  `VERIFICATION_INCOMPLETE`.
 - `a9d1805` — `SKIPPED_MESSAGES` initialization for `set -u`.
+- `108c519` — distinct exit status 3 for an incomplete run.
 
-## What section 9 does now
+## Exit-code contract
 
-- V2: runs `checkers/v2-runtime-config.py` as a standalone validator, then
-  prints exactly one line
-  `SKIPPED (V2: SECTION_9_RUNTIME_AGENT_CHECKER_NOT_RUN; ...)` and never
-  invokes `check-runtime-agents.cjs` and never prints the pass line.
-- V1: unchanged — same `RUNTIME_CHECK_CONFIG`, same checker argv, same
-  `ok:`/`fail` messages.
-- Section 9a probes and the V2 registration probes stay fatal; section 9b
-  `github_ro` stays active and fatal.
+| Run state | Status | Banner |
+| --- | --- | --- |
+| clean | 0 | `== All checks passed — workflow setup intact ==` (or the self-repairs variant) |
+| incomplete (section 9 skipped) | **3** | `VERIFICATION_INCOMPLETE` |
+| any failure (with or without skips) | 1 | `Some checks failed` + failed list |
 
-## Retained V2 invariants (no V1 checker input)
+`verify-workflow.sh` is a 157-line loader that sources `verify/NN-*.sh` in
+manifest order and `62-section-11-summary.sh` runs last, so the summary's exit
+status is the script's. A skip-only run previously fell off the end with 0, so
+`verify-workflow.sh && next_step` accepted an incomplete verification; the
+summary now exits 3 and the cutover step warns callers not to read 3 as
+success.
 
-Exactly one `@cortexkit/opencode-magic-context@~x.y.z` pin (unscoped rejected);
-exactly one fallback fork ref naming its vendor directory or `/index.ts`;
-global `permission.grep=deny` plus `gentle-orchestrator` `allow`;
-`mcp.github_ro` present and `tools["github_ro_*"] === false`. The adapter emits
-**no stdout**, so nothing can be piped into an identity-sensitive checker, and
-it reads nothing under `scripts/`.
+`workflow-health-check.ts` catches `e.code === 3` (execFileAsync rejects on any
+non-zero status) and sets the `incomplete` state with the existing
+`VERIFICATION_INCOMPLETE` warning instead of `failed`.
 
-## Skip cannot read as a pass
+An incomplete run still withholds the cache-prune approval, so
+`prune-opencode-plugin-cache.py` refuses on the missing approval, not on the
+exit status — no change needed there.
 
-`skip()` records into `SKIPPED_MESSAGES` and prints the named line. The summary
-refuses the all-passed banner, prints `VERIFICATION_INCOMPLETE` with every
-skipped check, and withholds the cache-prune approval. The health plugin gained
-an `incomplete` state (`workflow-health-check.ts:94,146-157,237`) instead of
-reporting clean. Failures win over skips: they are listed and `exit 1` even
-when a skip is present.
+## Section 9 behaviour
 
-## Advisor on the verifier-contract surface (recorded before the writer)
+- V2: runs the standalone invariant validator, prints one
+  `SKIPPED (V2: SECTION_9_RUNTIME_AGENT_CHECKER_NOT_RUN; ...)` line, never
+  invokes `check-runtime-agents.cjs`, never prints the pass line.
+- V1: unchanged — same checker argv and messages.
+- Section 9a probes and 9b `github_ro` stay active and fatal.
 
-`adversarial-reviewer` returned **GAPS**: an echo-only skip would still print
-"All checks passed" and exit 0, because `62-section-11-summary.sh:13-28` reads
-`FAIL`/`AUTO_REPAIRED` only; the health plugin (`:134-160`) classifies a
-successful subprocess as clean from banner text. Both shaped the design above.
-It also required that section 9b stay fatal, that the pin regex reject unscoped
-refs, and that removed coverage be named rather than implied.
+## Retained V2 invariants
 
-## Advisor-identified coverage now explicitly absent (deferred to Q130)
+One scoped `@cortexkit/opencode-magic-context@~x.y.z` pin (unscoped rejected);
+one fallback fork ref naming its directory or `/index.ts`; global
+`permission.grep=deny` plus orchestrator `allow`; `mcp.github_ro` present and
+`tools["github_ro_*"] === false`. The adapter emits no stdout and reads nothing
+under `scripts/`.
 
-Model/tool/GGA fallback validation; custom-agent grants such as
-`host_plan_write: allow` or `host_review_acknowledge_approved: allow`;
-PM model drift; live fallback policy. These are reported as incomplete, never
-as verified.
+## Recorded advice
+
+`adversarial-reviewer` (verifier-contract surface) returned GAPS and required
+the incomplete state, the fails-over-skips rule, section 9b staying fatal, and
+rejecting unscoped pins. Its list of coverage now explicitly absent (model/tool/
+GGA fallback, custom-agent grants, PM model drift, live fallback policy) is
+deferred to Q130 and reported as incomplete, never as verified.
+
+`security-reviewer` (earlier round) returned DESIGN GAPS on projection:
+name-based exemptions and rule ordering, which is part of why projection was
+abandoned for the skip branch.
 
 ## Planner handoff — structurally blocked
 
 `docs/specs/pm-handoff.md:74` mandates `BLOCKED` when a worktree's HEAD lives
 under `.git/worktrees/`, which is this checkout. Work ran as direct bounded
-`general` writer dispatches with the advisor advice as pre-code input.
+`general` writer dispatches with advisor input.
 
 ## Checks observed
 
-- `python3 -m pytest tests/test_verifier_v2_sections.py -q` → `12 passed`.
-- Broader suite during implementation → `51 passed, 14 skipped`; skips are the
-  sandbox's `node` spawn `EACCES` (host has `/usr/bin/node`).
+- `tests/test_verifier_v2_sections.py` → 13 passed; controls assert skip-only
+  exit 3, failures+skips exit 1, clean exit 0 with the unchanged banner, the
+  plugin's exit-3 catch, and no cache-prune approval on incomplete.
 - `python3 scripts/verifier_manifest.py check` → `ok: manifest and pin are
   current`; no `__pycache__`/`.pyc` row.
-- `bash -n` on every changed module → exit 0.
-- Executed V2 fragment → one `SKIPPED (V2: SECTION_9_RUNTIME_AGENT_CHECKER_NOT_RUN ...)`,
-  no checker invocation, no pass line.
-- Executed V1 fragment → `checker invoked=True skip printed=False`.
-- Summary controls → failures+skips exit 1 with the failed check listed;
-  skips only exit 0 incomplete; empty run keeps
-  `== All checks passed — workflow setup intact ==`.
+- `bash -n` on `verify-workflow.sh` and `verify/62-section-11-summary.sh` →
+  exit 0.
 - Not run: live `--behavioral` verifier, native review, reviewers (excluded).
 
 ## Open items
 
-- **Native review due, not started** — assessment for `5beff94..90ccb14` was
-  `high` (lineage `review-e460198a780543cd`); later commits not re-assessed per
-  the constraint.
+- **Native review due, not started** — `5beff94..90ccb14` assessed `high`
+  (lineage `review-e460198a780543cd`); later commits not re-assessed.
 - **Protected-path follow-up (owner).** `scripts/verifier_manifest.py` (S17)
   filters only `is_file()`, so `__pycache__` under `verify/checkers` becomes a
   required module despite `.gitignore`. Patch both comprehensions with
   `"__pycache__" not in p.relative_to(base).parts and p.suffix != ".pyc"`.
-- **Q130** owns the V2 runtime-agent sweep; do not start it here.
+- **Q130** owns the V2 runtime-agent sweep.
 
 ## Next step
 
-Tier 2: live V2 run, expecting section 10 reached, the named skip, and
-`VERIFICATION_INCOMPLETE`. Owner: `verifier_manifest.py` bytecode filter.
+Tier 2: live V2 run, expecting exit 3, the named skip, and section 10 reached.
+Owner: `verifier_manifest.py` bytecode filter.
 
 
 ## Revisions
@@ -115,3 +106,4 @@ Tier 2: live V2 run, expecting section 10 reached, the named skip, and
 - r3 2026-11-08T10:38:50Z gentle-orchestrator: Record 63d2b0d and the F1/F2 resolution, checks, and residual risks
 - r4 2026-11-08T11:16:26Z gentle-orchestrator: Record a5e3ada, the advisor's DESIGN GAPS advice, the blocked Planner handoff, and observed checks
 - r5 2026-11-08T14:38:31Z gentle-orchestrator: Record narrowed skip scope, 88b296a + a9d1805, advisor GAPS advice, planner block and observed checks
+- r6 2026-11-08T14:59:02Z gentle-orchestrator: Record 108c519, the exit-code contract, plugin exit-3 handling and observed controls
