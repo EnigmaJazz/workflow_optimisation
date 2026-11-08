@@ -14,6 +14,7 @@ manifest = {
     "workflow-route": ("SKILL.md", "references/session-decisions.md"),
     "workflow-odd-secure": ("SKILL.md", "references/odd-and-review.md"),
     "workflow-systematic": ("SKILL.md", "references/specialists.md"),
+    "pm-handoff": ("SKILL.md",),
 }
 errors = []
 changed = []
@@ -41,7 +42,7 @@ if errors:
     print("error\t" + "; ".join(errors))
     raise SystemExit(0)
 if not changed:
-    print("clean\tthree reviewed workflow skills and references are current")
+    print("clean\tfour reviewed workflow skills and references are current")
     raise SystemExit(0)
 backup = backup_root / run_id / "workflow-skills"
 backup.mkdir(parents=True, exist_ok=True)

@@ -57,6 +57,7 @@ PM_ANCHOR_NEEDLES = (
     "host_git_head",
 )
 PM_PLANNING_SKIP_NEEDLE = "Planning creation skips the anchor comparison"
+PM_SKILL_NEEDLE = "pm-handoff"
 PM_OLD_HASH_WORDING = "tracker_sha256"
 
 # Owner correction 2026-10-19: a PM's mid-unit tiny fix dispatches a named
@@ -138,7 +139,7 @@ def missing_prompt_needles(data, agents=AGENT_NAMES):
         if prompt is None:
             missing.append((name, PM_ANCHOR_NEEDLES[0], "agent key absent or prompt not a string"))
         else:
-            for needle in (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE):
+            for needle in (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE, PM_SKILL_NEEDLE):
                 if needle not in prompt:
                     missing.append((name, needle, "prompt does not contain the needle"))
             if PM_OLD_HASH_WORDING in prompt:
@@ -236,7 +237,7 @@ class RealConfig(unittest.TestCase):
                 prompt = prompt_of(self.data, name)
                 self.assertIsInstance(prompt, str, f"agent {name!r} prompt must be a string")
                 assert prompt is not None, f"agent {name!r} prompt must be a string"
-                for needle in (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE):
+                for needle in (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE, PM_SKILL_NEEDLE):
                     self.assertIn(needle, prompt, f"agent {name!r} prompt is missing {needle!r}")
                 self.assertNotIn(PM_OLD_HASH_WORDING, prompt)
 
@@ -290,7 +291,7 @@ class PositiveControl(unittest.TestCase):
         pm = (
             "pm preamble "
             + " ".join(
-                (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE, PM_TINY_FIX_INSTRUCTION)
+                (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE, PM_SKILL_NEEDLE, PM_TINY_FIX_INSTRUCTION)
             )
             + "\n\n"
             + PM_PLANNER_BLOCK
@@ -354,7 +355,7 @@ class PositiveControl(unittest.TestCase):
         self.assertEqual(
             [(agent, needle, reason) for agent, needle, reason in missing],
             [("pm-odd", needle, "prompt does not contain the needle")
-             for needle in (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE)],
+             for needle in (*PM_ANCHOR_NEEDLES, PM_PLANNING_SKIP_NEEDLE, PM_SKILL_NEEDLE)],
         )
 
     def test_fixed_tool_needle_removal_is_detected(self):
