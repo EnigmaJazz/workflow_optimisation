@@ -1,0 +1,8 @@
+{
+  "schema": "workflow-changeset/v1",
+  "id": "claude-orchestration-watch",
+  "description": "Global Claude rule: wait for Orca worker messages with the background watcher.",
+  "ops": [
+    {"op": "file_create", "file": "~/.claude/rules/orchestration-watch.md", "content_file": "orchestration-watch.md", "mode": "0644"}
+  ]
+}

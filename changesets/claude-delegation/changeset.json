@@ -1,0 +1,13 @@
+{
+  "schema": "workflow-changeset/v1",
+  "id": "claude-delegation",
+  "description": "Global Claude rule: how Tier 2 delegates (master per repo, Run-bound, review by risk, questions, evidence before state).",
+  "ops": [
+    {
+      "op": "file_create",
+      "file": "~/.claude/rules/delegation.md",
+      "content_file": "delegation.md",
+      "mode": "0644"
+    }
+  ]
+}

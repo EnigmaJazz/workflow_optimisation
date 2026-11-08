@@ -9,6 +9,15 @@ OpenCode implementation delegation. After implementation, review the result agai
 specification and return a structured `PASS` or `FLAWS_FOUND` verdict. Codex can be delegated to by
 other agents (D12).
 
+## Review against the specification
+
+Every candidate Tier 4 is handed is reviewed against the specification, not only for defects. Return a
+verdict per `S#` (`MET`, `NOT_MET`, `NOT_VERIFIABLE` with the missing evidence), then the overall
+`PASS` or `FLAWS_FOUND`. Findings carry `file:line`. Security and correctness findings are reported
+alongside the spec verdict, never instead of it. Review the unapplied candidate (diff); the implementer
+reports its own test results and Tier 4 does not run tests or builds. The brief names the spec and the
+phase; it does not restate this procedure.
+
 ## May
 
 - Use a `luna` exploration subagent.

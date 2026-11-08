@@ -47,8 +47,10 @@ unverified" means the evidence is ambiguous; the line says what would confirm it
   Then Q57-Q60 and Q61. Q62 (retired-model list and seat-assignment reconciliation) is independently
   planned.
 - **Multi-tier orchestration (owner, 2026-11-04; spec `docs/specs/multi-tier-orchestration.md`):** two
-  independent tracks that can run at the same time. Track A (above OpenCode, Tiers 1-4): Q101.
-  Track B (OpenCode side): Q102, then Q103. Order inside Track B follows spec section 13.
+  independent tracks that can run at the same time. Track A (above OpenCode, Tiers 1-4): Q101 (umbrella), split into Q119-Q125 (Paperclip spike, usage ledger, Tier 3 flow, Jev gates, minimality wording, Codex spec role, tracker-drift check); Track A runs in parallel with all OpenCode 2 work.
+  Track B (OpenCode side): Q102, then Q103. Order inside Track B follows spec section 13. Q104 (role
+  contracts wired into the deployed prompts, and the daily rhythm) follows Q102 and spans both tracks.
+  Q105 (Planner and advisors callable) is a prerequisite of any Gate 2 and goes first; Q106 (sandbox tools bring their permissions) goes with the D33 rules.
 - **Advisor capacity (owner, 2026-10-17; independent of the phases):** Q76.
 - **Multi-agent v2 (owner-authorized, 2026-10-23):** Q89 phase 1 only — permissions first, inert.
   Phases 2-4 (tool implementation with dormant protection, the workflow/tracker change, and
@@ -2226,7 +2228,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
     the verifier.
 
 ### Q101. Multi-tier orchestration, Track A: tiers above OpenCode (Tiers 1-4)
-- **Status:** PLANNED.
+- **Status:** PARTIAL (2026-11-08). Done: role definitions in `roles/` (OPEN-13), the `CLAUDE.md` role rewrite (OPEN-7), the Claude rules for advisor, delegation, watcher and session lifecycle (changesets applied). Open work is split into Q119-Q125 below; Q101 stays as the umbrella and closes when they do.
 - **Prerequisites:** none. Independent of the sandbox and of OpenCode workflow changes (spec D16).
 - **Source:** owner, 2026-11-04.
 - **Description:** Build the tiers above OpenCode, per `docs/specs/multi-tier-orchestration.md`:
@@ -2239,6 +2241,45 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - the Jev plan-comparison gate and the advisor step before delegation (spec D17, D18, section 9);
   - the per-role wording of the minimality principles (spec D19, section 14).
 
+### Q119. Paperclip spike through REST API and UI only (Track A; spec section 12 item 1)
+- **Status:** PLANNED. **Prerequisites:** none. Runs in parallel with all OpenCode 2 work. **Source:** owner, 2026-11-08.
+- **Description:** Download Paperclip, review its README (D13), disable its local CLI adapters (D21, OPEN-10) and record tickets and cost-events for one real task across two repos with Orca launching every agent. Define the Paperclip issue fields and who keeps them in step with the repo trackers (D14, OPEN-5). Confirms or kills spec sections 7 and 10. Read-only on the repos; the install location and the Paperclip attach path need an owner decision before any nono change.
+
+### Q120. Usage ledger and one-day baseline per subscription (Track A; D6, D25, OPEN-14)
+- **Status:** PLANNED. **Prerequisites:** none. **Source:** owner, 2026-11-08.
+- **Description:** Metering first (D6 makes feasibility a gate). Build the ledger in `workflow_optimisation`, capture a one-day baseline per subscription, and feed the numbers to Q103 and Q112.
+
+### Q121. Tier 3 prompt flow (Track A; D12)
+- **Status:** PLANNED. **Prerequisites:** Q120 (baseline) for sizing; the role files in `roles/` already exist. **Source:** owner, 2026-11-08.
+- **Description:** Tier 2 drafts, the owner reviews and pastes. Define the draft format, where drafts are stored, and how the result returns to Tier 2.
+
+### Q122. Jev input-size check, plan-comparison gate and advisor step before delegation (Track A; D17, D18, section 9)
+- **Status:** PLANNED (partly delivered: the advisor triggers in `~/.claude/rules/advisor.md`). **Prerequisites:** none for the input-size check; the calibration run (spec section 12 item 5) sets thresholds. **Source:** owner, 2026-11-08.
+- **Description:** Add the Jev input-size check and the plan-comparison gate to Tier 2; verify the advisor step is in the delegation path; run the calibration on past stages.
+
+### Q123. Per-role wording of the minimality principles (Track A; D19, section 14)
+- **Status:** PLANNED. **Prerequisites:** none. **Source:** owner, 2026-11-08.
+- **Description:** Apply the minimality principles to `roles/tier-1.md`, `tier-2.md`, `tier-2s.md`, `tier-4.md`. The OpenCode seats' wording is covered in Q102 and Q113.
+
+### Q124. Tier 4 Codex spec role and result review (Track A; spec D22, section 13)
+- **Status:** PARTIAL: `roles/tier-4.md` and `roles/codex-commands.md` exist and Codex has reviewed Q106 and Q107 work. Open: Codex writes the spec for a stage (section 12 item 4), and the tier-4 spec-review section is still marked pending owner review. **Source:** owner, 2026-11-08.
+
+### Q125. Tier 2 state, handover and tracker-drift check (Track A; extends Q110)
+- **Status:** PLANNED. **Prerequisites:** none. **Source:** owner, 2026-11-08 ("the tracker must be kept up to date").
+- **Description:** A tracker-drift check Tier 2 runs at each unit boundary: every merged unit's Q-item has a DONE status, every commit routed under a Q-number is reflected in `docs/TODO.md`. Q110 covers Engram state and HANDOFF regeneration; this item is the TODO.md half.
+
+### Q126. CodeGraph is read-only in worktree sessions (nono profile grants per-project `.codegraph` only)
+- **Status:** GRANT INSTALLED, RESTART PENDING (2026-11-08; owner installed the nono profile with `$HOME/ai-workspace/worktrees/*/*/.codegraph`, mirroring the existing worktree `.git` grant at line 82; effective at the next `secure-opencode-v2.service` restart, which waits for Q114 and Q115). Open: proof that a worktree session's `codegraph_codegraph_explore` answers after the restart, the same grant in the V1 profile if V1 stays as rollback, and a verifier check for the grant. Worktrees outside `~/ai-workspace/worktrees` stay uncovered.
+- **Evidence:** every worktree has a `.codegraph/` (made by `scripts/codegraph-ensure.sh`) and the MCP shows Connected, but `~/.config/nono/profiles/opencode-v2-secure.json` lists write grants per project `.codegraph` (lines 34-58) and none under `~/ai-workspace/worktrees/`. The tool exists (`codegraph_codegraph_explore`); the sandbox makes its SQLite DB read-only.
+- **Description:** grant write on `.codegraph` under the worktree root in both nono profiles (check whether nono accepts a glob or needs `register-project` worktree-root mode, D36), then prove with a worktree session that `codegraph_codegraph_explore` answers. Add a verifier check that fails when the worktree root has no `.codegraph` grant.
+
+### Q127. Review session transcripts for contract non-adherence (owner, 2026-11-08)
+- **Status:** PLANNED. **Prerequisites:** none; feeds Q104, Q111, Q113. **Source:** owner, 2026-11-08.
+- **First cases (owner, 2026-11-08):** (1) Q114 `pm-odd` (`ses_e46079d08ffeCJOJP3V3wC76Z7`) went to writers with no Planner and no advice although the unit's Risk line names items 4 and 1: find out whether the Planner was never dispatched, was refused (Q105), or was skipped. (2) Q115 (Risk items 3 and 5) went to a `general` writer directly, and the Track A docs unit did the same (that one is within the Documentation row). Route-table defect to fix with Q113: `WORKFLOW.md:179` "Global tooling change" is "delegate in-repo source change" with no plan or advice step, so a unit whose Risk line names a high-risk item must route through the Planner and the advisors the handoff selects, and the owner's "advice is mandatory for every non-trivial change" rule must be stated in the OpenCode contract, not only in `CLAUDE.md`. Orchestrator briefs (Tier 2) name the Risk line and never the route.
+- **Findings (transcript read, 2026-11-08; sources: `opencode.db` `session_message`, `routing-guard.log`):** (a) `pm-odd` dispatched only `odd-apply`; no Planner or advisor call and no refusal text, so the Planner was skipped, not blocked. (b) [CORRECTED by owner 2026-11-08: the guard is warning-only and blocks nothing; it LOGGED these, it did not stop the work. The real stops were the broker (`PLAN_ROOT_PROTECTED`) and an environmental `Permission denied: 'node'`. The stall is not shown to follow from the skipped steps.] The routing guard logged: `odd-apply` dispatch was flagged "before advice record odd/advice/<change>.md exists" and "before tracker stage artifact exists", and the Q115 writer logged about 25 `sandbox_write`/`sandbox_edit` refusals ("workflow-odd-secure bootstrap: write ... before tracker stage artifact exists"). (c) `pm-odd` loaded only `workflow-odd-secure` (not `workflow-route`, which the guard names), and could not find `docs/specs/pm-handoff.md` in the worktree (host_git_head C6 not shipped). (d) The writer's `sandbox_edit` of the tracker was refused with `PLAN_ROOT_PROTECTED`; `pm-odd` reported BLOCKED with "no Risk line was supplied", although the Tier 2 brief carried one, so the Risk line was lost between orchestrator and PM. (e) No CodeGraph call by `pm-odd`; the read-only DB failure is in the orchestrator session (Q126).
+- **Owner decision (2026-11-08):** the Q114 and Q115 route violations are accepted: the Tier 2 brief was very specific, so they are evidence for refinement, not a defect in the work done. No corrective message is sent.
+- **Description:** Read the Run's OpenCode 2 transcripts and classify each deviation from the role contract by cause: brief gave code-level instructions instead of the outcome; skill or handover not found or not read (V2 skills root lacks `work-unit-commits` and `chained-pr`, Q116); tool unavailable (Q126); prompt silent or ambiguous. Output: a table of deviations with the prompt or AGENTS.md line that should change. The OpenCode 2 `AGENTS.md` and each agent's system prompt must then say explicitly where to find skills and handovers and which tool does which job. Q113 carries the rewrite.
+
 ### Q102. Multi-tier orchestration, Track B: OpenCode workflow narrowing and sandbox changes
 - **Status:** PLANNED.
 - **Prerequisites:** none to start. Lands `agent-sandbox-integration` first, then `workflow_optimisation`
@@ -2250,6 +2291,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - Planner contract and plan-per-stage handling in `agent-sandbox-integration`;
   - staging build at the spec D24 scope (P0-P2, reduced P4, P6 kept, P5 if needed, P3 deferred),
     starting with the P0 native-review spike (spec OPEN-1);
+  - staging completion without the owner as the manual step (owner, 2026-11-06): a staged result is reviewed in the sandbox (Codex, native review), and an approving recorded verdict lets the broker install and commit it; S17 becomes "protected paths need a recorded approving verdict", not "a human commits". Owner-only paths stay owner-installed even with a verdict: credentials and secrets, and the nono profiles. The owner sees only exceptions (reject, STALE, high-risk item, blocked). Workers end in one explicit state: `staged-awaiting-review`, `approved-installed`, `rejected`, `stale` or `blocked`, and the orchestrator routes on it (record the states in `roles/README.md`). Until staging exists, Tier 2 commits an approved result as a stopgap.
   - gate routing: code records a clear-match verdict, a clear fail goes back to the Planner, an unsure
     result goes to an independent spec-check agent (spec D22, OPEN-16, OPEN-19). This changes who may
     author `host_gate_verdict`, so it is its own commit with an independent verifier;
@@ -2259,7 +2301,8 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - OpenCode 2 allows background subagents (spec D32): use them for non-blocking parallel dispatch in the narrowed orchestrator contract;
   - add a host tool to create a new git branch (spec D33). Extend the planned host git tools (`agent-sandbox-integration/odd/tasks/host-git-tools.md`, T2 mutation tier) instead of building a parallel tool; the main sandbox checkout has uncommitted work on the same broker files, so coordinate before starting;
   - extend `host_register_project` and `scripts/register-project.ts` with a worktree-root mode (spec D36): create `~/ai-workspace/worktrees/<project>/`, register the root (read grant in both nono profiles, `BROKER_PROJECTS`, launcher root) with no `git init`, `.atl` or `.codegraph`; its restart hint must name `secure-opencode-v2.service`. Owner decision (2026-11-06): the broker treats the root as ONE project; the unit must prove, with a test, that stage, apply and review flows resolve a worktree path under the root. Dry run on the unextended script (2026-11-06) showed it would `git init` the root and create `.atl` and `.codegraph` there. Sandbox unit, coordinated with the host git tools.
-  - add a read-only `host_git_head` host tool (branch name and head SHA for any project path, linked worktrees included, via `gitDirFor`) and change the PM `unit_start_anchor` contract (`docs/specs/pm-handoff.md:7,87,200`) to read the branch head with it, not from `.git/HEAD`. Found 2026-11-06: in a linked worktree `.git` is a pointer file, so the PM's `read` of `.git/HEAD` fails (`Not a directory`) and every PM route returns `MISSING_REQUIRED_UNIT_START_ANCHOR`. Prerequisite: `host_git_branch` (same broker files). Give pm-odd and pm-systematic the tool as `allow`. Interim: run PM units in a full clone (`.git` is a directory). Also ship `pm-handoff.md` as a global skill, because it is unreadable from any other repo;
+  - [broker half DONE 2026-11-07, agent-sandbox-integration `feat/host-git-head`, Codex spec review: C1, C2, C7 MET; remaining: C4 migrate `pm-handoff.md:7,74,78,87,171` and the PM prompts at `global-config/opencode.json:2374,2513` off `.git/HEAD`, C5 explicit `host_git_head` grants in the pm-odd/pm-systematic definitions (`opencode.json:2375,2429,2514,2568`) with a merged-config readback, C6 ship `pm-handoff.md` as a global skill; also a root-registered PM end-to-end `gitHead` check] add a read-only `host_git_head` host tool (branch name and head SHA for any project path, linked worktrees included, via `gitDirFor`) and change the PM `unit_start_anchor` contract (`docs/specs/pm-handoff.md:7,87,200`) to read the branch head with it, not from `.git/HEAD`. Found 2026-11-06: in a linked worktree `.git` is a pointer file, so the PM's `read` of `.git/HEAD` fails (`Not a directory`) and every PM route returns `MISSING_REQUIRED_UNIT_START_ANCHOR`. Prerequisite: `host_git_branch` (same broker files). Give pm-odd and pm-systematic the tool as `allow`. Interim: run PM units in a full clone (`.git` is a directory). Also ship `pm-handoff.md` as a global skill, because it is unreadable from any other repo;
+  - make native `grep` prompt-free for the orchestrator only (owner, 2026-11-06): the global `permission.grep: "ask"` in `global-config/opencode.json` is crippling staging; set `grep: allow` for `gentle-orchestrator` and keep every subagent and PM `deny`. Sync `WORKFLOW.md:107-109` ("native `grep: ask` for the orchestrator only"), `skills/workflow-*` and `workflow-route`, `verify/checkers/check-runtime-agents.cjs`, `scripts/derive-v2-config.py`, and the pinning tests (`test_verifier_v2_config.py`, `test_derive_v2_config.py`, `test_q90_planner.py`, `test_verifier_v2_mode.py`). Ship with the D33 permission-rules unit (same file).
   - enable parallel implementation of non-overlapping units (spec D31, OPEN-20): replace the "single writer thread" rule (`global-config/prompts/gentle-orchestrator/overlay.md:66`, `base.md:161`, `skills/workflow-odd-secure/references/odd-and-review.md:83`) with a disjoint-edit-surface rule where the parent owns git and one seam check runs at the end; move writer fan-out guidance out of the skill reference into the orchestrator contract; re-base the PM `unit_start_anchor` on the stage's pinned baseline commit with a per-unit tracker component (owner confirmed, OPEN-20 resolved; first check what else relies on the whole-branch anchor in `docs/specs/pm-handoff.md:7,200`); test first by dispatching two disjoint writers and checking whether `host_sandbox_result_install` accepts both.
 
 ### Q103. Full OpenCode model assignment review
@@ -2271,6 +2314,317 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   `systematic.jsonc`, `rate-limit-fallback.json`) to keep frontier models for native review only
   (spec D7). Moving the Planner off Sol is one outcome. Keep vendor-independence rules and the
   digest pin in mind when the config changes.
+### Q104. Role contracts in the deployed prompts, so briefs say what and never how
+- **Status:** PLANNED.
+- **Prerequisites:** Q102 (the narrowed orchestrator contract), `roles/tier-5.md` and the
+  spec-review section of `roles/tier-4.md` reviewed by the owner (both are marked pending owner review).
+- **Source:** owner, 2026-11-07.
+- **Description:** Each role carries its own contract and system prompt, so a dispatch needs only a
+  short brief (the task, the spec, the `S#`, the worktree) and never the procedure. Today the procedure
+  is retold in dispatch text, and it drifts: the OpenCode orchestrator ran reviewer subagents itself
+  instead of delegating to the PM, and Codex was asked for security review but never for a spec review.
+  Work:
+  - load `roles/tier-5.md` into the deployed OpenCode orchestrator prompt (through
+    `scripts/derive-v2-config.py` on V2, the verifier mirror on V1). This changes a contract others
+    consume, so it needs the digest re-pin (`python3 scripts/verifier_manifest.py update`) and its own
+    work-unit commit with an independent verifier;
+  - load `roles/tier-4.md` (including the per-`S#` MET / NOT_MET / NOT_VERIFIABLE review) into the Codex
+    instructions for dispatched Codex sessions, replacing the command policy prepended by
+    `scripts/dispatch-worker.sh` where the two overlap;
+  - Tier 4 does not run tests, so the contract says where the implementer's results come from: the
+    Tier 5 terminal report carries the test counts, the known failures, the RED evidence and the build
+    exit code, and the Tier 2 handoff to Tier 4 includes that report. A reviewer should not have to ask
+    for it (a Codex session did on 2026-11-07);
+  - Tier 5 owns a phase end to end: route, change, Gate 2 where the task class requires it, assess
+    once staging has started, native review only when due (consent envelopes are relayed to Tier 2 and
+    answered there), fix blockers, then hand back one completed candidate. Tier 2 and Tier 4 examine it
+    and the next phase starts only after they confirm. Add a test that a dispatch brief needs no
+    procedure text (a probe dispatch with a short brief reaches the same terminal report);
+  - the daily rhythm (the same item, so the contracts serve it): one interactive session a day with
+    Tier 1: a brief summary of the day's work, a deeper review with a second agent (not yet chosen),
+    approval and confirmation that the work is applied, then planning the next session; otherwise only
+    "yes" to start the next session. The other interaction is planning future changes and the
+    copy-and-paste into Antigravity for spec phase 3. Planning runs several days ahead per project; the
+    final specification is refined on the day by Tier 2 and Tier 4, and OpenCode 2 then owns the
+    code-level planning and implementation of each phase. Record the rhythm in the spec (section 5) and
+    list the second review agent as an open decision.
+
+- **Q107 outcome and accepted limit (owner, 2026-11-07).** Implemented in the sandbox repo on
+  `feat/q107-relay-roots` and corrected after the Tier 4 review (F1 FIFO hang, F2 canonical root in
+  `register-project`, vacuous backlink fixture); Codex rechecked all three: PASS. Accepted as a documented limit:
+  the relay trusts worktree back-link and `commondir` metadata that lives in a `.git` the sandbox can write, and
+  whether `gentle-ai` binds the review to the target tree bytes independently of the session root could not be
+  proven from this repository (Codex: NOT_VERIFIABLE). Compensating controls the owner counted: the Planner and
+  advisors, the verifier, the Tier 4 Codex review (twice) and, in the daily review, native review with the owner's
+  per-candidate consent. Protected-path commits are the owner's.
+
+### Q108. Native review moves to the daily review of staged changes (D37)
+- **Status:** PLANNED. **Prerequisites:** Q107 (relay accepts the stage root), staging chain at D24 scope.
+- **Source:** owner, 2026-11-07. Consent is per candidate and owner-only, so review cannot run inside an
+  autonomous Tier 5 phase (PM-only review blocked for hours on consent, allowlist and a frozen lineage).
+- **Description:** Tier 5 stops after `assess` and reports `review_due`; Tier 1/2 starts the review in the
+  daily session on the staged candidate and relays consent live. Wire it into the staging chain
+  (READY/CHECKING before APPROVED), the Tier 1 daily-review summary and `roles/tier-1.md`/`tier-2.md`;
+  drop the consent/fix steps from the deployed Tier 5 and PM prompts (with Q104).
+
+- **Advisor triggers in every runtime (owner, 2026-11-07).** The Claude rule is
+  `changesets/claude-advisor-triggers/`. Put the same triggers (fix did not clear the failure, cause or menu
+  about to reach the owner, retry hook, step costing the owner an action, competing plans, critical or
+  security issue without a simple fix, repeated dispatch rounds) into the OpenCode 2 role prompts
+  (`tier-5.md`, PM, orchestrator) and `roles/codex-commands.md`, naming the advisor lanes each runtime can
+  actually call (see Q105).
+
+### Q104a. Persistent OpenCode 2 sessions: dispatch per phase, `ask` for blockers (part of Q104)
+- A retained session gets each phase as a new dispatch (`roles/README.md`, "Persistent sessions").
+  Observed 2026-11-07: `host_orca_report` type `ask` timed out on the broker and the session then sent
+  `worker_done`, spending the dispatch. Decide the blocked channel: a non-closing report type
+  (`question`/`escalation`/`status`) in `host_orca_report`, or a longer `ask` timeout that the reply
+  reaches. Put the decision in `tier-5.md` and the PM prompts; per-dispatch spec wording was ignored twice.
+
+### Q105. Unhide the Planner and the advisors (hidden agents cannot be dispatched by name)
+- **Status:** PLANNED. Blocks every routed unit's Gate 2.
+- **Prerequisites:** none for the probe; the unhide itself is a `global-config/opencode.json` change,
+  so it needs the digest re-pin, a derive on V2, an owner restart and an independent verifier. Queue it
+  with the D33 permission rules and the orchestrator grep change, which edit the same file.
+- **Source:** owner, 2026-11-07.
+- **Evidence:** the PM-only T2 unit (2026-11-07) was blocked at Gate 2 because the Planner could see
+  only `explore` and refused the `ce:review` substitution. In `global-config/opencode.json` the Planner
+  and all 15 `advisor-*` agents are `hidden: true`, while `pm-odd` and `pm-systematic` are visible and
+  already hold the `task` allows for the advisors. Earlier finding: `hidden: true` hides an agent from
+  the listing, and models do not dispatch names outside the listing. Counter-fact: in the earlier T2
+  session the Planner did dispatch exact-name advisors at Gate 1, so the cause is likely but not proven.
+- **Description:** 1) Cheaper test first (owner, 2026-11-07): keep the agents hidden and have the
+  Planner's system prompt name each advisor it must call by its exact name (the `task` permission
+  already allows them). Probe with the same model as the failed Gate 2: does the Planner dispatch
+  `advisor-testing-post` and the other required lanes by name? Record the result per lane. 2) Only if
+  the by-name prompt does not work, unhide the Planner and the advisors, then repeat the probe (A/B
+  against the hidden config). The listing-size concern (the reason for hiding, 9 dispatchable agents)
+  is addressed by the callers' `task` permissions, which deny `*` by default; verify the orchestrator's
+  listing does not grow. 3) Add a verifier check that every advisor the Planner is allowed to call is
+  either visible to it or named in its prompt, so a mismatch fails the verifier instead of failing at
+  Gate 2.
+
+### Q106. A new sandbox tool must bring its permissions into this repo's config
+- **Status:** DONE (2026-11-07; `workflow_optimisation` `2a1dc36`, `0b67b5e`, merged to `main` as `16f26f4`; Codex PASS on recheck).
+- **Prerequisites:** none. Companion of the D33 permission rules (host_git_branch, host_git_head).
+- **Source:** owner, 2026-11-07.
+- **Description:** Adding a tool in `agent-sandbox-integration` (a broker op plus its plugin tool spec
+  and permission fragments) does not add the matching permission entries to
+  `global-config/opencode.json` here, so a landed tool is invisible or denied for the roles that need it
+  (`host_git_branch` and `host_git_head` both landed without the per-role grants). Make the gap fail
+  loudly: a check that compares the sandbox repo's tool surface (`broker/tests/fixtures/sandbox-tools-surface.json`
+  and the permission fragments) with the per-agent `tools` and `permission` entries in
+  `global-config/opencode.json`, and fails the verifier when a sandbox tool has no decision (allow, ask
+  or deny) for each role in its role-policy matrix. Prefer generating the entries from the fixture to
+  hand-copying them. Land `host_git_branch` ask/deny and `host_git_head` allow for `pm-odd` and
+  `pm-systematic` as the first use, together with the orchestrator grep change (same file).
+  Also in this unit (owner, 2026-11-07): `host_review_acknowledge_approved` is `ask` for
+  `gentle-orchestrator`, `pm-odd` and `pm-systematic` (`global-config/opencode.json` agent permission
+  entries) and stalls an approved review for no benefit: acknowledgement only burns authority the
+  provider already issued for the exact lineage, and consent was given earlier. Set it to `allow` for
+  those three; keep the global default `deny` for every other agent. Update `WORKFLOW.md`, the pinning
+  tests and the verifier checker in the same commit.
+
+### Q109. Fix the PM-only contradiction in `workflow-odd-secure` (quick follow-up)
+- **Status:** DONE (2026-11-07; `4e55464`, merged to `main` as `16f26f4`).
+- **Source:** native review R3-001 of the PM-only unit, owner, 2026-11-07.
+- **Description:** `global-config/skills/workflow-odd-secure/SKILL.md:18` now says the orchestrator
+  never dispatches `odd-apply` or `gentle-ai-worker` (PM-only), while the unchanged bullet that follows
+  still tells the orchestrator to dispatch `odd-apply` as the ODD implementation writer. Reword that
+  bullet so an ODD unit's writer is dispatched by the PM, then keep the three places that state the
+  specialist policy in agreement (`ROUTE_STAGES`, `opencode.json` task permissions, the skills). Small
+  change; the other five advisory findings (R4-001, R4-002, R3-002, R3-003, R3-004) are optional hardening
+  in `systematic-routing-guard.ts` and `check-runtime-agents.cjs` and may ride along.
+
+### Q110. Tier 2 project state and handover record (so Tier 2 coordinates and hands over to Tier 1)
+- **Status:** PLANNED. **Prerequisites:** none. **Source:** owner, 2026-11-07.
+- **Evidence:** on 2026-11-07 Tier 2 told the owner staging "has not started" because it read
+  `odd/tasks/staging-chains.md`, whose header still said "planned, no code started". The sandbox repo's history
+  shows P1, P2, reduced P4, the gate-verdict change, hardening H1-H5 and the P6 acceptance suite merged, with
+  native reviews approved. A tracker that lags git is the failure to remove.
+- **Description:**
+  - **Evidence before state.** `roles/tier-2.md`: before stating the status of any feature, Tier 2 reads git
+    (`git log`, `git branch --contains`, merged-ness against the default branch) in the owning repo, and treats a
+    tracker header as a claim to check, never as a fact.
+  - **A tracker-drift check.** A script (verifier advisory, not a gate) that compares each `odd/tasks/*.md`
+    `Status:` and task rows with commits on the default branch that cite the feature or task id, and lists
+    trackers that lag. Run it at the start of every Tier 2 session and before every handover.
+  - **Engram ownership (D23).** Tier 2 writes, at each unit boundary (merge, native review outcome, owner
+    decision, deploy, blocker): topic keys `state/<project>/current` (what is live, what is merged but not
+    deployed, what is blocked and on whom) and `decision/<project>/<id>`. Tier 5 never writes Engram; its terminal
+    report is the input.
+  - **Handover to Tier 1.** One refreshed `HANDOFF.md` per session end with: merged but not deployed, open owner
+    decisions, running dispatches and retained terminals, next three actions. Generated from the state record and
+    git, not rewritten from memory.
+  - **Session start.** Tier 2 reads `state/<project>/current`, runs the drift check, then `worker-list` for
+    retained sessions, before answering any "where are we".
+  - Tier 5 briefs and reports carry the tracker row they change, so the tracker is updated in the same commit as
+    the work (extend `roles/tier-5.md` Hand back).
+
+### Q111. One master OpenCode 2 orchestrator per repo; background delegation; questions go to the delegating Tier 2
+- **Status:** PLANNED. **Prerequisites:** Q104 (role contracts wired). **Source:** owner, 2026-11-07.
+- **Description:**
+  - **Topology.** Tier 2 delegates to ONE retained OpenCode 2 master (`gentle-orchestrator`) session per
+    repository, never to a fresh session per worktree. The master delegates to PMs (`pm-odd`, `pm-systematic`),
+    which may run in parallel, each in its own worktree. `roles/tier-2.md` and `roles/README.md` say so, and
+    Tier 2 finds the master with `worker-list` before it launches anything. (2026-11-07 Tier 2 launched Q107 and
+    Q109/Q106 as separate sessions with `orca agent launch`; that was the wrong shape and is corrected by this
+    item.)
+  - **Background delegation.** Nothing yet tells the orchestrator to delegate in the background, so a new prompt
+    waits for the running subagent. Add to the orchestrator contract (D32, OpenCode 2 allows background
+    subagents): dispatch PMs and independent subagents in the background, keep the thread free for the next
+    prompt, collect results on completion, and never block on a subagent whose result is not needed to decide the
+    next step. Verify with a probe: a second prompt is answered while a PM runs.
+  - **Questions.** A Tier 5 question goes to the Tier 2 session that delegated the work (not the owner's
+    terminal): Tier 2 answers it from the spec and the queue, takes the advisor when the answer is not clear
+    (advice is evidence, not approval), and holds for the owner only when it needs a product or consent decision.
+    The channel must be one that works (`ask` timed out on the broker, Q104a), so choose it with Q104a. Until
+    then Tier 2 reads blocked terminals itself (`orca terminal read`).
+  - **Report back (found 2026-11-07).** The Q107 session finished and told nobody: no role prompt tells an
+    OpenCode 2 orchestrator to report to Orca (`host_orca_report` `worker_done`, once, at the terminal state), and a
+    session started with `orca agent launch` has no Run to report to. Put the report step in the orchestrator
+    contract (Q104) and make every dispatch Run-bound (below); until then Tier 2 reads terminals after launch.
+  - **Report binding.** Dispatches carry the Run (`--run`) so `worker_done` and questions reach the watcher; a
+    session started with `orca agent launch` is not bound to the Run.
+
+### Q112. Cost learning, estimation and cross-project prioritisation (owner, 2026-11-07)
+- **Status:** PLANNED. **Prerequisites:** the usage ledger (Q101, D25), Q111 (master per repo). Design item first; no code before the owner approves the shape.
+- **Description:**
+  - **Cost record per task.** Every dispatch records wall time, tokens and usage budget per tier and model, by task class, route and size, so the ledger holds actuals next to the estimate made at dispatch.
+  - **Learning loop.** Tier 2 estimates a task from past actuals of the same class (median and spread), records the estimate, and compares it with the actual at close; the error feeds the next estimate. Report estimate error per class so it visibly improves.
+  - **Priority across projects.** Each queued unit carries a priority, a deadline if any, and a cost estimate. Tier 2 allocates against the limits that actually bind: remaining usage budget per subscription for the period, wall-clock time, and the worker cap (4 concurrent workers, to be confirmed against Orca and the subscriptions). Under tight limits it runs the highest-priority work that fits and says what was deferred and why.
+  - **Plan for a period.** Given a window (a day, a week), produce the allocation: what fits, what is deferred, what the estimate error range is. The owner reviews it in the daily session.
+  - **Open:** confirm the worker cap; decide where the ledger and estimates live (spec D25 says `workflow_optimisation`); decide the priority scale with the owner.
+
+### Q128. `pm-handoff.md` must be findable from any repo (owner, 2026-11-08)
+- **Status:** PLANNED. **Prerequisites:** none; overlaps the Q102 `host_git_head` item C6. **Source:** owner; evidence: `pm-odd` read `docs/specs/pm-handoff.md` in the worktree and got "file not found".
+- **Description:** Give `pm-odd`, `pm-systematic` and the orchestrator prompts the absolute path of `docs/specs/pm-handoff.md`, or ship it as a global skill (preferred; C6). Add a verifier check that the referenced path or skill resolves from a repo other than this one. The same test applies to every handover and skill the prompts name.
+
+### Q129. Route tracker tool: code tells each agent its next step (owner idea, 2026-11-08)
+- **Status:** PLANNED (design first; no code before the owner approves the shape). **Prerequisites:** Q113 (need-to-know and blocking guard), Q105. **Source:** owner, 2026-11-08.
+- **Idea:** a code-based tool that tracks one change from route selection to completion. The OpenCode 2 orchestrator selects the route once; every other agent calls the tool and receives only the next step for its role. A change is complete when every gate on the selected route has passed. It cuts failed routing, context and time, and gives the guard something to enforce when it starts blocking.
+- **Owner decisions (2026-11-08):** state is kept in a database keyed by a change id, with the session ids linked to it. The guard marks a change complete, and completion is confirmed from evidence (recorded dispatches, advice records, gate verdicts), not from an agent's assertion. The tool's code is the only database writer; agents have no direct access (no read or write grant to the file in any nono profile or tool allowlist) and reach it only through the tool's commands. Known limit, to be stated in the design: the evidence can show an advisor was delegated, not that its advice was used.
+- **Owner decisions (2026-11-08, continued):** (1) One central database, shared between projects, replaces the guard's per-session `routing-keys/` files (the guard is refactored to keep its workflow keys and stage markers there). (2) Automatic backup and pruning: a completed change is reduced to one summary entry. (3) `ROUTER-LOG.md` is retired; the database records each routed task automatically from the orchestrator's initial route call. (4) Stage tracking must stay correct whether or not a model uses the tool: the guard observes the stage-relevant tool calls and artifacts itself (dispatches, advice records, tracker artifacts, gate verdicts), so a model that follows the prompt or remembers the route without calling the tool is still tracked.
+- **Design questions:** where the database lives and how the file is kept out of agent reach (the guard keeps per-session state under `routing-keys/` today); how it relates to `odd/tasks/` trackers, `host_gate_verdict` and the advice records; who may advance a gate (a contract others consume, high-risk item 3); how it behaves for the V1 rollback; whether it replaces `ROUTE_STAGES` or is generated from it.
+
+### Q130. V2 runtime-agent sweep: derived aliases and mirrors inherit their base's identity exemptions
+- **Status:** PLANNED. **Prerequisites:** Q115 (narrowed), a Planner-capable checkout (Q128, `host_git_head` C4-C6, or a full clone). **Source:** Codex Q115 review, owner decision 2026-11-08.
+- **Risk:** item 2 (security sweeps) and 3; needs the Planner and a security advisor.
+- **Description:** make section 9 run against the real derived V2 config instead of being skipped. Edit `verify/checkers/check-runtime-agents.cjs` so a derivation-exact `-astra` alias or access mirror inherits its base's identity-keyed exemptions (exact-name lists such as `planWriterAgents` and the coordinator list). First failing tests: Codex's two cases, `planner-astra` with `host_plan_write: ask` (Sol planner), and a Sol `pm-odd` alias with `host_review_acknowledge_approved: allow`; plus `correctness-reviewer` with that grant must still fail. Do not import `derive-v2-config.py` into the verifier unless it is added to the digest manifest.
+
+### Q113. Need-to-know information per agent, and a blocking routing guard
+- **Status:** PLANNED (owner, 2026-11-07). **Prerequisites:** Q104, Q111; extends Q102 (D10, D11).
+- **Description:** once the architecture is built: (1) tighten what each agent is shown to what its one purpose needs, with each PM delegation starting from a fresh, narrow context and the master keeping the long context through Magic Context; (2) finish the routing guard and switch it from warning-only to blocking, so the OpenCode 2 workflow must be followed (today it is warning-only apart from one generic-task block). Do (2) only after (1) and the role contracts are in place, with a documented list of what it blocks and a rollback.
+
+### Q114. Free sandbox workers when their work ends; size the worker cap from measured use
+- **Status:** CODEX CLEAN EXCEPT ONE ACCEPTED RESIDUAL (2026-11-08): F1-F5 and the allocation-leak P2 (C3) CLOSED; owner accepted as a residual (YAGNI) the Codex P2 at `broker/src/service.ts:916-926`: bootstrap/active-state persistence fails AND removal is unconfirmed AND the rollback write also fails, leaving a nameless `CREATING_SANDBOX` record the reaper never retries (`reaper.ts:409-422,468`; `ensureWorker` refuses at `service.ts:500-502`); recovery is a broker restart. Candidate uncommitted (21 paths, ~5,000 lines, review_due high_risk). Owner decisions: split by seam or record a size exception, commit (S17), native review consent, broker restart after sessions are idle. Approval-binding race recorded separately.
+- **Evidence (broker journal, 2026-11-07 15:00-17:46, `maxWorkers: 4`):** three `ensureWorker` calls failed with
+  `queued ... timed out after 600000ms` (17:29, 17:39, 17:41); two others waited 576 s and 77 s. Each wait ended
+  only when the reaper logged `reaped_result_ready`. `sweepIdle` releases a `RESULT_READY` worker only after
+  `reapIdleMs` (default 3,600,000 ms, `broker/src/config.ts:510`), although the result is already host-side
+  (`reaper.ts` comment). With `sandbox_apply` unused, a finished worker holds a slot for up to an hour.
+  `d65518b` already releases workers on terminal states, so this is a different path: not yet confirmed which
+  states held the slots; the first step is to log it.
+- **Resources (sampled 17:45):** 16 cores, load 1.4; 29 GiB RAM with 6.5 GiB available (23 GiB used, of which the
+  CPU llama-server is 2 GiB and the OpenCode 2 server 0.9 GiB). Live sandbox VMs were 139-458 MiB each, so four
+  workers are about 0.6-1.8 GiB idle. Memory and CPU do not bind the cap at idle; per-worker PEAK under test
+  runners is unmeasured.
+- **Description:**
+  - Release the worker as soon as the result is host-side (`RESULT_READY`), keeping the state so
+    apply/preview/retain/discard still work; do not wait for `reapIdleMs`. Same for a result that is committed
+    through `host_git_commit`.
+  - Pressure-aware sweep: when the pool queue is non-empty, release idle `RESULT_READY` and idle clean
+    `SANDBOX_ACTIVE` workers at once, never one with unexported edits.
+  - Log pool occupancy (held by session, state, age, queue depth) on every wait and timeout, so the cause of a
+    wait is visible.
+  - Measure per-worker peak CPU and memory during real runs (bun test, builds), then set `maxWorkers`: it is a
+    function of free RAM at peak, cores, and how many PM sessions run in parallel (Q111), not a constant.
+  - Do NOT shorten `BROKER_REAP_IDLE_MS` as a stopgap: it also closes idle `SANDBOX_ACTIVE` sessions as
+    `FAILED_CLOSED`.
+  - Workers that queue for 600 s should surface a clear `blocked` report to the delegating Tier 2 (Q111).
+
+### Q115. V2-mode verifier reads V1 paths and the main checkout
+- **Status:** MERGED AND PUSHED (2026-11-08, fast-forward to `main` at 33c47ed, pushed to origin). Narrowed to a named V2 skip of section 9 (exit 3 = incomplete, 0 clean, 1 failures win); Codex PASS at 108c519; native review approved and acknowledged (lineage review-63500602d1322b81, R3-001 fixed in f0906e1). Open: owner commit of the S17 `verifier_manifest.py` bytecode filter, live V2 `--behavioral` run (expects exit 3 until Q130), and eight advisories (R4-001 bare-name `dirname` workspace, R3-003 untested `$0` fallback, R4-002 derivation failure exit 2 outside 0/1/3, R3-004 `str.replace` control can silently no-op; four more in the review record).
+- **Evidence:** with V2 first on `PATH` the verifier still resolves several inputs from V1 or fixed paths:
+  - `WORKSPACE` is fixed to `~/ai-workspace/workflow_optimisation` (`verify/10-env.sh:33`), the main checkout, which can be
+    on any branch. On `chore/coordinator-selection` it reported five failures from pre-merge source (old health-plugin
+    pin, no `host_git_*` decisions, grep drift, derive refusal). `WORKFLOW_VERIFY_WORKSPACE=<worktree>` cleared them.
+  - `AGENTS_FILE` comes from `OPENCODE_CONFIG_DIR`, default `~/.config/opencode` (`verify/10-env.sh:34,44`), so
+    `AGENTS_BOUNDED_BLOCK_DRIFT` compares the V1 copy with source even in V2 mode. The V2 root copy is byte-identical.
+  - Section 9 runtime-agent checks assume V1 shapes. Pointing the V1 variable at the derived V2 root produced about 20
+    failures (grep deny by design, `plugins` not `plugin`, generated Astra aliases), so there is no supported way to
+    run section 9 against V2 today. The one failure seen under the supported invocation was not diagnosed.
+  - `GITHUB_RO` needed a retry (attempt 1 of 3 failed, then connected).
+- **Description:** in V2 mode derive the active config dir, AGENTS path and workspace from `V2_CONFIG_ROOT` and the
+  script's own checkout; make section 9 V2-aware or skip it with an explicit reason; keep positive controls so a V1-only
+  pass cannot hide a V2 gap. Document the V2 invocation next to the cutover verify step.
+
+### Q116. Do V2 sessions have the work-unit-commits and chained-pr skills?
+- **Status:** PLANNED (investigate first). **Source:** owner V2 deploy run, 2026-11-07.
+- **Evidence:** `GENTLE_AI_V4_ODD_SKILL_MISSING` fires for `work-unit-commits` and `chained-pr` when the skills path is
+  the V2 root. They exist in `~/.config/opencode/skills` (V1, gentle-ai-managed) and not in `global-config/skills`,
+  so `derive` never copies them; the derived `opencode.json` has no skills entry. Unknown whether V2 finds them on
+  another skill root.
+- **Description:** probe the V2 runtime for both skills by name. If absent, decide the delivery path (derive copies
+  them, or a V2 skill root), and point the verifier check at the V2 location. Impact if absent: V2 ODD sessions lose
+  the work-unit commit and chained-PR discipline.
+
+### Q117. Run the V2 plugin auto-update timer from a stable checkout of main
+- **Status:** PLANNED (owner approved 2026-11-08). **Source:** Tier 2 deploy review, 2026-11-07.
+- **Evidence:** `v2-plugin-autoupdate.service` runs `scripts/v2-plugin-autoupdate.py` from
+  `~/ai-workspace/workflow_optimisation` (`docs/systemd/v2-plugin-autoupdate.service.template:15`), the owner's working
+  checkout. That checkout is on `chore/coordinator-selection`, not `main`, and carries unpushed or uncommitted edits, so the
+  script version the timer runs depends on whichever branch is checked out.
+- **Description:** point the unit at a dedicated checkout that only ever tracks `main` (a read-only worktree or clone, fast-forwarded
+  by the deploy step), update the template and the installed unit, and make the preflight report which checkout and commit the
+  timer would run. The owner installs the unit; no repo script does.
+
+### Q118. Orchestrators cannot create or move to a worktree
+- **Status:** PLANNED (owner approved 2026-11-08). **Source:** plugin-pin bump, 2026-11-07.
+- **Evidence:** the retained OpenCode 2 orchestrator could not start work in a fresh worktree: the Code Mode `execute` tool is denied
+  by broker admission (`UNCLASSIFIED_TOOL_DENIED`), so `opencode.worktree_create` and `session_move` are unreachable; host git tools
+  are commit, push and clear-intent only; `host_git_branch` is granted to the PMs, not the orchestrator. It asked Tier 2 three
+  times (two worktree questions, one stale-state question) and the branch switch had to be done on the host. Related: Q111, Q114.
+- **Description:** give the delegation chain one supported route to a clean branch or worktree from a named base, without widening
+  the sandbox: for example the orchestrator delegates branch creation to a PM that holds `host_git_branch`, or a broker tool creates
+  a worktree under the registered `worktrees` root. Include a check that a session sees the new HEAD (it read the git HEAD file
+  before the switch landed) and have Tier 2 briefs state the worktree up front.
+
+### Q107. The reviewer relay must accept a new worktree root without a broker restart
+- **Status:** DONE (2026-11-08; sandbox `master` `0479721`; native review APPROVED, range `4d32ff7..5bc893c`, non-blocking advisories: resilience 3, reliability 6; installed on V2).
+- **Prerequisites:** none. Blocks unattended native review of any unit built in a new worktree or clone.
+- **Source:** owner, 2026-11-07.
+- **Description:** `selectCanonicalSessionRoot` (`opencode/plugins/lib/reviewer-relay-core.ts`) requires the
+  session directory to equal an entry of the broker's `policy.projects` exactly. The broker reads
+  `BROKER_PROJECTS` once at startup, so every new worktree or clone needs a `broker.env` edit and a
+  broker restart before `asi-review-*` lanes will run (first seen on `pm-only-clone`,
+  lineage `review-b1e6b2465aac8e7f`). Remove the per-review owner step: accept a canonical worktree
+  whose git common dir resolves to a registered project's repository (decide by git common dir, never by
+  path prefix), or add an owner-only broker reload that needs no restart. Keep fail-closed refusal for
+  anything that does not resolve to a registered project. Tests: a linked worktree of a registered project
+  is accepted; an unregistered repo, a symlinked path and a path-prefix lookalike are refused.
+- **Finding 2026-11-07 (PM-only review, lineage `review-b1e6b2465aac8e7f`):** with the clone allowlisted, the
+  relay root check passes (`sessionRoot=.../worktrees/workflow_optimisation/pm-only-clone`,
+  `serverRoot=.../ai-workspace/workflow_optimisation`), yet every lens fails
+  `binding_mismatch: Task repository context does not match the repository and binding it commits to`.
+  Destroying (`gentle-ai review abandon`) and re-creating the lineage reproduces it byte-identically
+  (`rctx3_o6Uze1QNfWEdGK6`, revision `sha256:2fe8525e...`), so the cause is not a stale context. Probes (outside the sandbox, as the owner, 2026-11-07): the real
+  binding is accepted by `gentle-ai review opencode-transport` from BOTH the clone and the main repo, with
+  byte-identical 87,514-byte materializations, and both reach the result-admissibility stage; so cwd, the
+  lineage and the transport plugin (only one is loaded) are not the discriminator. The probe stored one
+  rejected payload under the clone's `.git/gentle-ai/rejected-results/` (revision and state unchanged).
+  **Confirmed 2026-11-07 (strace inside `nono run` with the V2 profile, relay env and relay contract):**
+  (1) the `.git/gentle-ai` read-write grant cleared `binding_mismatch`; (2) the transport then fails on
+  `mkdirat(<repo>/.git/.gentle-ai-frozen-git-<random>) = EACCES` (a hard-coded temp directory in the git dir, no
+  override found), so it needs write on `.git` itself; granting the clone's whole `.git` makes the first frame a
+  `prompt`, while `objects` or `index` alone do not. The sandbox profile grants `<root>/.git` read-write per
+  registered repo (hooks and config included) and only read on `worktrees/`.
+  **Timing (tested with controls):** a glob grant `.../*/*/.git` covers worktrees that existed when the sandbox
+  started and NOT ones created after, so any `.git` grant under `worktrees/` needs a server restart per new
+  worktree. Write on a worktree `.git` also lets a sandboxed agent set `core.hooksPath`/`core.fsmonitor` or add a
+  hook that runs on the host the next time non-broker git runs there (the broker's own host git overrides these
+  with `-c`; Orca, codegraph-ensure and the owner's git do not). Owner decision pending (grant vs review at merge-back).
+
 ### Q93. Auto-update propose-only rewrite and pin consumer (V1-safe; prepares Q43)
 - **Status:** IN PROGRESS. Fork rewrite DONE at source (fork commits `ff03f85`, `1ffc20e` on
   `feat/propose-only`; tracker `odd/tasks/auto-update-propose-only.md`). Consumer

@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ROLES = ROOT / "roles"
-TIERS = ("tier-1", "tier-2", "tier-2s", "tier-4")
+TIERS = ("tier-1", "tier-2", "tier-2s", "tier-4", "tier-5")
 SECTIONS = ("Purpose", "May", "Must not", "Inputs", "Outputs", "Minimality")
 # Section 14: every role says minimal never drops these.
 PRESERVED = ("tests", "validation", "Risk line")

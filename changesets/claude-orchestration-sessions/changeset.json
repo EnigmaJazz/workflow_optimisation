@@ -1,0 +1,8 @@
+{
+  "schema": "workflow-changeset/v1",
+  "id": "claude-orchestration-sessions",
+  "description": "Global Claude rule: release settled Orca workers, reuse OpenCode 2 sessions.",
+  "ops": [
+    {"op": "file_create", "file": "~/.claude/rules/orchestration-sessions.md", "content_file": "orchestration-sessions.md", "mode": "0644"}
+  ]
+}
