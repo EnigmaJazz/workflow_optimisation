@@ -211,7 +211,7 @@ class PMHandoffSpecTest(unittest.TestCase):
         self.assertIn("SUSPENDED", brief)
         self.assertIn("deterministic host tool lands", brief)
         self.assertIn("host_git_head", spec)
-        self.assertIn("branch` equals the brief's `feature_branch` exactly", spec)
+        self.assertIn("`branch` equals the brief's `feature_branch` exactly", spec)
         self.assertIn("linked worktree is supported and is NOT a blocker", spec)
         self.assertIn("branch: null", spec)
         self.assertIn("detached: true", spec)
