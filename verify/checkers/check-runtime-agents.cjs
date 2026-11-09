@@ -1867,10 +1867,21 @@ function advisorModelPolicyFailures(agents, fallbackConfig=advisorFallbackConfig
   if (!hostRouteFailures.includes("ADVISOR_EVIDENCE_HOST_ROUTE_EXPOSED: sandbox_finish")) {
     fail(`ADVISOR_EVIDENCE_HOST_ROUTE_POSITIVE_CONTROL_FAILED: ${JSON.stringify(hostRouteFailures)}`)
   }
-  const dispatchProbe={...deployedAgents,"synthetic-unlisted-agent":{permission:{task:{"*":"deny","advisor-evidence":"allow"}}}}
-  const dispatchFailures=advisorModelPolicyFailures(dispatchProbe)
-  if (!dispatchFailures.includes("ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: synthetic-unlisted-agent->advisor-evidence")) {
-    fail(`ADVISOR_DISPATCH_SCOPE_POSITIVE_CONTROL_FAILED: ${JSON.stringify(dispatchFailures)}`)
+  // advisor-evidence is deliberately outside advisorNames (it is a facts-only
+  // gatherer, not a pre/post seat), so granting it is caught by the
+  // evidence-dispatch rule, not by the advisor outside-allowlist rule. Keep one
+  // probe per rule so neither rule can silently stop firing.
+  const evidenceDispatchProbe={...deployedAgents,"synthetic-unlisted-agent":{permission:{task:{"*":"deny","advisor-evidence":"allow"}}}}
+  const evidenceDispatchFailures=advisorModelPolicyFailures(evidenceDispatchProbe)
+  if (!evidenceDispatchFailures.includes('ADVISOR_EVIDENCE_DISPATCH_NOT_DENIED: synthetic-unlisted-agent="allow"')) {
+    fail(`ADVISOR_EVIDENCE_DISPATCH_POSITIVE_CONTROL_FAILED: ${JSON.stringify(evidenceDispatchFailures)}`)
+  }
+  // advisor-design-pre is a required tool-less seat, so it is always deployed
+  // and always matches advisorNames; it is the stable outside-allowlist target.
+  const advisorDispatchProbe={...deployedAgents,"synthetic-unlisted-agent":{permission:{task:{"*":"deny","advisor-design-pre":"allow"}}}}
+  const advisorDispatchFailures=advisorModelPolicyFailures(advisorDispatchProbe)
+  if (!advisorDispatchFailures.includes("ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: synthetic-unlisted-agent->advisor-design-pre")) {
+    fail(`ADVISOR_DISPATCH_SCOPE_POSITIVE_CONTROL_FAILED: ${JSON.stringify(advisorDispatchFailures)}`)
   }
   if (advisorFailures.length===0) console.log("   ok: advisor model, seat isolation, dispatch boundaries and no-fallback policy")
 }
