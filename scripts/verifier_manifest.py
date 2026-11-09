@@ -23,7 +23,7 @@ def digest(path):
 
 def render(modules_dir):
     base = Path(modules_dir)
-    files = sorted(p for p in base.rglob("*") if p.is_file())
+    files = sorted(p for p in base.rglob("*") if p.is_file() and "__pycache__" not in p.relative_to(base).parts and p.suffix != ".pyc")
     rows = [f'  "{p.relative_to(base)} {digest(p)}"' for p in files]
     return "VERIFY_MODULES=(\n" + "\n".join(rows) + "\n)\n"
 
@@ -39,7 +39,7 @@ def drift(entry_text, modules_dir):
     """Names of modules whose listed digest is wrong, missing from the manifest, or no longer on disk."""
     listed = dict(re.findall(r'^\s*"([^ "]+) ([0-9a-f]{64})"', current_block(entry_text).group(1), re.M))
     base = Path(modules_dir)
-    actual = {str(p.relative_to(base)): digest(p) for p in base.rglob("*") if p.is_file()}
+    actual = {str(p.relative_to(base)): digest(p) for p in base.rglob("*") if p.is_file() and "__pycache__" not in p.relative_to(base).parts and p.suffix != ".pyc"}
     names = sorted(
         {n for n in listed if listed[n] != actual.get(n)} | {n for n in actual if n not in listed}
     )

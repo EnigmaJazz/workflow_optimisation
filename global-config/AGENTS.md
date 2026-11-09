@@ -160,22 +160,19 @@ tools in this order: `read` → `aft_outline`/`aft_zoom` → `codegraph_explore`
 `ast_grep_search` → built-in `grep` last, retaining query-type tool selection.
 Built-in `grep` is case-sensitive by default; a zero match is evidence about the
 pattern, not the file. State the exact pattern and a positive control proving it
-would match the real spelling (e.g. capitalisation). `grep` remains `ask`-gated
-and unavailable to subagents; shell search never bypasses these boundaries.
+would match the real spelling (e.g. capitalisation). Built-in `grep` is allowed for the orchestrator alone and unavailable to subagents; shell search never bypasses these boundaries.
 
-For the orchestrator, built-in `grep` remains `ask`-gated. Use it only when
-these tools cannot answer a necessary, bounded content query; follow the
-normal approval flow.
+For the orchestrator, built-in `grep` is allowed. Use it only when these tools cannot answer a necessary, bounded content query.
 Do not use shell `grep`/`egrep`/`fgrep`/`rg`/`ag`/`ack`, `git grep`, or
 `find -name` to bypass the gate: the `use-grep-tool` plugin blocks shell code
 search. On a BLOCKED shell search, choose a narrow read-only tool first;
-if it cannot answer, use built-in `grep` with approval. Never assume a tool
+if it cannot answer, use built-in `grep`. Never assume a tool
 grants access to protected paths or use another tool to bypass a deny.
 Piped output filters (`ps aux | grep node`) are unrelated to file search.
 This user-owned rule survives gentle-ai sync; see
 `~/.config/opencode/plugins/use-grep-tool.ts`.
 
-The approval-bearing built-in `grep` is an orchestrator-only fallback. It is
+The built-in `grep` is an orchestrator-only fallback. It is
 unavailable to subagents. Their enforced order is: AFT for known file/symbol
 navigation; CodeGraph for indexed relationships and impact; AST-grep for
 structural patterns; then `sandbox_grep` for a bounded exact literal or prose/
@@ -240,7 +237,7 @@ Read-only agents that have neither `bash` nor `sandbox_bash` must say so and rep
 
 This global user-owned block is a lightweight entrypoint. Keep `/home/james/ai-workspace/workflow_optimisation/WORKFLOW.md` as the single task-class and route policy. On every new user task, before choosing a phase or specialist, call the native `skill({name:"workflow-route"})` tool and follow its classification; after a long-chat compaction/resume or meaningful scope change, load it again and reconcile the route. Read the current recipe with an authorized read-only tool when the skill requests it. The absence of `skill` or a required named Task tool blocks dependent mutation; do not substitute inline execution. A read-only response may explain the limitation.
 
-Before any writer, establish explicit change intent, and check project registration using only the reviewed `host_register_project` path when required. The `gentle-orchestrator` is a read-only technical lead: no host Bash or project edit/write, no sandbox mutation/lifecycle authority. Every project mutation/execution goes to an authorized sandbox worker, including an upstream inline one-file fix. Do not weaken `grep: ask` or the host/sandbox permission overlays. Read-only requests have no writer or ODD tracker.
+Before any writer, establish explicit change intent, and check project registration using only the reviewed `host_register_project` path when required. The `gentle-orchestrator` is a read-only technical lead: no host Bash or project edit/write, no sandbox mutation/lifecycle authority. Every project mutation/execution goes to an authorized sandbox worker, including an upstream inline one-file fix. Do not widen native `grep` beyond the orchestrator or weaken the host/sandbox permission overlays. Read-only requests have no writer or ODD tracker.
 
 Use the router's selected adapters: `workflow-odd-secure` for authorized default ODD, and `workflow-systematic` when the route invokes its installed skills. The selected Systematic, frontend and review skills keep their named agent precedence. No file-count or risk threshold automatically selects SDD. For substantial ODD record route/trigger evidence and actual Task dispatch in the task file and complete Magic Context mirror before claiming progress; on long-chat resume read both. Any commit intended for native RDD must carry the staged reviewability receipt and obey the local per-commit line/byte cap defined by `workflow-odd-secure`; native Gentle AI START remains the final 200 KiB serialized-input authority. RDD defaults on when unset: read effective mode and deciding source per project; never toggle it automatically, and honor explicit off. Native review remains user-owned and separate. Fail closed when the requested specialist or safe tool surface is unavailable.
 

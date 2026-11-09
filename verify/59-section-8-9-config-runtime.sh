@@ -161,12 +161,25 @@ else
 
     if [ "$PROBE_FAILURE" -ne 0 ]; then
       fail "one or more per-agent runtime probes failed"
-    elif SYSTEMATIC_NODE_MODULES="$SYSTEMATIC_NODE_MODULES" "$JS_RUNTIME" "$RUNTIME_AGENT_CHECKER" \
-      "$SYSTEMATIC_CONFIG" "$ACTIVE_AGENTS" "$AGENT_LIST_OUT" "$DEBUG_AGENT_DIR" "$OPENCODE_CONFIG_FILE" \
-      "$FALLBACK_POLICY_SOURCE" "$WORKSPACE"; then
-      echo "   ok: runtime agent registration/model/tool and GGA fallback checks passed"
     else
-      fail "OpenCode runtime agent registration/model/tool or GGA fallback policy check failed"
+      RUNTIME_CHECK_CONFIG="$RUNTIME_CONFIG_FILE"
+      if [ "${OC_MAJOR:-0}" = "2" ]; then
+        if ! python3 "$VERIFY_MODULE_DIR/checkers/v2-runtime-config.py" "$RUNTIME_CONFIG_FILE" >/dev/null 2>"$TMP_DIR/v2-runtime-config-notes"; then
+          sed 's/^/   info: /' "$TMP_DIR/v2-runtime-config-notes"
+          fail "V2_RUNTIME_CONFIG_INVALID"
+        else
+          sed 's/^/   info: /' "$TMP_DIR/v2-runtime-config-notes"
+        fi
+        skip "SECTION_9_RUNTIME_AGENT_CHECKER_NOT_RUN; the V1 checker is not V2-identity-safe (it rejects the -astra aliases and Systematic access mirrors derive-v2-config.py materialises, and entry erasure would hide identity-keyed grants); model/tool/GGA fallback coverage deferred to Q130"
+      else
+        if SYSTEMATIC_NODE_MODULES="$SYSTEMATIC_NODE_MODULES" "$JS_RUNTIME" "$RUNTIME_AGENT_CHECKER" \
+        "$SYSTEMATIC_CONFIG" "$ACTIVE_AGENTS" "$AGENT_LIST_OUT" "$DEBUG_AGENT_DIR" "$RUNTIME_CHECK_CONFIG" \
+        "$FALLBACK_POLICY_SOURCE" "$WORKSPACE"; then
+          echo "   ok: runtime agent registration/model/tool and GGA fallback checks passed"
+        else
+          fail "OpenCode runtime agent registration/model/tool or GGA fallback policy check failed"
+        fi
+      fi
     fi
   fi
 fi

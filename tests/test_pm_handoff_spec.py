@@ -210,6 +210,12 @@ class PMHandoffSpecTest(unittest.TestCase):
         self.assertIn("not a cryptographic witness", brief)
         self.assertIn("SUSPENDED", brief)
         self.assertIn("deterministic host tool lands", brief)
+        self.assertIn("host_git_head", spec)
+        self.assertIn("`branch` equals the brief's `feature_branch` exactly", spec)
+        self.assertIn("linked worktree is supported and is NOT a blocker", spec)
+        self.assertIn("branch: null", spec)
+        self.assertIn("detached: true", spec)
+        self.assertIn("unborn branch", spec)
 
     def test_brief_specifies_deterministic_anchor_and_suspended_hash_duty(self):
         self.assert_anchor_contract(self.spec)
@@ -326,6 +332,11 @@ class PMHandoffSpecTest(unittest.TestCase):
         )
         with self.assertRaises(AssertionError):
             self.assert_review_order_contract(mutated)
+
+    def test_anchor_positive_control_rejects_removed_host_git_head_mechanism(self):
+        mutated = self.spec.replace("host_git_head", "host-git-head")
+        with self.assertRaises(AssertionError):
+            self.assert_anchor_contract(mutated)
 
     def test_anchor_positive_control_rejects_mutated_anchor_definition(self):
         mutated = self.spec.replace(

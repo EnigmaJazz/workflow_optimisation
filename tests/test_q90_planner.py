@@ -20,8 +20,7 @@ ADVISORS = (
     "advisor-design-pre", "advisor-integration-pre", "advisor-testing-pre",
     "advisor-security-pre", "advisor-maintainability-pre", "advisor-design-post",
     "advisor-integration-post", "advisor-testing-post", "advisor-security-post",
-    "advisor-maintainability-post", "advisor-gemini-pre", "advisor-gemini-post",
-    "advisor-spec-pre", "advisor-spec-post",
+    "advisor-maintainability-post", "advisor-spec-pre", "advisor-spec-post",
 )
 READ_TOOLS = ("read", "codegraph_codegraph_explore", "ast_grep_search", "aft_outline",
               "aft_zoom", "aft_search", "aft_callgraph", "aft_inspect", "sandbox_read",
@@ -131,7 +130,7 @@ class RealConfig(unittest.TestCase):
             'const advisorDispatchAgents=[...coordinatorAgents,"planner"]',
             'const coordinatorAgents=["gentle-orchestrator",...pmAgents]',
             "hostPlanWriteGrantSweepFailures(deployedAgents,planWriterAgents)",
-            "geminiAdvisorRouteFailures(deployedAgents,geminiFallback,advisorDispatchAgents)",
+            "advisorModelPolicyFailures(deployedAgents)",
             '"planner","planner-evidence"',
         ):
             self.assertIn(needle, verifier)

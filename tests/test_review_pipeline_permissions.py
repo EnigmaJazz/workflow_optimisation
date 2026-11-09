@@ -316,6 +316,130 @@ for(const leaf of leafAgents){
     assert(failures.length===1&&failures[0]===expected,`leaf dispatch control not isolated: ${leaf} => ${JSON.stringify(failures)}`);
   });
 }
+// PM-only writer dispatch: only pm-odd/pm-systematic may grant odd-apply and
+// gentle-ai-worker; a non-PM explicit allow or a permissive wildcard is a leak.
+control(3,()=>{assert(pmOnlyWriterDispatchFailures(agents).length===0,`real PM-only writer config rejected: ${JSON.stringify(pmOnlyWriterDispatchFailures(agents))}`);});
+for(const writer of ["odd-apply","gentle-ai-worker"]){
+  control(3,()=>{
+    const mutated=cloneAgents();
+    mutated["gentle-orchestrator"].permission.task[writer]="allow";
+    const failures=pmOnlyWriterDispatchFailures(mutated);
+    const expected=`PM_ONLY_WRITER_GRANTED_OUTSIDE_PM: gentle-orchestrator.${writer}`;
+    assert(failures.length===1&&failures[0]===expected,`non-PM explicit allow control not isolated: ${writer} => ${JSON.stringify(failures)}`);
+  });
+  control(3,()=>{
+    const mutated=cloneAgents();
+    delete mutated["gentle-orchestrator"].permission.task[writer];
+    const failures=pmOnlyWriterDispatchFailures(mutated);
+    const expected=`PM_ONLY_WRITER_WILDCARD_GRANT_OUTSIDE_PM: gentle-orchestrator.${writer}`;
+    assert(failures.length===1&&failures[0]===expected,`wildcard leak control not isolated: ${writer} => ${JSON.stringify(failures)}`);
+  });
+  control(3,()=>{
+    const mutated=cloneAgents();
+    mutated["pm-odd"].permission.task[writer]="deny";
+    const failures=pmOnlyWriterDispatchFailures(mutated);
+    const expected=`PM_ONLY_WRITER_PM_GRANT_MISSING: pm-odd.${writer}`;
+    assert(failures.length===1&&failures[0]===expected,`PM grant removal control not isolated: ${writer} => ${JSON.stringify(failures)}`);
+  });
+}
+control(3,()=>{
+  const mutated=cloneAgents();
+  mutated["pm-systematic"].permission.task["odd-apply"]="allow";
+  const failures=coordinatorTaskGraphFailures(mutated);
+  const expected="PM_TASK_GRANT_UNDECLARED: pm-systematic.odd-apply";
+  assert(failures.length===1&&failures[0]===expected,`pm-systematic odd-apply control not isolated: ${JSON.stringify(failures)}`);
+});
+// SEC-1: malformed non-PM entries and task maps fail closed instead of being
+// skipped; an absent map still passes because it grants nothing.
+for(const [label,entry] of [
+  ["scalar","allow"],
+  ["null",null],
+  ["array",[]],
+]){
+  control(3,()=>{
+    const mutated=cloneAgents();
+    mutated["synthetic-malformed-agent"]=entry;
+    const failures=pmOnlyWriterDispatchFailures(mutated);
+    const expected="PM_ONLY_WRITER_AGENT_MALFORMED: synthetic-malformed-agent";
+    assert(failures.length===1&&failures[0]===expected,`malformed agent ${label} control not isolated: ${JSON.stringify(failures)}`);
+  });
+}
+for(const [label,task] of [
+  ["null",null],
+  ["array",[]],
+  ["number",7],
+  ["boolean",true],
+]){
+  control(3,()=>{
+    const mutated=cloneAgents();
+    mutated["synthetic-malformed-task"]={permission:{task}};
+    const failures=pmOnlyWriterDispatchFailures(mutated);
+    const expected="PM_ONLY_WRITER_TASK_MAP_MALFORMED: synthetic-malformed-task";
+    assert(failures.length===1&&failures[0]===expected,`malformed task ${label} control not isolated: ${JSON.stringify(failures)}`);
+  });
+}
+control(3,()=>{
+  const mutated=cloneAgents();
+  mutated["synthetic-absent-task"]={permission:{}};
+  const failures=pmOnlyWriterDispatchFailures(mutated);
+  assert(failures.length===0,`absent task map control rejected: ${JSON.stringify(failures)}`);
+});
+for(const writer of ["odd-apply","gentle-ai-worker"]){
+  control(3,()=>{
+    const mutated=cloneAgents();
+    mutated["synthetic-string-allow"]={permission:{task:"allow"}};
+    const failures=pmOnlyWriterDispatchFailures(mutated);
+    const expected=`PM_ONLY_WRITER_WILDCARD_GRANT_OUTSIDE_PM: synthetic-string-allow.${writer}`;
+    assert(failures.includes(expected),`string allow control missed ${expected}: ${JSON.stringify(failures)}`);
+  });
+}
+control(3,()=>{
+  const mutated=cloneAgents();
+  mutated["synthetic-string-deny"]={permission:{task:"deny"}};
+  const failures=pmOnlyWriterDispatchFailures(mutated);
+  assert(failures.length===0,`string deny control rejected: ${JSON.stringify(failures)}`);
+});
+control(3,()=>{
+  const mutated=cloneAgents();
+  mutated["synthetic-string-bogus"]={permission:{task:"grant-everything"}};
+  const failures=pmOnlyWriterDispatchFailures(mutated);
+  const expected="PM_ONLY_WRITER_TASK_MAP_MALFORMED: synthetic-string-bogus";
+  assert(failures.length===1&&failures[0]===expected,`string bogus control not isolated: ${JSON.stringify(failures)}`);
+});
+// SEC-2: partial glob grants leak; exact and glob denies pass; the local worker
+// is not a PM-only writer.
+control(3,()=>{
+  const mutated=cloneAgents();
+  mutated["synthetic-glob-leak"]={permission:{task:{"*":"deny","odd-*":"allow"}}};
+  const failures=pmOnlyWriterDispatchFailures(mutated);
+  const expected="PM_ONLY_WRITER_GLOB_GRANT_OUTSIDE_PM: synthetic-glob-leak.odd-apply";
+  assert(failures.length===1&&failures[0]===expected,`glob leak control not isolated: ${JSON.stringify(failures)}`);
+});
+control(3,()=>{
+  const mutated=cloneAgents();
+  mutated["synthetic-glob-ask"]={permission:{task:{"gentle-ai-*":"ask"}}};
+  const failures=pmOnlyWriterDispatchFailures(mutated);
+  const expected="PM_ONLY_WRITER_GLOB_GRANT_OUTSIDE_PM: synthetic-glob-ask.gentle-ai-worker";
+  assert(failures.length===1&&failures[0]===expected,`glob ask control not isolated: ${JSON.stringify(failures)}`);
+});
+control(3,()=>{
+  const mutated=cloneAgents();
+  mutated["synthetic-glob-deny"]={permission:{task:{"*":"deny","odd-*":"deny"}}};
+  const failures=pmOnlyWriterDispatchFailures(mutated);
+  assert(failures.length===0,`glob deny control rejected: ${JSON.stringify(failures)}`);
+});
+control(3,()=>{
+  const mutated=cloneAgents();
+  mutated["synthetic-exact-deny"]={permission:{task:{"*":"deny","odd-apply":"deny"}}};
+  const failures=pmOnlyWriterDispatchFailures(mutated);
+  assert(failures.length===0,`exact deny control rejected: ${JSON.stringify(failures)}`);
+});
+control(3,()=>{
+  const mutated=cloneAgents();
+  mutated["synthetic-local"]={permission:{task:{"gentle-ai-worker-local":"allow"}}};
+  const failures=pmOnlyWriterDispatchFailures(mutated);
+  assert(failures.length===0&&!failures.some((failure)=>failure.includes("synthetic-local")),`local worker non-match control rejected: ${JSON.stringify(failures)}`);
+});
 console.log(`coverage-group-3-taskgraph: ${coverageCounts[3]} controls passed`);
 
 // Group 4: execute the production family-rejection loop against configured and
@@ -521,6 +645,8 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
             "pmGeneralDispatchFailures",
             "pmIdentityFailures",
             "coordinatorTaskGraphFailures",
+            "pmOnlyWriterDispatchFailures",
+            "wildcardMatch",
             "normalizeModel",
             "modelFamily",
             "promptBudgetFailures",
@@ -542,7 +668,7 @@ class ReviewPipelinePermissionTests(unittest.TestCase):
                 self.fail(f"unterminated verifier function: {name}")
         declarations = "\n".join(
             extract_declaration(self.verifier, name)
-            for name in ("pmAgents", "coordinatorAgents")
+            for name in ("pmAgents", "coordinatorAgents", "PM_ONLY_WRITERS")
         )
         self.assertIn(
             'const coordinatorAgents=["gentle-orchestrator",...pmAgents]',
@@ -667,10 +793,10 @@ console.log("extracted verifier assertions and positive controls passed");
         for marker in (
             "coverage-group-1-identity: 27 controls passed",
             "coverage-group-2-handoff: 8 controls passed",
-            "coverage-group-3-taskgraph: 45 controls passed",
+            "coverage-group-3-taskgraph: 70 controls passed",
             "coverage-group-4-family: 18 controls passed",
             "coverage-group-5-pmgeneral: 10 controls passed",
-            "coverage-total: 108 controls passed",
+            "coverage-total: 133 controls passed",
         ):
             self.assertIn(marker, result.stdout)
 

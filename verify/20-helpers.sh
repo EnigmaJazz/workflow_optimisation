@@ -4,6 +4,11 @@ fail() {
   FAIL=1
 }
 
+skip() {
+  SKIPPED_MESSAGES+=("$*")
+  printf '   SKIPPED (V2: %s)\n' "$*"
+}
+
 check_embedded_orchestrator_prompt() {
   local output status
   output=$(python3 - "$WORKSPACE" <<'PY'

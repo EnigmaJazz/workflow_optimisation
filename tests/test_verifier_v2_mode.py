@@ -50,7 +50,7 @@ def detect(version_output=None, env_major=None):
             env["WORKFLOW_VERIFY_OPENCODE_MAJOR"] = env_major
         script = f'VERIFY_MODULE_DIR="{MODULES}"\nsource "{VERSION_MODULE}"\necho "MAJOR=$OC_MAJOR"\n'
         r = subprocess.run([shutil.which("bash"), "-c", script], capture_output=True, text=True, env=env, stdin=subprocess.DEVNULL)
-        return r.returncode, r.stdout.strip(), r.stderr
+        return r.returncode, r.stdout.strip().splitlines()[-1], r.stderr
     finally:
         if stub:
             stub.close()
@@ -84,6 +84,95 @@ def probe(major, version="1.19.5", stdin_data=b"piped-input", args=("run", "--fo
         return r.returncode, stub.calls()
     finally:
         stub.close()
+
+
+class WorkspaceDerivation(unittest.TestCase):
+    def run_derivation(self, major, script_dir, **extra):
+        env = {**os.environ, "WORKFLOW_VERIFY_OPENCODE_MAJOR": major, "VERIFY_ENTRY_PATH": str(Path(script_dir) / "verify-workflow.sh"),
+               "VERIFY_MODULE_DIR": str(MODULES), **extra}
+        if "WORKFLOW_VERIFY_WORKSPACE" not in extra:
+            env.pop("WORKFLOW_VERIFY_WORKSPACE", None)
+        script = f'source "{MODULES / "10-env.sh"}"; source "{VERSION_MODULE}"; printf "RESULT=%s|%s|%s|%s|%s\\n" "$WORKSPACE" "$AGENTS_FILE" "$RUNTIME_CONFIG_FILE" "$SKILLS_DIR" "$ROUTER_SKILLS_SOURCE|$OPENCODE_CONFIG_SOURCE|$TUI_CONFIG_SOURCE|$CLI_CONFIG_SOURCE|$AGENTS_SOURCE|$RECOVERY_BACKUP_ROOT|$SYSTEMATIC_CONFIG_SOURCE|$FALLBACK_POLICY_SOURCE|$HEALTH_PLUGIN_SOURCE|$ROUTING_GUARD_SOURCE|$ASTRA_PLUGIN_SOURCE|$PLUGIN_CACHE_INTEGRITY_HELPER|$PLUGIN_QUARANTINE_DIR|$SECURE_RUNTIME_WITNESS|$CACHE_PRUNE_APPROVAL|$WORKFLOW|$REQS"'
+        return subprocess.run(["bash", "-c", script], capture_output=True, text=True, env=env, stdin=subprocess.DEVNULL)
+
+    def test_v2_uses_script_checkout_for_workspace_and_v2_runtime_paths(self):
+        with tempfile.TemporaryDirectory() as checkout:
+            result = self.run_derivation("2", checkout, WORKFLOW_VERIFY_V2_CONFIG_ROOT="/v2/config/opencode")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(f"RESULT={checkout}|/v2/config/opencode/AGENTS.md|/v2/config/opencode/opencode.json|/v2/config/opencode/skills", result.stdout)
+        self.assertIn("info: V2 workspace=", result.stdout)
+
+    def test_v2_fails_with_named_error_when_workspace_cannot_be_derived(self):
+        result = self.run_derivation("2", "/path/that/does/not/exist")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("V2_WORKSPACE_DERIVATION_FAILED", result.stderr)
+
+    def test_v2_explicit_skills_override_wins_while_v1_keeps_legacy_path(self):
+        with tempfile.TemporaryDirectory() as checkout:
+            result = self.run_derivation("2", checkout, WORKFLOW_VERIFY_V2_CONFIG_ROOT="/v2/config/opencode",
+                                         WORKFLOW_VERIFY_SKILLS_DIR="/custom/skills")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("RESULT=" + checkout + "|/v2/config/opencode/AGENTS.md|/v2/config/opencode/opencode.json|/custom/skills", result.stdout)
+        v1 = self.run_derivation("1", "/unused")
+        self.assertEqual(v1.returncode, 0, v1.stderr)
+        self.assertIn("|/home/james/.config/opencode/skills", v1.stdout)
+
+    def test_v1_keeps_legacy_workspace_and_config_paths(self):
+        result = self.run_derivation("1", "/unused", WORKFLOW_VERIFY_WORKSPACE="/legacy/workspace")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("RESULT=/legacy/workspace|/home/james/.config/opencode/AGENTS.md|/home/james/.config/opencode/opencode.json|/home/james/.config/opencode/skills", result.stdout)
+        self.assertNotIn("info: V2 workspace=", result.stdout)
+
+    def test_v1_ignores_untrusted_runtime_source_and_helper_overrides(self):
+        source_overrides = {name: f"/evil/{name.lower()}" for name in (
+            "ROUTER_SKILLS_SOURCE", "OPENCODE_CONFIG_SOURCE", "TUI_CONFIG_SOURCE", "CLI_CONFIG_SOURCE",
+            "AGENTS_SOURCE", "RECOVERY_BACKUP_ROOT", "SYSTEMATIC_CONFIG_SOURCE", "FALLBACK_POLICY_SOURCE",
+            "HEALTH_PLUGIN_SOURCE", "ROUTING_GUARD_SOURCE", "ASTRA_PLUGIN_SOURCE",
+            "PLUGIN_CACHE_INTEGRITY_HELPER", "PLUGIN_QUARANTINE_DIR", "WORKFLOW", "REQS",
+        )}
+        result = self.run_derivation("1", "/unused", WORKFLOW_VERIFY_AGENTS_FILE="/evil/AGENTS.md",
+                                     WORKFLOW_VERIFY_RUNTIME_CONFIG_FILE="/evil/opencode.json", **{
+                                         f"WORKFLOW_VERIFY_{name}": value for name, value in source_overrides.items()
+                                     })
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("RESULT=/home/james/ai-workspace/workflow_optimisation|/home/james/.config/opencode/AGENTS.md|/home/james/.config/opencode/opencode.json", result.stdout)
+        workspace = "/home/james/ai-workspace/workflow_optimisation"
+        for relative in (
+            "global-config/skills", "global-config/opencode.json", "global-config/tui.json", "global-config/cli.json",
+            "global-config/AGENTS.md", "backups/workflow-recovery", "global-config/systematic.jsonc",
+            "global-config/rate-limit-fallback.json", "global-config/plugins/workflow-health-check.ts",
+            "global-config/plugins/systematic-routing-guard.ts", "global-config/plugins/astra-sol-upgrade.ts",
+            "scripts/plugin-cache-integrity.py", "backups/plugin-quarantine", "WORKFLOW.md",
+            "docs/brainstorms/2026-08-10-workflow-routing-requirements.md",
+        ):
+            self.assertIn(workspace + "/" + relative, result.stdout)
+        self.assertNotIn("/evil/", result.stdout)
+
+    def test_v2_honours_runtime_overrides_but_rederives_sources_from_workspace(self):
+        source_overrides = {name: f"/evil/{name.lower()}" for name in (
+            "ROUTER_SKILLS_SOURCE", "OPENCODE_CONFIG_SOURCE", "TUI_CONFIG_SOURCE", "CLI_CONFIG_SOURCE",
+            "AGENTS_SOURCE", "RECOVERY_BACKUP_ROOT", "SYSTEMATIC_CONFIG_SOURCE", "FALLBACK_POLICY_SOURCE",
+            "HEALTH_PLUGIN_SOURCE", "ROUTING_GUARD_SOURCE", "ASTRA_PLUGIN_SOURCE",
+            "PLUGIN_CACHE_INTEGRITY_HELPER", "PLUGIN_QUARANTINE_DIR", "WORKFLOW", "REQS",
+        )}
+        with tempfile.TemporaryDirectory() as checkout:
+            result = self.run_derivation("2", checkout, WORKFLOW_VERIFY_V2_CONFIG_ROOT="/v2/config/opencode",
+                                         WORKFLOW_VERIFY_AGENTS_FILE="/custom/AGENTS.md",
+                                         WORKFLOW_VERIFY_RUNTIME_CONFIG_FILE="/custom/opencode.json", **{
+                                             f"WORKFLOW_VERIFY_{name}": value for name, value in source_overrides.items()
+                                         })
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("RESULT=" + checkout + "|/custom/AGENTS.md|/custom/opencode.json", result.stdout)
+        for relative in (
+            "global-config/skills", "global-config/opencode.json", "global-config/tui.json", "global-config/cli.json",
+            "global-config/AGENTS.md", "backups/workflow-recovery", "global-config/systematic.jsonc",
+            "global-config/rate-limit-fallback.json", "global-config/plugins/workflow-health-check.ts",
+            "global-config/plugins/systematic-routing-guard.ts", "global-config/plugins/astra-sol-upgrade.ts",
+            "scripts/plugin-cache-integrity.py", "backups/plugin-quarantine", "WORKFLOW.md",
+            "docs/brainstorms/2026-08-10-workflow-routing-requirements.md",
+        ):
+            self.assertIn(checkout + "/" + relative, result.stdout)
+        self.assertNotIn("/evil/", result.stdout)
 
 
 class ProbeWrapper(unittest.TestCase):
@@ -171,9 +260,14 @@ def run_shim(payload, stdin_text=None):
     import json
     out = Path(tempfile.mkdtemp())
     listing, debug_dir = out / "list.txt", out / "debug"
-    r = subprocess.run(["node", str(SHIM), str(listing), str(debug_dir)],
-                       input=stdin_text if stdin_text is not None else json.dumps(payload),
-                       capture_output=True, text=True)
+    try:
+        r = subprocess.run(["node", str(SHIM), str(listing), str(debug_dir)],
+                           input=stdin_text if stdin_text is not None else json.dumps(payload),
+                           capture_output=True, text=True)
+    except PermissionError as exc:
+        if exc.errno == 13:
+            raise unittest.SkipTest(f"node could not be spawned: {exc}") from exc
+        raise
     return r, listing, debug_dir
 
 
@@ -299,8 +393,13 @@ class AgentsShim(unittest.TestCase):
         out = Path(tempfile.mkdtemp())
         blocker = out / "debug"
         blocker.write_text("a file where the directory should go")
-        r = subprocess.run(["node", str(SHIM), str(out / "list.txt"), str(blocker)],
-                           input=json.dumps(V2_AGENTS), capture_output=True, text=True)
+        try:
+            r = subprocess.run(["node", str(SHIM), str(out / "list.txt"), str(blocker)],
+                               input=json.dumps(V2_AGENTS), capture_output=True, text=True)
+        except PermissionError as exc:
+            if exc.errno == 13:
+                self.skipTest(f"node could not be spawned: {exc}")
+            raise
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("v2-agents-shim: cannot write", r.stderr)
         self.assertNotIn("    at ", r.stderr)

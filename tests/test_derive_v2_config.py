@@ -132,7 +132,7 @@ class RealConfig(unittest.TestCase):
         mirrored = derive.ACCESS_MIRRORS
         got = json.loads((self.out / "opencode.json").read_text())
         expected = json.loads(json.dumps(self.src))
-        derive.apply_v2_grep_policy(expected)  # intended difference: V2's grep policy (global deny, orchestrator ask)
+        derive.apply_v2_grep_policy(expected)  # intended difference: V2's grep policy (global deny, orchestrator allow)
         derive.apply_v2_secret_read_policy(expected)  # secret-file denies re-applied after agent-level read allows
         derive.add_v2_astra_aliases(expected)  # the Astra aliases of config-defined agents
         derive.drop_v2_unsupported(expected)  # and keys V2 reports as unsupported and ignores
@@ -154,7 +154,7 @@ class RealConfig(unittest.TestCase):
         self.assertNotIn("plugin", got)
         # What the run must have removed, asserted on the derived file itself and not through the function under test.
         self.assertEqual(got["permission"]["grep"], "deny")  # asserted on the derived file, not through the function under test
-        self.assertEqual(got["agent"]["gentle-orchestrator"]["permission"]["grep"], "ask")
+        self.assertEqual(got["agent"]["gentle-orchestrator"]["permission"]["grep"], "allow")
         self.assertTrue(all(a.get("permission", {}).get("grep") in (None, "deny") for n, a in got["agent"].items() if n != "gentle-orchestrator"))
         self.assertNotIn("subagent_depth", got)
         self.assertEqual(got["experimental"]["subagent_depth"], self.src.get("experimental", {}).get("subagent_depth", self.src.get("subagent_depth")))
@@ -447,7 +447,7 @@ class V2PluginVersions(unittest.TestCase):
 
 
 class V2GrepPolicy(unittest.TestCase):
-    """Native grep: orchestrator ask, everything else deny. V2 applies the last matching rule, so the global rule must not be ask."""
+    """Native grep: orchestrator allow, everything else deny. V2 applies the last matching rule, so the global rule must not be allow."""
 
     def setUp(self):
         self.m = load()
@@ -455,11 +455,11 @@ class V2GrepPolicy(unittest.TestCase):
     def config(self, **extra):
         return {"permission": {"grep": "ask", "ctx_memory": "deny"}, "agent": {"gentle-orchestrator": {"mode": "primary"}, "general": {"permission": {"grep": "deny"}}}, **extra}
 
-    def test_global_becomes_deny_and_the_orchestrator_carries_the_ask(self):
+    def test_global_becomes_deny_and_the_orchestrator_carries_the_allow(self):
         config = self.config()
         notes = self.m.apply_v2_grep_policy(config)
         self.assertEqual(config["permission"]["grep"], "deny")
-        self.assertEqual(config["agent"]["gentle-orchestrator"]["permission"], {"grep": "ask"})
+        self.assertEqual(config["agent"]["gentle-orchestrator"]["permission"], {"grep": "allow"})
         self.assertEqual(config["agent"]["general"]["permission"], {"grep": "deny"})
         self.assertEqual(config["permission"]["ctx_memory"], "deny")  # nothing else is touched
         self.assertEqual(len(notes), 1)
@@ -468,7 +468,7 @@ class V2GrepPolicy(unittest.TestCase):
         config = self.config()
         config["agent"]["gentle-orchestrator"]["permission"] = {"host_git_commit": "ask", "grep": "allow"}
         self.m.apply_v2_grep_policy(config)
-        self.assertEqual(config["agent"]["gentle-orchestrator"]["permission"], {"host_git_commit": "ask", "grep": "ask"})
+        self.assertEqual(config["agent"]["gentle-orchestrator"]["permission"], {"host_git_commit": "ask", "grep": "allow"})
 
     def test_it_is_idempotent_and_ignores_a_config_whose_global_grep_is_not_ask(self):
         config = self.config()
@@ -599,12 +599,86 @@ class FileRefs(unittest.TestCase):
             self.m.resolve_file_refs('{"p": "{file:./../../etc/passwd}"}', self.src, self.live, self.stage)
 
 
+class GentleAiSkills(unittest.TestCase):
+    def setUp(self):
+        self.m = load()
+        self.tmp = Path(tempfile.mkdtemp())
+        self.src, self.live, self.stage = self.tmp / "src", self.tmp / "live", self.tmp / "stage"
+        (self.src / "skills").mkdir(parents=True)
+        (self.live / "skills").mkdir(parents=True)
+        self.stage.mkdir()
+
+    def test_gentle_ai_skills_are_carried_from_the_live_v1_root(self):
+        for name in self.m.GENTLE_AI_SKILLS:
+            skill = self.live / "skills" / name
+            skill.mkdir()
+            (skill / "SKILL.md").write_text(name)
+        notes = self.m.carry_gentle_ai_skills(self.src, self.live, self.stage)
+        for name in self.m.GENTLE_AI_SKILLS:
+            self.assertEqual((self.stage / "skills" / name / "SKILL.md").read_text(), name)
+            self.assertTrue(any(name in note and str(self.live) in note for note in notes))
+
+    def test_live_skill_symlinks_are_materialized_in_staging(self):
+        name = self.m.GENTLE_AI_SKILLS[0]
+        live_skill = self.live / "skills" / name
+        live_skill.mkdir()
+        (live_skill / "SKILL.md").write_text("skill")
+        link_target = self.live / "outside.txt"
+        link_target.write_text("linked content")
+        (live_skill / "linked.txt").symlink_to(link_target)
+
+        self.m.carry_gentle_ai_skills(self.src, self.live, self.stage, names=(name,))
+
+        staged_link = self.stage / "skills" / name / "linked.txt"
+        self.assertFalse(staged_link.is_symlink())
+        self.assertEqual(staged_link.read_text(), "linked content")
+
+    def test_missing_required_skill_raises_with_both_search_paths(self):
+        (self.src / "opencode.json").write_text(json.dumps({}))
+        name = self.m.GENTLE_AI_SKILLS[0]
+        with self.assertRaises(self.m.DeriveError) as raised:
+            self.m.build(self.src, self.tmp / "sandbox", self.stage, self.tmp / "v2", self.live)
+        message = str(raised.exception)
+        self.assertIn(name, message)
+        self.assertIn(str(self.src / "skills" / name / "SKILL.md"), message)
+        self.assertIn(str(self.live / "skills" / name / "SKILL.md"), message)
+        self.assertIn("install gentle-ai, or add the skill under global-config/skills", message)
+
+    def test_repo_owned_skill_wins_over_the_live_v1_copy(self):
+        name = self.m.GENTLE_AI_SKILLS[0]
+        repo_skill = self.src / "skills" / name
+        repo_skill.mkdir()
+        (repo_skill / "SKILL.md").write_text("repo-owned")
+        staged_skill = self.stage / "skills" / name
+        staged_skill.mkdir(parents=True)
+        (staged_skill / "SKILL.md").write_text("repo-owned")
+        live_skill = self.live / "skills" / name
+        live_skill.mkdir()
+        (live_skill / "SKILL.md").write_text("live")
+        notes = self.m.carry_gentle_ai_skills(self.src, self.live, self.stage, names=(name,))
+        self.assertEqual((self.stage / "skills" / name / "SKILL.md").read_text(), "repo-owned")
+        self.assertFalse(any("copied from the live V1 root" in note and name in note for note in notes))
+
+    def test_a_skill_absent_everywhere_raises_with_both_search_paths(self):
+        name = "absent-skill"
+        with self.assertRaises(self.m.DeriveError) as raised:
+            self.m.carry_gentle_ai_skills(self.src, self.live, self.stage, names=(name,))
+        message = str(raised.exception)
+        self.assertIn(name, message)
+        self.assertIn(str(self.src / "skills" / name / "SKILL.md"), message)
+        self.assertIn(str(self.live / "skills" / name / "SKILL.md"), message)
+
+
 class Apply(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
         self.src = self.tmp / "gc"
         (self.src / "plugins").mkdir(parents=True)
         (self.src / "opencode.json").write_text(json.dumps({"plugin": ["a@1.0.0"], "permission": {}, "agent": {}}))
+        for name in ("work-unit-commits", "chained-pr"):
+            skill = self.src / "skills" / name
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text(name)
         (self.src / "cli.json").write_text('{"plugins": []}')
         for name in ("AGENTS.md", "systematic.jsonc", "rate-limit-fallback.json"):
             (self.src / name).write_text(name)

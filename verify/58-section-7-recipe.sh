@@ -406,7 +406,7 @@ fi
 # Q26: these two blocks are byte-compared by PY_COMPARE_BOUNDED, so read the
 # reviewed source directly instead of the deployed copy's redundant content.
 if grep -Fq -- 'prefer narrow read-only tools (ENFORCED)' "$AGENTS_SOURCE" 2>/dev/null && \
-   grep -Fq -- 'built-in `grep` remains `ask`-gated' "$AGENTS_SOURCE" 2>/dev/null && \
+   grep -Fq -- 'built-in `grep` is allowed' "$AGENTS_SOURCE" 2>/dev/null && \
    grep -Fq -- 'SEARCH CONTRACT: AFT=navigation' "$SKILLS_DIR/workflow-route/SKILL.md" 2>/dev/null && \
    grep -Fq -- 'all subagents have it disabled' "$WORKFLOW" 2>/dev/null && \
    grep -Fq -- 'EXTERNAL_CONTEXT_REQUIRED' "$WORKFLOW" 2>/dev/null; then

@@ -1,3 +1,11 @@
+classify_github_mcp_result() {
+  case "$1" in
+    clean$'\t'*) echo "   ok: ${1#*$'\t'}" ;;
+    error$'\t'*) fail "GITHUB_RO_RUNTIME_INACTIVE_OR_UNSCOPED: ${1#*$'\t'}" ;;
+    *) fail "GITHUB_RO_RUNTIME_INACTIVE_OR_UNSCOPED: unexpected result ${1:-<empty>}" ;;
+  esac
+}
+
 # --- 9a. Active secure-service Systematic agents ---
 echo "--- 9a. Secure OpenCode Systematic agent registration ---"
 if [ "$RUNTIME_RESTART_REQUIRED" -eq 1 ]; then
@@ -31,12 +39,9 @@ echo "--- 9b. Secure OpenCode public GitHub MCP ---"
 if [ "$RUNTIME_RESTART_REQUIRED" -eq 1 ]; then
   echo "   skipped: configuration was repaired after service start; restart and rerun to inspect live GitHub MCP"
 elif [ "${OC_MAJOR:-0}" = "2" ]; then
-  V2_GITHUB_MCP=$(python3 "$VERIFY_MODULE_DIR/checkers/v2-github-mcp-check.py" "$V2_CONFIG_ROOT/opencode.json" "$V2_SERVER_URL" "$V2_SERVER_PASSWORD_FILE" "$WORKSPACE" 2>&1)
-  case "$V2_GITHUB_MCP" in
-    clean$'\t'*) echo "   ok: ${V2_GITHUB_MCP#*$'\t'}" ;;
-    error$'\t'*) fail "GITHUB_RO_RUNTIME_INACTIVE_OR_UNSCOPED: ${V2_GITHUB_MCP#*$'\t'}" ;;
-    *) fail "GITHUB_RO_RUNTIME_INACTIVE_OR_UNSCOPED: unexpected result ${V2_GITHUB_MCP:-<empty>}" ;;
-  esac
+  V2_GITHUB_MCP=$(python3 "$VERIFY_MODULE_DIR/checkers/v2-github-mcp-check.py" "$RUNTIME_CONFIG_FILE" "$V2_SERVER_URL" "$V2_SERVER_PASSWORD_FILE" "$WORKSPACE" 2>"$TMP_DIR/github-ro-checker.stderr")
+  sed 's/^/   info: /' "$TMP_DIR/github-ro-checker.stderr"
+  classify_github_mcp_result "$V2_GITHUB_MCP"
 else
 GITHUB_MCP_STATUS="$TMP_DIR/github-ro-mcp-status.json"
 GITHUB_MCP_CONFIG="$TMP_DIR/github-ro-effective-config.json"

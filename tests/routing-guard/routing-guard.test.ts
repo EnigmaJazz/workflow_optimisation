@@ -10,6 +10,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
 import {
+  isPmOnlyWriter,
+  PM_ONLY_WRITERS,
   pmRequiredRouteSkill,
   READ_ONLY_SPECIALIST_PATTERNS,
   ROUTE_STAGES,
@@ -197,6 +199,15 @@ describe("7. exported stage table", () => {
     expect(Array.isArray(READ_ONLY_SPECIALIST_PATTERNS)).toBe(true)
   })
 
+  test("PM_ONLY_WRITERS is exported with a closed membership predicate", () => {
+    expect(PM_ONLY_WRITERS).toEqual(["odd-apply", "gentle-ai-worker"])
+    expect(isPmOnlyWriter("odd-apply")).toBe(true)
+    expect(isPmOnlyWriter("gentle-ai-worker")).toBe(true)
+    expect(isPmOnlyWriter("gentle-ai-worker-local")).toBe(false)
+    expect(isPmOnlyWriter("general")).toBe(false)
+    expect(isPmOnlyWriter("pm-odd")).toBe(false)
+  })
+
   // ADAPTER_WORKFLOW_SKILLS is module-private, so membership is exercised through its
   // observable consequence: the orchestrator-writer warning fires only when the session holds a
   // valid key whose skill is in that set. A workflow-sdd-secure-only key must NOT satisfy it,
@@ -290,16 +301,21 @@ describe("1. specialist rule: deny by default", () => {
   })
 
   test("every declared writer is allowed once the tracker exists", async () => {
-    seedKey("ses_s5b", ODD)
-    marker("ses_s5b", `artifact-${ODD}-tracker`)
-    markAdvice("ses_s5b")
+    const sid = "ses_s5b"
+    // Bind a PM so the two PM-only writer names are dispatched by a sanctioned
+    // dispatcher; the local writer remains dispatchable regardless.
+    await message(sid, "pm-odd")
+    seedKey(sid, ODD)
+    marker(sid, `artifact-${ODD}-tracker`)
+    markAdvice(sid)
     for (const name of ["general", "systematic-implementer", "frontend-dev", "frontend-dev-premium",
       "frontend-apply", "frontend-apply-local", "jd-fix-agent", "pr-comment-resolver",
       "bug-reproduction-validator", "design-iterator",
-      "gentle-ai-worker", "gentle-ai-worker-local"]) {
-      await dispatch("ses_s5b", name)
+      "odd-apply", "gentle-ai-worker", "gentle-ai-worker-local"]) {
+      await dispatch(sid, name)
     }
     expect(logCount("specialist")).toBe(0)
+    expect(logCount("PM-only writer")).toBe(0)
     await probe()
   })
 
@@ -514,6 +530,49 @@ describe("1d. tiny-fix one-shot permit", () => {
     seedKey("ses_tiny_child_control", ODD)
     await before("sandbox_write", "ses_tiny_child_control", { path: "src/y.ts", content: "y" })
     expect(logCount("bootstrap: write to src/y.ts")).toBe(1)
+  })
+})
+
+// PM-only writers (`odd-apply`, `gentle-ai-worker`) are refused by the permission
+// layer; this guard emits warning-only guidance naming the PM-only rule.
+describe("1e. PM-only writer dispatch warning", () => {
+  test("orchestrator dispatching a PM-only writer warns exactly once", async () => {
+    const sid = "ses_pm_only_orchestrator"
+    await message(sid, "gentle-orchestrator")
+    seedKey(sid, ODD)
+    await dispatch(sid, "odd-apply")
+    expect(logCount("non-PM dispatcher gentle-orchestrator dispatched PM-only writer odd-apply")).toBe(1)
+    expect(consoleCount("PM-only writer odd-apply")).toBe(1)
+  })
+
+  test("an unbound dispatcher of a PM-only writer warns exactly once", async () => {
+    const sid = "ses_pm_only_unbound"
+    seedKey(sid, ODD)
+    await dispatch(sid, "gentle-ai-worker")
+    expect(logCount("non-PM dispatcher unbound dispatched PM-only writer gentle-ai-worker")).toBe(1)
+    expect(consoleCount("PM-only writer gentle-ai-worker")).toBe(1)
+  })
+
+  test("a PM dispatcher of a PM-only writer does not warn", async () => {
+    for (const [sid, pm, writer] of [
+      ["ses_pm_only_pm_odd", "pm-odd", "odd-apply"],
+      ["ses_pm_only_pm_sys", "pm-systematic", "gentle-ai-worker"],
+    ] as const) {
+      await message(sid, pm)
+      seedKey(sid, ODD)
+      await dispatch(sid, writer)
+      expect(logCount(`PM-only writer ${writer}`)).toBe(0)
+    }
+    await probe()
+  })
+
+  test("the local writer under the orchestrator is not PM-only", async () => {
+    const sid = "ses_pm_only_local"
+    await message(sid, "gentle-orchestrator")
+    seedKey(sid, ODD)
+    await dispatch(sid, "gentle-ai-worker-local")
+    expect(logCount("PM-only writer gentle-ai-worker-local")).toBe(0)
+    await probe()
   })
 })
 

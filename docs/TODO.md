@@ -2303,7 +2303,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - OpenCode 2 allows background subagents (spec D32): use them for non-blocking parallel dispatch in the narrowed orchestrator contract;
   - add a host tool to create a new git branch (spec D33). Extend the planned host git tools (`agent-sandbox-integration/odd/tasks/host-git-tools.md`, T2 mutation tier) instead of building a parallel tool; the main sandbox checkout has uncommitted work on the same broker files, so coordinate before starting;
   - extend `host_register_project` and `scripts/register-project.ts` with a worktree-root mode (spec D36): create `~/ai-workspace/worktrees/<project>/`, register the root (read grant in both nono profiles, `BROKER_PROJECTS`, launcher root) with no `git init`, `.atl` or `.codegraph`; its restart hint must name `secure-opencode-v2.service`. Owner decision (2026-11-06): the broker treats the root as ONE project; the unit must prove, with a test, that stage, apply and review flows resolve a worktree path under the root. Dry run on the unextended script (2026-11-06) showed it would `git init` the root and create `.atl` and `.codegraph` there. Sandbox unit, coordinated with the host git tools.
-  - [broker half DONE 2026-11-07, agent-sandbox-integration `feat/host-git-head`, Codex spec review: C1, C2, C7 MET; remaining: C4 migrate `pm-handoff.md:7,74,78,87,171` and the PM prompts at `global-config/opencode.json:2374,2513` off `.git/HEAD`, C5 explicit `host_git_head` grants in the pm-odd/pm-systematic definitions (`opencode.json:2375,2429,2514,2568`) with a merged-config readback, C6 ship `pm-handoff.md` as a global skill; also a root-registered PM end-to-end `gitHead` check] add a read-only `host_git_head` host tool (branch name and head SHA for any project path, linked worktrees included, via `gitDirFor`) and change the PM `unit_start_anchor` contract (`docs/specs/pm-handoff.md:7,87,200`) to read the branch head with it, not from `.git/HEAD`. Found 2026-11-06: in a linked worktree `.git` is a pointer file, so the PM's `read` of `.git/HEAD` fails (`Not a directory`) and every PM route returns `MISSING_REQUIRED_UNIT_START_ANCHOR`. Prerequisite: `host_git_branch` (same broker files). Give pm-odd and pm-systematic the tool as `allow`. Interim: run PM units in a full clone (`.git` is a directory). Also ship `pm-handoff.md` as a global skill, because it is unreadable from any other repo;
+  - [broker half DONE 2026-11-07, agent-sandbox-integration `feat/host-git-head`, Codex spec review: C1, C2, C7 MET; remaining: C4 migrate `pm-handoff.md:7,74,78,87,171` and the PM prompts at `global-config/opencode.json:2374,2513` off `.git/HEAD`, C5 explicit `host_git_head` grants in the pm-odd/pm-systematic definitions (`opencode.json:2375,2429,2514,2568`) with a merged-config readback, C6 ship `pm-handoff.md` as a global skill; also a root-registered PM end-to-end `gitHead` check] add a read-only `host_git_head` host tool (branch name and head SHA for any project path, linked worktrees included, via `gitDirFor`) and change the PM `unit_start_anchor` contract (`docs/specs/pm-handoff.md:7,87,200`) to read the branch head with it, not from `.git/HEAD`. Found 2026-11-06: in a linked worktree `.git` is a pointer file, so the PM's `read` of `.git/HEAD` fails (`Not a directory`) and every PM route returns `MISSING_REQUIRED_UNIT_START_ANCHOR`. Prerequisite: `host_git_branch` (same broker files). Give pm-odd and pm-systematic the tool as `allow`. Interim: run PM units in a full clone (`.git` is a directory). Also ship `pm-handoff.md` as a global skill, because it is unreadable from any other repo; [C4, C5 and C6 DELIVERED 2026-11-08 on `chore/q128-pm-handoff-skill`: the contract and both PM prompts read the anchor with `host_git_head`, a merged-config test pins the grants through the derived V2 config and its Sol-only `-astra` aliases, and `pm-handoff` ships as a global skill.]
   - make native `grep` prompt-free for the orchestrator only (owner, 2026-11-06): the global `permission.grep: "ask"` in `global-config/opencode.json` is crippling staging; set `grep: allow` for `gentle-orchestrator` and keep every subagent and PM `deny`. Sync `WORKFLOW.md:107-109` ("native `grep: ask` for the orchestrator only"), `skills/workflow-*` and `workflow-route`, `verify/checkers/check-runtime-agents.cjs`, `scripts/derive-v2-config.py`, and the pinning tests (`test_verifier_v2_config.py`, `test_derive_v2_config.py`, `test_q90_planner.py`, `test_verifier_v2_mode.py`). Ship with the D33 permission-rules unit (same file).
   - enable parallel implementation of non-overlapping units (spec D31, OPEN-20): replace the "single writer thread" rule (`global-config/prompts/gentle-orchestrator/overlay.md:66`, `base.md:161`, `skills/workflow-odd-secure/references/odd-and-review.md:83`) with a disjoint-edit-surface rule where the parent owns git and one seam check runs at the end; move writer fan-out guidance out of the skill reference into the orchestrator contract; re-base the PM `unit_start_anchor` on the stage's pinned baseline commit with a per-unit tracker component (owner confirmed, OPEN-20 resolved; first check what else relies on the whole-branch anchor in `docs/specs/pm-handoff.md:7,200`); test first by dispatching two disjoint writers and checking whether `host_sandbox_result_install` accepts both.
 
@@ -2499,8 +2499,9 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - **Open:** confirm the worker cap; decide where the ledger and estimates live (spec D25 says `workflow_optimisation`); decide the priority scale with the owner.
 
 ### Q128. `pm-handoff.md` must be findable from any repo (owner, 2026-11-08)
-- **Status:** PLANNED. **Prerequisites:** none; overlaps the Q102 `host_git_head` item C6. **Source:** owner; evidence: `pm-odd` read `docs/specs/pm-handoff.md` in the worktree and got "file not found".
+- **Status:** IMPLEMENTED 2026-11-08 on `chore/q128-pm-handoff-skill`; see the delivery note below. **Prerequisites:** none; overlaps the Q102 `host_git_head` item C6. **Source:** owner; evidence: `pm-odd` read `docs/specs/pm-handoff.md` in the worktree and got "file not found".
 - **Description:** Give `pm-odd`, `pm-systematic` and the orchestrator prompts the absolute path of `docs/specs/pm-handoff.md`, or ship it as a global skill (preferred; C6). Add a verifier check that the referenced path or skill resolves from a repo other than this one. The same test applies to every handover and skill the prompts name.
+- **Delivery:** The `pm-handoff` global skill and its verifier/prompt integration landed in commits `5f618c0`, `b48d9a7`, `cf17e4f` and `fb0c055`. Owner action: run `derive --apply` to install it in the V2 root.
 
 ### Q129. Route tracker tool: code tells each agent its next step (owner idea, 2026-11-08)
 - **Status:** PLANNED (design first; no code before the owner approves the shape). **Prerequisites:** Q113 (need-to-know and blocking guard), Q105. **Source:** owner, 2026-11-08.
@@ -2563,7 +2564,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   pass cannot hide a V2 gap. Document the V2 invocation next to the cutover verify step.
 
 ### Q116. Do V2 sessions have the work-unit-commits and chained-pr skills?
-- **Status:** PLANNED (investigate first). **Source:** owner V2 deploy run, 2026-11-07.
+- **Status:** IMPLEMENTED 2026-11-08; owner runs `derive --apply` to land it in the V2 root. **Source:** owner V2 deploy run, 2026-11-07.
 - **Evidence:** `GENTLE_AI_V4_ODD_SKILL_MISSING` fires for `work-unit-commits` and `chained-pr` when the skills path is
   the V2 root. They exist in `~/.config/opencode/skills` (V1, gentle-ai-managed) and not in `global-config/skills`,
   so `derive` never copies them; the derived `opencode.json` has no skills entry. Unknown whether V2 finds them on
@@ -2571,6 +2572,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Description:** probe the V2 runtime for both skills by name. If absent, decide the delivery path (derive copies
   them, or a V2 skill root), and point the verifier check at the V2 location. Impact if absent: V2 ODD sessions lose
   the work-unit commit and chained-PR discipline.
+- **Delivery:** `derive-v2-config.py` carries `work-unit-commits` and `chained-pr` from the live V1 root (the repo cannot read or re-author their bytes) and fails derivation when either is absent from both that root and `global-config/skills`, and V2 mode of the verifier now checks `$V2_CONFIG_ROOT/skills` instead of the V1 root.
 
 ### Q117. Run the V2 plugin auto-update timer from a stable checkout of main
 - **Status:** PLANNED (owner approved 2026-11-08). **Source:** Tier 2 deploy review, 2026-11-07.
@@ -2746,6 +2748,18 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Source:** `odd/tasks/q100-host-plan-archive-permission.md` T1; owner decisions 2026-11-04.
 - **Description:** a new host tool shipped without a permission rule, so `derive-v2-config.py` refuses and the V2 root cannot be derived. Add global `deny` and `gentle-orchestrator` `allow`. Permission coverage only; no archive invocation or deployment.
 - **Deferred:** overlay authorization-text alignment is separate follow-up, not this implementation; routing-guard archive parity stays later work.
+
+### Q131. Advisors off Google models (owner, 2026-11-08)
+- **Status:** DONE at source in this branch; code slice `d0c4a76`, with this docs/manifest slice following in the same branch; not deployed (no `derive --apply`, no restart).
+- **Prerequisites:** none.
+- **Source:** `d0c4a76`; `tests/test_advisor_models_off_google.py`.
+- **Description:** no agent uses a `google/` model; all six advisor pre/post pairs differ and are pinned by `tests/test_advisor_models_off_google.py` with positive controls; `advisor-gemini-pre`/`-post` removed and `advisor-gemini-evidence` renamed to `advisor-evidence` (`opencode-go/qwen3.8-flash`); Planner-prompt and task permissions, `rate-limit-fallback.json`, `verify/30-recover-config.sh`, `verify/checkers/check-runtime-agents.cjs` and the verifier manifest updated. Open follow-up: `chore/q128-pm-handoff-skill` also re-pins the manifest, so after rebasing on it `python3 scripts/verifier_manifest.py update` must be re-run.
+
+### Q132. Trial a no-tool Gemini model as a review lens (owner, 2026-11-08)
+- **Status:** PLANNED; not part of Q131 and must not widen it.
+- **Prerequisites:** Google API quota restored; AND a verified (not assumed) answer to how the `asi-review-*` lanes receive the immutable candidate tree, confirming a lens can be fed the frozen candidate context without file tools.
+- **Source:** owner direction, 2026-11-08.
+- **Description:** a no-tool lens would consume less quota; investigate that transport question first and do not assume the frozen candidate is reachable without tools; it must not displace the tool-bearing in-OpenCode lenses where file access is required.
 
 ## Done
 

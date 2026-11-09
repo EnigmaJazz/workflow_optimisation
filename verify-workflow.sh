@@ -63,7 +63,7 @@
 #     deliberately tool-less immutable reviewers remain exempt
 #   - context-dependent fixed host-control tools are authorization-checked from
 #     resolved permission rules; neutral debug-tool absence is diagnostic only
-#   - native/AFT grep remains ask-gated because it returns content without
+#   - native/AFT grep is allowed only for the orchestrator because it returns content without
 #     inheriting protected read-path rules; glob is allowed for path discovery only
 #   - an active secure-opencode.service is bound to a certified content-hash
 #     generation; startup-time rewrites do not create a false restart loop
@@ -86,11 +86,11 @@ set -uo pipefail
 
 # BEGIN VERIFY_MODULES
 VERIFY_MODULES=(
-  "10-env.sh f0477fa76d0bd7e197bca46c1457aa91bcc1dfe98dcda04659111120a6dbac57"
-  "20-helpers.sh b88837e9368b62a7175ef768881f1b51595935ec62cb82f24eb5f0fecaddbaf5"
-  "21-opencode-major.sh 7e614a29b0e50a45f0e586c407dd3f85ee9a68daa4a1f45d1c3448ed0cc65752"
-  "30-recover-config.sh 70b478ced6f0478c67756bb221a3dc827c6463575cea8d852ea859762a6c38af"
-  "31-recover-skills-agents.sh 7c646795f905093f1582dca0ea6f4badee906264fc1051df9f3d46a6ffb1cf38"
+  "10-env.sh c386f045b23c8b45f77340ea4c8066fbf181fa4374a2ea0a7be8bbfcfbfe3033"
+  "20-helpers.sh fe168fd43faa3cb142ccce26ed314007912b72f91238696b8d5662d6c3775380"
+  "21-opencode-major.sh f91b4602f3031861c67f3ba8fc50ebf7695cbf94bff421833e666673df4e3f45"
+  "30-recover-config.sh 06ea961f96bdd75494477774d1d951b0099039a98ad1bafb21f109307e4babea"
+  "31-recover-skills-agents.sh d134cfda58790ab55694603f4ac2f7c80d653ba541b9cbf1520c765b19ac02e9"
   "32-recover-systematic.sh 6e218d4f6ff59bd3875665c9c8cc71f20e2fdb08298cdc3cb935739bd700793e"
   "40-temp-and-routing.sh 8516dec379a9c711ff398d2e6117e3d4df93d49cb02c126419999752f9db65d8"
   "41-checker-systematic.sh d2b24934715d00f7d56fc86402bc20554bd9665b18f43c613ea19c402ad3dd14"
@@ -101,23 +101,28 @@ VERIFY_MODULES=(
   "53-section-2b-magic-context.sh 1f6b26b6f947977452c31f98bc75edb46f226108e918880520e9f1e0568f7070"
   "54-section-2c-package-integrity.sh 13e85a3e148e396604f0c525830fb5ae7a80291e3c349488f60f68a5647ea165"
   "55-section-3-skills.sh 9d7ff4416ae7a1c8565258a60e1b3e284217e02063daa8a3b35973f54854933f"
+  "55b-section-3b-prompt-references.sh d65fec7399283d3b95ee0bb03b4945359da73950f0133f158dfe6740a80fc487"
   "56-section-4-5-agents-registry.sh 2b66b463ddd9942fba8c065fa7e94689217add64a39a717f62547424d68951f8"
   "57-section-6-plugin-mirrors.sh 476d73263f419f0d413655d07d4c9f29ef7b531fa30e6d970effcdcd152a2622"
-  "58-section-7-recipe.sh 9f02d1b88bd2dd08ee2aacf1f8619f2c149dcc383b66a4ed6f808da74f4e8502"
-  "59-section-8-9-config-runtime.sh 463351d95746a5a6642b7f2b085a232e2014fb78017bd60ed86f279eb849422e"
-  "60-section-9a-9b-secure-service.sh 2579654362fa71ab3938da3bb858f053aeaa796272033c7e408d8c9675986d87"
+  "57b-section-6b-tool-decisions.sh 793aa16c003fc93d36166158ea92e6a50940042b234137b153f9639445d568b0"
+  "58-section-7-recipe.sh ca63ac3b085b5205b44f6684749894a7fad5a10cc689554f892d58819e7e96c6"
+  "59-section-8-9-config-runtime.sh 56028b26aa2fc51be73be255e45979f76d7510c76e6ce0911d2b2a7b49a7cbbd"
+  "60-section-9a-9b-secure-service.sh 4d6526fefddb88b8a3593809f05443c9b6bdeb1c2ba0575cf783fe9296a3f76f"
   "61-section-10-behavioural.sh 24a31e750fcbfeaea7e18e6801a14547e596910103ecd1ca7d16db9b9425d134"
-  "62-section-11-summary.sh 5df415a1b7f63144822d2bb62c2300df4f2de8ea36cc0dc7ee5d4138c477ea76"
+  "62-section-11-summary.sh 4b3a5cb0025366ebdd51135efe3cb811dfe2597b4b31427e37c995480f0c09af"
   "checkers/check-parallel-dispatch.py d970c748791710131a667b6cc1cd08ea280494c021d9b2bde520b1620208447e"
-  "checkers/check-runtime-agents.cjs c1981a769c61057c6adaaf32121f046af5dd5b1aaa16e7b9926089920a3e1019"
+  "checkers/check-prompt-references.py ebfe25eb218176d005556a79fdbabed74cf5d6f5e18869329c9c481fc0f79ef0"
+  "checkers/check-runtime-agents.cjs 5efbf05d34d9ee95d8e89ca353b9d64b0386d724ed07acaef9492135b740e3ce"
   "checkers/check-systematic-resolution.cjs ec8997e05b9b5cc390529abc62bb7608e11cf8885155ef7ea0606ac47bd16499"
   "checkers/oc-probe.sh e5b2ba64cad39b90ef5702dfb00c527bd67a275799b9f5542c5c9f25af117301"
   "checkers/recover-cli-config.py 5dc9e7af0c465f3ba237ba14c03a7b5b702f0e613445828b617189e56e05295f"
-  "checkers/routing-canonical.md 23c0c9ab507e96b04966a4e1e2b5419771859dfd87eef1efb2d3191e52c559e4"
+  "checkers/routing-canonical.md 2da6e80c476ee3f910611cdd57d68a22aeb1ed8c96c8eafcb8be72bd16467c97"
+  "checkers/sandbox-tool-decisions.py f41c7462f36aee16235fbb9d6d3921e77f669218aacfbf91948067941d180732"
   "checkers/v2-agents-shim.cjs 93e716e96f9cc7cdcfaa73ecf7e64bed42bbbab70a04240b6433108353cf11e6"
   "checkers/v2-config-check.py d1b3df3161a7b9b18f21d42610dcabff6951886d171ebc5caccadd39aebd79ae"
   "checkers/v2-github-mcp-check.py fa24359ddfcf24c21d52f4cfc2948a5813167116fb2574cc98b82f2edce9d386"
   "checkers/v2-plugin-resolve.py 5792db1b5ddf8b3bc72f03546d2046946a6b3a6404843aafa52d2e51cd4a0bbd"
+  "checkers/v2-runtime-config.py e9d3d26c388d2b4533db3c89b3dddfc9cdc89c9b3f3483abc61b178a5189ed6d"
   "checkers/v2-sandbox-plugins-check.py a26e2b97a6fcc668a2aa2f457877542ec780eb304380082c7634a1adafd6e3bd"
 )
 # END VERIFY_MODULES
