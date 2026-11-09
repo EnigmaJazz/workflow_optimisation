@@ -36,6 +36,10 @@ if [ "$OC_MAJOR" = "2" ]; then
   fi
   AGENTS_FILE="${WORKFLOW_VERIFY_AGENTS_FILE:-$V2_CONFIG_ROOT/AGENTS.md}"
   RUNTIME_CONFIG_FILE="${WORKFLOW_VERIFY_RUNTIME_CONFIG_FILE:-$V2_CONFIG_ROOT/opencode.json}"
+  # V2's live config root is its runtime skills dir; explicit overrides win, while V1 keeps ~/.config/opencode/skills.
+  if [ -z "${WORKFLOW_VERIFY_SKILLS_DIR:-}" ]; then
+    SKILLS_DIR="$V2_CONFIG_ROOT/skills"
+  fi
   echo "   info: V2 workspace=$WORKSPACE agents=$AGENTS_FILE runtime-config=$RUNTIME_CONFIG_FILE"
 fi
 # V2 loads Systematic's config from the overlay under its own HOME, not from ~/.config/opencode. Point the static validation at it
