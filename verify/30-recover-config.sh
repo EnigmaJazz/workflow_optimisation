@@ -101,7 +101,7 @@ required_agents = {
     "advisor-testing-pre", "advisor-maintainability-pre",
     "advisor-design-post", "advisor-security-post", "advisor-integration-post",
     "advisor-testing-post", "advisor-maintainability-post",
-    "advisor-gemini-pre", "advisor-gemini-post", "advisor-gemini-evidence",
+    "advisor-evidence",
 }
 
 # These package identities are intentionally version-managed by the reviewed

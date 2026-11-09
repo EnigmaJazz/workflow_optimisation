@@ -54,7 +54,6 @@ TARGETS = {
     "opencode-go/kimi-k2.7-code": (),
     "opencode-go/mimo-v2.6-flash": (),
     "google/gemini-flash-latest": (),
-    "google/gemini-4-argon": (),
 }
 ABSENT_ONLY = ("opencode-go/qwen3.8-flash", "opencode-go/qwen3.8-max",
                "opencode-go/kimi-k2.7-code", "opencode-go/mimo-v2.6-flash")

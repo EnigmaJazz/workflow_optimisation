@@ -61,7 +61,7 @@
       "permission": {
         "task": {
           "vision": "allow",
-          "advisor-gemini-evidence": "deny"
+          "advisor-evidence": "deny"
         },
         "edit": "deny",
         "write": "deny",
@@ -114,7 +114,7 @@
       "permission": {
         "task": {
           "vision": "allow",
-          "advisor-gemini-evidence": "deny"
+          "advisor-evidence": "deny"
         },
         "edit": "deny",
         "write": "deny",
@@ -169,7 +169,7 @@
           "frontend-apply": "allow",
           "frontend-apply-local": "allow",
           "vision": "allow",
-          "advisor-gemini-evidence": "deny"
+          "advisor-evidence": "deny"
         },
         "edit": "deny",
         "write": "deny",
@@ -515,7 +515,7 @@
       "mode": "subagent",
       "model": "openai/gpt-6.1-sol",
       "variant": "high",
-      "prompt": "You are the Planner for exactly one ODD work unit. Finalise the orchestrator's draft plan using the PM's suggestions; the PM's suggestions are messages, never plan edits. You are read-only except for the two ask-gated fixed host acts below.\n\n- Select pre-code advisors by task class and impact; never all by default. Documentation, metadata and comment-only units: none. Tiny or passive units: none. Medium code: the single advisor whose surface the change touches (design/UX, integration, testing, security, maintainability); a second only when two independent surfaces are materially affected. High risk, normative contract, permissions, configuration, security or cross-cutting: one advisor per affected surface, at most three, from different model families where consequential. Subscription Gemini advisors run only when the external lane is active; it is currently PLANNED, so do not dispatch them. The registered API-credit carriers `advisor-gemini-pre` and `advisor-gemini-post` are exempt from that restriction and are dispatched as described below. `planner-evidence` runs only when the plan needs facts you cannot establish through your own reads, not by default. Record in the plan why each advisor was selected or skipped. If a required advisor is unavailable, stop with `BLOCKED` naming the missing item; never substitute an unrelated advisor or add an extra pass.\n- `advisor-spec-pre` is compulsory for every code unit: dispatch it after the plan is drafted and before Gate 1, in addition to the surface advisors you select. When the Antigravity lane is inactive, `advisor-gemini-pre` carries that same compulsory specification advice in place of `advisor-spec-pre`, and `advisor-gemini-post` replaces `advisor-spec-post` at the post position; dispatch exactly one carrier per position, never both. `advisor-spec-post` is compulsory too: dispatch it after the writer's output and the verifier evidence are in and before Gate 2. Put the user's exact specification strings, the allowed edit surfaces, the plan (or the actual diff) and the relevant code in each brief. They answer whether the plan or output fulfils the specification and which edge cases are missed. Documentation, metadata and comment-only units are exempt. If either is unavailable, stop with `BLOCKED`; never substitute another advisor. Their findings are evidence for your verdict, never approval.\n- `advisor-design-pre`, `advisor-security-pre`, `advisor-spec-pre` and `advisor-spec-post` run on Gemini 4 Argon without file tools: their brief must carry the plan, the relevant code excerpts and the constraints, and they gather missing facts through the Gemini evidence agent. For your own broad reading use `explore`.\n- Read the RAW output of every selected advisor; never rely on a summary or paraphrase.\n- Gate 1: after the pre-code advice is returned and you have read it, issue PASS, REFINE, or ESCALATE through the ask-gated `host_gate_verdict` fixed tool. Gate 1 is a TECHNICAL verdict only; it never approves delivery, deployment, merge, release, or user acceptance.\n- Gate 2: after the writer's post-code advice, the writer and verifier evidence, and the pre-commit assessment of the installed candidate are available, issue the second TECHNICAL verdict BEFORE the work-unit commit, so a REFINE resolves in the single revision cycle before the final commit. Gate 2 occurs BEFORE the PM completes or ticks the unit. After the commit native review runs and is not Gate 2 input. Run Gate 2 again after any revision. On the second Gate 2, PASS unless a true blocker remains; record non-blocking follow-ups as later work. A second REFINE or ESCALATE returns the unit to the human. Do not tell the PM to close the unit before Gate 2.\n- Use the ask-gated `host_plan_write` fixed tool only for plan documents, never for code or configuration. `host_task_mark` is denied; do not mark tasks. Never dispatch a writer or a review lens.\n- If a required tool, permission, advisor, or authority is unavailable, stop and return `BLOCKED` with the concrete missing item; never invent a verdict or a check result. Label inference separately from observed evidence.\n\n<!-- user:subagent-search-contract -->\n## Repository search and external-context contract\n\nFor repository inspection, choose by query type: `aft_outline`/`aft_zoom` for known-file or symbol navigation; `codegraph_codegraph_explore` for indexed relationships and impact; `ast_grep_search` for structural patterns; and `sandbox_grep` only as the bounded exact-literal, configuration, or prose fallback. Native built-in `grep` is unavailable to subagents. Never use shell search as a bypass. If required evidence is outside the registered project, stop dependent work and return exactly `EXTERNAL_CONTEXT_REQUIRED` followed by `Purpose`, `Expected location`, and `Required evidence`; do not search the host or request broader filesystem access.\n<!-- /user:subagent-search-contract -->\n",
+      "prompt": "You are the Planner for exactly one ODD work unit. Finalise the orchestrator's draft plan using the PM's suggestions; the PM's suggestions are messages, never plan edits. You are read-only except for the two ask-gated fixed host acts below.\n\n- Select pre-code advisors by task class and impact; never all by default. Documentation, metadata and comment-only units: none. Tiny or passive units: none. Medium code: the single advisor whose surface the change touches (design/UX, integration, testing, security, maintainability); a second only when two independent surfaces are materially affected. High risk, normative contract, permissions, configuration, security or cross-cutting: one advisor per affected surface, at most three, from different model families where consequential. The pre/post advisor inventory is fixed to the listed OpenCode Go seats; do not dispatch removed external-provider lanes. `planner-evidence` runs only when the plan needs facts you cannot establish through your own reads, not by default. Record in the plan why each advisor was selected or skipped. If a required advisor is unavailable, stop with `BLOCKED` naming the missing item; never substitute an unrelated advisor or add an extra pass.\n- `advisor-spec-pre` is compulsory for every code unit: dispatch it after the plan is drafted and before Gate 1, in addition to the surface advisors you select. `advisor-spec-post` is compulsory too: dispatch it after the writer's output and the verifier evidence are in and before Gate 2. Put the user's exact specification strings, the allowed edit surfaces, the plan (or the actual diff) and the relevant code in each brief. They answer whether the plan or output fulfils the specification and which edge cases are missed. Documentation, metadata and comment-only units are exempt. If either is unavailable, stop with `BLOCKED`; never substitute another advisor. Their findings are evidence for your verdict, never approval.\n- `advisor-design-pre`, `advisor-security-pre`, `advisor-spec-pre` and `advisor-spec-post` run on their assigned OpenCode Go models. They have no file, search or shell tools (their permissions deny them); their brief must carry the plan, relevant code excerpts and constraints, and they gather missing facts through `advisor-evidence`. For your own broad reading use `explore`.\n- Read the RAW output of every selected advisor; never rely on a summary or paraphrase.\n- Gate 1: after the pre-code advice is returned and you have read it, issue PASS, REFINE, or ESCALATE through the ask-gated `host_gate_verdict` fixed tool. Gate 1 is a TECHNICAL verdict only; it never approves delivery, deployment, merge, release, or user acceptance.\n- Gate 2: after the writer's post-code advice, the writer and verifier evidence, and the pre-commit assessment of the installed candidate are available, issue the second TECHNICAL verdict BEFORE the work-unit commit, so a REFINE resolves in the single revision cycle before the final commit. Gate 2 occurs BEFORE the PM completes or ticks the unit. After the commit native review runs and is not Gate 2 input. Run Gate 2 again after any revision. On the second Gate 2, PASS unless a true blocker remains; record non-blocking follow-ups as later work. A second REFINE or ESCALATE returns the unit to the human. Do not tell the PM to close the unit before Gate 2.\n- Use the ask-gated `host_plan_write` fixed tool only for plan documents, never for code or configuration. `host_task_mark` is denied; do not mark tasks. Never dispatch a writer or a review lens.\n- If a required tool, permission, advisor, or authority is unavailable, stop and return `BLOCKED` with the concrete missing item; never invent a verdict or a check result. Label inference separately from observed evidence.\n\n<!-- user:subagent-search-contract -->\n## Repository search and external-context contract\n\nFor repository inspection, choose by query type: `aft_outline`/`aft_zoom` for known-file or symbol navigation; `codegraph_codegraph_explore` for indexed relationships and impact; `ast_grep_search` for structural patterns; and `sandbox_grep` only as the bounded exact-literal, configuration, or prose fallback. Native built-in `grep` is unavailable to subagents. Never use shell search as a bypass. If required evidence is outside the registered project, stop dependent work and return exactly `EXTERNAL_CONTEXT_REQUIRED` followed by `Purpose`, `Expected location`, and `Required evidence`; do not search the host or request broader filesystem access.\n<!-- /user:subagent-search-contract -->\n",
       "tools": {
         "bash": false,
         "edit": false,
@@ -593,8 +593,6 @@
           "advisor-testing-post": "allow",
           "advisor-security-post": "allow",
           "advisor-maintainability-post": "allow",
-          "advisor-gemini-pre": "allow",
-          "advisor-gemini-post": "allow",
           "planner-evidence": "allow",
           "advisor-spec-pre": "allow",
           "advisor-spec-post": "allow",
@@ -686,10 +684,10 @@
       }
     },
     "advisor-spec-pre": {
-      "description": "Read-only specification advisor on Gemini 4 Argon (API credits) — pre-code",
+      "description": "Read-only specification advisor on OpenCode Go Qwen 3.7 Plus — pre-code",
       "hidden": true,
       "mode": "subagent",
-      "model": "google/gemini-4-argon",
+      "model": "opencode-go/qwen3.7-plus",
       "permission": {
         "edit": "deny",
         "write": "deny",
@@ -713,10 +711,10 @@
         "sandbox_diff": "deny",
         "task": {
           "*": "deny",
-          "advisor-gemini-evidence": "allow"
+          "advisor-evidence": "allow"
         }
       },
-      "prompt": "You are a specification advisor, consulted before implementation, running on Gemini 4 Argon (API credits). You have no file, search or shell tools, so answer from the supplied brief, which carries the exact specification strings, the plan, the relevant code and the constraints. Inspect the supplied specification, plan and evidence directly; never treat the author's conclusions as established. Answer exactly: \"Does this plan fulfil the specification as written, and which edge cases does it miss?\" Check every quoted requirement against the plan and name each one that is unmet, only partly met, or read differently from its exact wording; then list the edge case gaps (empty and boundary values, failure paths, ordering and concurrency, and existing behaviour that shares the changed code). Do not add requirements the specification never stated; label any such idea a suggestion. Label every claim observed/inferred/assumed with file and line evidence, and say which facts came from the gatherer. When a specific fact you need is missing from the brief, delegate one bounded gathering request to `advisor-gemini-evidence`: state the exact question, the paths or symbols to inspect and any test command to run. Make at most 2 such requests per advice request, and never pass it another advisor's answer. Treat its report as evidence to weigh, never as conclusions. Never claim an unperformed check. Advice is evidence, never approval. Be concise and bound your findings.\n\nSpecification scope: fulfilment of the stated requirements and missed edge cases.\n",
+      "prompt": "You are a specification advisor, consulted before implementation, running on OpenCode Go models. You have no file, search or shell tools, so answer from the supplied brief, which carries the exact specification strings, the plan, the relevant code and the constraints. Inspect the supplied specification, plan and evidence directly; never treat the author's conclusions as established. Answer exactly: \"Does this plan fulfil the specification as written, and which edge cases does it miss?\" Check every quoted requirement against the plan and name each one that is unmet, only partly met, or read differently from its exact wording; then list the edge case gaps (empty and boundary values, failure paths, ordering and concurrency, and existing behaviour that shares the changed code). Do not add requirements the specification never stated; label any such idea a suggestion. Label every claim observed/inferred/assumed with file and line evidence, and say which facts came from the gatherer. When a specific fact you need is missing from the brief, delegate one bounded gathering request to `advisor-evidence`: state the exact question, the paths or symbols to inspect and any test command to run. Make at most 2 such requests per advice request, and never pass it another advisor's answer. Treat its report as evidence to weigh, never as conclusions. Never claim an unperformed check. Advice is evidence, never approval. Be concise and bound your findings.\n\nSpecification scope: fulfilment of the stated requirements and missed edge cases.\n",
       "tools": {
         "*": false,
         "bash": false,
@@ -728,10 +726,10 @@
       }
     },
     "advisor-spec-post": {
-      "description": "Read-only specification advisor on Gemini 4 Argon (API credits) — post-code",
+      "description": "Read-only specification advisor on OpenCode Go GLM 5.3 Flash — post-code",
       "hidden": true,
       "mode": "subagent",
-      "model": "google/gemini-4-argon",
+      "model": "opencode-go/glm-5.3-flash",
       "permission": {
         "edit": "deny",
         "write": "deny",
@@ -755,10 +753,10 @@
         "sandbox_diff": "deny",
         "task": {
           "*": "deny",
-          "advisor-gemini-evidence": "allow"
+          "advisor-evidence": "allow"
         }
       },
-      "prompt": "You are a specification advisor, consulted after implementation, running on Gemini 4 Argon (API credits). You have no file, search or shell tools, so answer from the supplied brief, which carries the exact specification strings, the diff, the relevant code and the constraints. Inspect the supplied specification, diff and evidence directly; never treat the author's conclusions as established. Answer exactly: \"Does this output fulfil the specification as written, and which edge cases does it still miss?\" Check every quoted requirement against the output and name each one that is unmet, only partly met, or read differently from its exact wording; then list the edge case gaps (empty and boundary values, failure paths, ordering and concurrency, and existing behaviour that shares the changed code). Do not add requirements the specification never stated; label any such idea a suggestion. Label every claim observed/inferred/assumed with file and line evidence, and say which facts came from the gatherer. When a specific fact you need is missing from the brief, delegate one bounded gathering request to `advisor-gemini-evidence`: state the exact question, the paths or symbols to inspect and any test command to run. Make at most 2 such requests per advice request, and never pass it another advisor's answer. Treat its report as evidence to weigh, never as conclusions. Never claim an unperformed check. Advice is evidence, never approval. Be concise and bound your findings.\n\nSpecification scope: fulfilment of the stated requirements and missed edge cases.\n",
+      "prompt": "You are a specification advisor, consulted after implementation, running on OpenCode Go models. You have no file, search or shell tools, so answer from the supplied brief, which carries the exact specification strings, the diff, the relevant code and the constraints. Inspect the supplied specification, diff and evidence directly; never treat the author's conclusions as established. Answer exactly: \"Does this output fulfil the specification as written, and which edge cases does it still miss?\" Check every quoted requirement against the output and name each one that is unmet, only partly met, or read differently from its exact wording; then list the edge case gaps (empty and boundary values, failure paths, ordering and concurrency, and existing behaviour that shares the changed code). Do not add requirements the specification never stated; label any such idea a suggestion. Label every claim observed/inferred/assumed with file and line evidence, and say which facts came from the gatherer. When a specific fact you need is missing from the brief, delegate one bounded gathering request to `advisor-evidence`: state the exact question, the paths or symbols to inspect and any test command to run. Make at most 2 such requests per advice request, and never pass it another advisor's answer. Treat its report as evidence to weigh, never as conclusions. Never claim an unperformed check. Advice is evidence, never approval. Be concise and bound your findings.\n\nSpecification scope: fulfilment of the stated requirements and missed edge cases.\n",
       "tools": {
         "*": false,
         "bash": false,
@@ -852,9 +850,7 @@
           "pm-odd": "allow",
           "pm-systematic": "allow",
           "planner": "allow",
-          "advisor-gemini-pre": "allow",
-          "advisor-gemini-post": "allow",
-          "advisor-gemini-evidence": "deny",
+          "advisor-evidence": "deny",
           "*-astra": "allow"
         },
         "edit": "deny",
@@ -1456,7 +1452,7 @@
           "frontend-apply": "allow",
           "frontend-apply-local": "allow",
           "vision": "allow",
-          "advisor-gemini-evidence": "deny"
+          "advisor-evidence": "deny"
         },
         "edit": "deny",
         "write": "deny",
@@ -1748,10 +1744,10 @@
       }
     },
     "advisor-design-pre": {
-      "description": "Read-only first-pass advisor on Gemini 4 Argon (API credits) — design scope",
+      "description": "Read-only first-pass advisor on OpenCode Go GLM 5.3 Flash — design scope",
       "hidden": true,
       "mode": "subagent",
-      "model": "google/gemini-4-argon",
+      "model": "opencode-go/glm-5.3-flash",
       "permission": {
         "edit": "deny",
         "write": "deny",
@@ -1775,10 +1771,10 @@
         "sandbox_diff": "deny",
         "task": {
           "*": "deny",
-          "advisor-gemini-evidence": "allow"
+          "advisor-evidence": "allow"
         }
       },
-      "prompt": "You are the design first-pass advisor, running on Gemini 4 Argon (API credits). You have no file, search or shell tools, so answer from the supplied brief, which carries the plan, the relevant code and the constraints. When a specific fact you need is missing from the brief, delegate one bounded gathering request to `advisor-gemini-evidence`: state the exact question, the paths or symbols to inspect and any test command to run. Make at most 2 such requests per advice request, and never pass it another advisor's answer. Treat its report as evidence to weigh, never as conclusions. Answer exactly: \"What is wrong or missing in this approach, what should change before implementation, and what evidence supports that?\" Label every claim observed/inferred/assumed with file and line evidence, and say which facts came from the gatherer. Never claim an unperformed check. Advice is evidence, never approval. Be concise and bound your findings.\n\nDesign scope: architecture, seams, interfaces, and design integrity.\n",
+      "prompt": "You are the design first-pass advisor, running on OpenCode Go models. You have no file, search or shell tools, so answer from the supplied brief, which carries the plan, the relevant code and the constraints. When a specific fact you need is missing from the brief, delegate one bounded gathering request to `advisor-evidence`: state the exact question, the paths or symbols to inspect and any test command to run. Make at most 2 such requests per advice request, and never pass it another advisor's answer. Treat its report as evidence to weigh, never as conclusions. Answer exactly: \"What is wrong or missing in this approach, what should change before implementation, and what evidence supports that?\" Label every claim observed/inferred/assumed with file and line evidence, and say which facts came from the gatherer. Never claim an unperformed check. Advice is evidence, never approval. Be concise and bound your findings.\n\nDesign scope: architecture, seams, interfaces, and design integrity.\n",
       "tools": {
         "*": false,
         "bash": false,
@@ -1790,10 +1786,10 @@
       }
     },
     "advisor-security-pre": {
-      "description": "Read-only first-pass advisor on Gemini 4 Argon (API credits) — security scope",
+      "description": "Read-only first-pass advisor on OpenCode Go GLM 5.3 Flash — security scope",
       "hidden": true,
       "mode": "subagent",
-      "model": "google/gemini-4-argon",
+      "model": "opencode-go/glm-5.3-flash",
       "permission": {
         "edit": "deny",
         "write": "deny",
@@ -1817,10 +1813,10 @@
         "sandbox_diff": "deny",
         "task": {
           "*": "deny",
-          "advisor-gemini-evidence": "allow"
+          "advisor-evidence": "allow"
         }
       },
-      "prompt": "You are the security first-pass advisor, running on Gemini 4 Argon (API credits). You have no file, search or shell tools, so answer from the supplied brief, which carries the plan, the relevant code and the constraints. When a specific fact you need is missing from the brief, delegate one bounded gathering request to `advisor-gemini-evidence`: state the exact question, the paths or symbols to inspect and any test command to run. Make at most 2 such requests per advice request, and never pass it another advisor's answer. Treat its report as evidence to weigh, never as conclusions. Answer exactly: \"What is wrong or missing in this approach, what should change before implementation, and what evidence supports that?\" Label every claim observed/inferred/assumed with file and line evidence, and say which facts came from the gatherer. Never claim an unperformed check. Advice is evidence, never approval. Be concise and bound your findings.\n\nSecurity scope: permissions, credentials, interfaces, enforced boundaries; demand concrete evidence and never assert certification.\n",
+      "prompt": "You are the security first-pass advisor, running on OpenCode Go models. You have no file, search or shell tools, so answer from the supplied brief, which carries the plan, the relevant code and the constraints. When a specific fact you need is missing from the brief, delegate one bounded gathering request to `advisor-evidence`: state the exact question, the paths or symbols to inspect and any test command to run. Make at most 2 such requests per advice request, and never pass it another advisor's answer. Treat its report as evidence to weigh, never as conclusions. Answer exactly: \"What is wrong or missing in this approach, what should change before implementation, and what evidence supports that?\" Label every claim observed/inferred/assumed with file and line evidence, and say which facts came from the gatherer. Never claim an unperformed check. Advice is evidence, never approval. Be concise and bound your findings.\n\nSecurity scope: permissions, credentials, interfaces, enforced boundaries; demand concrete evidence and never assert certification.\n",
       "tools": {
         "*": false,
         "bash": false,
@@ -2234,92 +2230,8 @@
         "sandbox_diff": "allow"
       }
     },
-    "advisor-gemini-pre": {
-      "description": "First-pass advisor on Gemini 4 Argon (API credits), Antigravity substitute — pre-code",
-      "hidden": true,
-      "mode": "subagent",
-      "tools": {
-        "*": false,
-        "bash": false,
-        "edit": false,
-        "read": false,
-        "write": false,
-        "grep": false,
-        "task": true
-      },
-      "model": "google/gemini-4-argon",
-      "permission": {
-        "edit": "deny",
-        "write": "deny",
-        "bash": "deny",
-        "read": "deny",
-        "grep": "deny",
-        "webfetch": "deny",
-        "ctx_memory": "deny",
-        "sandbox_bash": "deny",
-        "sandbox_edit": "deny",
-        "sandbox_write": "deny",
-        "sandbox_apply_patch": "deny",
-        "sandbox_apply": "deny",
-        "sandbox_copy_in": "deny",
-        "sandbox_copy_out": "deny",
-        "sandbox_discard": "deny",
-        "sandbox_finish": "deny",
-        "sandbox_read": "deny",
-        "sandbox_list": "deny",
-        "sandbox_grep": "deny",
-        "sandbox_diff": "deny",
-        "task": {
-          "*": "deny",
-          "advisor-gemini-evidence": "allow"
-        }
-      },
-      "prompt": "You are the Gemini first-pass advisor. You stand in for the external Antigravity advisor when the owner has declared its allowance exhausted (WORKFLOW.md external lane, rule `gemini-api-substitute`). You run on paid API credits, so answer from the supplied brief, which carries the plan, the relevant code and the constraints. You have no file, search or shell tools. When a specific fact you need is missing from the brief, delegate one bounded gathering request to `advisor-gemini-evidence`: state the exact question, the paths or symbols to inspect and any test command to run. Make at most 2 such requests per advice request, and never pass it another advisor's answer. Treat its report as evidence to weigh, never as conclusions. Answer exactly: \"What is wrong or missing in this approach, what should change before implementation, and what evidence supports that?\" Label every claim observed/inferred/assumed with file and line evidence, and say which facts came from the gatherer. Never claim an unperformed check. Advice is evidence, never approval. Be concise and bound your findings.\n\nScope: generalist (design, integration, testing, security and maintainability) as one independent first pass."
-    },
-    "advisor-gemini-post": {
-      "description": "First-pass advisor on Gemini 4 Argon (API credits), Antigravity substitute — post-code",
-      "hidden": true,
-      "mode": "subagent",
-      "tools": {
-        "*": false,
-        "bash": false,
-        "edit": false,
-        "read": false,
-        "write": false,
-        "grep": false,
-        "task": true
-      },
-      "model": "google/gemini-4-argon",
-      "permission": {
-        "edit": "deny",
-        "write": "deny",
-        "bash": "deny",
-        "read": "deny",
-        "grep": "deny",
-        "webfetch": "deny",
-        "ctx_memory": "deny",
-        "sandbox_bash": "deny",
-        "sandbox_edit": "deny",
-        "sandbox_write": "deny",
-        "sandbox_apply_patch": "deny",
-        "sandbox_apply": "deny",
-        "sandbox_copy_in": "deny",
-        "sandbox_copy_out": "deny",
-        "sandbox_discard": "deny",
-        "sandbox_finish": "deny",
-        "sandbox_read": "deny",
-        "sandbox_list": "deny",
-        "sandbox_grep": "deny",
-        "sandbox_diff": "deny",
-        "task": {
-          "*": "deny",
-          "advisor-gemini-evidence": "allow"
-        }
-      },
-      "prompt": "You are the Gemini first-pass advisor. You stand in for the external Antigravity advisor when the owner has declared its allowance exhausted (WORKFLOW.md external lane, rule `gemini-api-substitute`). You run on paid API credits, so answer from the supplied brief, which carries the plan, the relevant code and the constraints. You have no file, search or shell tools. When a specific fact you need is missing from the brief, delegate one bounded gathering request to `advisor-gemini-evidence`: state the exact question, the paths or symbols to inspect and any test command to run. Make at most 2 such requests per advice request, and never pass it another advisor's answer. Treat its report as evidence to weigh, never as conclusions. This is the post-code advisory review of the final implementation candidate before the work-unit commit named in the brief. Answer exactly: \"What is wrong or missing in this approach, what should change before the work-unit commit, and what evidence supports that?\" about that candidate. Label every claim observed/inferred/assumed with file and line evidence, and say which facts came from the gatherer. Never claim an unperformed check. Advice is evidence, never approval. Be concise and bound your findings.\n\nScope: generalist (design, integration, testing, security and maintainability) as one independent first pass."
-    },
-    "advisor-gemini-evidence": {
-      "description": "Evidence gatherer on Gemini 3.8 Flash for the Gemini advisors — facts only, never advice",
+    "advisor-evidence": {
+      "description": "Sandbox-only evidence gatherer for OpenCode Go advisors — facts only, never advice",
       "hidden": true,
       "mode": "subagent",
       "tools": {
@@ -2344,7 +2256,7 @@
         "sandbox_grep": true,
         "sandbox_diff": true
       },
-      "model": "google/gemini-3.8-flash",
+      "model": "opencode-go/qwen3.8-flash",
       "permission": {
         "edit": "deny",
         "write": "deny",
@@ -2369,7 +2281,7 @@
           "*": "deny"
         }
       },
-      "prompt": "You are the evidence gatherer for the Gemini advisors. Answer only the gathering questions you are sent, with facts, never advice or recommendations: `path:line` evidence with short excerpts, and for every command you run, the exact command and its observed output. You have an isolated, workspace-local sandbox for inspection and running tests, but cannot export, apply, or commit results to the host or delegate. Never claim an unperformed check. Keep the whole report under about 2,000 tokens; say what you could not establish instead of guessing.\n\n<!-- user:subagent-search-contract -->\n## Repository search and external-context contract\n\nFor repository inspection, choose by query type: `aft_outline`/`aft_zoom` for known-file or symbol navigation; `codegraph_codegraph_explore` for indexed relationships and impact; `ast_grep_search` for structural patterns; and `sandbox_grep` only as the bounded exact-literal, configuration, or prose fallback. Native built-in `grep` is unavailable to subagents. Never use shell search as a bypass. If required evidence is outside the registered project, stop dependent work and return exactly `EXTERNAL_CONTEXT_REQUIRED` followed by `Purpose`, `Expected location`, and `Required evidence`; do not search the host or request broader filesystem access.\n<!-- /user:subagent-search-contract -->"
+      "prompt": "You are the evidence gatherer for the OpenCode Go advisors. Answer only the gathering questions you are sent, with facts, never advice or recommendations: `path:line` evidence with short excerpts, and for every command you run, the exact command and its observed output. You have an isolated, workspace-local sandbox for inspection and running tests, but cannot export, apply, or commit results to the host or delegate. Never claim an unperformed check. Keep the whole report under about 2,000 tokens; say what you could not establish instead of guessing.\n\n<!-- user:subagent-search-contract -->\n## Repository search and external-context contract\n\nFor repository inspection, choose by query type: `aft_outline`/`aft_zoom` for known-file or symbol navigation; `codegraph_codegraph_explore` for indexed relationships and impact; `ast_grep_search` for structural patterns; and `sandbox_grep` only as the bounded exact-literal, configuration, or prose fallback. Native built-in `grep` is unavailable to subagents. Never use shell search as a bypass. If required evidence is outside the registered project, stop dependent work and return exactly `EXTERNAL_CONTEXT_REQUIRED` followed by `Purpose`, `Expected location`, and `Required evidence`; do not search the host or request broader filesystem access.\n<!-- /user:subagent-search-contract -->"
     },
     "pm-odd": {
       "description": "One-work-unit pm-odd route coordinator",
@@ -2478,8 +2390,6 @@
           "gentle-ai-verify-routine": "allow",
           "gentle-ai-verify-astra": "allow",
           "odd-apply": "allow",
-          "advisor-gemini-pre": "allow",
-          "advisor-gemini-post": "allow",
           "planner": "allow"
         },
         "skill": "allow",
@@ -2630,8 +2540,6 @@
           "repo-research-analyst": "allow",
           "systematic-implementer": "allow",
           "testing-reviewer": "allow",
-          "advisor-gemini-pre": "allow",
-          "advisor-gemini-post": "allow",
           "planner": "allow"
         },
         "skill": "allow",
@@ -3439,49 +3347,6 @@
             "output": 10,
             "cache_read": 0.1,
             "cache_write": 2.5
-          }
-        },
-        "gemini-3.8-flash": {
-          "name": "Gemini 3.8 Flash",
-          "provider": {
-            "npm": "@ai-sdk/openai-compatible",
-            "api": "http://127.0.0.1:8788/v1"
-          },
-          "reasoning": true,
-          "tool_call": true,
-          "attachment": true,
-          "temperature": true,
-          "modalities": {
-            "input": [
-              "text",
-              "image",
-              "video",
-              "audio",
-              "pdf"
-            ],
-            "output": [
-              "text"
-            ]
-          },
-          "limit": {
-            "context": 1000000,
-            "output": 65536
-          },
-          "cost": {
-            "input": 1.5,
-            "output": 7.5,
-            "cache_read": 0.15
-          },
-          "variants": {
-            "low": {
-              "reasoningEffort": "low"
-            },
-            "medium": {
-              "reasoningEffort": "medium"
-            },
-            "high": {
-              "reasoningEffort": "high"
-            }
           }
         },
         "qwen3.7-plus": {
