@@ -99,13 +99,23 @@ class WorkspaceDerivation(unittest.TestCase):
         with tempfile.TemporaryDirectory() as checkout:
             result = self.run_derivation("2", checkout, WORKFLOW_VERIFY_V2_CONFIG_ROOT="/v2/config/opencode")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn(f"RESULT={checkout}|/v2/config/opencode/AGENTS.md|/v2/config/opencode/opencode.json|/home/james/.config/opencode/skills", result.stdout)
+        self.assertIn(f"RESULT={checkout}|/v2/config/opencode/AGENTS.md|/v2/config/opencode/opencode.json|/v2/config/opencode/skills", result.stdout)
         self.assertIn("info: V2 workspace=", result.stdout)
 
     def test_v2_fails_with_named_error_when_workspace_cannot_be_derived(self):
         result = self.run_derivation("2", "/path/that/does/not/exist")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("V2_WORKSPACE_DERIVATION_FAILED", result.stderr)
+
+    def test_v2_explicit_skills_override_wins_while_v1_keeps_legacy_path(self):
+        with tempfile.TemporaryDirectory() as checkout:
+            result = self.run_derivation("2", checkout, WORKFLOW_VERIFY_V2_CONFIG_ROOT="/v2/config/opencode",
+                                         WORKFLOW_VERIFY_SKILLS_DIR="/custom/skills")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("RESULT=" + checkout + "|/v2/config/opencode/AGENTS.md|/v2/config/opencode/opencode.json|/custom/skills", result.stdout)
+        v1 = self.run_derivation("1", "/unused")
+        self.assertEqual(v1.returncode, 0, v1.stderr)
+        self.assertIn("|/home/james/.config/opencode/skills", v1.stdout)
 
     def test_v1_keeps_legacy_workspace_and_config_paths(self):
         result = self.run_derivation("1", "/unused", WORKFLOW_VERIFY_WORKSPACE="/legacy/workspace")

@@ -599,12 +599,86 @@ class FileRefs(unittest.TestCase):
             self.m.resolve_file_refs('{"p": "{file:./../../etc/passwd}"}', self.src, self.live, self.stage)
 
 
+class GentleAiSkills(unittest.TestCase):
+    def setUp(self):
+        self.m = load()
+        self.tmp = Path(tempfile.mkdtemp())
+        self.src, self.live, self.stage = self.tmp / "src", self.tmp / "live", self.tmp / "stage"
+        (self.src / "skills").mkdir(parents=True)
+        (self.live / "skills").mkdir(parents=True)
+        self.stage.mkdir()
+
+    def test_gentle_ai_skills_are_carried_from_the_live_v1_root(self):
+        for name in self.m.GENTLE_AI_SKILLS:
+            skill = self.live / "skills" / name
+            skill.mkdir()
+            (skill / "SKILL.md").write_text(name)
+        notes = self.m.carry_gentle_ai_skills(self.src, self.live, self.stage)
+        for name in self.m.GENTLE_AI_SKILLS:
+            self.assertEqual((self.stage / "skills" / name / "SKILL.md").read_text(), name)
+            self.assertTrue(any(name in note and str(self.live) in note for note in notes))
+
+    def test_live_skill_symlinks_are_materialized_in_staging(self):
+        name = self.m.GENTLE_AI_SKILLS[0]
+        live_skill = self.live / "skills" / name
+        live_skill.mkdir()
+        (live_skill / "SKILL.md").write_text("skill")
+        link_target = self.live / "outside.txt"
+        link_target.write_text("linked content")
+        (live_skill / "linked.txt").symlink_to(link_target)
+
+        self.m.carry_gentle_ai_skills(self.src, self.live, self.stage, names=(name,))
+
+        staged_link = self.stage / "skills" / name / "linked.txt"
+        self.assertFalse(staged_link.is_symlink())
+        self.assertEqual(staged_link.read_text(), "linked content")
+
+    def test_missing_required_skill_raises_with_both_search_paths(self):
+        (self.src / "opencode.json").write_text(json.dumps({}))
+        name = self.m.GENTLE_AI_SKILLS[0]
+        with self.assertRaises(self.m.DeriveError) as raised:
+            self.m.build(self.src, self.tmp / "sandbox", self.stage, self.tmp / "v2", self.live)
+        message = str(raised.exception)
+        self.assertIn(name, message)
+        self.assertIn(str(self.src / "skills" / name / "SKILL.md"), message)
+        self.assertIn(str(self.live / "skills" / name / "SKILL.md"), message)
+        self.assertIn("install gentle-ai, or add the skill under global-config/skills", message)
+
+    def test_repo_owned_skill_wins_over_the_live_v1_copy(self):
+        name = self.m.GENTLE_AI_SKILLS[0]
+        repo_skill = self.src / "skills" / name
+        repo_skill.mkdir()
+        (repo_skill / "SKILL.md").write_text("repo-owned")
+        staged_skill = self.stage / "skills" / name
+        staged_skill.mkdir(parents=True)
+        (staged_skill / "SKILL.md").write_text("repo-owned")
+        live_skill = self.live / "skills" / name
+        live_skill.mkdir()
+        (live_skill / "SKILL.md").write_text("live")
+        notes = self.m.carry_gentle_ai_skills(self.src, self.live, self.stage, names=(name,))
+        self.assertEqual((self.stage / "skills" / name / "SKILL.md").read_text(), "repo-owned")
+        self.assertFalse(any("copied from the live V1 root" in note and name in note for note in notes))
+
+    def test_a_skill_absent_everywhere_raises_with_both_search_paths(self):
+        name = "absent-skill"
+        with self.assertRaises(self.m.DeriveError) as raised:
+            self.m.carry_gentle_ai_skills(self.src, self.live, self.stage, names=(name,))
+        message = str(raised.exception)
+        self.assertIn(name, message)
+        self.assertIn(str(self.src / "skills" / name / "SKILL.md"), message)
+        self.assertIn(str(self.live / "skills" / name / "SKILL.md"), message)
+
+
 class Apply(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
         self.src = self.tmp / "gc"
         (self.src / "plugins").mkdir(parents=True)
         (self.src / "opencode.json").write_text(json.dumps({"plugin": ["a@1.0.0"], "permission": {}, "agent": {}}))
+        for name in ("work-unit-commits", "chained-pr"):
+            skill = self.src / "skills" / name
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text(name)
         (self.src / "cli.json").write_text('{"plugins": []}')
         for name in ("AGENTS.md", "systematic.jsonc", "rate-limit-fallback.json"):
             (self.src / name).write_text(name)

@@ -33,6 +33,8 @@ EXACT = re.compile(rf"^(?P<name>{NAME})@(?P<version>\d+\.\d+\.\d+)$")
 FORK_NAME = "opencode-rate-limit-fallback-mapped"
 COPY_FILES = ("cli.json", "AGENTS.md", "systematic.jsonc", "rate-limit-fallback.json")
 COPY_DIRS = ("prompts", "skills", "plugins", "mcp")
+# gentle-ai owns these under the V1 root; the repo intentionally does not carry their bytes.
+GENTLE_AI_SKILLS = ("work-unit-commits", "chained-pr")
 # Environment a local MCP server needs under V2: its own credential and log paths, never the V1 data directory.
 # `{data}` is the V2 data root (<opencode-v2>/data).
 MCP_ENV = {
@@ -125,6 +127,39 @@ def check_v1_paths(config):
         if any(isinstance(part, str) and part.startswith(v1) for part in command):
             warnings.append(f"mcp {name}: command uses a path under {v1}, which the V2 nono profile does not grant")
     return warnings
+
+
+def carry_gentle_ai_skills(source_dir, live_root, staging, names=GENTLE_AI_SKILLS):
+    """-> notes, carrying gentle-ai-owned skills from the live V1 root when available.
+
+    Materialize symlinks because preserved V1 links can dangle under the V2 profile,
+    and the verifier removes only its known Systematic symlinks.
+    """
+    source_dir, live_root, staging = Path(source_dir), Path(live_root), Path(staging)
+    notes = []
+    for name in names:
+        repo_skill = source_dir / "skills" / name / "SKILL.md"
+        live_skill = live_root / "skills" / name
+        if repo_skill.is_file():
+            continue
+        if (live_skill / "SKILL.md").is_file():
+            target = staging / "skills" / name
+            shutil.copytree(
+                live_skill,
+                target,
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.bak*"),
+                symlinks=False,
+                dirs_exist_ok=True,
+            )
+            notes.append(
+                f"skill {name}: copied from the live V1 root ({live_root}); gentle-ai owns it and the repo does not carry it"
+            )
+        else:
+            raise DeriveError(
+                f"required skill {name} is missing from both {repo_skill} and {live_skill / 'SKILL.md'}; "
+                "install gentle-ai, or add the skill under global-config/skills"
+            )
+    return notes
 
 
 def resolve_file_refs(config_text, source_dir, live_root, staging):
@@ -397,6 +432,7 @@ def build(source_dir, sandbox_repo, staging, root_path, live_root=None):
     for name in COPY_DIRS:
         if (source_dir / name).is_dir():
             shutil.copytree(source_dir / name, staging / name, dirs_exist_ok=True, ignore=shutil.ignore_patterns("*.bak*", "__pycache__"))
+    notes += carry_gentle_ai_skills(source_dir, live_root or V1_ROOTS[0], staging)
     notes += resolve_file_refs((source_dir / "opencode.json").read_text(encoding="utf-8"), source_dir, live_root or V1_ROOTS[0], staging)
     return notes, warnings, len(tools)
 
