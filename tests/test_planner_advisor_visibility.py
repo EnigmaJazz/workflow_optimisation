@@ -9,6 +9,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CHECKER = ROOT / "verify/checkers/check-runtime-agents.cjs"
 CONFIG = ROOT / "global-config/opencode.json"
+REQUIRED_VISIBLE = [
+    "planner",
+    "planner-evidence",
+    "advisor-spec-pre",
+    "advisor-spec-post",
+    "advisor-design-pre",
+    "advisor-security-pre",
+    "advisor-integration-pre",
+    "advisor-testing-pre",
+    "advisor-maintainability-pre",
+    "advisor-design-post",
+    "advisor-integration-post",
+    "advisor-testing-post",
+    "advisor-security-post",
+    "advisor-maintainability-post",
+    "advisor-evidence",
+]
 
 
 class PlannerAdvisorVisibility(unittest.TestCase):
@@ -47,8 +64,28 @@ class PlannerAdvisorVisibility(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 
-    def test_checked_in_config_has_no_policy_failures(self):
+    def test_real_config_has_no_policy_failures(self):
         self.assertEqual(self.policy_failures(self.agents), [])
+
+    def test_hidden_required_visible_agents_are_reported(self):
+        for name in REQUIRED_VISIBLE:
+            with self.subTest(name=name):
+                agents = copy.deepcopy(self.agents)
+                agents[name]["hidden"] = True
+                self.assertIn(
+                    f"PLANNER_ADVISOR_HIDDEN: {name}",
+                    self.policy_failures(agents),
+                )
+
+    def test_advisor_evidence_is_visible_even_outside_planner_task_map(self):
+        task_targets = self.agents["planner"]["permission"]["task"]
+        self.assertNotIn("advisor-evidence", task_targets)
+        agents = copy.deepcopy(self.agents)
+        agents["advisor-evidence"]["hidden"] = True
+        self.assertIn(
+            "PLANNER_ADVISOR_HIDDEN: advisor-evidence",
+            self.policy_failures(agents),
+        )
 
     def test_hidden_unnamed_allowed_target_is_unreachable(self):
         agents = copy.deepcopy(self.agents)
@@ -65,10 +102,9 @@ class PlannerAdvisorVisibility(unittest.TestCase):
         agents = copy.deepcopy(self.agents)
         agents["advisor-testing-post"]["hidden"] = True
         agents["planner"]["prompt"] += " `advisor-testing-post`"
-        self.assertNotIn(
-            "PLANNER_ADVISOR_UNREACHABLE: advisor-testing-post",
-            self.policy_failures(agents),
-        )
+        failures = self.policy_failures(agents)
+        self.assertNotIn("PLANNER_ADVISOR_UNREACHABLE: advisor-testing-post", failures)
+        self.assertIn("PLANNER_ADVISOR_HIDDEN: advisor-testing-post", failures)
 
     def test_visible_target_is_accepted_without_prompt_name(self):
         agents = copy.deepcopy(self.agents)

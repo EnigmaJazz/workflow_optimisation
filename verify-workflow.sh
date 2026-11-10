@@ -112,7 +112,7 @@ VERIFY_MODULES=(
   "62-section-11-summary.sh 4b3a5cb0025366ebdd51135efe3cb811dfe2597b4b31427e37c995480f0c09af"
   "checkers/check-parallel-dispatch.py d970c748791710131a667b6cc1cd08ea280494c021d9b2bde520b1620208447e"
   "checkers/check-prompt-references.py ebfe25eb218176d005556a79fdbabed74cf5d6f5e18869329c9c481fc0f79ef0"
-  "checkers/check-runtime-agents.cjs 035015b874abf23451b7ce602de49a8ec9b1265825abe490e8a738a4821f0277"
+  "checkers/check-runtime-agents.cjs 79854fa4fa4d5d6aa9dd0ad34c267c0fc71ecaf3c98610fbeccf93712afa2433"
   "checkers/check-systematic-resolution.cjs ec8997e05b9b5cc390529abc62bb7608e11cf8885155ef7ea0606ac47bd16499"
   "checkers/oc-probe.sh e5b2ba64cad39b90ef5702dfb00c527bd67a275799b9f5542c5c9f25af117301"
   "checkers/recover-cli-config.py 5dc9e7af0c465f3ba237ba14c03a7b5b702f0e613445828b617189e56e05295f"

@@ -601,11 +601,23 @@ if (genericRuntimeReady && ggaRuntimeReady && !distinct) {
 
 // planner-advisor-visibility:begin
 function plannerAdvisorVisibilityFailures(agents) {
+  const REQUIRED_VISIBLE = ["planner", "planner-evidence", "advisor-spec-pre", "advisor-spec-post", "advisor-design-pre", "advisor-security-pre", "advisor-integration-pre", "advisor-testing-pre", "advisor-maintainability-pre", "advisor-design-post", "advisor-integration-post", "advisor-testing-post", "advisor-security-post", "advisor-maintainability-post", "advisor-evidence"]
   const failures=[]
   const planner=agents?.planner
   const task=planner?.permission?.task
   const prompt=typeof planner?.prompt==="string" ? planner.prompt : ""
-  if (!task || typeof task!=="object") return ["PLANNER_ADVISOR_TASK_PERMISSION_MISSING"]
+  for (const name of REQUIRED_VISIBLE) {
+    const agent=agents?.[name]
+    if (!agent || typeof agent!=="object") {
+      failures.push(`PLANNER_ADVISOR_MISSING: ${name}`)
+      continue
+    }
+    if (agent.hidden===true) failures.push(`PLANNER_ADVISOR_HIDDEN: ${name}`)
+  }
+  if (!task || typeof task!=="object") {
+    failures.push("PLANNER_ADVISOR_TASK_PERMISSION_MISSING")
+    return failures
+  }
   for (const name of Object.keys(task)) {
     if (name==="*" || name==="explore") continue
     const agent=agents?.[name]
