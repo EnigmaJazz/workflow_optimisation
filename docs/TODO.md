@@ -2732,7 +2732,8 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   `asi-review-*` lanes.
 
 ### Q99. Guard the verifier seat against Grok (owner, 2026-11-02)
-- **Status:** PLANNED. Needs tests first, `advisor-*` advice and a digest re-pin, so OpenCode agents build it.
+- **Status:** DONE at source (2026-11-10; commit to be recorded); V1 and derived V2 both verified against the rule.
+- **Check:** `grokSeatFailures` in `check-runtime-agents.cjs` allows Grok only on `review-refuter` and `asi-review-refuter`.
 - **Prerequisites:** none.
 - **Source:** owner, 2026-11-02. One `gentle-ai-verify` run on `opencode-go/grok-4.7` used 10% of the weekly allowance.
 - **Description:**

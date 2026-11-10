@@ -655,6 +655,7 @@ function pmSeatFailures(agents) {
   return failures
 }
 // pm-seat-policy:end
+grokSeatFailures(deployedAgents).forEach(fail)
 plannerAdvisorVisibilityFailures(deployedAgents).forEach(fail)
 for (const failure of pmSeatFailures(deployedAgents)) fail(failure)
 
@@ -1890,6 +1891,18 @@ function advisorModelPolicyFailures(agents, fallbackConfig=advisorFallbackConfig
   return failures
 }
 // advisor-model-policy:end
+// grok-seat-policy:begin
+function grokSeatFailures(agents) {
+  const failures=[]
+  const allowedSeats=new Set(["review-refuter","asi-review-refuter"])
+  for (const [name,agent] of Object.entries(agents??{})) {
+    if (typeof agent?.model==="string" && /grok/i.test(agent.model) && !allowedSeats.has(name)) {
+      failures.push(`GROK_OUTSIDE_REFUTER: ${name}=${agent.model}`)
+    }
+  }
+  return failures
+}
+// grok-seat-policy:end
 {
   try { advisorFallbackConfig=parseJsonc(fallbackPolicySourcePath) }
   catch (error) { fail(`ADVISOR_FALLBACK_POLICY_UNREADABLE: ${error.message}`) }
