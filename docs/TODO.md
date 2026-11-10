@@ -2382,8 +2382,9 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   reaches. Put the decision in `tier-5.md` and the PM prompts; per-dispatch spec wording was ignored twice.
 
 ### Q105. Unhide the Planner and the advisors (hidden agents cannot be dispatched by name)
-- **Status:** DONE at source (2026-11-10; <commit ids to be filled by the metadata unit>); not deployed — no `derive --apply`, no restart. Blocks every routed unit's Gate 2 until the owner restarts.
-- Observed probe: Planner inventory was `explore`-only; hidden agents confirmed as the blocker. Count correction: 13 `advisor-*` + `planner` + `planner-evidence` = 15 agents.
+- **Status:** DONE at source (2026-11-10; `ff1af3e` (implementation) and `1d7f266` (tracker)); not deployed — no `derive --apply`, no restart. Blocks every routed unit's Gate 2 until the owner restarts.
+- Observed probe: Planner inventory was `explore`-only; hiding is the remaining difference: the Planner already named advisors in its prompt and still could not dispatch them; the post-restart A/B probe is deferred. Count correction: 13 `advisor-*` + `planner` + `planner-evidence` = 15 agents.
+- Advisory: `tests.test_orchestrator_prompt_source.CoordinatorSelectionRuleTests.test_nonprompt_config_tree_matches_the_pinned_digest` fails because its `NONPROMPT_CONFIG_SHA256` pin is stale on main; this is pre-existing and out of scope here.
 - **Prerequisites:** none for the probe; the unhide itself is a `global-config/opencode.json` change,
   so it needs the digest re-pin, a derive on V2, an owner restart and an independent verifier. Queue it
   with the D33 permission rules and the orchestrator grep change, which edit the same file.
