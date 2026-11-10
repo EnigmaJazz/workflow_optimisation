@@ -4,7 +4,7 @@ When you have dispatched Orca workers (`orca orchestration worker-start`, `scrip
 have no other independent work, never ask the user to tell you to check messages, and never poll.
 Start the watcher in the background and end your turn; its exit re-invokes you:
 
-    Bash(run_in_background=true): python3 <repo>/scripts/orca-watch.py
+    Bash(run_in_background=true): python3 <repo>/scripts/orca-watch.py --run <run_id>
 
 (`<repo>` is `~/orca/workspaces/workflow_optimisation/multi-tier-orchestration-spec`.) It prints the
 first new substantive message (heartbeats such as "alive" are ignored) and exits 0, or exits 2 after
