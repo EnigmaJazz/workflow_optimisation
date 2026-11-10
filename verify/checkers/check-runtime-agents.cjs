@@ -656,6 +656,23 @@ function pmSeatFailures(agents) {
 }
 // pm-seat-policy:end
 grokSeatFailures(deployedAgents).forEach(fail)
+let grokFallbackPolicy
+try {
+  grokFallbackPolicy=parseJsonc(fallbackPolicySourcePath)
+} catch (error) {
+  fail(`GROK_FALLBACK_CONFIG_UNAVAILABLE: ${error.message}`)
+}
+if (systematic && grokFallbackPolicy) {
+  const grokSourceModels={}
+  for (const [name,agent] of Object.entries(deployedAgents)) if (agent?.model) grokSourceModels[name]=normalizeModel(agent.model)
+  for (const agent of inventory) {
+    const model=expectedFor(systematic,agent).model
+    if (model) grokSourceModels[agent.name]=normalizeModel(model)
+  }
+  grokReachableSeatFailures(systematic,inventory,grokFallbackPolicy,grokSourceModels).forEach(fail)
+} else {
+  fail(`GROK_SYSTEMATIC_CONFIG_UNAVAILABLE: ${systematic?"fallback policy unavailable":"systematic configuration unavailable"}`)
+}
 plannerAdvisorVisibilityFailures(deployedAgents).forEach(fail)
 for (const failure of pmSeatFailures(deployedAgents)) fail(failure)
 
@@ -1898,6 +1915,50 @@ function grokSeatFailures(agents) {
   for (const [name,agent] of Object.entries(agents??{})) {
     if (typeof agent?.model==="string" && /grok/i.test(agent.model) && !allowedSeats.has(name)) {
       failures.push(`GROK_OUTSIDE_REFUTER: ${name}=${agent.model}`)
+    }
+  }
+  return failures
+}
+function grokReachableSeatFailures(systematic, inventory, fallback, sourceModels) {
+  const failures=[]
+  const allowedSeats=new Set(["review-refuter","asi-review-refuter"])
+  const applyOverlay=(state,value)=>{
+    if (!value || typeof value!=="object" || Array.isArray(value)) return
+    for (const overlay of [value,value.opencode]) if (overlay && typeof overlay==="object" && !Array.isArray(overlay) && hasOwn(overlay,"model")) state.model=overlay.model===null?undefined:overlay.model
+  }
+  for (const profileName of ["base",...Object.keys(systematic?.profiles??{})]) {
+    const profile=profileName==="base"?undefined:systematic.profiles[profileName]
+    for (const agent of inventory??[]) {
+      const qualified=agent.category?`${agent.category}/${agent.name}`:agent.name
+      const state={model:undefined}
+      if (agent.category) applyOverlay(state,systematic?.categories?.[agent.category])
+      applyOverlay(state,systematic?.agents?.[qualified]??systematic?.agents?.[agent.name])
+      if (profile) {
+        if (agent.category) applyOverlay(state,profile.categories?.[agent.category])
+        applyOverlay(state,profile.agents?.[qualified]??profile.agents?.[agent.name])
+      }
+      const model=state.model
+      if (typeof model==="string" && /grok/i.test(model) && !allowedSeats.has(agent.name)) failures.push(`GROK_REACHABLE_SEAT: ${agent.name}=${model} (systematic:${profileName})`)
+    }
+  }
+  const targets=(value)=>Array.isArray(value)?value:[value]
+  const agentsByName=new Map((inventory??[]).map((agent)=>[agent.name,agent]))
+  for (const name of Object.keys(sourceModels??{})) if (!agentsByName.has(name)) agentsByName.set(name,{name,category:""})
+  for (const agent of agentsByName.values()) {
+    const source=sourceModels?.[agent.name]
+    if (typeof source!=="string" || !source.includes("/")) continue
+    const provider=source.split("/")[0]
+    if (!Array.isArray(fallback?.startProviders) || !fallback.startProviders.includes(provider) || fallback.enabled===false) continue
+    let rules=fallback.agentFallbackModels?.[agent.name]
+    if (rules===undefined) rules=fallback.fallbackModels?.[source]
+    if (rules===undefined) rules=fallback.providerFallbacks?.[provider]
+    if (rules===undefined) rules=fallback.fallbackModel
+    for (const targetValue of targets(rules)) {
+      const target=typeof targetValue==="string"?targetValue:(targetValue&&typeof targetValue==="object"?`${targetValue.providerID??targetValue.providerId}/${targetValue.modelID??targetValue.modelId}`:undefined)
+      if (typeof target!=="string" || !target.includes("/") || /grok/i.test(target)===false || allowedSeats.has(agent.name)) continue
+      const sameProvider=target.split("/")[0]===provider
+      if (sameProvider && fallback.sameProviderFallbackMode!=="always" && fallback.sameProviderFallbackMode!=="model-specific") continue
+      failures.push(`GROK_REACHABLE_SEAT: ${agent.name}=${target} (fallback)`)
     }
   }
   return failures

@@ -30,13 +30,64 @@ class GrokSeatPolicy(unittest.TestCase):
         except ValueError as error:
             raise AssertionError(f"Grok seat policy marker block is missing: {error}") from error
         cls.program = (
-            source[start:end]
+            "const hasOwn=(obj,key)=>Object.prototype.hasOwnProperty.call(obj??{},key);"
+            + source[start:end]
             + "\nconst input=JSON.parse(require('fs').readFileSync(0,'utf8'));"
-            + "process.stdout.write(JSON.stringify(grokSeatFailures(input.agents)))"
+            + "const result=grokSeatFailures(input.agents);"
+            + "if (typeof grokReachableSeatFailures === 'function') result.push(...grokReachableSeatFailures(input.systematic,input.inventory,input.fallback,input.sourceModels));"
+            + "process.stdout.write(JSON.stringify(result))"
         )
         cls.runtime = runtime
         cls.config = json.loads(CONFIG.read_text(encoding="utf-8"))
         cls.agents = cls.config["agent"]
+
+    def reachable_failures(self, systematic=None, inventory=None, fallback=None, source_models=None):
+        data = {"agents": {}, "systematic": systematic or {}, "inventory": inventory or [],
+                "fallback": fallback or {}, "sourceModels": source_models or {}}
+        result = subprocess.run([self.runtime, "-e", self.program], input=json.dumps(data),
+                               capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def test_systematic_base_and_profile_grok_seats_are_rejected(self):
+        agent = {"name": "repo-research-analyst", "category": ""}
+        base = {"agents": {"repo-research-analyst": {"model": "opencode-go/grok-4.7"}}}
+        profile = {"profiles": {"review": {"agents": {"repo-research-analyst": {"model": "opencode-go/grok-4.7"}}}}}
+        self.assertEqual(self.reachable_failures(base, [agent]),
+                         ["GROK_REACHABLE_SEAT: repo-research-analyst=opencode-go/grok-4.7 (systematic:base)"])
+        self.assertEqual(self.reachable_failures(profile, [agent]),
+                         ["GROK_REACHABLE_SEAT: repo-research-analyst=opencode-go/grok-4.7 (systematic:review)"])
+
+    def test_fallback_grok_seats_and_refuter_exception(self):
+        inventory = [{"name": "gentle-ai-verify", "category": ""},
+                     {"name": "ordinary-agent", "category": ""},
+                     {"name": "review-refuter", "category": ""}]
+        source = {"gentle-ai-verify": "openai/gpt-6.1-sol", "ordinary-agent": "openai/gpt-6.1-sol",
+                  "review-refuter": "openai/gpt-6.1-sol"}
+        target = "opencode-go/grok-4.7"
+        self.assertEqual(self.reachable_failures({}, inventory, {"enabled": True, "startProviders": ["openai"],
+                            "agentFallbackModels": {"gentle-ai-verify": target}}, source),
+                         [f"GROK_REACHABLE_SEAT: gentle-ai-verify={target} (fallback)"])
+        self.assertEqual(self.reachable_failures({}, inventory, {"enabled": True, "startProviders": ["openai"],
+                            "fallbackModel": target}, source),
+                         [f"GROK_REACHABLE_SEAT: gentle-ai-verify={target} (fallback)",
+                          f"GROK_REACHABLE_SEAT: ordinary-agent={target} (fallback)"])
+        self.assertEqual(self.reachable_failures({}, [inventory[2]], {"enabled": True, "startProviders": ["openai"],
+                            "agentFallbackModels": {"review-refuter": target}}, source), [])
+
+    def test_unreachable_fallback_grok_is_not_rejected(self):
+        target = "opencode-go/grok-4.7"
+        self.assertEqual(self.reachable_failures({}, [{"name": "ordinary-agent", "category": ""}],
+                            {"enabled": True, "startProviders": ["anthropic"], "fallbackModel": target},
+                            {"ordinary-agent": "openai/gpt-6.1-sol"}), [])
+
+    def test_deployed_agent_outside_inventory_grok_fallback_is_rejected(self):
+        target = "opencode-go/grok-4.7"
+        self.assertEqual(self.reachable_failures({}, [],
+                            {"enabled": True, "startProviders": ["opencode-go"], "sameProviderFallbackMode": "always",
+                             "agentFallbackModels": {"pm-odd": target}},
+                            {"pm-odd": "opencode-go/muse-spark-1.3-contributor"}),
+                         [f"GROK_REACHABLE_SEAT: pm-odd={target} (fallback)"] )
 
     def policy_failures(self, agents):
         try:
