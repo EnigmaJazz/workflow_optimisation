@@ -504,6 +504,8 @@ The skill-based router is introduced as a controlled pilot. **Ten consecutive ro
 
 After updating OpenCode, Systematic, Magic Context, AFT, or Gentle AI, first run `gentle-ai sync`, then run the self-healing health check once. `gentle-ai telemetry status` and `gentle-ai telemetry preview --json` are the inspection surfaces, while `gentle-ai telemetry disable` remains the explicit opt-out. The workflow reports the selected telemetry state but never changes it on the user's behalf.
 
+After a routine `gentle-ai sync --agents opencode`, run `python3 scripts/claude-overlay-check.py --reapply` so a sync cannot resurrect the trimmed `~/.claude/CLAUDE.md` blocks. It re-applies only sets whose bytes are merely upstream again and leaves a conflict alone; see `docs/upgrades/claude-md-trim.md`.
+
 ```bash
 bash verify-workflow.sh
 ```

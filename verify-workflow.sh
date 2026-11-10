@@ -109,6 +109,7 @@ VERIFY_MODULES=(
   "59-section-8-9-config-runtime.sh 56028b26aa2fc51be73be255e45979f76d7510c76e6ce0911d2b2a7b49a7cbbd"
   "60-section-9a-9b-secure-service.sh 4d6526fefddb88b8a3593809f05443c9b6bdeb1c2ba0575cf783fe9296a3f76f"
   "61-section-10-behavioural.sh 24a31e750fcbfeaea7e18e6801a14547e596910103ecd1ca7d16db9b9425d134"
+  "61b-section-10b-claude-overlay.sh c1e23f35336d55dd1cb3e6c211c8c78e67243a4fa849ac6814903211799ec3cb"
   "62-section-11-summary.sh 4b3a5cb0025366ebdd51135efe3cb811dfe2597b4b31427e37c995480f0c09af"
   "checkers/check-parallel-dispatch.py d970c748791710131a667b6cc1cd08ea280494c021d9b2bde520b1620208447e"
   "checkers/check-prompt-references.py ebfe25eb218176d005556a79fdbabed74cf5d6f5e18869329c9c481fc0f79ef0"
