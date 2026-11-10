@@ -1,0 +1,52 @@
+{
+  "schema": "workflow-changeset/v1",
+  "id": "claude-model-routing",
+  "description": "Claude Code model routing per the 'Which Claude model' article: Opus 5.5 main at medium effort, Haiku Explore and coordinator, Sonnet implementer, advisor limited to three triggers.",
+  "ops": [
+    {
+      "op": "file_remove",
+      "file": "~/.claude/rules/advisor.md",
+      "expect_sha256": "fe752ee0713c67b0fd1b06b6704398fa2c2231967bcf11c62ee1620b100b6eaa"
+    },
+    {
+      "op": "file_create",
+      "file": "~/.claude/rules/advisor.md",
+      "content_file": "advisor.md",
+      "mode": "0644"
+    },
+    {
+      "op": "file_create",
+      "file": "~/.claude/agents/Explore.md",
+      "content_file": "Explore.md",
+      "mode": "0644"
+    },
+    {
+      "op": "file_create",
+      "file": "~/.claude/agents/implementer.md",
+      "content_file": "implementer.md",
+      "mode": "0644"
+    },
+    {
+      "op": "file_create",
+      "file": "~/.claude/agents/coordinator.md",
+      "content_file": "coordinator.md",
+      "mode": "0644"
+    },
+    {
+      "op": "json_set",
+      "file": "~/.claude/settings.json",
+      "path": "/model",
+      "expect_before": "claude-sonnet-5-5",
+      "value": "claude-opus-5-5"
+    },
+    {
+      "op": "json_set",
+      "file": "~/.claude/settings.json",
+      "path": "/effortLevel",
+      "expect_before": {
+        "$absent": true
+      },
+      "value": "medium"
+    }
+  ]
+}

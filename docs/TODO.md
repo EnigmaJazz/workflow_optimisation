@@ -2761,6 +2761,22 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Source:** owner direction, 2026-11-08.
 - **Description:** a no-tool lens would consume less quota; investigate that transport question first and do not assume the frozen candidate is reachable without tools; it must not displace the tool-bearing in-OpenCode lenses where file access is required.
 
+### Q133. Claude Code model routing and Fable advisor trial (owner, 2026-11-10)
+- **Status:** APPLIED to `~/.claude` (2026-11-10) by change sets `changesets/claude-model-routing` (7 ops) and `changesets/claude-fable-advisor-trial` (1 op); journals under `backups/changesets/`. Takes effect in a new Claude Code session. Trial measurement OPEN.
+- **Prerequisites:** none. Deadline: Fable 5.2 leaves the plan on 2026-11-17 (API only after that).
+- **Source:** owner direction 2026-11-10; https://claude.dev/blog/which-claude-model-should-you-build-with/ .
+- **Description:** Opus 5.5 main agent at `effortLevel: medium`; user-level `Explore` pinned to Haiku 5.5 (the built-in Explore now runs on the session model); `coordinator` (Haiku, reads Orca state) and `implementer` (Sonnet 5.5, well-scoped units outside OpenCode projects) agents; `rules/advisor.md` cut to three triggers (stuck, genuine plan discrepancy, final acceptance of a big change); `advisorModel: claude-fable-5-2` in the separate trial set. Supersedes the content of `changesets/claude-advisor-triggers` (its revert now reports drift, by design).
+- **Trial:** per session record `/usage` at start and end, advisor call count, context size at each call, and whether the advice changed a decision; compare with a few days of Opus 5.5 at `high` without an advisor. Article baseline: Opus 5.5 `high` + Fable 5.1 advisor was +1.7 points for about 2.1x cost.
+- **On 2026-11-17:** revert the trial set (`python3 scripts/changeset.py revert --journal <trial journal> --journal-root backups/changesets`), unless the owner decides to pay API credits for Fable.
+- **Follow-up:** `CLAUDE.md` and `roles/tier-2.md` still say Claude Code writes no code; amend to allow implementation through the `implementer` agent outside OpenCode projects (protected-path check first).
+
+### Q134. Trim the global `~/.claude/CLAUDE.md` and keep the trim across gentle-ai sync (owner, 2026-11-10)
+- **Status:** PLANNED.
+- **Prerequisites:** none; complements Q133 (the 99 KB file is about 25k tokens loaded into every session, subagent and advisor call).
+- **Source:** owner direction 2026-11-10: "we need a process of preventing revert if gentle ai is updated and synced, similar to the process for opencode workflow optimisation".
+- **Description:** (1) a change set of `block_replace` ops that moves the bulk of the `gentle-ai:orchestrator` and `gentle-ai:agent-routing` blocks into an on-demand user skill and leaves a short pointer in each block; (2) a drift check run after every gentle-ai sync and by the verifier: `changeset.py status` on every `claude-*` set; when gentle-ai restored the exact upstream bytes the set was written against, re-apply (compare-and-swap, safe); when upstream text changed (new gentle-ai version), report a conflict and never overwrite, so the trim is re-derived against the new text; (3) document `gentle-ai sync --agents opencode` for routine syncs so Claude files are not rewritten at all. gentle-ai 4.3.1 offers `--agents` but no per-block opt-out.
+- **Risk:** item 3 (contracts others consume: gentle-ai-managed blocks) and item 5 (delivery tooling). Codex review before merge.
+
 ## Done
 
 - Review follow-up on the plugin load check (old items 1–2): `71a2eb3` (`d85ca4a` introduced the

@@ -1,0 +1,14 @@
+{
+  "schema": "workflow-changeset/v1",
+  "id": "claude-fable-advisor-trial",
+  "description": "Trial until 2026-11-17: Fable 5.2 as the Claude Code advisor for an Opus 5.5 main agent. Revert when Fable leaves the plan.",
+  "ops": [
+    {
+      "op": "json_set",
+      "file": "~/.claude/settings.json",
+      "path": "/advisorModel",
+      "expect_before": "claude-opus-5-5",
+      "value": "claude-fable-5-2"
+    }
+  ]
+}

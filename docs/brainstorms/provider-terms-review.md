@@ -129,6 +129,7 @@ Owner statement (given in chat, 2026-11-09, recorded verbatim by the coordinator
 Recorded meaning:
 - Sign-off covers agent use in the proposed setup, for Anthropic and OpenAI, as reviewed above.
 - Exception: all Antigravity (Google) interaction is directly user-driven. No agent, orchestrator or script drives it (Google U1, U2, U4 are therefore forbidden for agent-driven use).
+- Owner clarification (chat, 2026-11-09): the Google provider inside OpenCode is used via a Gemini API key, not via Antigravity or a Google subscription login. The Antigravity exception therefore does not restrict OpenCode's Gemini use. The Gemini API Terms were not retrieved in this review, so agent-driven API-key use is covered by the owner's approval but not by reviewed evidence.
 - The per-row table above was not filled in. The AMBIGUOUS and SILENT cells in sections 1 and 2 remain unresolved readings; this sign-off accepts the risk, it does not clear them. The section 4 vendor questions remain open if the owner wants certainty.
 - The Anthropic Usage Policy version question (effective Nov 12, 2026) and the unretrieved OpenAI Terms of Use are not resolved by this sign-off.
 
