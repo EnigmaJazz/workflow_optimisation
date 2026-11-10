@@ -2592,6 +2592,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   timer would run. The owner installs the unit; no repo script does.
 
 ### Q118. Orchestrators cannot create or move to a worktree
+- **MERGED (2026-11-10):** owner fast-forwarded sandbox `master` to `2f96020` (Q118 gitWorktree route plus profile 0.1.3) and pushed. TOCTOU advisory (`service.ts:4472-4486`) stays open.
 - **Status:** PLANNED (owner approved 2026-11-08). **Source:** plugin-pin bump, 2026-11-07.
 - **Evidence:** the retained OpenCode 2 orchestrator could not start work in a fresh worktree: the Code Mode `execute` tool is denied
   by broker admission (`UNCLASSIFIED_TOOL_DENIED`), so `opencode.worktree_create` and `session_move` are unreachable; host git tools
