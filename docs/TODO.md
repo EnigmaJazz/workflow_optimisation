@@ -2574,7 +2574,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Delivery:** `derive-v2-config.py` carries `work-unit-commits` and `chained-pr` from the live V1 root (the repo cannot read or re-author their bytes) and fails derivation when either is absent from both that root and `global-config/skills`, and V2 mode of the verifier now checks `$V2_CONFIG_ROOT/skills` instead of the V1 root.
 
 ### Q117. Run the V2 plugin auto-update timer from a stable checkout of main
-- **Status:** PLANNED (owner approved 2026-11-08). **Source:** Tier 2 deploy review, 2026-11-07.
+- **Status:** DONE at source (2026-11-10; commit to be recorded); the owner installs the unit and creates the checkout. **Source:** Tier 2 deploy review, 2026-11-07.
 - **Evidence:** `v2-plugin-autoupdate.service` runs `scripts/v2-plugin-autoupdate.py` from
   `~/ai-workspace/workflow_optimisation` (`docs/systemd/v2-plugin-autoupdate.service.template:15`), the owner's working
   checkout. That checkout is on `chore/coordinator-selection`, not `main`, and carries unpushed or uncommitted edits, so the
@@ -2582,6 +2582,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Description:** point the unit at a dedicated checkout that only ever tracks `main` (a read-only worktree or clone, fast-forwarded
   by the deploy step), update the template and the installed unit, and make the preflight report which checkout and commit the
   timer would run. The owner installs the unit; no repo script does.
+- **Delivery:** the unit uses `~/ai-workspace/workflow_optimisation-main`, enforces `--require-branch main`, and preflight reports its checkout, branch and commit.
 
 ### Q118. Orchestrators cannot create or move to a worktree
 - **Status:** PLANNED (owner approved 2026-11-08). **Source:** plugin-pin bump, 2026-11-07.

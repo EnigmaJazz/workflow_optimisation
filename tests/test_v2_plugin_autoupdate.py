@@ -129,6 +129,49 @@ class Stack:
         return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
 
 
+class RequiredBranch(unittest.TestCase):
+    def setUp(self):
+        self.stack = Stack()
+        self.checkout = self.stack.dir / "checkout"
+        (self.checkout / "scripts").mkdir(parents=True)
+        import shutil
+        shutil.copy2(SCRIPT, self.checkout / "scripts" / SCRIPT.name)
+        subprocess.run(["git", "-c", "init.defaultBranch=main", "init", str(self.checkout)], check=True, capture_output=True)
+        subprocess.run(["git", "-C", str(self.checkout), "config", "user.email", "test@example.invalid"], check=True)
+        subprocess.run(["git", "-C", str(self.checkout), "config", "user.name", "Test"], check=True)
+        subprocess.run(["git", "-C", str(self.checkout), "add", "scripts/v2-plugin-autoupdate.py"], check=True)
+        subprocess.run(["git", "-C", str(self.checkout), "commit", "-m", "fixture"], check=True, capture_output=True)
+
+    def run_checkout(self, *extra):
+        cmd = [sys.executable, str(self.checkout / "scripts" / SCRIPT.name), "--opencode", str(self.stack.bin),
+               "--server", "http://127.0.0.1:1", "--config", str(self.stack.config),
+               "--state-dir", str(self.stack.dir / "branch-jobstate"), "--password-file", str(self.stack.password),
+               "--restart-cmd", str(self.stack.restart), "--boot-timeout", "5", "--settle", "0", *extra]
+        return subprocess.run(cmd, capture_output=True, text=True)
+
+    def test_main_checkout_passes_required_branch_guard(self):
+        result = self.run_checkout("--require-branch", "main", "--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("would-update", result.stdout)
+
+    def test_feature_branch_is_refused_and_names_observed_branch(self):
+        subprocess.run(["git", "-C", str(self.checkout), "checkout", "-b", "feature/test"], check=True, capture_output=True)
+        result = self.run_checkout("--require-branch", "main", "--dry-run")
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn("feature/test", result.stderr)
+
+    def test_feature_branch_is_accepted_without_guard(self):
+        subprocess.run(["git", "-C", str(self.checkout), "checkout", "-b", "feature/test"], check=True, capture_output=True)
+        result = self.run_checkout("--dry-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("would-update", result.stdout)
+
+    def test_unit_template_uses_stable_checkout_and_branch_guard(self):
+        template = (SCRIPT.parent.parent / "docs/systemd/v2-plugin-autoupdate.service.template").read_text()
+        self.assertIn("%h/ai-workspace/workflow_optimisation-main/scripts/v2-plugin-autoupdate.py", template)
+        self.assertIn("--require-branch main", template)
+
+
 class EndToEnd(unittest.TestCase):
     def test_an_available_patch_update_is_installed_restarted_and_gated(self):
         s = Stack()

@@ -116,6 +116,51 @@ def check_stack(runner=run):
     return "FAIL", "stack check", "; ".join(failed[:3]) or (err.strip() or "exited " + str(code))[:160]
 
 
+def check_autoupdate_checkout(runner=run, unit=HOME / ".config/systemd/user/v2-plugin-autoupdate.service",
+                              expected=HOME / "ai-workspace/workflow_optimisation-main"):
+    unit = Path(unit)
+    expected = Path(expected)
+    if not unit.exists():
+        return "WARN", "autoupdate checkout", "unit not installed; the owner installs docs/systemd/v2-plugin-autoupdate.service.template"
+    try:
+        lines = unit.read_text().splitlines()
+    except OSError as error:
+        return "FAIL", "autoupdate checkout", f"could not read unit {unit}: {error}"
+    exec_line = next((line for line in lines if line.startswith("ExecStart=")), None)
+    if exec_line is None:
+        return "FAIL", "autoupdate checkout", "no ExecStart line observed in unit"
+    script = next((token for token in exec_line[len("ExecStart="):].split() if token.endswith(".py")), None)
+    if script is None:
+        return "FAIL", "autoupdate checkout", f"no .py token in observed line: {exec_line}"
+    declared = Path(script.replace("%h", str(HOME)) if script.startswith("%h/") else script)
+    resolved = declared.resolve()
+    checkout = resolved.parent.parent
+    expected_resolved = expected.resolve()
+    if resolved != declared and not checkout.is_relative_to(expected_resolved):
+        return "FAIL", "autoupdate checkout", f"declared={declared}, resolved={resolved}, resolved checkout={checkout}; unapproved symlink indirection"
+    commands = (
+        (["git", "-C", str(checkout), "rev-parse", "--abbrev-ref", "HEAD"], "branch"),
+        (["git", "-C", str(checkout), "rev-parse", "HEAD"], "commit"),
+        (["git", "-C", str(checkout), "status", "--porcelain"], "working tree"),
+    )
+    values = {}
+    for argv, label in commands:
+        code, out, err = runner(argv)
+        if code != 0:
+            return "FAIL", "autoupdate checkout", f"git {label} check failed for resolved={resolved}, checkout={checkout}: {(err or out).strip() or 'exited ' + str(code)}"
+        values[label] = out.strip()
+    branch = values["branch"]
+    commit = values["commit"]
+    dirty = values["working tree"].splitlines()
+    if branch != "main":
+        return "FAIL", "autoupdate checkout", f"branch={branch}, commit={commit[:7]}, resolved={resolved}, checkout={checkout}; expected branch=main"
+    if dirty:
+        return "FAIL", "autoupdate checkout", f"{len(dirty)} dirty path(s) in resolved={resolved}, checkout={checkout}"
+    if checkout != expected:
+        return "WARN", "autoupdate checkout", f"resolved={resolved}, checkout={checkout}, expected={expected}; timer runs another checkout"
+    return "PASS", "autoupdate checkout", f"checkout={checkout}, branch=main, commit={commit}"
+
+
 def check_repos(runner=run):
     results = []
     for name, path in (("workflow repo", REPO), ("sandbox repo", SANDBOX)):
@@ -134,6 +179,7 @@ def collect(runner=run, stack=False):
     results += [check_config_in_sync(runner), check_units_changeset(runner), check_registration_errors(runner)]
     if stack:
         results.append(check_stack(runner))
+    results.append(check_autoupdate_checkout(runner))
     results += check_repos(runner)
     results += [("MANUAL", "gate", gate) for gate in MANUAL_GATES]
     return results

@@ -1,5 +1,9 @@
 # Guarded automatic plugin updates for the secured OpenCode V2 server (user unit template).
 # Reviewed and installed by the owner at ~/.config/systemd/user/ (not installed by any repo script).
+# This timer uses a dedicated checkout that tracks main only; the owner creates it and the deploy step fast-forwards it.
+#   git clone --branch main <origin> ~/ai-workspace/workflow_optimisation-main
+#   git -C ~/ai-workspace/workflow_optimisation-main fetch --prune origin main; git -C ~/ai-workspace/workflow_optimisation-main merge --ff-only origin/main
+# `python3 scripts/opencode-v2-preflight.py` reports the checkout, branch and commit the timer would run.
 # Not enabled until the V2 stack is in use: it talks to secure-opencode-v2.service and restarts it.
 # Exit codes of scripts/v2-plugin-autoupdate.py make this unit "failed" when a release was rolled back (4),
 # when the rollback itself failed the gate (3) or when the run was refused (2): see `systemctl --user --failed`.
@@ -12,10 +16,11 @@ Requires=secure-opencode-v2.service
 Type=oneshot
 Environment=XDG_CONFIG_HOME=%h/.local/share/opencode-v2/config XDG_DATA_HOME=%h/.local/share/opencode-v2/data
 Environment=XDG_STATE_HOME=%h/.local/share/opencode-v2/state XDG_CACHE_HOME=%h/.local/share/opencode-v2/cache
-ExecStart=/usr/bin/python3 /home/james/ai-workspace/workflow_optimisation/scripts/v2-plugin-autoupdate.py \
+ExecStart=/usr/bin/python3 %h/ai-workspace/workflow_optimisation-main/scripts/v2-plugin-autoupdate.py \
   --opencode %h/.local/share/opencode-v2/prefix/node_modules/.bin/opencode2 \
   --server http://127.0.0.1:4097 \
   --config %h/.local/share/opencode-v2/config/opencode/opencode.json \
   --state-dir %h/.local/state/opencode-v2-autoupdate \
   --password-file %h/.local/share/opencode-v2/server-password \
-  --restart-cmd "systemctl --user restart secure-opencode-v2.service"
+  --restart-cmd "systemctl --user restart secure-opencode-v2.service" \
+  --require-branch main

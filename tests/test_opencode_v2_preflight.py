@@ -125,9 +125,110 @@ class RegistrationErrors(unittest.TestCase):
         self.assertEqual(self.m.check_registration_errors(self.fake, self.log.parent / "missing.log")[0], "WARN")
 
 
+class AutoupdateCheckout(unittest.TestCase):
+    def setUp(self):
+        self.m = load()
+        self.tmp = Path(tempfile.mkdtemp())
+        self.expected = self.tmp / "expected"
+        self.checkout = self.expected
+        self.unit = self.tmp / "v2-plugin-autoupdate.service"
+        self.unit.write_text("ExecStart=/usr/bin/python3 " + str(self.checkout / "scripts/v2-plugin-autoupdate.py") + " --require-branch main\n")
+        self.sha = "1234567890abcdef" * 4
+
+    def fake(self, branch="main", dirty="", failure=None):
+        answers = {
+            "rev-parse --abbrev-ref HEAD": (0, branch + "\n", ""),
+            "rev-parse HEAD": (0, self.sha + "\n", ""),
+            "status --porcelain": (0, dirty, ""),
+        }
+        if failure:
+            answers[failure] = (1, "", "fatal: fixture failure")
+        return runner(answers)
+
+    def test_non_main_checkout_fails_with_branch_commit_and_path(self):
+        status, _, detail = self.m.check_autoupdate_checkout(self.fake(branch="feature/test"), self.unit, self.expected)
+        self.assertEqual(status, "FAIL")
+        self.assertIn("feature/test", detail)
+        self.assertIn(self.sha[:7], detail)
+        self.assertIn(str(self.checkout), detail)
+
+    def test_dirty_main_checkout_fails_with_path_count(self):
+        status, _, detail = self.m.check_autoupdate_checkout(self.fake(dirty=" M a\n?? b\n"), self.unit, self.expected)
+        self.assertEqual(status, "FAIL")
+        self.assertIn("2", detail)
+
+    def test_clean_main_checkout_passes_with_full_commit(self):
+        status, _, detail = self.m.check_autoupdate_checkout(self.fake(), self.unit, self.expected)
+        self.assertEqual(status, "PASS")
+        self.assertIn(self.sha, detail)
+
+    def test_missing_unit_warns(self):
+        status, _, detail = self.m.check_autoupdate_checkout(self.fake(), self.tmp / "missing.service", self.expected)
+        self.assertEqual(status, "WARN")
+        self.assertIn("unit not installed", detail)
+
+    def test_execstart_without_python_token_fails(self):
+        self.unit.write_text("ExecStart=/usr/bin/python3 /repo/not-a-script --flag\n")
+        status, _, detail = self.m.check_autoupdate_checkout(self.fake(), self.unit, self.expected)
+        self.assertEqual(status, "FAIL")
+        self.assertIn("ExecStart=", detail)
+
+    def test_other_clean_main_checkout_warns_with_both_paths(self):
+        self.checkout = self.tmp / "other"
+        self.unit.write_text("ExecStart=/usr/bin/python3 " + str(self.checkout / "scripts/v2-plugin-autoupdate.py") + "\n")
+        status, _, detail = self.m.check_autoupdate_checkout(self.fake(), self.unit, self.expected)
+        self.assertEqual(status, "WARN")
+        self.assertIn(str(self.expected), detail)
+        self.assertIn(str(self.checkout), detail)
+
+    def test_git_failure_fails(self):
+        status, _, detail = self.m.check_autoupdate_checkout(self.fake(failure="rev-parse --abbrev-ref HEAD"), self.unit, self.expected)
+        self.assertEqual(status, "FAIL")
+        self.assertIn("fatal: fixture failure", detail)
+
+    def test_systemd_home_token_resolves_to_the_expected_checkout(self):
+        expected = Path.home() / "ai-workspace/workflow_optimisation-main"
+        self.unit.write_text("ExecStart=/usr/bin/python3 %h/ai-workspace/workflow_optimisation-main/scripts/v2-plugin-autoupdate.py\n")
+        status, _, detail = self.m.check_autoupdate_checkout(self.fake(), self.unit, expected)
+        self.assertEqual(status, "PASS")
+        self.assertIn(str(expected), detail)
+
+    def test_symlinked_script_outside_expected_checkout_fails(self):
+        real_checkout = self.tmp / "real"
+        real_script = real_checkout / "scripts/v2-plugin-autoupdate.py"
+        real_script.parent.mkdir(parents=True)
+        real_script.write_text("# fixture\n")
+        declared_script = self.expected / "scripts/v2-plugin-autoupdate.py"
+        declared_script.parent.mkdir(parents=True)
+        declared_script.symlink_to(real_script)
+        self.unit.write_text("ExecStart=/usr/bin/python3 " + str(declared_script) + "\n")
+
+        status, _, detail = self.m.check_autoupdate_checkout(self.fake(), self.unit, self.expected)
+
+        self.assertEqual(status, "FAIL")
+        self.assertIn("symlink", detail)
+        self.assertIn(str(declared_script), detail)
+        self.assertIn(str(real_script), detail)
+
+    def test_real_script_path_inside_expected_checkout_passes(self):
+        script = self.expected / "scripts/v2-plugin-autoupdate.py"
+        script.parent.mkdir(parents=True)
+        script.write_text("# fixture\n")
+
+        status, _, detail = self.m.check_autoupdate_checkout(self.fake(), self.unit, self.expected)
+
+        self.assertEqual(status, "PASS")
+        self.assertIn(f"checkout={self.expected}, branch=main, commit={self.sha}", detail)
+        self.assertEqual(script.resolve(), script)
+
+
 class Report(unittest.TestCase):
     def setUp(self):
         self.m = load()
+        self.m.V2_ROOT = Path(tempfile.mkdtemp())
+        (self.m.V2_ROOT / "prefix").mkdir()
+        (self.m.V2_ROOT / "prefix/package.json").write_text(json.dumps({"dependencies": {"@opencode/cli": "2.2.0"}}))
+        self.m.check_version = lambda runner=self.m.run: ("PASS", "v2 version", "fixture")
 
     def test_the_manual_gates_are_always_listed_and_never_pass_themselves(self):
         gates = [(s, d) for s, n, d in self.m.collect(runner({}), stack=False) if n == "gate"]

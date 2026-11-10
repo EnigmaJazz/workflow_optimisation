@@ -95,7 +95,7 @@ Pick the row, run the sequence, restart only when the row says so.
 | Verifier modules or `verify-workflow.sh` | `verify/`, `verify-workflow.sh` | [`verifier_manifest.py update`](#digest-pin-after-verifier-edits) → review → commit → `derive --apply` | yes | `verifier_manifest.py check`; preflight |
 | systemd unit or GitHub drop-in | `changesets/opencode-v2-units/` | `changeset.py apply` → `systemctl --user daemon-reload` | yes, if the unit changed | preflight "unit files" is PASS |
 | AFT backport | installed plugin cache (outside git) | [`patch-aft-v2-schema.py`](#the-aft-constraint) | yes | `--check`; preflight "tool registration" |
-| Guarded plugin auto-update timer | `docs/systemd/v2-plugin-autoupdate.{service,timer}.template` | owner installs and enables; no repo script installs it | timer owns its restarts | `systemctl --user list-timers`; the JSONL log |
+| Guarded plugin auto-update timer | `docs/systemd/v2-plugin-autoupdate.{service,timer}.template` | owner installs and enables; no repo script installs it | timer owns its restarts | preflight checkout/branch/commit report; `systemctl --user list-timers`; the JSONL log |
 | Sandbox-repo S17 paths (`nono/profile/**`, `scripts/**`, `opencode/plugins/**` in `~/agent-sandbox-integration`) | that repository | owner only; proposals go in `docs/proposals-*.patch` | owner's call | owner |
 
 Two rows are cross-repo and easy to get wrong:
@@ -203,7 +203,7 @@ previous exact version with a timestamped config backup, restarts, and gates aga
 4 rolled back, 3 rollback failed the gate, 5 another run is active, 2 refused. Every step appends to
 `<state-dir>/autoupdate.jsonl`.
 
-The timer template runs daily at 04:30 with `Persistent=true` (`docs/systemd/v2-plugin-autoupdate.timer.template`);
+The timer template runs daily at 04:30 with `Persistent=true` (`docs/systemd/v2-plugin-autoupdate.timer.template`). It runs from the dedicated `~/ai-workspace/workflow_optimisation-main` checkout, which tracks `main` only and is fast-forwarded by the deploy step. The job passes `--require-branch main` and exits 2 if the checkout is on another branch. `python3 scripts/opencode-v2-preflight.py` reports the checkout, branch and commit the timer would run;
 the service template passes `--config ~/.local/share/opencode-v2/config/opencode/opencode.json`,
 `--server http://127.0.0.1:4097`, `--state-dir ~/.local/state/opencode-v2-autoupdate`,
 `--password-file ~/.local/share/opencode-v2/server-password` and

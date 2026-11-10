@@ -221,10 +221,22 @@ def main(argv=None):
     ap.add_argument("--state-dir", required=True)
     ap.add_argument("--password-file", required=True)
     ap.add_argument("--restart-cmd", default="")
+    ap.add_argument("--require-branch", default="")
     ap.add_argument("--boot-timeout", type=float, default=90)
     ap.add_argument("--settle", type=float, default=5)
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
+    try:
+        if args.require_branch:
+            checkout = Path(__file__).resolve().parents[1]
+            result = subprocess.run(["git", "-C", str(checkout), "rev-parse", "--abbrev-ref", "HEAD"],
+                                   capture_output=True, text=True)
+            observed = result.stdout.strip() if result.returncode == 0 else (result.stderr or result.stdout).strip()
+            if result.returncode != 0 or observed != args.require_branch:
+                raise Refusal(f"checkout branch {observed or 'unknown'} does not match required branch {args.require_branch}: {checkout}")
+    except Refusal as err:
+        print(f"[autoupdate] refused: {err}", file=sys.stderr)
+        return 2
     Path(args.state_dir).mkdir(parents=True, exist_ok=True)
     lock = open(Path(args.state_dir) / "lock", "w")
     try:
