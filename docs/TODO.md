@@ -2386,6 +2386,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   reaches. Put the decision in `tier-5.md` and the PM prompts; per-dispatch spec wording was ignored twice.
 
 ### Q105. Unhide the Planner and the advisors (hidden agents cannot be dispatched by name)
+- **Owner consent (2026-11-10):** native review of `5507fc5..HEAD` on `fix/q105-unhide-planner` (Q99 fixes `85cf550`, `06ccc4b` plus the owner's Q117 commit). Asked: "Do you consent to a native review of `5507fc5..HEAD` (the Q99 fixes plus your Q117 commit) on the q105 master?" Owner, verbatim: "yes". The first native review (lineage `review-2c27fd7725fd6425`, APPROVED, burned) covered `origin/main..5507fc5`; Codex PASS on Q99 (`06ccc4b`) and Q117.
 - **Owner decision (2026-11-10):** native review consent granted for `fix/q105-unhide-planner` (item 4); merge to `main`, `derive --apply` and restart only after that review and when all sessions are idle (item 5). Owner answers 2026-11-10, verbatim: "1. No 2. Before apply 3. Yes approve both 4. Yes 5. Yes after review and when all sessions are idle 6. Discard  7. Yes 8. Yes allow, does not need to ask, 9. Keep them 10. Ultimately should be a user service 11. Yes"
 - **Status:** PLANNED. Blocks every routed unit's Gate 2.
 - **Prerequisites:** none for the probe; the unhide itself is a `global-config/opencode.json` change,
