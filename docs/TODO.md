@@ -2386,6 +2386,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   reaches. Put the decision in `tier-5.md` and the PM prompts; per-dispatch spec wording was ignored twice.
 
 ### Q105. Unhide the Planner and the advisors (hidden agents cannot be dispatched by name)
+- **DEPLOYED (2026-11-10):** `fix/q105-unhide-planner` fast-forwarded to `main` (`54115d5..8a38c67`, owner push) with Q105 (`ff1af3e`, `5cb31e1`), Q99 (`5b0b84e`, `85cf550`, `06ccc4b`) and Q117 (`8a38c67`); owner ran `derive --apply` and restarted `secure-opencode-v2.service`. Coordinator readback of the live V2 root: service active; 15-agent Planner inventory, none hidden; Grok only on `review-refuter` and `asi-review-refuter`. Native reviews: `review-2c27fd7725fd6425` (origin/main..5507fc5) and `review-b7992667e5563a18` (5507fc5..8a38c67), both APPROVED and burned; Codex PASS on all findings. Open: post-restart Planner by-name A/B dispatch probe (TUI only, Q51).
 - **Owner consent (2026-11-10):** native review of `5507fc5..HEAD` on `fix/q105-unhide-planner` (Q99 fixes `85cf550`, `06ccc4b` plus the owner's Q117 commit). Asked: "Do you consent to a native review of `5507fc5..HEAD` (the Q99 fixes plus your Q117 commit) on the q105 master?" Owner, verbatim: "yes". The first native review (lineage `review-2c27fd7725fd6425`, APPROVED, burned) covered `origin/main..5507fc5`; Codex PASS on Q99 (`06ccc4b`) and Q117.
 - **Owner decision (2026-11-10):** native review consent granted for `fix/q105-unhide-planner` (item 4); merge to `main`, `derive --apply` and restart only after that review and when all sessions are idle (item 5). Owner answers 2026-11-10, verbatim: "1. No 2. Before apply 3. Yes approve both 4. Yes 5. Yes after review and when all sessions are idle 6. Discard  7. Yes 8. Yes allow, does not need to ask, 9. Keep them 10. Ultimately should be a user service 11. Yes"
 - **Status:** PLANNED. Blocks every routed unit's Gate 2.
@@ -2579,6 +2580,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Delivery:** `derive-v2-config.py` carries `work-unit-commits` and `chained-pr` from the live V1 root (the repo cannot read or re-author their bytes) and fails derivation when either is absent from both that root and `global-config/skills`, and V2 mode of the verifier now checks `$V2_CONFIG_ROOT/skills` instead of the V1 root.
 
 ### Q117. Run the V2 plugin auto-update timer from a stable checkout of main
+- **COMMITTED AND MERGED (2026-11-10)** as `8a38c67`; Codex PASS (F3 closed). Not yet active: create the `~/ai-workspace/workflow_optimisation-main` checkout and install the timer unit (owner). Advisories: the preflight compares a resolved checkout to an unresolved expected path (false WARN only, on a symlinked home); a git spawn failure escapes the autoupdate Refusal handler.
 - **Status:** PLANNED (owner approved 2026-11-08). **Source:** Tier 2 deploy review, 2026-11-07.
 - **Evidence:** `v2-plugin-autoupdate.service` runs `scripts/v2-plugin-autoupdate.py` from
   `~/ai-workspace/workflow_optimisation` (`docs/systemd/v2-plugin-autoupdate.service.template:15`), the owner's working
@@ -2737,6 +2739,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   `asi-review-*` lanes.
 
 ### Q99. Guard the verifier seat against Grok (owner, 2026-11-02)
+- **DEPLOYED (2026-11-10)** with Q105; see Q105. Advisories from review `review-b7992667e5563a18` (non-blocking, follow-up): an unset `sameProviderFallbackMode` silently drops same-provider Grok targets; seats whose model is only inherited from a top-level default are never scanned as fallback sources.
 - **Status:** PLANNED. Needs tests first, `advisor-*` advice and a digest re-pin, so OpenCode agents build it.
 - **Prerequisites:** none.
 - **Source:** owner, 2026-11-02. One `gentle-ai-verify` run on `opencode-go/grok-4.7` used 10% of the weekly allowance.
@@ -2776,6 +2779,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Follow-up:** `CLAUDE.md` and `roles/tier-2.md` still say Claude Code writes no code; amend to allow implementation through the `implementer` agent outside OpenCode projects (protected-path check first).
 
 ### Q134. Trim the global `~/.claude/CLAUDE.md` and keep the trim across gentle-ai sync (owner, 2026-11-10)
+- **COMMITTED (2026-11-10)** as `6edc7f8` on `feat/q134-claude-md-trim` (13 paths); Codex PASS after one correction (per-operation classification). Not merged: needs a rebase on `main` `8a38c67` and a manifest re-pin; the trim is not applied to the live `~/.claude/CLAUDE.md` yet.
 - **Owner decision (2026-11-10):** option 1 (owner applied the A1 patch; 12/12 overlay tests OK, manifest current); `changesets/claude-md-trim/upstream/CLAUDE.md.snapshot` is NOT committed (item 1). Owner answers 2026-11-10, verbatim: "1. No 2. Before apply 3. Yes approve both 4. Yes 5. Yes after review and when all sessions are idle 6. Discard  7. Yes 8. Yes allow, does not need to ask, 9. Keep them 10. Ultimately should be a user service 11. Yes"
 - **Status:** PLANNED.
 - **Prerequisites:** none; complements Q133 (the 99 KB file is about 25k tokens loaded into every session, subagent and advisor call).
@@ -2784,6 +2788,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Risk:** item 3 (contracts others consume: gentle-ai-managed blocks) and item 5 (delivery tooling). Codex review before merge.
 
 ### Q135. Allow `host_review_acknowledge_approved` for the orchestrator and both PMs (owner, 2026-11-10)
+- **Finding (2026-11-10):** the grant is ALREADY live: `global-config/opencode.json` on `main` has `host_review_acknowledge_approved: allow` for all three agents (derive printed the warnings). Remaining: confirm every other agent resolves to deny, add the pinning test with a positive control, and update `WORKFLOW.md`.
 - **Status:** PLANNED. Carried from the Q105 note (owner, 2026-11-07); Q105 itself changed no permissions.
 - **Prerequisites:** Q105 merged (same file, `global-config/opencode.json`).
 - **Source:** Owner answers 2026-11-10, verbatim: "1. No 2. Before apply 3. Yes approve both 4. Yes 5. Yes after review and when all sessions are idle 6. Discard  7. Yes 8. Yes allow, does not need to ask, 9. Keep them 10. Ultimately should be a user service 11. Yes" (item 8).
