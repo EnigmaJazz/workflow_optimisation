@@ -32,7 +32,7 @@ class SpecAdvisors(unittest.TestCase):
         for name, model in expected.items():
             with self.subTest(name=name):
                 seat = AGENTS[name]
-                self.assertEqual((seat["model"], seat.get("variant"), seat["mode"], seat["hidden"]), (model, None, "subagent", True))
+                self.assertEqual((seat["model"], seat.get("variant"), seat["mode"], seat["hidden"]), (model, None, "subagent", False))
                 self.assertEqual(seat["permission"]["task"], {"*": "deny", "advisor-evidence": "allow"})
                 self.assertIs(seat["tools"]["task"], True)
                 self.assertEqual(allowed_mutations(name), [])

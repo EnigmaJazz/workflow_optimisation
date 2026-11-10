@@ -599,6 +599,27 @@ if (genericRuntimeReady && ggaRuntimeReady && !distinct) {
   fail("GGA_REVIEW_NO_DISTINCT_MODEL_CONTROL: review primaries do not provide a control distinct from general/orchestrator")
 }
 
+// planner-advisor-visibility:begin
+function plannerAdvisorVisibilityFailures(agents) {
+  const failures=[]
+  const planner=agents?.planner
+  const task=planner?.permission?.task
+  const prompt=typeof planner?.prompt==="string" ? planner.prompt : ""
+  if (!task || typeof task!=="object") return ["PLANNER_ADVISOR_TASK_PERMISSION_MISSING"]
+  for (const name of Object.keys(task)) {
+    if (name==="*" || name==="explore") continue
+    const agent=agents?.[name]
+    if (!agent || typeof agent!=="object") {
+      failures.push(`PLANNER_ADVISOR_MISSING: ${name}`)
+      continue
+    }
+    const namedInPrompt=prompt.includes(`\`${name}\``)
+    if (agent.hidden!==true || namedInPrompt) continue
+    failures.push(`PLANNER_ADVISOR_UNREACHABLE: ${name}`)
+  }
+  return failures
+}
+// planner-advisor-visibility:end
 // pm-seat-policy:begin
 // Owner direction 2026-10-28: both PM seats are the same exact Muse Spark Contributor seat
 // with no variant (the model defines none); this supersedes the 2026-10-24 GLM high seat.
@@ -622,6 +643,7 @@ function pmSeatFailures(agents) {
   return failures
 }
 // pm-seat-policy:end
+plannerAdvisorVisibilityFailures(deployedAgents).forEach(fail)
 for (const failure of pmSeatFailures(deployedAgents)) fail(failure)
 
 // Compare underlying families, not provider prefixes or exact model IDs.
@@ -1915,7 +1937,7 @@ function plannerHandoffFailures(agents,gp) {
   if (!planner || typeof planner!=="object" || Array.isArray(planner)) failures.push("PLANNER_AGENT_MISSING: planner")
   else {
     if (planner.mode!=="subagent") failures.push(`PLANNER_MODE_MISMATCH: ${show(planner.mode)}`)
-    if (planner.hidden!==true) failures.push("PLANNER_NOT_HIDDEN")
+    if (planner.hidden!==false) failures.push("PLANNER_NOT_VISIBLE")
     if (planner.model!=="openai/gpt-6.1-sol") failures.push(`PLANNER_MODEL_MISMATCH: ${show(planner.model)}`)
     if (planner.variant!=="high") failures.push(`PLANNER_VARIANT_MISMATCH: ${show(planner.variant)}`)
     readSurface("planner",planner)
@@ -1945,7 +1967,7 @@ function plannerHandoffFailures(agents,gp) {
   if (!evidence || typeof evidence!=="object" || Array.isArray(evidence)) failures.push("PLANNER_EVIDENCE_AGENT_MISSING: planner-evidence")
   else {
     if (evidence.mode!=="subagent") failures.push(`PLANNER_EVIDENCE_MODE_MISMATCH: ${show(evidence.mode)}`)
-    if (evidence.hidden!==true) failures.push("PLANNER_EVIDENCE_NOT_HIDDEN")
+    if (evidence.hidden!==false) failures.push("PLANNER_EVIDENCE_NOT_VISIBLE")
     if (evidence.model!=="openai/gpt-6-luna") failures.push(`PLANNER_EVIDENCE_MODEL_MISMATCH: ${show(evidence.model)}`)
     if (evidence.variant!=="high") failures.push(`PLANNER_EVIDENCE_VARIANT_MISMATCH: ${show(evidence.variant)}`)
     readSurface("planner-evidence",evidence)

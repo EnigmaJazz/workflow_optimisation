@@ -74,10 +74,10 @@ class RealConfig(unittest.TestCase):
         self.assertEqual(run_block(self.agents, self.gp), [])
         self.assertEqual((self.agents[PLANNER]["model"], self.agents[PLANNER]["variant"],
                           self.agents[PLANNER]["mode"], self.agents[PLANNER]["hidden"]),
-                         ("openai/gpt-6.1-sol", "high", "subagent", True))
+                         ("openai/gpt-6.1-sol", "high", "subagent", False))
         self.assertEqual((self.agents[EVIDENCE]["model"], self.agents[EVIDENCE]["variant"],
                           self.agents[EVIDENCE]["mode"], self.agents[EVIDENCE]["hidden"]),
-                         ("openai/gpt-6-luna", "high", "subagent", True))
+                         ("openai/gpt-6-luna", "high", "subagent", False))
         for name in (PLANNER, EVIDENCE):
             for tool_id in READ_TOOLS:
                 self.assertIs(self.agents[name]["tools"].get(tool_id), True, (name, tool_id))
