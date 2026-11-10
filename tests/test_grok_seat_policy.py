@@ -89,6 +89,20 @@ class GrokSeatPolicy(unittest.TestCase):
                             {"pm-odd": "opencode-go/muse-spark-1.3-contributor"}),
                          [f"GROK_REACHABLE_SEAT: pm-odd={target} (fallback)"] )
 
+    def test_reviewed_profile_model_is_a_fallback_source(self):
+        systematic = {"profiles": {"reviewed": {"agents": {"repo-research-analyst": {"model": "openai/gpt-6.1-sol"}}}}}
+        inventory = [{"name": "repo-research-analyst", "category": ""}]
+        fallback = {"enabled": True, "startProviders": ["openai"],
+                    "fallbackModels": {"openai/gpt-6.1-sol": "opencode-go/grok-4.7"}}
+        self.assertEqual(self.reachable_failures(systematic, inventory, fallback, {}),
+                         ["GROK_REACHABLE_SEAT: repo-research-analyst=opencode-go/grok-4.7 (fallback)"])
+        safe = {"enabled": True, "startProviders": ["openai"],
+                "fallbackModels": {"openai/gpt-6.1-sol": "deepseek/deepseek-flash"}}
+        self.assertEqual(self.reachable_failures(systematic, inventory, safe, {}), [])
+        gated = {"enabled": True, "startProviders": ["opencode-go"],
+                 "fallbackModels": {"openai/gpt-6.1-sol": "opencode-go/grok-4.7"}}
+        self.assertEqual(self.reachable_failures(systematic, inventory, gated, {}), [])
+
     def policy_failures(self, agents):
         try:
             result = subprocess.run(
