@@ -2242,6 +2242,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   - the per-role wording of the minimality principles (spec D19, section 14).
 
 ### Q119. Paperclip spike through REST API and UI only (Track A; spec section 12 item 1)
+- **Owner decision (2026-11-10):** Paperclip should ultimately run as a user service (item 10). Owner answers 2026-11-10, verbatim: "1. No 2. Before apply 3. Yes approve both 4. Yes 5. Yes after review and when all sessions are idle 6. Discard  7. Yes 8. Yes allow, does not need to ask, 9. Keep them 10. Ultimately should be a user service 11. Yes"
 - **Status:** PLANNED. **Prerequisites:** none. Runs in parallel with all OpenCode 2 work. **Source:** owner, 2026-11-08.
 - **Description:** Download Paperclip, review its README (D13), disable its local CLI adapters (D21, OPEN-10) and record tickets and cost-events for one real task across two repos with Orca launching every agent. Define the Paperclip issue fields and who keeps them in step with the repo trackers (D14, OPEN-5). Confirms or kills spec sections 7 and 10. Read-only on the repos; the install location and the Paperclip attach path need an owner decision before any nono change.
 - **Owner decisions (2026-11-08):** (1) OPEN-6 provider terms: an agent prepares a cited per-provider summary and the owner decides and signs; owner's working belief, to be checked against the quotes, is that only Google prohibits direction by another agent; a silent clause is not permission. (2) Attach path: host-side only (Orca launches Tier 5; Paperclip reads published state or a host-side bridge calls its REST API; Paperclip never launches or attaches to a CLI); no nono profile change and no sandbox-to-Paperclip access; the OPEN-11 Engram probe runs separately, read-only, and any profile change is a later owner decision. (3) Install location is deferred until the README review says which options are real; the README review (download, S36/S44) starts now and is read-only.
@@ -2283,6 +2284,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Description:** Read the Run's OpenCode 2 transcripts and classify each deviation from the role contract by cause: brief gave code-level instructions instead of the outcome; skill or handover not found or not read (V2 skills root lacks `work-unit-commits` and `chained-pr`, Q116); tool unavailable (Q126); prompt silent or ambiguous. Output: a table of deviations with the prompt or AGENTS.md line that should change. The OpenCode 2 `AGENTS.md` and each agent's system prompt must then say explicitly where to find skills and handovers and which tool does which job. Q113 carries the rewrite.
 
 ### Q102. Multi-tier orchestration, Track B: OpenCode workflow narrowing and sandbox changes
+- **Owner decision OPEN-1 (2026-11-10):** native review runs **before apply**, on a host-side `git clone --shared` with the stage commit checked out and `--base-ref` at the stage baseline; the owner approves both the real state directory and the `opencode-v2-secure` profile read grant it needs, and consents to one trial start/capture/acknowledge run (D37). The after-apply fallback is not used. Owner answers 2026-11-10, verbatim: "1. No 2. Before apply 3. Yes approve both 4. Yes 5. Yes after review and when all sessions are idle 6. Discard  7. Yes 8. Yes allow, does not need to ask, 9. Keep them 10. Ultimately should be a user service 11. Yes" (items 2-3).
 - **Status:** PLANNED.
 - **Prerequisites:** none to start. Lands `agent-sandbox-integration` first, then `workflow_optimisation`
   (spec section 13). Work in `agent-sandbox-integration` starts from a clean branch or fresh worktree.
@@ -2384,6 +2386,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
   reaches. Put the decision in `tier-5.md` and the PM prompts; per-dispatch spec wording was ignored twice.
 
 ### Q105. Unhide the Planner and the advisors (hidden agents cannot be dispatched by name)
+- **Owner decision (2026-11-10):** native review consent granted for `fix/q105-unhide-planner` (item 4); merge to `main`, `derive --apply` and restart only after that review and when all sessions are idle (item 5). Owner answers 2026-11-10, verbatim: "1. No 2. Before apply 3. Yes approve both 4. Yes 5. Yes after review and when all sessions are idle 6. Discard  7. Yes 8. Yes allow, does not need to ask, 9. Keep them 10. Ultimately should be a user service 11. Yes"
 - **Status:** PLANNED. Blocks every routed unit's Gate 2.
 - **Prerequisites:** none for the probe; the unhide itself is a `global-config/opencode.json` change,
   so it needs the digest re-pin, a derive on V2, an owner restart and an independent verifier. Queue it
@@ -2750,6 +2753,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Deferred:** overlay authorization-text alignment is separate follow-up, not this implementation; routing-guard archive parity stays later work.
 
 ### Q131. Advisors off Google models (owner, 2026-11-08)
+- **Owner decision (2026-11-10):** keep the non-advisor OpenRouter Google fallbacks (item 9). Owner answers 2026-11-10, verbatim: "1. No 2. Before apply 3. Yes approve both 4. Yes 5. Yes after review and when all sessions are idle 6. Discard  7. Yes 8. Yes allow, does not need to ask, 9. Keep them 10. Ultimately should be a user service 11. Yes"
 - **Status:** DONE AND DEPLOYED (2026-11-09). Merged to `main` (`54115d5`, checker fix `11714aa`); owner ran `derive --apply` and restarted `secure-opencode-v2.service`; verified live in the V2 root: no agent on a `google/` model, no `advisor-gemini-*` agent, every pre/post pair differs, `advisor-evidence` on `opencode-go/qwen3.8-flash`. Codex review: F1 (checker false failures on omitted `ctx_memory`) PASS, F3 (docs naming the tool-less seats) PASS, F2 (evidence-dispatch deny rule and a stale positive control that would have failed the full checker) PASS at the final recheck. The whole-checker integration test was executed by the coordinator on the host (`SYSTEMATIC_NODE_MODULES=~/.config/opencode/node_modules`, 2/2 OK); the worker sandbox could not run it, so it needs that variable or it skips. Native review not run (deletion-driven size exception: 491, 638 and 209 authored lines). Not covered: OpenRouter `~google/gemini-flash-latest` fallbacks on non-advisor agents remain by a documented non-goal, so Google quota can still be drawn through them.
 - **Prerequisites:** none.
 - **Source:** `d0c4a76`; `tests/test_advisor_models_off_google.py`.
@@ -2771,11 +2775,19 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 - **Follow-up:** `CLAUDE.md` and `roles/tier-2.md` still say Claude Code writes no code; amend to allow implementation through the `implementer` agent outside OpenCode projects (protected-path check first).
 
 ### Q134. Trim the global `~/.claude/CLAUDE.md` and keep the trim across gentle-ai sync (owner, 2026-11-10)
+- **Owner decision (2026-11-10):** option 1 (owner applied the A1 patch; 12/12 overlay tests OK, manifest current); `changesets/claude-md-trim/upstream/CLAUDE.md.snapshot` is NOT committed (item 1). Owner answers 2026-11-10, verbatim: "1. No 2. Before apply 3. Yes approve both 4. Yes 5. Yes after review and when all sessions are idle 6. Discard  7. Yes 8. Yes allow, does not need to ask, 9. Keep them 10. Ultimately should be a user service 11. Yes"
 - **Status:** PLANNED.
 - **Prerequisites:** none; complements Q133 (the 99 KB file is about 25k tokens loaded into every session, subagent and advisor call).
 - **Source:** owner direction 2026-11-10: "we need a process of preventing revert if gentle ai is updated and synced, similar to the process for opencode workflow optimisation".
 - **Description:** (1) a change set of `block_replace` ops that moves the bulk of the `gentle-ai:orchestrator` and `gentle-ai:agent-routing` blocks into an on-demand user skill and leaves a short pointer in each block; (2) a drift check run after every gentle-ai sync and by the verifier: `changeset.py status` on every `claude-*` set; when gentle-ai restored the exact upstream bytes the set was written against, re-apply (compare-and-swap, safe); when upstream text changed (new gentle-ai version), report a conflict and never overwrite, so the trim is re-derived against the new text; (3) document `gentle-ai sync --agents opencode` for routine syncs so Claude files are not rewritten at all. gentle-ai 4.3.1 offers `--agents` but no per-block opt-out.
 - **Risk:** item 3 (contracts others consume: gentle-ai-managed blocks) and item 5 (delivery tooling). Codex review before merge.
+
+### Q135. Allow `host_review_acknowledge_approved` for the orchestrator and both PMs (owner, 2026-11-10)
+- **Status:** PLANNED. Carried from the Q105 note (owner, 2026-11-07); Q105 itself changed no permissions.
+- **Prerequisites:** Q105 merged (same file, `global-config/opencode.json`).
+- **Source:** Owner answers 2026-11-10, verbatim: "1. No 2. Before apply 3. Yes approve both 4. Yes 5. Yes after review and when all sessions are idle 6. Discard  7. Yes 8. Yes allow, does not need to ask, 9. Keep them 10. Ultimately should be a user service 11. Yes" (item 8).
+- **Description:** set `host_review_acknowledge_approved` to `allow` for `gentle-orchestrator`, `pm-odd` and `pm-systematic`, with no ask; keep the global default `deny` for every other agent. Update `WORKFLOW.md`, the pinning tests (positive control: another agent with the grant fails) and the verifier checker in the same commit; re-pin the manifest.
+- **Risk:** item 2 (permissions). Codex review with a SECURITY section before merge.
 
 ## Done
 
