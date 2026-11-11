@@ -2581,6 +2581,7 @@ https://opencode.ai/v2/docs/build/plugins/migrate-v1, npm):
 
 ### Q136. OpenCode V2 2.2.7 breaks OpenChamber: API moved under /api
 - **Status:** OPEN (found 2026-11-11). **Source:** owner upgrade 2.2.5 -> 2.2.7.
+- **ROLLED BACK (2026-11-11):** owner restored 2.2.5 from `prefix.bak-2.2.5`; preflight no failing check (`v2 version: 2.2.5, exact pin`); owner confirms OpenChamber works again.
 - **Evidence:** on 2.2.7 `/api/session` returns JSON while `/session`, `/config` and `/global/health` return the bundled web app (HTML, 200); `opencode2 serve --help` reads "Start the v2 API and web server" and has no API path flag. OpenChamber 2.5.3 attaches but gets HTML for every call, so it cannot list or start sessions. OpenChamber 2.5.3, 2.7.0 (latest) and 2.7.1-canary.20261111.16 all hardcode the prefix to `''` (`server/lib/opencode/network-runtime.js` `detectOpenCodeApiPrefix`) and ignore `OPENCODE_API_PREFIX` ("Ignoring configured OpenCode API prefix; API runs at root."), so no OpenChamber upgrade fixes it.
 - **Description:** hold V2 at 2.2.5 (backup `prefix.bak-2.2.5`; 2.2.7 install kept as `prefix.broken-2.2.7`) until OpenChamber supports the /api layout; also audit our own callers of the V2 HTTP API (permission detector, `v2-plugin-autoupdate.py --server`) before any later bump. Untested: whether 2.2.6 already moved the API.
 
