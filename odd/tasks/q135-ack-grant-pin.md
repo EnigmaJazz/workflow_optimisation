@@ -201,3 +201,6 @@ Specification E1-E3 and security O3 concern malformed/null/array/object-valued p
 - r1 2026-11-11T22:15:23Z gentle-orchestrator: Create Q135 tracker: pin the acknowledge-approved grant (owner decision 2026-11-10 item 8).
 - r2 2026-11-11T22:19:55Z gentle-orchestrator: Record Tier 2 routing correction (pm-odd, worktree supported) and the authoritative implementation contract.
 - r3 2026-11-11T22:38:06Z planner: Finalise T1-T4 plan and formal advice dispositions; preserve verbatim contract. Broker retains managed revision log.
+
+## Gates
+- q135-ack-grant-pin-u1 PASS 2026-11-11T22:39:16Z planner ref=odd/tasks/q135-ack-grant-pin.md r3, Finalised unit plan T1-T4; raw security/spec pre-advice read; security B1 and spec B1-B6 resolved; node availability deferred to actual writer execution.
