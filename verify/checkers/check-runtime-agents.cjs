@@ -1051,25 +1051,8 @@ for (const [name,agent] of Object.entries(deployedAgents)) {
 }
 for (const t of ["sandbox_apply","sandbox_apply_patch","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_edit","sandbox_finish","sandbox_write"]) if (gp[t]!=="deny") fail(`SANDBOX_MUTATION_DEFAULT_NOT_DENY: ${t}=${show(gp[t])}`)
 
-
-const registeredHostReads=["host_review_mode_status","host_review_status","host_review_lens_context","host_sandbox_result"]
-const gatedHostMutations=["host_review_diff_read","host_git_commit","host_git_push","host_gh_issue_create","host_plan_append","host_register_project","host_review_start","host_review_materialize","host_review_pipeline_run","host_review_persist","host_review_capture_result","host_review_capture_unachievable","host_review_acknowledge_approved","host_review_capture_correction_plan","host_review_capture_refuter","host_review_capture_validation","host_review_validate","host_review_recover","host_sandbox_result_install","host_git_clear_commit_intent"]
-const retiredHostOperations=["host_sdd_verify_validate","host_sdd_attempt_status","host_sdd_attempt_acquire","host_sdd_attempt_begin","host_sdd_attempt_rescope","host_sdd_attempt_finish","host_sdd_attempt_reset","host_sdd_attempt_settle","host_sdd_attempt_grant","host_sdd_archive_compose","host_sdd_status","host_sdd_continue","host_sdd_task_result"]
-for (const name of registeredHostReads) if (gp[name]!=="allow") fail(`HOST_READ_PERMISSION_MISMATCH: ${name}`)
-for (const name of [...gatedHostMutations,...retiredHostOperations]) if (gp[name]!=="deny") fail(`HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY: ${name}`)
-function hostReviewAcknowledgeAllowFailures(agent) {
-  const permission=agent?.permission
-  if (!permission || typeof permission!=="object" || Array.isArray(permission) || !Object.prototype.hasOwnProperty.call(permission,"host_review_acknowledge_approved") || permission.host_review_acknowledge_approved!=="allow") return [`HOST_REVIEW_ACKNOWLEDGE_APPROVED_NOT_ALLOW: ${show(permission?.host_review_acknowledge_approved)}`]
-  return []
-}
-const acknowledgeAskProbe=hostReviewAcknowledgeAllowFailures({permission:{host_review_acknowledge_approved:"ask"}})
-if (!acknowledgeAskProbe.some(failure=>failure.includes("HOST_REVIEW_ACKNOWLEDGE_APPROVED_NOT_ALLOW"))) fail("HOST_REVIEW_ACKNOWLEDGE_APPROVED_ASK_POSITIVE_CONTROL_FAILED")
-for (const name of ["host_system","host_service_status","host_service_logs","host_tailscale_status","host_memory","host_disk_usage","host_network_listeners","host_process_list","host_docker_list","host_docker_logs"]) if (gp[name]==="allow") fail(`UNREGISTERED_HOST_INSPECTION_ADVERTISED: ${name}`)
-
-function cfgTool(agent,t) { return agent?.tools && typeof agent.tools==="object" ? agent.tools[t] : undefined }
-function cfgPerm(agent,t) { return agent?.permission && typeof agent.permission==="object" ? agent.permission[t] : undefined }
-// Q106 fix: resolve a permission through ordered wildcard keys (last matching
-// key wins), then sweep every non-coordinator for an acknowledge allow.
+// acknowledge-grant-policy:begin
+function acknowledgeGrantShow(value) { return value===undefined ? "<inherit/none>" : JSON.stringify(value) }
 function globPatternMatches(pattern, name) {
   if (pattern === name) return true
   if (typeof pattern !== "string" || (!pattern.includes("*") && !pattern.includes("?"))) return false
@@ -1092,17 +1075,37 @@ function resolvedPermissionValue(agent, tool) {
   }
   return resolved
 }
-function acknowledgeAllowSweepFailures(agents, allowedAgents) {
+function hostReviewAcknowledgeAllowFailures(agent) {
+  const permission=agent?.permission
+  if (!permission || typeof permission!=="object" || Array.isArray(permission) || !Object.prototype.hasOwnProperty.call(permission,"host_review_acknowledge_approved") || permission.host_review_acknowledge_approved!=="allow") return [`HOST_REVIEW_ACKNOWLEDGE_APPROVED_NOT_ALLOW: ${acknowledgeGrantShow(permission?.host_review_acknowledge_approved)}`]
+  return []
+}
+function acknowledgeGrantOutsideFailures(agents, allowedAgents) {
   const failures = []
   const allowed = new Set(allowedAgents ?? [])
   for (const [name, agent] of Object.entries(agents ?? {})) {
     if (allowed.has(name)) continue
-    if (resolvedPermissionValue(agent, "host_review_acknowledge_approved") === "allow") {
-      failures.push(`HOST_REVIEW_ACKNOWLEDGE_ALLOW_OUTSIDE_COORDINATORS: ${name}`)
+    const resolved = resolvedPermissionValue(agent, "host_review_acknowledge_approved")
+    if (resolved !== undefined && resolved !== "deny") {
+      failures.push(`HOST_REVIEW_ACKNOWLEDGE_NON_DENY_OUTSIDE_COORDINATORS: ${name}=${acknowledgeGrantShow(resolved)}`)
     }
   }
   return failures
 }
+// acknowledge-grant-policy:end
+const acknowledgeAskProbe=hostReviewAcknowledgeAllowFailures({permission:{host_review_acknowledge_approved:"ask"}})
+if (!acknowledgeAskProbe.some(failure=>failure.includes("HOST_REVIEW_ACKNOWLEDGE_APPROVED_NOT_ALLOW"))) fail("HOST_REVIEW_ACKNOWLEDGE_APPROVED_ASK_POSITIVE_CONTROL_FAILED")
+
+const registeredHostReads=["host_review_mode_status","host_review_status","host_review_lens_context","host_sandbox_result"]
+const gatedHostMutations=["host_review_diff_read","host_git_commit","host_git_push","host_gh_issue_create","host_plan_append","host_register_project","host_review_start","host_review_materialize","host_review_pipeline_run","host_review_persist","host_review_capture_result","host_review_capture_unachievable","host_review_acknowledge_approved","host_review_capture_correction_plan","host_review_capture_refuter","host_review_capture_validation","host_review_validate","host_review_recover","host_sandbox_result_install","host_git_clear_commit_intent"]
+const retiredHostOperations=["host_sdd_verify_validate","host_sdd_attempt_status","host_sdd_attempt_acquire","host_sdd_attempt_begin","host_sdd_attempt_rescope","host_sdd_attempt_finish","host_sdd_attempt_reset","host_sdd_attempt_settle","host_sdd_attempt_grant","host_sdd_archive_compose","host_sdd_status","host_sdd_continue","host_sdd_task_result"]
+for (const name of registeredHostReads) if (gp[name]!=="allow") fail(`HOST_READ_PERMISSION_MISMATCH: ${name}`)
+for (const name of [...gatedHostMutations,...retiredHostOperations]) if (gp[name]!=="deny") fail(`HOST_MUTATION_OR_RETIRED_DEFAULT_NOT_DENY: ${name}`)
+for (const name of ["host_system","host_service_status","host_service_logs","host_tailscale_status","host_memory","host_disk_usage","host_network_listeners","host_process_list","host_docker_list","host_docker_logs"]) if (gp[name]==="allow") fail(`UNREGISTERED_HOST_INSPECTION_ADVERTISED: ${name}`)
+
+function cfgTool(agent,t) { return agent?.tools && typeof agent.tools==="object" ? agent.tools[t] : undefined }
+function cfgPerm(agent,t) { return agent?.permission && typeof agent.permission==="object" ? agent.permission[t] : undefined }
+
 function orchestratorGrepFailures(agent) {
   const failures=[]
   if (cfgPerm(agent,"grep")!=="allow") failures.push(`ORCHESTRATOR_GREP_NOT_ALLOW: ${show(cfgPerm(agent,"grep"))}`)
@@ -1191,15 +1194,19 @@ const acknowledgeMissingProbe=hostReviewAcknowledgeAllowFailures({permission:{}}
 if (!acknowledgeMissingProbe.length) fail("COORDINATOR_ACKNOWLEDGE_OMITTED_POSITIVE_CONTROL_FAILED")
 const acknowledgeWrongProbe=hostReviewAcknowledgeAllowFailures({permission:{host_review_acknowledge_approved:"ask"}})
 if (!acknowledgeWrongProbe.length) fail("COORDINATOR_ACKNOWLEDGE_MISMATCH_POSITIVE_CONTROL_FAILED")
-for (const failure of acknowledgeAllowSweepFailures(deployedAgents, coordinatorAgents)) fail(failure)
-const acknowledgeExactAllowProbe = acknowledgeAllowSweepFailures({"synthetic-exact-allow":{permission:{host_review_acknowledge_approved:"allow"}}}, coordinatorAgents)
-if (!acknowledgeExactAllowProbe.includes("HOST_REVIEW_ACKNOWLEDGE_ALLOW_OUTSIDE_COORDINATORS: synthetic-exact-allow")) fail("HOST_REVIEW_ACKNOWLEDGE_ALLOW_SWEEP_EXACT_POSITIVE_CONTROL_FAILED")
-const acknowledgeGlobAllowProbe = acknowledgeAllowSweepFailures({"synthetic-glob-allow":{permission:{"host_review_*":"allow"}}}, coordinatorAgents)
-if (!acknowledgeGlobAllowProbe.includes("HOST_REVIEW_ACKNOWLEDGE_ALLOW_OUTSIDE_COORDINATORS: synthetic-glob-allow")) fail("HOST_REVIEW_ACKNOWLEDGE_ALLOW_SWEEP_GLOB_POSITIVE_CONTROL_FAILED")
-const acknowledgeGlobThenDenyProbe = acknowledgeAllowSweepFailures({"synthetic-ordered-deny":{permission:{"host_review_*":"allow",host_review_acknowledge_approved:"deny"}}}, coordinatorAgents)
+for (const failure of acknowledgeGrantOutsideFailures(deployedAgents, coordinatorAgents)) fail(failure)
+const acknowledgeExactAllowProbe = acknowledgeGrantOutsideFailures({"synthetic-exact-allow":{permission:{host_review_acknowledge_approved:"allow"}}}, coordinatorAgents)
+if (!acknowledgeExactAllowProbe.includes('HOST_REVIEW_ACKNOWLEDGE_NON_DENY_OUTSIDE_COORDINATORS: synthetic-exact-allow="allow"')) fail("HOST_REVIEW_ACKNOWLEDGE_ALLOW_SWEEP_EXACT_POSITIVE_CONTROL_FAILED")
+const acknowledgeGlobAllowProbe = acknowledgeGrantOutsideFailures({"synthetic-glob-allow":{permission:{"host_review_*":"allow"}}}, coordinatorAgents)
+if (!acknowledgeGlobAllowProbe.includes('HOST_REVIEW_ACKNOWLEDGE_NON_DENY_OUTSIDE_COORDINATORS: synthetic-glob-allow="allow"')) fail("HOST_REVIEW_ACKNOWLEDGE_ALLOW_SWEEP_GLOB_POSITIVE_CONTROL_FAILED")
+const acknowledgeAskSweepProbe = acknowledgeGrantOutsideFailures({"synthetic-ask":{permission:{host_review_acknowledge_approved:"ask"}}}, coordinatorAgents)
+if (!acknowledgeAskSweepProbe.some(failure=>failure.startsWith("HOST_REVIEW_ACKNOWLEDGE_NON_DENY_OUTSIDE_COORDINATORS: synthetic-ask="))) fail("HOST_REVIEW_ACKNOWLEDGE_NON_DENY_OUTSIDE_COORDINATORS_POSITIVE_CONTROL_FAILED")
+const acknowledgeGlobThenDenyProbe = acknowledgeGrantOutsideFailures({"synthetic-ordered-deny":{permission:{"host_review_*":"allow",host_review_acknowledge_approved:"deny"}}}, coordinatorAgents)
 if (acknowledgeGlobThenDenyProbe.length !== 0) fail("HOST_REVIEW_ACKNOWLEDGE_ALLOW_SWEEP_ORDER_NEGATIVE_CONTROL_FAILED")
-const acknowledgeDenyProbe = acknowledgeAllowSweepFailures({"synthetic-deny":{permission:{host_review_acknowledge_approved:"deny"}}}, coordinatorAgents)
+const acknowledgeDenyProbe = acknowledgeGrantOutsideFailures({"synthetic-deny":{permission:{host_review_acknowledge_approved:"deny"}}}, coordinatorAgents)
 if (acknowledgeDenyProbe.length !== 0) fail("HOST_REVIEW_ACKNOWLEDGE_ALLOW_SWEEP_DENY_NEGATIVE_CONTROL_FAILED")
+const acknowledgeOmittedProbe = acknowledgeGrantOutsideFailures({"synthetic-omitted":{permission:{}}}, coordinatorAgents)
+if (acknowledgeOmittedProbe.length !== 0) fail("HOST_REVIEW_ACKNOWLEDGE_ALLOW_SWEEP_OMITTED_NEGATIVE_CONTROL_FAILED")
 function pmGitAccessFailures(name,agent) {
   const failures=[]
   for (const [tool,permission] of [["host_git_branch","ask"],["host_git_head","allow"]]) {
