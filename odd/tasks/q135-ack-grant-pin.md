@@ -28,6 +28,7 @@ owner committed all five paths together (no partial commit).
 | T2 | Tighten the `check-runtime-agents.cjs` non-coordinator sweep to "deny or absent" behind the `acknowledge-grant-policy` marker block | done | one marker pair, one definition per function, `resolved !== undefined && resolved !== "deny"`, synthetic-ask + omitted controls; Bun whole-file parse gate |
 | T3 | Re-pin the verifier manifest | done | `ok: manifest and pin are current` |
 | T4 | State the holder set and the owner decision in `WORKFLOW.md` | done | one paragraph inside the `workflow.review-relay` anchor |
+| T5 | Native review of the widened candidate | done, approved | lineage `review-f0b965c39bb70244`, consumed `sha256:d1995d99…`, authority burned |
 
 ## Acceptance criteria
 
@@ -111,27 +112,44 @@ item 8 verbatim, rationale, and the verifier pin.
   check intact, no extra `allow` holder, `global-config/opencode.json` untouched.
 - `advisor-security-post` raised two CRITICALs claiming the coordinator check accepted a wildcard-only allow.
   REFUTED: `hostReviewAcknowledgeAllowFailures` uses `Object.prototype.hasOwnProperty.call(...)` and the GREEN
-  run includes the wildcard-only control.
+  run includes the wildcard-only control; the native `review-risk` lens independently confirmed the refutation.
 - Regression modules OK: `test_anchor_manifest` 21, `test_review_cadence` 2, `test_v2_config` 9,
   `test_derive_v2_config` 76, `test_grok_seat_policy` 13, `test_pm_git_head_grants` 5,
   `test_acknowledge_grant_pin` 4. `test_orchestrator_prompt_source` keeps the known main baseline failure.
 - Full-suite residue is environmental: missing `sqlite3`, missing `node`, `/nonexistent` temp root, Python 3.13
   dataclass handling.
 
-## Review boundary
+## Native review outcome
 
-- Candidate assessed: `c85c75c` on `feat/q135-ack-grant-pin` (owner commit of the five paths; Codex Tier 4 PASS).
-- Boundary used: `df32ad0` — the candidate's parent. The preceding `odd/` plan commits are documentation, and
-  this tracker recorded no earlier reviewed boundary, so the parent is the correct boundary.
-- Integration: read-only `host_review_assess` through the reviewed host surface, with `--agent opencode
-  --committed-only` semantics (base-diff, committed-only projection).
-- Observed: `risk: high` (`process_boundary` and `shell_source` on `verify-workflow.sh`, signal
-  `shell_process`); `changed_paths: 5`; `changed_lines: 229`; `candidate.consumed: false`;
-  `review_due: true`; `review_due_reason: high_risk`.
-- `next_transition` captured verbatim, NOT executed: operation `review.status`; command
-  `gentle-ai review status --cwd=/home/james/ai-workspace/worktrees/workflow_optimisation/q135-ack-grant-pin --contract=gentle-ai.review-integration/v2 --next-transition=true --base-ref=df32ad0 --committed-only=true`.
-- Consent and the RDD switch belong to the owner (D37); Tier 2 asks the owner. No START or returned transition
-  was run by this session.
+- Scope: `--base-ref df32ad0 --committed-only`, HEAD `970a501`, target
+  `sha256:8e3c309ab010524fbec2cc2f3805eab55ee32268cbc071113f88a7b11e424c4a`, base tree
+  `f686cf0c6f74938b083104fe220051a47f32ff90`, candidate tree `3656cff25dc96ae50c9b920a270fa64be1fbcb34`,
+  six changed paths (the five implementation paths plus this tracker document), 487 changed lines.
+- Consent: the owner first consented to `df32ad0..c85c75c`; the tooling could not scope past later commits and
+  widened the candidate to `df32ad0..970a501`, which stopped the first attempt. The owner then consented
+  verbatim "Yes" (2026-11-12) to the widened review; the provider's `consent_required` envelope was answered
+  with its exact `--consent granted` invocation.
+- Lineage: `review-f0b965c39bb70244` (risk `high`; provider-selected lenses `review-risk`,
+  `review-resilience`, `review-readability`, `review-reliability`).
+- Verdict: **approved**. `review/acknowledge-approved` succeeded with
+  `consumed_revision sha256:d1995d99da7cf5f573c57443ccdb13ba8e4d6b0d23cd4b7656e7ce48cc868406` and
+  `authority: burned`.
+- `review-risk` found nothing and confirmed the grant file is unchanged.
+- Non-blocking advisories (all `informational`; none opened a correction, none reopens this candidate):
+  - `R2-unused-runtime-param` (readability, WARNING) — `tests/test_acknowledge_grant_pin.py:29`, `build_policy`
+    takes a `runtime` argument it never reads.
+  - `R2-dunder-setitem` (readability, SUGGESTION) — lines 116-119 use `__setitem__` instead of subscript
+    assignment in the mutation controls.
+  - `R3-001` (reliability, WARNING) — line 126 fourth-agent controls assert only a non-empty failure list; the
+    baseline is not re-asserted inside the subtest and no expected failure code is matched.
+  - `R3-002` (reliability, WARNING) — line 140 coordinator controls use the same non-empty-only assertion.
+  - `R3-003` (reliability, WARNING) — lines 50-51 whole-class skip when no JS runtime; a skip is not green
+    evidence.
+  - `R4-1` (resilience, SUGGESTION) — lines 97-103 spawn redundant policy subprocesses in `assert_clean_config`.
+  - `R4-2` (resilience, SUGGESTION) — lines 22-26 unguarded `spec_from_file_location`/loader.
+  - `R4-3` (resilience, SUGGESTION) — lines 49-51 skip visibility.
+- Boundary recorded: the reviewed boundary advances to `970a501` (the consumed candidate). Commits after
+  `970a501`, including this metadata update, are not covered by this review.
 
 ## Owner commit list
 
@@ -147,9 +165,12 @@ item 8 verbatim, rationale, and the verifier pin.
   `pm-odd` returned `BLOCKED / REQUIRED_WRITER_SURFACE_UNAVAILABLE`; Tier 2 accepted the direct `general` writer
   fallback as a sanctioned exception (Q102 P1a form).
 - 2026-11-11 Implementation and one correction round complete; verifier PASS. Applied diff handed to the owner.
-- 2026-11-12 Owner commit `c85c75c`; Codex Tier 4 PASS. Read-only `review assess` on `c85c75c` against
-  `df32ad0` (committed-only): `risk: high`, `candidate.consumed: false`, `review_due: true`,
-  `review_due_reason: high_risk`; transition captured but not executed.
+- 2026-11-12 Owner commit `c85c75c`; Codex Tier 4 PASS. Read-only assess on the five-path candidate returned
+  `risk: high`, `candidate.consumed: false`, `review_due: true`, `review_due_reason: high_risk`.
+- 2026-11-12 First start attempt stopped: the tooling ranges `df32ad0..HEAD`, so the candidate included this
+  tracker commit and could not be scoped to `c85c75c`; nothing was started.
+- 2026-11-12 Owner consented to the widened candidate; review started as `review-f0b965c39bb70244`, all four
+  lenses admitted, verdict approved, acknowledgement consumed `sha256:d1995d99…` and burned authority.
 
 
 ## Revisions
@@ -158,6 +179,7 @@ item 8 verbatim, rationale, and the verifier pin.
 - r3 2026-11-11T22:38:06Z planner: Finalise T1-T4 plan and formal advice dispositions; preserve verbatim contract. Broker retains managed revision log.
 - r4 2026-11-11T23:58:47Z gentle-orchestrator: Close T1-T4 with RED/GREEN, verifier PASS, refuted advisor finding, owner commit list, and the Tier 2 sanctioned-exception record.
 - r5 2026-11-12T00:20:25Z gentle-orchestrator: Record the review boundary df32ad0 for candidate c85c75c and the read-only assess result (high, due, not consumed); no transition executed.
+- r6 2026-11-12T00:31:05Z gentle-orchestrator: Record native review outcome: lineage review-f0b965c39bb70244 approved, consumed sha256:d1995d99, authority burned, advisories listed; boundary advances to 970a501.
 
 ## Gates
 - q135-ack-grant-pin-u1 PASS 2026-11-11T22:39:16Z planner ref=odd/tasks/q135-ack-grant-pin.md r3, Finalised unit plan T1-T4; raw security/spec pre-advice read; security B1 and spec B1-B6 resolved; node availability deferred to actual writer execution.
