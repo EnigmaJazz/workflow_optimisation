@@ -10,7 +10,7 @@ set -eu
 dir=${1:?usage: dispatch-worker.sh <worktree-dir> <worker-start args...>}
 shift
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-"$here/codegraph-ensure.sh" "$dir"
+"$here/codegraph-ensure.sh" "$dir" >/dev/null
 
 # Record profile and terminal metadata while preserving the worker-start argument vector.
 agent=""
@@ -91,6 +91,15 @@ else
   exit "$status"
 fi
 
+# Return the validated worker-start receipt before downstream metadata or retention work.
+printf '%s\n' "$out"
+
+retain_dispatch() {
+  if ! orca orchestration worker-retain --dispatch "$id" --json >/dev/null; then
+    printf 'dispatch-worker: warning: retention failed for dispatch %s\n' "$id" >&2
+  fi
+}
+
 # Resolve reused terminal profiles from Orca rather than trusting the caller's agent claim.
 if [ -n "$terminal" ]; then
   if terminal_list=$(orca terminal list --json); then
@@ -124,7 +133,7 @@ fi
 # Retain fresh OpenCode 2 dispatches directly; reused terminals require ownership proof.
 owned=0
 if [ "$profile" = "opencode2" ] && [ -z "$terminal" ]; then
-  orca orchestration worker-retain --dispatch "$id" --json >/dev/null
+  retain_dispatch
 elif [ "$profile" = "opencode2" ] && [ -n "$terminal" ]; then
   if worker_list=$(orca orchestration worker-list --json); then
     if printf '%s' "$worker_list" | python3 -c '
@@ -153,7 +162,7 @@ if not tied or not isinstance(resource, dict) or resource.get("ownershipState") 
     fi
   fi
   if [ "$owned" = 1 ]; then
-    orca orchestration worker-retain --dispatch "$id" --json >/dev/null
+    retain_dispatch
   else
     printf 'dispatch-worker: reused terminal %s: ownership unproven, dispatch not retained\n' "$terminal" >&2
   fi
@@ -161,6 +170,5 @@ fi
 if [ -n "$terminal" ] && [ -z "$profile" ]; then
   printf 'dispatch-worker: reused terminal %s: profile unresolved, dispatch not retained\n' "$terminal" >&2
 fi
-# Print the raw receipt only after validation, followed by the validated dispatch id.
-printf '%s\n' "$out"
-printf '%s\n' "$id"
+# Report the validated dispatch id on stderr without changing the stdout receipt document.
+printf 'dispatch-worker: dispatch %s\n' "$id" >&2

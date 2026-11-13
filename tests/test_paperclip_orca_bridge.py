@@ -38,6 +38,9 @@ class Orca(unittest.TestCase):
             '  printf "%s\\n" "${FAKE_OUT:-}"\n'
             '  exit "${FAKE_RC:-0}"\n'
             'fi\n'
+            'if [ "$1 $2 $3" = "orchestration worker-retain --dispatch" ]; then\n'
+            '  exit "${FAKE_RETAIN_RC:-0}"\n'
+            'fi\n'
             "exit 0\n"
         )
         fake_orca.chmod(fake_orca.stat().st_mode | stat.S_IXUSR)
@@ -124,6 +127,8 @@ class Orca(unittest.TestCase):
             ("nonzero-child-status-preserved", ("--agent", "opencode2", "--spec", "X"), {**dispatch("ctx_nonzero"), "FAKE_RC": "7"}, False, False, 7),
             ("receipt-validated-for-codex-too", ("--agent", "codex", "--spec", "X"), {"FAKE_OUT": "not json"}, False, False, None),
             ("codex-policy-prepended", ("--agent", "codex", "--spec", "REVIEW THE DIFF", "--run", "run_x"), dispatch("ctx_codex"), False, True),
+            ("retain-failure-does-not-abort", ("--terminal", "term_reuse", "--spec", "X"), {**config(), "FAKE_RETAIN_RC": "9"}, True, True),
+            ("retain-failure-fresh-not-aborted", ("--agent", "opencode2", "--spec", "X"), {**dispatch("ctx_fresh"), "FAKE_RETAIN_RC": "9"}, True, True),
         ]
         receipt_defects = {
             "empty": {"FAKE_OUT": "", "FAKE_RC": "0"},
@@ -146,8 +151,11 @@ class Orca(unittest.TestCase):
                     self.assertEqual(result.returncode, expected_status, result.stderr)
                 if successful:
                     dispatch_id = json.loads(env["FAKE_OUT"]) ["result"]["dispatch"]["dispatchId"]
-                    self.assertIn(dispatch_id, result.stdout)
-                    self.assertEqual(result.stdout.splitlines()[-1], dispatch_id)
+                    receipt = json.loads(result.stdout)
+                    self.assertEqual(receipt["result"]["dispatch"]["dispatchId"], dispatch_id)
+                    self.assertIn(dispatch_id, result.stderr)
+                if name in {"retain-failure-does-not-abort", "retain-failure-fresh-not-aborted"}:
+                    self.assertIn("retention failed", result.stderr)
                 self.assertEqual("worker-retain" in result.log, retained, result.log)
                 if retained:
                     self.assertIn(dispatch_id, result.log)
