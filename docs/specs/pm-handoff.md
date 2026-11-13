@@ -27,7 +27,7 @@ Sequence:
    `planner-evidence` runs only when facts cannot be established by the Planner's own reads.
 4. **Gate 1** follows the pre-code advice. The Planner issues `PASS`, `REFINE`, or `ESCALATE` through
    the ask-gated `host_gate_verdict` fixed act.
-5. A writer implements; the Planner runs the required post-code advisory check.
+5. A writer implements. The Planner dispatches the required post-code `advisor-*` check; `ce:review`, where the route substitutes it, stays with its existing route owner.
 6. **Gate 2** follows the post-code advice, the writer and verifier evidence, and the pre-commit
    assessment of the installed candidate. Gate 2 occurs BEFORE the work-unit commit and
    BEFORE the PM completes or ticks the unit, so a REFINE resolves in the single revision cycle
@@ -80,7 +80,7 @@ After route agreement, follow that route skill's current requirements in order:
 2. pre-code advice when the finite actual-diff budget requires it; a true simple-docs unit inside the allowlist takes none;
 3. named writer/specialist for this unit only;
 4. required checks, each captured with its observed result;
-5. post-code advisory review from the PM before the work-unit commit, only when the unit's actual-diff budget requires it: every normative change, including a normative or command-doc change, owes the budget's post-code check exactly as code does; routes that do not run Systematic `ce:review` owe the registered post-code advisor review; routes that run `ce:review` do not owe that additional advisor review, and `ce:review` plus the external pair are one consolidated phase whose same-candidate findings merge, never a full rerun. Only a true docs/metadata unit inside the allowlist or a genuinely passive tiny fix owes neither; its factual/structural check and the independent orchestrator readback stand in. The advisory reviewer must be independent of the author, and all advisory blockers must be resolved before the work-unit commit;
+5. post-code advisory review from the Planner before the work-unit commit, only when the unit's actual-diff budget requires it: every normative change, including a normative or command-doc change, owes the budget's post-code check exactly as code does; routes that do not run Systematic `ce:review` owe the registered post-code advisor review; routes that run `ce:review` do not owe that additional advisor review, and `ce:review` plus the external pair are one consolidated phase whose same-candidate findings merge, never a full rerun. Only a true docs/metadata unit inside the allowlist or a genuinely passive tiny fix owes neither; its factual/structural check and the independent orchestrator readback stand in. The advisory reviewer must be independent of the author, and all advisory blockers must be resolved before the work-unit commit;
 6. staged reviewability receipt and authorized PM-owned work-unit commit;
 7. after that commit, obtain the native review risk assessment against the committed candidate; continue native review only when the selected non-SDD route and user-owned RDD state require it. The pre-apply assessment requirement is removed. The PM does not run native review;
 8. tracker, `docs/TODO.md`, and `docs/PLAN.md` updates as applicable.

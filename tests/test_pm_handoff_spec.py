@@ -267,6 +267,36 @@ class PMHandoffSpecTest(unittest.TestCase):
         self.assertNotEqual(mutated, self.spec, "the pre-commit needle must be present to mutate")
         self.assertTrue(self.planner_handoff_gaps(mutated))
 
+    def test_only_the_planner_dispatches_advisors(self):
+        root = Path(__file__).resolve().parents[1]
+        handoff = (root / "docs/ADVISOR-HANDOFF.md").read_text(encoding="utf-8")
+        self.assertIn(
+            "All twelve split advisors are dispatched through the Planner's task permissions",
+            handoff,
+        )
+        self.assertNotIn("dispatched through the orchestrator's task permissions", handoff)
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        self.assertIn("The Planner dispatches and records advisor findings mechanically", workflow)
+        self.assertNotIn("The orchestrator routes and aggregates advisor findings", workflow)
+
+    def test_planner_dispatches_only_advisors_not_ce_review(self):
+        root = Path(__file__).resolve().parents[1]
+        odd = ODD_SKILL_PATH.read_text(encoding="utf-8")
+        self.assertIn("The Planner dispatches only the registered post-code `advisor-*` checks", odd)
+        self.assertIn("stays with its existing route owner, the PM or the orchestrator", odd)
+        self.assertNotIn("The Planner runs the required post-code check", odd)
+        self.assertNotIn("`ce:review` where it substitutes)", odd)
+        tier5 = (root / "roles/tier-5.md").read_text(encoding="utf-8")
+        self.assertIn("the post-code `advisor-*` check", tier5)
+        self.assertNotIn("the post-code advisory check", tier5)
+        spec = SPEC_PATH.read_text(encoding="utf-8")
+        self.assertIn("The Planner dispatches the required post-code `advisor-*` check", spec)
+        self.assertIn("stays with its existing route owner", spec)
+        self.assertNotIn("the Planner runs the required post-code advisory check", spec)
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        self.assertIn("The Planner dispatches the post-code `advisor-*` check", workflow)
+        self.assertNotIn("The Planner runs the post-code advisory check", workflow)
+
     def test_positive_control_detects_post_commit_gate2(self):
         mutated = self.spec.replace("BEFORE the work-unit commit",
                                     "after the work-unit commit", 1)
@@ -313,7 +343,7 @@ class PMHandoffSpecTest(unittest.TestCase):
         execution = spec.split("## Route validation and ordered execution", 1)[1].split(
             "## Versioned result envelope", 1
         )[0]
-        self.assertIn("post-code advisory review from the PM before the work-unit commit", execution)
+        self.assertIn("post-code advisory review from the Planner before the work-unit commit", execution)
         self.assertIn("all advisory blockers must be resolved before the work-unit commit", execution)
         commit = execution.index("staged reviewability receipt and authorized PM-owned work-unit commit")
         self.assertIn("native review risk assessment against the committed candidate", execution)

@@ -42,7 +42,7 @@ testing and maintainability pre/post seats retain the sandbox advisor surface.
 
 **Four tool-less seats:** `advisor-design-pre`, `advisor-security-pre`, `advisor-spec-pre` and `advisor-spec-post` deny `read`, `grep`, `bash` and every sandbox route. Their only enabled task route is `advisor-evidence` (`permission.task` denies `*` and allows only that target). `ctx_memory` is denied.
 
-All twelve split advisors are dispatched through the orchestrator's task permissions; their own task permissions are limited to the explicit routes described above.
+All twelve split advisors are dispatched through the Planner's task permissions; their own task permissions are limited to the explicit routes described above.
 
 ## Available testing tools today
 
