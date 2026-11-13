@@ -127,7 +127,7 @@ class RealConfig(unittest.TestCase):
         for needle in (
             "for (const failure of plannerHandoffFailures(deployedAgents,gp)) fail(failure)",
             'const planWriterAgents=[...coordinatorAgents,"planner"]',
-            'const advisorDispatchAgents=[...coordinatorAgents,"planner"]',
+            'const advisorDispatchAgents=["planner"]',
             'const coordinatorAgents=["gentle-orchestrator",...pmAgents]',
             "hostPlanWriteGrantSweepFailures(deployedAgents,planWriterAgents)",
             "advisorModelPolicyFailures(deployedAgents)",

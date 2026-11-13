@@ -1243,7 +1243,7 @@ if (!pmGitAccessOutsideAllowlistFailures(pmGitSweepProbe).some((failure)=>failur
 // Keeping it out of coordinatorAgents avoids requiring the PM/review host grants and
 // avoids treating its narrow task map as coordinator deep-dispatch authority.
 const planWriterAgents=[...coordinatorAgents,"planner"]
-const advisorDispatchAgents=[...coordinatorAgents,"planner"]
+const advisorDispatchAgents=["planner"]
 for (const failure of hostPlanWriteGrantSweepFailures(deployedAgents,planWriterAgents)) fail(failure)
 for (const value of ["ask","allow"]) {
   const synthetic=`synthetic-${value}-plan-writer`
@@ -1827,8 +1827,8 @@ else {
 
 let advisorFallbackConfig
 // advisor-model-policy:begin
-// Advisor seats have a narrow delegation boundary: only the fixed coordinator set can dispatch
-// advisors, and only four tool-less seats can dispatch the facts-only evidence gatherer.
+// Advisor seats have a narrow delegation boundary: only the Planner can dispatch advisors
+// (the orchestrator and PMs hold no advisor grant), and only four tool-less seats can dispatch the facts-only evidence gatherer.
 // Keep the function self-contained so its boundary probes exercise real policy decisions.
 function advisorModelPolicyFailures(agents, fallbackConfig=advisorFallbackConfig) {
   const failures=[]
@@ -1837,7 +1837,7 @@ function advisorModelPolicyFailures(agents, fallbackConfig=advisorFallbackConfig
   const toollessSeats=["advisor-design-pre","advisor-security-pre","advisor-spec-pre","advisor-spec-post"]
   const expectedTask={"*":"deny","advisor-evidence":"allow"}
   const evidenceHosts=["edit","write","bash","sandbox_apply","sandbox_copy_in","sandbox_copy_out","sandbox_discard","sandbox_finish"]
-  const advisorDispatchers=new Set(["gentle-orchestrator","pm-odd","pm-systematic","planner"])
+  const advisorDispatchers=new Set(["planner"])
   const evidenceDispatchers=new Set(toollessSeats)
   const advisorNames=entries.map(([name])=>name).filter((name)=>name.startsWith("advisor-") && /-(pre|post)$/.test(name))
   const memoryDenied=(agent,key)=>agent?.tools?.[key]!==true && (agent?.permission?.[key]==="deny" || agent?.tools?.[key]===false || agent?.tools?.["*"]===false)
@@ -1898,9 +1898,9 @@ function advisorModelPolicyFailures(agents, fallbackConfig=advisorFallbackConfig
       if (action!=="deny") failures.push(`ADVISOR_EVIDENCE_DISPATCH_NOT_DENIED: ${name}=${JSON.stringify(action)}`)
     }
     for (const target of advisorNames) {
-      const allowed=resolvedTask(agent,target)==="allow"
+      const action=resolvedTask(agent,target)
       const permitted=advisorDispatchers.has(name)
-      if (allowed && !permitted) failures.push(`ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: ${name}->${target}`)
+      if (!permitted && (action==="allow" || action==="ask")) failures.push(`ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: ${name}->${target}=${JSON.stringify(action)}`)
     }
   }
   const noFallback=new Set(Array.isArray(fallbackConfig?.noFallbackAgents)?fallbackConfig.noFallbackAgents:[])
@@ -2000,8 +2000,29 @@ function grokReachableSeatFailures(systematic, inventory, fallback, sourceModels
   // and always matches advisorNames; it is the stable outside-allowlist target.
   const advisorDispatchProbe={...deployedAgents,"synthetic-unlisted-agent":{permission:{task:{"*":"deny","advisor-design-pre":"allow"}}}}
   const advisorDispatchFailures=advisorModelPolicyFailures(advisorDispatchProbe)
-  if (!advisorDispatchFailures.includes("ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: synthetic-unlisted-agent->advisor-design-pre")) {
+  if (!advisorDispatchFailures.includes('ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: synthetic-unlisted-agent->advisor-design-pre="allow"')) {
     fail(`ADVISOR_DISPATCH_SCOPE_POSITIVE_CONTROL_FAILED: ${JSON.stringify(advisorDispatchFailures)}`)
+  }
+  // Q138: a PM must no longer be able to dispatch an advisor seat.
+  const pmAdvisorProbe={...deployedAgents,"pm-odd":{permission:{task:{"*":"deny","advisor-design-pre":"allow"}}}}
+  const pmAdvisorFailures=advisorModelPolicyFailures(pmAdvisorProbe)
+  if (!pmAdvisorFailures.includes('ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: pm-odd->advisor-design-pre="allow"')) {
+    fail(`ADVISOR_PM_DISPATCH_POSITIVE_CONTROL_FAILED: ${JSON.stringify(pmAdvisorFailures)}`)
+  }
+  // Q138: the orchestrator must not dispatch an advisor either.
+  const orchestratorAdvisorProbe={...deployedAgents,"gentle-orchestrator":{permission:{task:{"*":"deny","advisor-design-pre":"allow"}}}}
+  const orchestratorAdvisorFailures=advisorModelPolicyFailures(orchestratorAdvisorProbe)
+  if (!orchestratorAdvisorFailures.includes('ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: gentle-orchestrator->advisor-design-pre="allow"')) {
+    fail(`ADVISOR_ORCHESTRATOR_DISPATCH_POSITIVE_CONTROL_FAILED: ${JSON.stringify(orchestratorAdvisorFailures)}`)
+  }
+  // Q138: an inherited or explicit wildcard "ask" is a dispatch grant, not a deny.
+  const pmAdvisorAskProbe={...deployedAgents,"pm-odd":{permission:{task:{"*":"deny","advisor-design-pre":"ask"}}}}
+  if (!advisorModelPolicyFailures(pmAdvisorAskProbe).includes('ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: pm-odd->advisor-design-pre="ask"')) {
+    fail("ADVISOR_ASK_DISPATCH_POSITIVE_CONTROL_FAILED")
+  }
+  const wildcardAskProbe={...deployedAgents,"synthetic-wildcard-ask":{permission:{task:{"*":"ask"}}}}
+  if (!advisorModelPolicyFailures(wildcardAskProbe).includes('ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: synthetic-wildcard-ask->advisor-design-pre="ask"')) {
+    fail("ADVISOR_WILDCARD_ASK_POSITIVE_CONTROL_FAILED")
   }
   if (advisorFailures.length===0) console.log("   ok: advisor model, seat isolation, dispatch boundaries and no-fallback policy")
 }

@@ -11,9 +11,7 @@ apply come from the task class in `WORKFLOW.md`, not from the brief.
 
 ## Flow
 
-1. **Route.** Classify the phase and take the route its class requires. A routed unit goes to the PM
-   (`pm-odd`, `pm-systematic`), which owns the pre-code advice, the writer, the post-code advisory
-   check, `gentle-ai-verify` and Gate 2 where the class requires them (`docs/specs/pm-handoff.md`).
+1. **Route.** Classify the phase and take the route its class requires. A routed unit goes to the PM (`pm-odd`, `pm-systematic`), which owns the writer, `gentle-ai-verify` and the Planner handoff where the class requires them; the Planner owns the pre-code advice, the post-code `advisor-*` check, Gate 1 and Gate 2 (`docs/specs/pm-handoff.md`).
    Those run inside the PM session; nothing is reported between them.
 2. **Change.** Implement in the sandbox, test first, staged and unapplied (S17: no worker commits to
    protected paths).

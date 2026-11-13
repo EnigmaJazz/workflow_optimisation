@@ -111,6 +111,82 @@ class AdvisorCheckerPolicy(unittest.TestCase):
             self.policy_failures(agents),
         )
 
+    def test_pm_advisor_dispatch_grant_is_rejected(self):
+        for pm in ("pm-odd", "pm-systematic"):
+            agents = copy.deepcopy(self.agents)
+            agents[pm]["permission"]["task"]["advisor-design-pre"] = "allow"
+            with self.subTest(pm=pm):
+                self.assertIn(
+                    f"ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: {pm}->advisor-design-pre=\"allow\"",
+                    self.policy_failures(agents),
+                )
+
+    def test_planner_advisor_dispatch_stays_permitted(self):
+        agents = copy.deepcopy(self.agents)
+        agents["planner"]["permission"]["task"]["advisor-design-pre"] = "allow"
+        self.assertNotIn(
+            "ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: planner->advisor-design-pre",
+            self.policy_failures(agents),
+        )
+
+    def test_orchestrator_advisor_dispatch_grant_is_rejected(self):
+        agents = copy.deepcopy(self.agents)
+        agents["gentle-orchestrator"]["permission"]["task"]["advisor-design-pre"] = "allow"
+        self.assertIn(
+            'ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: gentle-orchestrator->advisor-design-pre="allow"',
+            self.policy_failures(agents),
+        )
+
+    def test_orchestrator_wildcard_does_not_reach_the_advisor_seats(self):
+        task = self.agents["gentle-orchestrator"]["permission"]["task"]
+        self.assertEqual(task.get("*"), "ask")
+        for name in (
+            "advisor-design-pre", "advisor-integration-pre", "advisor-testing-pre",
+            "advisor-security-pre", "advisor-maintainability-pre",
+            "advisor-design-post", "advisor-integration-post", "advisor-testing-post",
+            "advisor-security-post", "advisor-maintainability-post",
+            "advisor-spec-pre", "advisor-spec-post",
+        ):
+            with self.subTest(seat=name):
+                self.assertEqual(task.get(name), "deny", name)
+
+    def test_explicit_advisor_ask_is_rejected(self):
+        agents = copy.deepcopy(self.agents)
+        agents["pm-odd"]["permission"]["task"]["advisor-design-pre"] = "ask"
+        self.assertIn(
+            'ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: pm-odd->advisor-design-pre="ask"',
+            self.policy_failures(agents),
+        )
+
+    def test_wildcard_ask_does_not_grant_advisor_dispatch(self):
+        agents = copy.deepcopy(self.agents)
+        agents["synthetic-wildcard-ask"] = {"permission": {"task": {"*": "ask"}}}
+        self.assertIn(
+            'ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: synthetic-wildcard-ask->advisor-design-pre="ask"',
+            self.policy_failures(agents),
+        )
+
+    def test_frontend_dev_premium_cannot_reach_any_advisor_seat(self):
+        task = self.agents["frontend-dev-premium"]["permission"]["task"]
+        self.assertEqual(task.get("*"), "ask")
+        for name in (
+            "advisor-design-pre", "advisor-integration-pre", "advisor-testing-pre",
+            "advisor-security-pre", "advisor-maintainability-pre",
+            "advisor-design-post", "advisor-integration-post", "advisor-testing-post",
+            "advisor-security-post", "advisor-maintainability-post",
+            "advisor-spec-pre", "advisor-spec-post",
+        ):
+            with self.subTest(seat=name):
+                self.assertEqual(task.get(name), "deny", name)
+
+    def test_planner_wildcard_ask_does_not_flag_its_own_grants(self):
+        agents = copy.deepcopy(self.agents)
+        agents["planner"]["permission"]["task"]["*"] = "ask"
+        self.assertNotIn(
+            "ADVISOR_DISPATCH_OUTSIDE_ALLOWLIST: planner->advisor-design-pre",
+            self.policy_failures(agents),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
